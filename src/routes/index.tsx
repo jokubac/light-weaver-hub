@@ -92,7 +92,8 @@ function App() {
     );
   }
 
-  const project = projects.find((p) => p.id === view.projectId);
+  const projectId = "projectId" in view ? view.projectId : null;
+  const project = projects.find((p) => p.id === projectId);
   if (!project) {
     setView({ name: "projects" });
     return null;
