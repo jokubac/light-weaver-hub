@@ -41,7 +41,7 @@ Given a description of a desired look and a list of patched fixtures with their 
 Use fixture names as hints for their role (key, fill, back, practical...). Keep a short summary (one sentence) of the look.`;
 
 export async function generateLook(prompt: string, fixtures: LookFixtureInput[]): Promise<LookResult> {
-  const apiKey = process.env.LOVABLE_API_KEY;
+  const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("AI is not configured for this app.");
   const provider = createOpenAI({
     baseURL: "https://ai.gateway.lovable.dev/v1",
