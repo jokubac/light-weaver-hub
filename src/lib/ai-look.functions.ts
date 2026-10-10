@@ -10,7 +10,7 @@ const Input = z.object({
 });
 
 export const generateLookFn = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => Input.parse(d))
+  .validator((d: unknown) => Input.parse(d))
   .handler(async ({ data }) => {
     const { generateLook } = await import("./ai-look.server");
     try {
