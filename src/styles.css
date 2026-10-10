@@ -34,6 +34,7 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-amber-glow: var(--amber-glow);
   --color-success: var(--success);
+  --font-display: "Space Grotesk", system-ui, sans-serif;
 }
 
 :root {
@@ -73,7 +74,7 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: "DM Sans", system-ui, sans-serif;
     overscroll-behavior: none;
   }
 
