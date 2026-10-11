@@ -11,6 +11,9 @@ import { ColourControls } from "./ColourControls";
 import { Button } from "@/components/ui/button";
 import { wallSegments, openingBounds, wallPanels, rayBlocked, segmentDistance, type Opening } from "@/lib/plot-geometry";
 import { editHistory } from "@/lib/edit-history";
+import { CameraView } from "./CameraView";
+import { FSTOPS, ISOS, LENSES, SENSORS, defaultCamera, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
+import { Video } from "lucide-react";
 import { SET_OBJECTS, objectContains, type SetObject, type SetObjectKind } from "@/lib/plot-objects";
 import { hexToHs } from "@/lib/gels";
 import { SettingsTransfer } from "./SettingsTransfer";
@@ -29,6 +32,7 @@ export interface Plot {
   floors?: PlotFloor[];
   openings?: Opening[];
   objects?: SetObject[];
+  cameras?: PlotCamera[];
   view?: { view3d: boolean; yaw: number; pitch: number; zoom: number; pan: [number, number]; active: number };
 }
 export const emptyPlot = (): Plot => ({ strokes: [], items: {}, size: [20, 14] });
@@ -100,6 +104,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const [layoutUnlocked, setLayoutUnlocked] = useState(false);
   const [wallIndex, setWallIndex] = useState<number | null>(null);
   const [objectId, setObjectId] = useState<string | null>(null);
+  const [cameraId, setCameraId] = useState<string | null>(null);
+  const [camViewOpen, setCamViewOpen] = useState(false);
   const [objectKind, setObjectKind] = useState<SetObjectKind>("bed");
   const [placementUid, setPlacementUid] = useState("");
   const [wallHeight, setWallHeight] = useState(2.6);
@@ -322,7 +328,23 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       ctx.strokeStyle = theme.getPropertyValue(o.id === objectId ? "--color-primary" : "--color-muted-foreground");
       ctx.fillStyle = theme.getPropertyValue("--color-surface-elevated"); ctx.lineWidth = 2;
       const face = (pts: [number, number][]) => { ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(...q) : ctx.moveTo(...q)); ctx.closePath(); ctx.fill(); ctx.stroke(); };
-      if (o.kind === "person") {
+      if (o.kind === "tree") {
+        const c = point(0, 0, view3d ? o.h * 0.7 : 0);
+        if (view3d) { ctx.beginPath(); ctx.moveTo(...point(0, 0)); ctx.lineTo(...c); ctx.stroke(); }
+        const edge = point(o.w / 2, 0, view3d ? o.h * 0.7 : 0);
+        ctx.save(); ctx.fillStyle = "rgba(60,140,70,0.55)";
+        ctx.beginPath(); ctx.arc(...c, Math.hypot(edge[0] - c[0], edge[1] - c[1]), 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+      } else if (o.kind === "car") {
+        const body = view3d ? o.h * 0.55 : 0;
+        const corners: [number, number][] = [[-o.w / 2, -o.d / 2], [o.w / 2, -o.d / 2], [o.w / 2, o.d / 2], [-o.w / 2, o.d / 2]];
+        if (view3d) for (let i = 0; i < 4; i++) { const a = corners[i], b = corners[(i+1)%4]; if (a && b) face([point(...a), point(...b), point(...b,body), point(...a,body)]); }
+        face(corners.map(([x,y]) => point(x,y,body)));
+        // cabin with glass windows (light passes through)
+        const cab: [number, number][] = [[-o.w * .42, -o.d * .25], [o.w * .42, -o.d * .25], [o.w * .42, o.d * .2], [-o.w * .42, o.d * .2]];
+        ctx.save(); ctx.fillStyle = "rgba(140,190,230,0.35)";
+        if (view3d) for (let i = 0; i < 4; i++) { const a = cab[i], b = cab[(i+1)%4]; if (a && b) face([point(...a, body), point(...b, body), point(...b, o.h), point(...a, o.h)]); }
+        face(cab.map(([x,y]) => point(x,y,view3d ? o.h : 0))); ctx.restore();
+      } else if (o.kind === "person") {
         const head = point(0, 0, view3d ? o.h - 0.15 : 0);
         const base = point(0, 0);
         ctx.beginPath(); ctx.arc(...head, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -336,6 +358,21 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         if (o.kind === "bed" || o.kind === "sofa") face([point(-o.w * .4,-o.d * .4,view3d ? o.h + .1 : 0),point(o.w * .4,-o.d * .4,view3d ? o.h + .1 : 0),point(o.w * .4,-o.d * .15,view3d ? o.h + .1 : 0),point(-o.w * .4,-o.d * .15,view3d ? o.h + .1 : 0)]);
       }
       const q = point(0,0,view3d ? o.h : 0); ctx.fillStyle = theme.getPropertyValue("--color-foreground"); ctx.font = "11px system-ui"; ctx.textAlign = "center"; ctx.fillText(o.name,q[0],q[1]-14);
+    }
+
+    for (const cam of plot.cameras ?? []) {
+      if (!view3d && cam.floor !== fl) continue;
+      const z = floors[cam.floor]?.z ?? 0;
+      const half = horizontalFov(cam) * Math.PI / 360, a = cam.rot * Math.PI / 180, reach = Math.max(SW, SH) * 0.35;
+      const o = proj(V, cam.x, cam.y, z + cam.h);
+      const l = proj(V, cam.x + Math.cos(a - half) * reach, cam.y + Math.sin(a - half) * reach, z + cam.h);
+      const r = proj(V, cam.x + Math.cos(a + half) * reach, cam.y + Math.sin(a + half) * reach, z + cam.h);
+      ctx.save();
+      ctx.fillStyle = cam.id === cameraId ? "rgba(255,90,90,0.16)" : "rgba(255,90,90,0.08)"; ctx.strokeStyle = "rgba(255,90,90,0.8)"; ctx.lineWidth = cam.id === cameraId ? 2 : 1;
+      ctx.beginPath(); ctx.moveTo(...o); ctx.lineTo(...l); ctx.lineTo(...r); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "rgb(255,90,90)"; ctx.fillRect(o[0] - 7, o[1] - 5, 14, 10);
+      ctx.font = "11px system-ui"; ctx.textAlign = "center"; ctx.fillText(`${cam.name} · ${cam.lens}mm`, o[0], o[1] - 10);
+      ctx.restore();
     }
 
     const placed = fixtures.filter((f) => plot.items[f.uid] && visible(plot.items[f.uid]!));
@@ -795,6 +832,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         {toolBtn("window", <PanelsTopLeft className="h-4 w-4" />, "Window")}
         <Button variant={tool === "fixture" ? "default" : "secondary"} aria-label="Add fixture" title="Add fixture" onClick={() => { setTool("fixture"); setPlacementUid(unplaced[0]?.uid ?? ""); }}><LampDesk className="h-4 w-4" /><span className="hidden md:inline">Add fixture</span></Button>
         <Button variant={tool === "object" ? "default" : "secondary"} aria-label="Add furniture / person" title="Add furniture / person" onClick={() => setTool("object")}><Armchair className="h-4 w-4" /><UserRound className="h-4 w-4" /></Button>
+        <Button variant="secondary" aria-label="Add camera" title="Add camera" onClick={() => { const c = { ...defaultCamera(SW / 2, SH - 1, fl), name: `Camera ${String.fromCharCode(65 + (plot.cameras?.length ?? 0))}`, rot: -90 }; setPlot({ ...plot, cameras: [...(plot.cameras ?? []), c] }); setCameraId(c.id); setCamViewOpen(true); }}><Video className="h-4 w-4" /><span className="hidden md:inline">Camera</span></Button>
         <Button variant={layoutUnlocked ? "default" : "secondary"} aria-label={layoutUnlocked ? "Lock layout" : "Unlock layout editing"} title={layoutUnlocked ? "Lock layout" : "Unlock layout editing"} onClick={() => setLayoutUnlocked(!layoutUnlocked)}>{layoutUnlocked ? <Unlock /> : <LockKeyhole />}</Button>
         <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
@@ -887,7 +925,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           {objectId && (() => {
             const o = plot.objects?.find((o) => o.id === objectId); if (!o) return null;
             const edit = (patch: Partial<SetObject>) => setPlot({...plot,objects:(plot.objects ?? []).map((x) => x.id === o.id ? {...x,...patch}:x)});
-            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded border border-input bg-surface-elevated p-2" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',10],['Object depth','d',10],['Object height','h',5],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} min={key === "rot" ? -180:0} max={max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
+            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded border border-input bg-surface-elevated p-2" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} min={key === "rot" ? -180:0} max={max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
           })()}
           {first && firstItem ? (
             <div className="space-y-3">
@@ -899,7 +937,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               <Slider label="Intensity" value={first.intensity * 100} min={0} max={100} unit="%" onChange={(v) => selItems.forEach((u) => update(u, { intensity: v / 100, on: true }))} />
               <fieldset disabled={!layoutUnlocked} className="space-y-3 disabled:opacity-50"><Slider label="Direction (pan)" value={firstItem.rot} min={-180} max={180} unit="°" onChange={(v) => setItems({ rot: v })} />
               <Slider label="Tilt down" value={firstItem.tilt ?? DEFAULT_TILT} min={0} max={90} unit="°" onChange={(v) => setItems({ tilt: v })} />
-              <Slider label="Height" value={firstItem.h} min={0.3} max={12} step={0.1} unit=" m" onChange={(v) => setItems({ h: v })} />
+              <Slider label="Height" value={firstItem.h} min={0.3} max={50} step={0.1} unit=" m" onChange={(v) => setItems({ h: v })} />
               {selItems.length > 1 && <div className="space-y-2 rounded-md border border-border p-2">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Align & space</p>
                 <label className="flex items-center justify-between gap-2 text-xs"><span>Gap between lights</span><span className="flex items-center gap-1"><NumberField aria-label="Gap between lights" min={0} value={spaceGap} onChange={(v) => setSpaceGap(v ?? 0)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>
@@ -943,6 +981,50 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           ) : (
             <div />
           )}
+
+          {(plot.cameras?.length ?? 0) > 0 && (() => {
+            const cams = plot.cameras ?? [];
+            const cam = cams.find((c) => c.id === cameraId) ?? cams[0]!;
+            const editCam = (p: Partial<PlotCamera>) => setPlot({ ...plot, cameras: cams.map((c) => (c.id === cam.id ? { ...c, ...p } : c)) });
+            const camLights = fixtures.filter((f) => plot.items[f.uid] && floorOf(plot.items[f.uid]!) === cam.floor).map((f) => {
+              const it = plot.items[f.uid]!; const o = opticsOf(f, it);
+              return { x: it.x, y: it.y, z: fz(it) + it.h, rot: it.rot, tilt: it.tilt ?? DEFAULT_TILT, beam: o.beam, watts: o.watts, level: levelOf(f), rgb: colorOf(f) };
+            });
+            const pick = (label: string, value: number, opts: number[], fmt: (n: number) => string, on: (n: number) => void) => (
+              <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">{label}</span>
+                <select value={value} onChange={(e) => on(+e.target.value)} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
+                  {[...new Set([...opts, value])].sort((a, b) => a - b).map((n) => <option key={n} value={n}>{fmt(n)}</option>)}
+                </select>
+              </label>
+            );
+            return (
+              <div className="space-y-2 border-t border-border pt-3">
+                <div className="flex items-center gap-1.5">
+                  <p className="mr-auto text-xs font-semibold">Cameras</p>
+                  {cams.map((c) => <Button key={c.id} size="sm" variant={c.id === cam.id ? "default" : "secondary"} onClick={() => setCameraId(c.id)}>{c.name}</Button>)}
+                </div>
+                <Button size="sm" className="w-full" variant={camViewOpen ? "default" : "secondary"} onClick={() => setCamViewOpen(!camViewOpen)}><Video />{camViewOpen ? "Hide camera view" : "Camera view"}</Button>
+                {camViewOpen && <CameraView cam={cam} size={plot.size} strokes={plot.strokes} openings={plot.openings ?? []} objects={plot.objects ?? []} floorZ={floors[cam.floor]?.z ?? 0} lights={camLights} />}
+                <input aria-label="Camera name" value={cam.name} onChange={(e) => editCam({ name: e.target.value })} className="w-full rounded border border-input bg-surface-elevated p-2 text-xs" />
+                {pick("Lens", cam.lens, LENSES, (n) => `${n} mm`, (lens) => editCam({ lens }))}
+                <Slider label="Focal length" value={cam.lens} min={8} max={300} step={1} unit=" mm" onChange={(lens) => editCam({ lens })} />
+                {pick("Iris", cam.fstop, FSTOPS, (n) => `f/${n}`, (fstop) => editCam({ fstop }))}
+                {pick("ISO", cam.iso, ISOS, (n) => `ISO ${n}`, (iso) => editCam({ iso }))}
+                <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Sensor</span>
+                  <select value={cam.sensor} onChange={(e) => editCam({ sensor: e.target.value as PlotCamera["sensor"] })} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
+                    {SENSORS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+                  </select>
+                </label>
+                <p className="text-[10px] text-muted-foreground">Horizontal view {horizontalFov(cam).toFixed(1)}°</p>
+                <Slider label="Camera X" value={cam.x} min={0} max={SW} step={0.1} unit=" m" onChange={(x) => editCam({ x })} />
+                <Slider label="Camera Y" value={cam.y} min={0} max={SH} step={0.1} unit=" m" onChange={(y) => editCam({ y })} />
+                <Slider label="Camera height" value={cam.h} min={0.1} max={50} step={0.1} unit=" m" onChange={(h) => editCam({ h })} />
+                <Slider label="Camera pan" value={cam.rot} min={-180} max={180} unit="°" onChange={(rot) => editCam({ rot })} />
+                <Slider label="Camera tilt down" value={cam.tilt} min={-60} max={90} unit="°" onChange={(tilt) => editCam({ tilt })} />
+                <Button variant="ghost" size="sm" onClick={() => { if (confirm(`Remove ${cam.name}?`)) { setPlot({ ...plot, cameras: cams.filter((c) => c.id !== cam.id) }); setCameraId(null); } }}><Trash2 />Remove camera</Button>
+              </div>
+            );
+          })()}
 
           <div className="space-y-2 border-t border-border pt-3">
             <p className="text-xs font-semibold">Doors / windows</p>
