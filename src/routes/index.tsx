@@ -642,7 +642,14 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
             <LooksPanel fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
           ) : panel === "groups" ? (
             <GroupsPanel fixtures={fixtures} selected={selected} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
-              onSelect={(g) => setSelected(fixtures.filter((f) => f.group === g).map((f) => f.uid))} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup} />
+              onSelect={(g) => setSelected(fixtures.filter((f) => f.group === g).map((f) => f.uid))} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
+              onCopy={(from, to) => setFixtures((fs) => {
+                const src = fs.find((x) => x.group === from);
+                if (!src) return fs;
+                const exists = fs.some((x) => x.group === to);
+                const copy = { intensity: src.intensity, on: src.on, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying };
+                return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
+              })} />
           ) : panel === "pixels" ? (
             <PixelPanel fixtures={fixtures} layers={layers} frame={frame} setLayers={(next) => {
               const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);

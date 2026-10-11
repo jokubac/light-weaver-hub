@@ -133,6 +133,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
         </div>
       )}
 
+      {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
       <Slider label="Speed" value={Math.log(layer.speed / 0.05) / Math.log(600)} min={0} max={1} display={`×${layer.speed.toFixed(2)}`} onChange={(v) => set({ speed: +(0.05 * Math.pow(600, v)).toFixed(3) })} />
       {layer.kind === "runner" && <Slider label="Runners" value={layer.runners ?? 1} min={1} max={8} step={1} display={`${layer.runners ?? 1}`} onChange={(v) => set({ runners: v })} />}
       {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">A block of {layer.size} px travels through all {placed.length} lights ({W} px) one after another. Use "In a line".</p>}

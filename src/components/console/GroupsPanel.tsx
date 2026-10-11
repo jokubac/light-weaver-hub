@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Plus, Pencil, X, Power, Check } from "lucide-react";
+import { Plus, Pencil, X, Power, Check, Copy, Play, Square } from "lucide-react";
 import type { PatchedFixture } from "@/lib/dmx";
 
-export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, onUngroup, onUpdate }: {
+export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, onUngroup, onUpdate, onCopy }: {
   fixtures: PatchedFixture[];
   selected: string[];
   onSelect: (g: string) => void;
@@ -10,6 +10,8 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
   onRename: (from: string, to: string) => void;
   onUngroup: (g: string) => void;
   onUpdate: (g: string, p: Partial<PatchedFixture>) => void;
+  /** Copy settings (level, colour, effect) from group `from` to group `to`, or to the selected lights as a new group when `to` is new. */
+  onCopy: (from: string, to: string) => void;
 }) {
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<{ g: string; v: string } | null>(null);
@@ -31,6 +33,8 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
         const members = fixtures.filter((f) => f.group === g);
         const lvl = members.reduce((s, f) => s + f.intensity, 0) / members.length;
         const anyOn = members.some((f) => f.on !== false);
+        const hasFx = members.some((f) => f.fx.kind !== "none");
+        const fxOn = members.some((f) => f.fx.kind !== "none" && f.fxPlaying !== false);
         return (
           <div key={g} className="space-y-2 rounded-lg bg-surface-elevated p-3">
             <div className="flex items-center gap-2">
@@ -43,12 +47,22 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
                 <button onClick={() => onSelect(g)} className="min-w-0 flex-1 truncate text-left text-sm font-semibold">{g} <span className="text-muted-foreground">({members.length})</span></button>
               )}
               <button onClick={() => onUpdate(g, { on: !anyOn })} className={`rounded p-1.5 ${anyOn ? "text-success" : "text-muted-foreground"}`} aria-label="Group on/off"><Power className="h-4 w-4" /></button>
+              {hasFx && <button onClick={() => onUpdate(g, { fxPlaying: !fxOn })} className={`rounded p-1.5 ${fxOn ? "text-destructive" : "text-amber-glow"}`} aria-label="Group effect play/stop">{fxOn ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</button>}
               <button onClick={() => setEditing({ g, v: g })} className="p-1.5 text-muted-foreground" aria-label="Rename group"><Pencil className="h-3.5 w-3.5" /></button>
               <button onClick={() => onUngroup(g)} className="p-1.5 text-muted-foreground hover:text-destructive" aria-label="Ungroup"><X className="h-4 w-4" /></button>
             </div>
             <div className="flex items-center gap-2">
               <input type="range" min={0} max={1} step={0.001} value={lvl} onChange={(e) => onUpdate(g, { intensity: +e.target.value })} className="flex-1 accent-[var(--color-primary)]" aria-label={`${g} intensity`} />
               <span className="w-12 text-right font-mono text-xs">{+(lvl * 100).toFixed(1)}%</span>
+            </div>
+            <div className="flex gap-1.5">
+              <button disabled={!selected.length} onClick={() => onCopy(g, `${g} copy`)} title="Selected lights become a new group with the same settings" className="flex flex-1 items-center justify-center gap-1 rounded bg-surface py-1.5 text-[11px] font-semibold disabled:opacity-40"><Copy className="h-3 w-3" />Duplicate to selected</button>
+              {groups.length > 1 && (
+                <select value="" onChange={(e) => e.target.value && onCopy(g, e.target.value)} className="flex-1 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Copy settings to group">
+                  <option value="">Sync to group…</option>
+                  {groups.filter((x) => x !== g).map((x) => <option key={x} value={x}>{x}</option>)}
+                </select>
+              )}
             </div>
             <div className="flex flex-wrap gap-1">
               {members.map((f) => <span key={f.uid} className="rounded bg-surface px-1.5 py-0.5 text-[10px]">{f.name}</span>)}
