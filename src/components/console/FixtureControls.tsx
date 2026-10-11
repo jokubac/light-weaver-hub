@@ -129,16 +129,24 @@ export function FixtureControls({
       </div>
       <IntensityMacros updateEach={updateEach} />
 
-      {anyCaps.color && (
-        <Section title="Colour">
+      <Section title="Colour">
+          {!anyCaps.color && <p className="rounded-md bg-surface-elevated px-3 py-2 text-[11px] text-muted-foreground">This mode ({mode.name}) is white only — colour won't reach the light. Pick a colour mode in the light's ⋯ menu → Edit.</p>}
+          {first.cctOnly && anyCaps.color && <p className="text-[11px] text-muted-foreground">"CCT only" is on — picking a colour turns it off.</p>}
           <div className="grid grid-cols-8 gap-1.5">{["#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#8000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => { const { h, s } = hexToHs(c); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }} className="h-8 rounded-md border border-input" style={{ background: c }} />)}</div>
+          <div onTouchEnd={tapReset(() => update({ hue: 0, saturation: 0 }))}>
+            <Control label="Hue" value={first.hue / 360} display={`${Math.round(first.hue)}°`} onChange={(v) => update({ hue: v * 360, cctOnly: false, ...(first.crossfade < 1 ? { crossfade: 1 } : {}) })} onReset={() => update({ hue: 0, saturation: 0 })}
+              gradient="linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)" />
+          </div>
+          <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={update} />
+          <div onTouchEnd={tapReset(() => update({ saturation: 0 }))}>
+            <Control label="Saturation" value={first.saturation} display={`${Math.round(first.saturation * 100)}%`} onChange={(v) => update({ saturation: v, cctOnly: false })} onReset={() => update({ saturation: 0 })} />
+          </div>
           <ColorSource onPick={(hex, lbl) => {
             if (lbl.endsWith("K")) update({ cct: Math.min(1, Math.max(0, cctFromKelvin(parseInt(lbl, 10)))), crossfade: 0 });
             else { const { h, s } = hexToHs(hex); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }
           }} />
           {first.crossfade > 0 && <button onClick={() => update({ crossfade: 0 })} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Back to white (CCT)</button>}
-        </Section>
-      )}
+      </Section>
 
       {(anyCaps.cct || anyCaps.gm || anyCaps.color) && (
         <Section title="Colour corrections">
@@ -167,14 +175,6 @@ export function FixtureControls({
             <>
               <div onTouchEnd={tapReset(() => update({ crossfade: 0 }))}>
                 <Control label="Crossfade CCT ↔ HSI" value={first.crossfade} display={`${Math.round(first.crossfade * 100)}%`} onChange={(v) => update({ crossfade: v })} onReset={() => update({ crossfade: 0 })} />
-              </div>
-              <div onTouchEnd={tapReset(() => update({ hue: 0, saturation: 0 }))}>
-                <Control label="Hue" value={first.hue / 360} display={`${Math.round(first.hue)}°`} onChange={(v) => update({ hue: v * 360 })} onReset={() => update({ hue: 0, saturation: 0 })}
-                  gradient="linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)" />
-              </div>
-              <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={update} />
-              <div onTouchEnd={tapReset(() => update({ saturation: 0 }))}>
-                <Control label="Saturation" value={first.saturation} display={`${Math.round(first.saturation * 100)}%`} onChange={(v) => update({ saturation: v })} onReset={() => update({ saturation: 0 })} />
               </div>
             </>
           )}

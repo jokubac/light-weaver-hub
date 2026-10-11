@@ -3,9 +3,16 @@
 // View: wheel / pinch zoom, hand or middle-drag pan, right-drag (or shift+hand) rotates / tilts.
 import { useEffect, useRef, useState } from "react";
 import { Box, Eraser, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X } from "lucide-react";
-import type { PatchedFixture } from "@/lib/dmx";
+import { getDef, type PatchedFixture } from "@/lib/dmx";
+import { fixtureWatts } from "@/lib/power";
+import { OPTICS, OPTIC_BY_ID, defaultOptic, type Optic } from "@/lib/optics";
+import { ColorWheel } from "./AdvancedControls";
+import { hexToHs } from "@/lib/gels";
 
-export interface PlotItem { x: number; y: number; rot: number; h: number; beam: number; tilt?: number; floor?: number }
+const WALL_H = 2.6; // drawn lines and boxes are treated as walls this tall
+const LREF = 8; // illuminance that reads as ~60% glow on the plot
+
+export interface PlotItem { x: number; y: number; rot: number; h: number; beam: number; tilt?: number; floor?: number; optic?: Optic }
 export interface PlotFloor { name: string; z: number; bg?: string }
 export interface Plot {
   bg?: string; // ground floor plan / photo (data URL)
@@ -61,6 +68,19 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
   const bgOf = (i: number) => (i === 0 ? plot.bg : floors[i]?.bg);
   const fz = (it: PlotItem) => floors[it.floor ?? 0]?.z ?? 0;
   const floorOf = (it: PlotItem) => Math.min(it.floor ?? 0, floors.length - 1);
+  const opticsOf = (f: PatchedFixture, it: PlotItem) => {
+    const model = getDef(f.defId).model;
+    const optic = it.optic ?? defaultOptic(model);
+    return { optic, beam: it.optic ? it.beam : OPTIC_BY_ID[optic].angle, watts: fixtureWatts(model) };
+  };
+  const segsOf = (floor: number) => {
+    const out: [number, number, number, number][] = [];
+    for (const st of plot.strokes) {
+      if ((st.floor ?? 0) !== floor) continue;
+      for (let k = 1; k < st.pts.length; k++) { const [x1, y1] = st.pts[k - 1]!, [x2, y2] = st.pts[k]!; out.push([x1, y1, x2 - x1, y2 - y1]); }
+    }
+    return out;
+  };
 
   useEffect(() => {
     for (let i = 0; i < floors.length; i++) {
@@ -176,6 +196,19 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
         ctx.stroke();
       }
       ctx.restore();
+      if (view3d) {
+        ctx.fillStyle = isActive ? "rgba(200,210,225,0.16)" : "rgba(200,210,225,0.07)";
+        ctx.strokeStyle = isActive ? "rgba(220,225,235,0.45)" : "rgba(220,225,235,0.2)";
+        ctx.lineWidth = 1;
+        for (const s of plot.strokes) {
+          if ((s.floor ?? 0) !== i) continue;
+          for (let k = 1; k < s.pts.length; k++) {
+            const [x1, y1] = s.pts[k - 1]!, [x2, y2] = s.pts[k]!;
+            const q = [proj(V, x1, y1, z), proj(V, x2, y2, z), proj(V, x2, y2, z + WALL_H), proj(V, x1, y1, z + WALL_H)];
+            ctx.beginPath(); q.forEach((pt, j) => (j ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1]))); ctx.closePath(); ctx.fill(); ctx.stroke();
+          }
+        }
+      }
       if (view3d && floors.length > 1) {
         const [lx, ly] = proj(V, 0, 0, z);
         ctx.fillStyle = isActive ? "#22d3ee" : "#6b7280";
@@ -187,44 +220,71 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
     const placed = fixtures.filter((f) => plot.items[f.uid] && visible(plot.items[f.uid]!));
     const sorted = [...placed].sort((a, b) => headOf(V, plot.items[a.uid]!)[1] - headOf(V, plot.items[b.uid]!)[1]);
 
-    // beams: cone from the head down to where the tilted beam hits its floor
+    // beams: light pool on the floor with inverse-square falloff, blocked by walls
     ctx.globalCompositeOperation = "lighter";
     for (const f of sorted) {
       const it = plot.items[f.uid]!;
       const lv = levelOf(f);
       if (lv <= 0.002) continue;
       const [r, g, b] = colorOf(f);
+      const { watts, beam } = opticsOf(f, it);
       const tilt = clampN(it.tilt ?? DEFAULT_TILT, 0, 90);
-      const tr = (tilt * Math.PI) / 180;
-      const reach = tilt < 1 ? 25 : Math.min(25, it.h / Math.tan(tr));
-      const dist = Math.hypot(it.h, reach);
-      const half = (it.beam * Math.PI) / 360;
-      const rad = Math.max(0.25, dist * Math.tan(half));
+      const h = Math.max(0.2, it.h);
+      const half = beam / 2;
+      const th = 90 - tilt; // centre ray, degrees from straight down
+      const farDeg = Math.min(87, th + half), nearDeg = th - half;
+      const rFar = Math.min(30, h * Math.tan((farDeg * Math.PI) / 180));
+      const all = nearDeg <= 0;
+      const rNear = all ? 0 : h * Math.tan((nearDeg * Math.PI) / 180);
+      const hs = all ? 180 : Math.min(180, half / Math.max(0.35, Math.sin(((th || 1) * Math.PI) / 180)) );
       const a = (it.rot * Math.PI) / 180;
-      const cx = it.x + Math.cos(a) * reach, cy = it.y + Math.sin(a) * reach;
-      const z0 = fz(it);
-      const origin = headOf(V, it);
-      const pool = proj(V, cx, cy, z0);
-      const grad = ctx.createLinearGradient(origin[0], origin[1], pool[0], pool[1]);
-      grad.addColorStop(0, `rgba(${r},${g},${b},${0.5 * lv})`);
-      grad.addColorStop(1, `rgba(${r},${g},${b},${0.08 * lv})`);
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.moveTo(origin[0], origin[1]);
-      // the half of the pool circle facing away from the light
-      for (let i = 0; i <= 20; i++) {
-        const ang = a + Math.PI / 2 - (Math.PI * i) / 20;
-        const s = proj(V, cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad, z0);
-        ctx.lineTo(s[0], s[1]);
+      const walls = segsOf(floorOf(it));
+      const N = 48, outer: [number, number][] = [], inner: [number, number][] = [];
+      for (let i = 0; i <= N; i++) {
+        const ang = a + (((i / N) * 2 - 1) * hs * Math.PI) / 180;
+        const dx = Math.cos(ang), dy = Math.sin(ang);
+        let t = rFar;
+        for (const [qx, qy, ex, ey] of walls) {
+          const den = dx * ey - dy * ex;
+          if (Math.abs(den) < 1e-9) continue;
+          const wx = qx - it.x, wy = qy - it.y;
+          const tt = (wx * ey - wy * ex) / den, u = (wx * dy - wy * dx) / den;
+          if (tt > 0.02 && u >= 0 && u <= 1 && tt < t) t = tt;
+        }
+        outer.push([it.x + dx * t, it.y + dy * t]);
+        const tn = Math.min(rNear, t);
+        inner.push([it.x + dx * tn, it.y + dy * tn]);
       }
+      const omega = 2 * Math.PI * (1 - Math.cos((Math.min(half, 90) * Math.PI) / 180));
+      const lux = (rr: number) => ((watts * lv) / omega) * h / Math.pow(rr * rr + h * h, 1.5);
+      const glow = (rr: number) => 0.85 * (1 - Math.exp(-lux(rr) / LREF));
+      const z0 = fz(it);
+      ctx.save();
+      ctx.setTransform(m[0] * dpr, m[1] * dpr, m[2] * dpr, m[3] * dpr, m[4] * dpr, (m[5] - z0 * zs) * dpr);
+      const rg = ctx.createRadialGradient(it.x, it.y, 0, it.x, it.y, Math.max(0.01, rFar));
+      for (let k = 0; k <= 10; k++) {
+        const rr = (rFar * k) / 10;
+        const edge = rr < rNear ? 0.15 : 1; // outside the beam cone close to the stand
+        const al = glow(rr) * edge * (k === 10 ? 0.3 : 1);
+        rg.addColorStop(k / 10, `rgba(${r},${g},${b},${al.toFixed(3)})`);
+      }
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      outer.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      for (let k = inner.length - 1; k >= 0; k--) ctx.lineTo(inner[k]![0], inner[k]![1]);
       ctx.closePath();
       ctx.fill();
-      const pr = rad * Math.hypot(m[0], m[1]);
-      const rg = ctx.createRadialGradient(pool[0], pool[1], 0, pool[0], pool[1], pr);
-      rg.addColorStop(0, `rgba(${r},${g},${b},${0.4 * lv})`);
-      rg.addColorStop(1, `rgba(${r},${g},${b},0)`);
-      ctx.fillStyle = rg;
-      ctx.beginPath(); ctx.arc(pool[0], pool[1], pr, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      // faint volumetric cone from the head to the middle of the pool
+      const mid = outer[N / 2]!;
+      const origin = headOf(V, it), pool = proj(V, mid[0], mid[1], z0);
+      const vol = 0.25 * (1 - Math.exp(-(watts * lv) / 500));
+      const cg = ctx.createLinearGradient(origin[0], origin[1], pool[0], pool[1]);
+      cg.addColorStop(0, `rgba(${r},${g},${b},${vol.toFixed(3)})`);
+      cg.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = cg;
+      const l = proj(V, outer[Math.round(N * 0.3)]![0], outer[Math.round(N * 0.3)]![1], z0), rr2 = proj(V, outer[Math.round(N * 0.7)]![0], outer[Math.round(N * 0.7)]![1], z0);
+      ctx.beginPath(); ctx.moveTo(origin[0], origin[1]); ctx.lineTo(l[0], l[1]); ctx.lineTo(rr2[0], rr2[1]); ctx.closePath(); ctx.fill();
     }
     ctx.globalCompositeOperation = "source-over";
 
@@ -570,7 +630,23 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
               <Slider label="Direction (pan)" value={firstItem.rot} min={-180} max={180} unit="°" onChange={(v) => setItems({ rot: v })} />
               <Slider label="Tilt down" value={firstItem.tilt ?? DEFAULT_TILT} min={0} max={90} unit="°" onChange={(v) => setItems({ tilt: v })} />
               <Slider label="Height" value={firstItem.h} min={0.3} max={12} step={0.1} unit=" m" onChange={(v) => setItems({ h: v })} />
-              <Slider label="Beam angle" value={firstItem.beam} min={5} max={160} unit="°" onChange={(v) => setItems({ beam: v })} />
+              {(() => {
+                const o = opticsOf(first, firstItem);
+                const spec = OPTIC_BY_ID[o.optic];
+                return (
+                  <>
+                    <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Optic</span>
+                      <select value={o.optic} onChange={(e) => { const id = e.target.value as Optic; setItems({ optic: id, beam: OPTIC_BY_ID[id].angle }); }} className="min-w-0 flex-1 rounded-md bg-surface-elevated px-2 py-1 text-xs">
+                        {OPTICS.map((x) => <option key={x.id} value={x.id}>{x.label} · {x.angle}°</option>)}
+                      </select>
+                    </label>
+                    <Slider label="Beam angle" value={o.beam} min={spec.min} max={spec.max} unit="°" onChange={(v) => setItems({ optic: o.optic, beam: v })} />
+                    <p className="text-[10px] text-muted-foreground">≈ {o.watts} W · light fades with distance; walls block it</p>
+                  </>
+                );
+              })()}
+              <div className="grid grid-cols-8 gap-1">{["#ffffff","#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => selItems.forEach((u) => update(u, c === "#ffffff" ? { crossfade: 0 } : { hue: hexToHs(c).h, saturation: hexToHs(c).s, crossfade: 1, cctOnly: false }))} className="h-6 rounded border border-input" style={{ background: c }} />)}</div>
+              <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={(p) => selItems.forEach((u) => update(u, p))} />
               {floors.length > 1 && (
                 <label className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Floor</span>
                   <select value={floorOf(firstItem)} onChange={(e) => { const n = +e.target.value; setItems({ floor: n }); setActive(n); }} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
