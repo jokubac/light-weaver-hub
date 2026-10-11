@@ -1,6 +1,7 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
 import { asteraModes, asteraSpec } from "./astera";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
+import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 
 export type ModeKind = "dim" | "cct" | "cctgm" | "hsi" | "rgb" | "rgbw" | "full";
 
@@ -333,6 +334,7 @@ export interface PatchedFixture {
   on?: boolean; // lamp on/off, independent of effects
   fxPlaying?: boolean; // effect play / stop
   label?: string; // colour tag chosen when patching
+  icon?: FixtureIcon; // presentation only; never changes the DMX profile
   group?: string; // group name
   fan?: FanMode;
   gel?: string; // gel id from the gel library
@@ -398,6 +400,7 @@ export function normalizeFixture(raw: Record<string, unknown>): PatchedFixture {
     on: r.on ?? true,
     fxPlaying: r.fxPlaying ?? true,
     ...(r.label ? { label: r.label } : {}),
+    ...(isFixtureIcon(r.icon) ? { icon: r.icon } : {}),
     ...(r.group ? { group: r.group } : {}),
     ...(r.fan ? { fan: r.fan } : {}),
     ...(r.gel ? { gel: r.gel } : {}),
