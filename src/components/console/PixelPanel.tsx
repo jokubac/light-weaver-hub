@@ -5,6 +5,7 @@ import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2 } fro
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { ColorSource } from "./ColorSource";
 import { HexColourControls } from "./ColourControls";
+import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
 import { PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
@@ -109,7 +110,10 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
         </div>
       )}
 
-      {["rainbow", "plasma", "fire"].includes(layer.kind) && (
+      <PaletteEditor colours={layer.colors} native={["rainbow", "plasma", "fire"].includes(layer.kind) && !layer.customPalette}
+        onChange={(colors) => set({ colors, customPalette: true, tint: undefined })}
+        onReset={() => set({ customPalette: false, tint: undefined })} />
+      {false && ["rainbow", "plasma", "fire"].includes(layer.kind) && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             <span>Tint (CCT / HSI / Gel)</span>
@@ -119,7 +123,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
           <ColorSource onPick={(hex) => set({ tint: hex })} />
         </div>
       )}
-      {!["rainbow", "plasma", "fire"].includes(layer.kind) && (
+      {false && !["rainbow", "plasma", "fire"].includes(layer.kind) && (
         <div className="space-y-1.5">
           <HexColourControls value={layer.colors[Math.min(activeColour, layer.colors.length - 1)] ?? "#ffffff"} onChange={(hex) => set({ colors: layer.colors.map((c, i) => i === Math.min(activeColour, layer.colors.length - 1) ? hex : c) })} />
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Colours</div>

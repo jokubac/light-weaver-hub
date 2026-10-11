@@ -12,6 +12,7 @@ import { wallSegments, openingBounds, wallPanels, rayBlocked, segmentDistance, t
 import { editHistory } from "@/lib/edit-history";
 import { SET_OBJECTS, objectContains, type SetObject, type SetObjectKind } from "@/lib/plot-objects";
 import { hexToHs } from "@/lib/gels";
+import { SettingsTransfer } from "./SettingsTransfer";
 
 const WALL_H = 2.6; // drawn lines and boxes are treated as walls this tall
 const LREF = 8; // illuminance that reads as ~60% glow on the plot
@@ -62,10 +63,11 @@ function themeOf() {
   return { getPropertyValue: (n: string) => values.get(n) ?? "" };
 }
 
-export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSelected, colorOf, levelOf, update: commitFixture, onClose, onOpenControls }: {
+export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSelected, colorOf, levelOf, update: commitFixture, onClose, onOpenControls, copiedSource, onCopy, onPaste }: {
   plot: Plot; setPlot: (p: Plot) => void; fixtures: PatchedFixture[]; selected: string[]; setSelected: (s: string[]) => void;
   colorOf: (f: PatchedFixture) => [number, number, number]; levelOf: (f: PatchedFixture) => number;
   update: (uid: string, p: Partial<PatchedFixture>) => void; onClose: () => void; onOpenControls: () => void;
+  copiedSource?: string; onCopy: () => void; onPaste: () => void;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -718,6 +720,19 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   };
   const nudge = (d: number) => selItems.forEach((u) => { const f = fixtures.find((x) => x.uid === u); if (f) update(u, { intensity: clampN(+(f.intensity + d).toFixed(3), 0, 1), on: true }); });
   const allOn = selItems.every((u) => fixtures.find((x) => x.uid === u)?.on !== false);
+  const removeSelection = () => {
+    if (openingId) {
+      if (!confirm("Remove selected door/window?")) return;
+      setPlot({ ...plot, openings: (plot.openings ?? []).filter((o) => o.id !== openingId) }); setOpeningId(null);
+    } else if (objectId) removeObject(objectId);
+    else if (wallIndex !== null) removeWall(wallIndex);
+    else if (selItems.length) {
+      if (!confirm(`Remove ${selItems.length} selected light(s) from the plot? They will stay patched.`)) return;
+      const items = { ...plot.items };
+      selItems.forEach((u) => delete items[u]);
+      setPlot({ ...plot, items }); setSelected([]);
+    }
+  };
 
   const addFloor = () => {
     const top = floors[floors.length - 1]!;
@@ -775,6 +790,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
         {toolBtn("erase", <Eraser className="h-4 w-4" />, "Erase")}
+        <Button variant="destructive" size="sm" aria-label="Remove selected from plot" title="Remove selected item" disabled={!selItems.length && wallIndex === null && !objectId && !openingId} onClick={removeSelection}><Trash2 className="h-4 w-4" />Remove</Button>
         {(tool === "draw" || tool === "rect") && (
           <input type="color" value={ink} onChange={(e) => setInk(e.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" aria-label="Drawing colour" />
         )}
@@ -866,6 +882,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           })()}
           {first && firstItem ? (
             <div className="space-y-3">
+              <SettingsTransfer source={copiedSource} canCopy={!!first} onCopy={onCopy} onPaste={() => { record(); onPaste(); }} />
               <div className="flex items-center justify-between">
                 <p className="font-semibold">{selItems.length > 1 ? `${selItems.length} lights` : first.name}</p>
                 <button onClick={() => selItems.forEach((u) => update(u, { on: !allOn }))} className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-bold ${allOn ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}><Power className="h-3.5 w-3.5" />{allOn ? "ON" : "OFF"}</button>

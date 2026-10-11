@@ -279,6 +279,8 @@ export interface FxParams {
   curve: Curve;
   random: number; // 0-1 irregularity
   steps: Step[];
+  /** Optional looping colour palette; absent keeps the fixture/step colours. */
+  colors?: string[];
 }
 
 export const FX_PRESETS: Record<EffectKind, Partial<FxParams>> = {
@@ -599,6 +601,14 @@ export function fixtureState(f: PatchedFixture, t: number, masterLevel = 1): { v
     r = r + (hr - r) * x; g = g + (hg - g) * x; b = b + (hb - b) * x;
   }
   if (stepRgb) [r, g, b] = stepRgb;
+  if (playing && cp.color && f.fx.colors?.length) {
+    const colors = f.fx.colors;
+    const phase = ((t * f.fx.rate % colors.length) + colors.length) % colors.length;
+    const index = Math.floor(phase);
+    const a = hexToRgb(colors[index] ?? "#ffffff");
+    const next = hexToRgb(colors[(index + 1) % colors.length] ?? "#ffffff");
+    [r, g, b] = a.map((v, i) => v + ((next[i] ?? v) - v) * (phase - index)) as [number, number, number];
+  }
   return { v, rgb: [r, g, b] };
 }
 

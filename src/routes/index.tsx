@@ -22,6 +22,8 @@ import { fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type 
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
+import { FixtureGlyph } from "@/components/console/FixtureGlyph";
+import { copyFixtureSettings, type FixtureSettings } from "@/lib/fixture-settings";
 import { PixelPanel } from "@/components/console/PixelPanel";
 import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
@@ -361,6 +363,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   const [master, setMaster] = useState(scene.master);
   const [bo, setBo] = useState<{ target: 0 | 1; at: number; from: number }>({ target: 0, at: -10, from: 0 });
   const [selected, setSelected] = useState<string[]>([]);
+  const [copied, setCopied] = useState<{ name: string; settings: FixtureSettings } | null>(null);
   const lastPick = useRef<string | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const held = useRef(false);
@@ -565,6 +568,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   };
 
   const sel = fixtures.filter((f) => selected.includes(f.uid));
+  const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
+  const pasteSettings = () => {
+    if (!copied) return;
+    updateEach(() => ({ ...structuredClone(copied.settings), trigger: null }));
+  };
   const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
     lastPick.current = id;
@@ -634,6 +642,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
 
       {plotOpen && (
         <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
+          copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
           colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
           levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
@@ -667,7 +676,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
                   </span>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {fixtures.map((f) => {
                   const def = getDef(f.defId);
                   const color = fixtureColor(f, t, outLevel);
@@ -676,16 +685,10 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
                   const pv = f.on === false ? 0 : f.intensity * outLevel;
                   const [gc, gr] = pixelGrid(f);
                   return (
-                    <div key={f.uid} role="button" tabIndex={0} onClick={() => toggleSelect(f.uid)} onKeyDown={(e) => e.key === "Enter" && toggleSelect(f.uid)}
-                      className={`relative cursor-pointer overflow-hidden rounded-xl border-2 bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary" : "border-transparent"}`}>
+                    <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`Select ${f.name}`} aria-pressed={isSel} tabIndex={0} onPointerDown={() => holdStart(f.uid)} onPointerUp={holdEnd} onPointerCancel={holdEnd} onClick={(e) => tileClick(e, f.uid)} onKeyDown={(e) => e.key === "Enter" && toggleSelect(f.uid)}
+                      className={`relative min-h-44 cursor-pointer overflow-hidden rounded-lg border bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary bg-primary/5" : "border-border"}`}>
                       {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
-                      {pix ? (
-                        <div className="mb-3 grid h-16 gap-px overflow-hidden rounded-lg bg-background" style={{ gridTemplateColumns: `repeat(${gc}, 1fr)`, gridTemplateRows: `repeat(${gr}, 1fr)` }}>
-                          {pix.map((c, i) => <div key={i} style={{ background: `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})` }} />)}
-                        </div>
-                      ) : (
-                        <div className="mb-3 h-16 rounded-lg" style={{ background: color, boxShadow: `0 0 24px ${color}` }} />
-                      )}
+                      <FixtureGlyph model={def.model} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
                       <div className="flex items-center gap-1">
                         <div className="flex min-w-0 flex-1 items-center gap-1 truncate text-sm font-semibold">
                           {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
@@ -738,7 +741,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
             <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
           ) : (
             <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
-              remove={() => { setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
+              copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
+              remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
         </aside>}
       </div>
