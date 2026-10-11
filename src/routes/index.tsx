@@ -361,6 +361,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   const [master, setMaster] = useState(scene.master);
   const [bo, setBo] = useState<{ target: 0 | 1; at: number; from: number }>({ target: 0, at: -10, from: 0 });
   const [selected, setSelected] = useState<string[]>([]);
+  const lastPick = useRef<string | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
   const [panel, setPanel] = useState<Panel>("patch");
   const [panelOpen, setPanelOpen] = useState(true);
   const [layers, setLayers] = useState<PixelLayer[]>(() => migrateLayers(scene));
@@ -564,7 +567,28 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   const sel = fixtures.filter((f) => selected.includes(f.uid));
   const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    lastPick.current = id;
     if (panel !== "looks" && panel !== "groups") { setPanel("control"); setPanelOpen(true); }
+  };
+  // shift-click or press-and-hold selects every light between the last tapped one and this one
+  const selectRange = (id: string) => {
+    const from = lastPick.current ? fixtures.findIndex((f) => f.uid === lastPick.current) : -1;
+    const to = fixtures.findIndex((f) => f.uid === id);
+    if (from < 0 || to < 0) return toggleSelect(id);
+    const ids = fixtures.slice(Math.min(from, to), Math.max(from, to) + 1).map((f) => f.uid);
+    setSelected((s) => [...new Set([...s, ...ids])]);
+    lastPick.current = id;
+    if (panel !== "looks" && panel !== "groups") { setPanel("control"); setPanelOpen(true); }
+  };
+  const holdStart = (id: string) => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    held.current = false;
+    holdTimer.current = setTimeout(() => { held.current = true; selectRange(id); navigator.vibrate?.(20); }, 450);
+  };
+  const holdEnd = () => { if (holdTimer.current) clearTimeout(holdTimer.current); holdTimer.current = null; };
+  const tileClick = (e: React.MouseEvent, id: string) => {
+    if (held.current) { held.current = false; return; }
+    if (e.shiftKey) selectRange(id); else toggleSelect(id);
   };
   // tapping the active tab again collapses / expands the side panel
   const tab = (p: Panel, label: string) => (
