@@ -1,9 +1,9 @@
 # Tasks
-- [ ] Pixel preview tilt and unrestricted stage dimensions/placement
-- [ ] Correct upright camera projection and verify rendering
-- [ ] Thicken all faders by 1.5×
-- [ ] Two-row toolbar, icon blackout/lock, Settings setups, collapsible groups
-- [ ] Connection health colours from bridge responses; verify console flow
+- [x] Pixel preview tilt and unrestricted stage dimensions/placement
+- [x] Correct upright camera projection and verify rendering
+- [x] Thicken all faders by 1.5×
+- [x] Two-row toolbar, icon blackout/lock, Settings setups, collapsible groups
+- [x] Connection health colours from bridge responses; verify console flow
 - [x] Save and restore complete project scene setups, including plot view and effects
 - [x] Square fixture tiles with eight columns on roomy console layouts
 - [x] Verify project restore and fixture layout in the browser
