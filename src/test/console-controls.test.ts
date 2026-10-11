@@ -31,6 +31,16 @@ describe("Pixel controls", () => {
 });
 
 describe("Manufacturer profiles", () => {
+  it("appends Titan mode codes without shifting older pixel indices", () => {
+    const def = getDef("astera-titan-tube");
+    expect(def.modes[10]?.pixels).toBe(16);
+    expect(def.modes[10]?.name).toContain("42 —");
+    const index = def.modes.findIndex((mode) => mode.profile === "astera-hsi-strobe");
+    expect(def.modes[index]?.channels).toBe(6);
+    const fixture = { ...createFixture(def, index, 1, 10, "Titan"), intensity: 1, cct: (5494 - 2000) / 8000, gm: 0, hue: 180, saturation: 1, crossfade: 1 };
+    const data = buildUniverses([fixture], 0, 1, new Map()).get(1);
+    expect(Array.from(data?.slice(9, 15) ?? [])).toEqual([255, 117, 0, 128, 255, 0]);
+  });
   it("writes Evoke Ultimate CCT and fan to their chart channels", () => {
     const def = getDef("nanlux-evoke-1200b");
     const index = def.modes.findIndex((mode) => mode.profile === "nanlux-evoke-cct");

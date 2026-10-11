@@ -164,7 +164,15 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Creamsource", ["Vortex8"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (8 px)", 32, "rgbw", 8, [4, 2]), m("Pixel HSI 8-bit (8 px)", 40, "hsi", 8, [4, 2])]),
   ...fam("Creamsource", ["Vortex24"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (24 px)", 96, "rgbw", 24, [6, 4]), m("Pixel HSI 8-bit (24 px)", 120, "hsi", 24, [6, 4])]),
   ...fam("Creamsource", ["Micro Colour", "SpaceX", "Slyce"], CREAM_MICRO),
-  ...fam("Astera", ["Titan Tube"], asteraPx(16)),
+  ...fam("Astera", ["Titan Tube"], [
+    ...asteraPx(16).map((mode) => {
+      const code = mode.name === "3ch RGB" ? 1 : mode.name === "4ch RGBW" ? 2 : mode.name === "5ch RGBAW" ? 3 : mode.name === "6ch Dim RGBAW" ? 6 : mode.name === "Pixel RGB (16 px)" ? 42 : mode.name === "Pixel RGBW (16 px)" ? 43 : mode.name === "Pixel RGBAW (16 px)" ? 44 : undefined;
+      return code ? { ...mode, name: `${code} — ${mode.name}` } : mode;
+    }),
+    { name: "90 — D CCT GM HUE SAT", channels: 5, kind: "full", profile: "astera-hsi", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
+    { name: "95 — D CCT GM HUE SAT S", channels: 6, kind: "full", profile: "astera-hsi-strobe", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
+    m("18 — Pixel RGB (4 px)", 12, "rgb", 4),
+  ]),
   ...fam("Astera", ["Helios Tube", "AX1 PixelTube"], asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5))),
   ...fam("Astera", ["Hyperion Tube"], asteraPx(32)),
   ...fam("Astera", ["PixelBrick"], asteraPx(4)),

@@ -55,7 +55,7 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
         put(2, 80 / 255); put(3, r - white); put(4, g - white); put(5, b - white); put(6, white);
       }
     } else {
-      put(2, (kelvin(f.cct) - 1750) / 8250); put(3, (f.gm + 1) / 2);
+      put(2, (kelvin(f.cct) - 1750) / 8160); put(3, f.gm === 0 ? 0 : Math.max(5, Math.min(255, 128 * (f.gm + 1))) / 255);
       put(4, f.hue / 360); put(5, f.cctOnly ? 0 : f.saturation * f.crossfade);
       if (mode.profile === "astera-hsi-strobe") put(6, 0);
     }
