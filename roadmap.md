@@ -1,7 +1,7 @@
 # Tasks
-- [ ] Blackout right of master with lit output indicator; full group controls in right rail
-- [ ] Select, place, move, edit and delete live-plot cameras
-- [ ] Slightly larger subtle neon KROMA and contrasting effect faders; verify flows
+- [x] Blackout right of master with lit output indicator; full group controls in right rail
+- [x] Select, place, move, edit and delete live-plot cameras
+- [x] Slightly larger subtle neon KROMA and contrasting effect faders; verify flows
 - [x] Swap console fixture positions without repatching; verify persistence and selection
 - [x] Pixel preview tilt and unrestricted stage dimensions/placement
 - [x] Correct upright camera projection and verify rendering
