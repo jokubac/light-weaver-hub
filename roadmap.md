@@ -21,10 +21,10 @@
 - [x] Live plot 2D/3D: drawing, floor-plan image, lights on stands, beams, control from plot
 - [x] Pixel efektuose spalvų parinkimas: CCT / HSI+ratas / gel
 - [x] Gel/spalva pulte nerodoma — pataisyti
-- [ ] Clearable number inputs
-- [ ] Patch: search text, mode search, fav fixture+mode, grid click address, universe overflow prompt, edit patched (name/mode/univ/addr, DMX map), select/deselect all
-- [ ] Groups column on far right; click group selects/deselects
-- [ ] Effects/pixel apply only to selected; saved effects; fx preview before play; fix curve editor
-- [ ] Pixel height up to 50 m; infinite pixel grid
-- [ ] Plot: car with windows, tree
-- [ ] Plot camera with lens/iris/ISO and camera view
+- [x] Clearable number inputs
+- [x] Patch: search text, mode search, fav fixture+mode, grid click address, universe overflow prompt, edit patched (name/mode/univ/addr, DMX map), select/deselect all
+- [x] Groups column on far right; click group selects/deselects
+- [x] Effects/pixel apply only to selected; saved effects; fx preview before play; fix curve editor
+- [x] Pixel height up to 50 m; infinite pixel grid
+- [x] Plot: car with windows, tree
+- [x] Plot camera with lens/iris/ISO and camera view
