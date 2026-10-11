@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import {
@@ -14,8 +14,9 @@ import {
 
 export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
 
-export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void }) {
+export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void }) {
   const [query, setQuery] = useState("");
+  const [unpick, setUnpick] = useState<string[]>([]);
   const [brand, setBrand] = useState<string | null>(null);
   const [def, setDef] = useState<FixtureDef | null>(null);
   const [modeIdx, setModeIdx] = useState<number | null>(null);
