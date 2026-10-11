@@ -1,0 +1,47 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { PatchedFixture } from "@/lib/dmx";
+import { BATTERY_PRESETS, batteryStatus, fmtHours, type PowerKind, type PowerSource } from "@/lib/power";
+
+const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground";
+
+export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
+  f: PatchedFixture; open: boolean; onOpenChange: (o: boolean) => void; level: number;
+  onChange: (p: PowerSource | null) => void;
+}) {
+  const [d, setD] = useState<PowerSource>(f.power ?? { kind: "instagrid", kwh: 2.1, charge: 1, watts: 300, usedWh: 0 });
+  const st = batteryStatus({ ...d, usedWh: 0 }, { ...f, intensity: 1, on: true }, 1);
+  const kinds: { id: PowerKind; label: string }[] = [{ id: "vmount", label: "V-mount" }, { id: "instagrid", label: "Instagrid" }, { id: "other", label: "Other" }, { id: "mains", label: "Mains" }];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Power — {f.name}</DialogTitle></DialogHeader>
+        <div className="space-y-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-4 gap-1.5">
+            {kinds.map((k) => <button key={k.id} onClick={() => setD({ ...d, kind: k.id })} className={`rounded-md py-2 text-xs ${d.kind === k.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-foreground"}`}>{k.label}</button>)}
+          </div>
+          {d.kind !== "mains" && (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                {BATTERY_PRESETS.filter((b) => d.kind === "other" || b.kind === d.kind).map((b) => (
+                  <button key={b.label} onClick={() => setD({ ...d, kwh: b.kwh })} className={`rounded-md px-2 py-1.5 text-[11px] normal-case ${d.kwh === b.kwh ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated text-foreground"}`}>{b.label}</button>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <label>Capacity kWh<input type="number" step={0.01} min={0} value={d.kwh} onChange={(e) => setD({ ...d, kwh: Math.max(0, +e.target.value) })} className={inputCls} /></label>
+                <label>Charged %<input type="number" min={0} max={100} value={Math.round(d.charge * 100)} onChange={(e) => setD({ ...d, charge: Math.min(1, Math.max(0, +e.target.value / 100)) })} className={inputCls} /></label>
+                <label>Light W<input type="number" min={0} value={d.watts} onChange={(e) => setD({ ...d, watts: Math.max(0, +e.target.value) })} className={inputCls} /></label>
+              </div>
+              <p className="normal-case tracking-normal text-foreground">At 100% output: about <b>{fmtHours(st.hours)}</b>. Lower intensity stretches it — the estimate updates live while you work.</p>
+              {f.power && <p className="normal-case tracking-normal">Now: {Math.round(batteryStatus(f.power, f, level).pct * 100)}% left · {fmtHours(batteryStatus(f.power, f, level).hours)} at current level</p>}
+            </>
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          {f.power && <button onClick={() => { onChange(null); onOpenChange(false); }} className="rounded-lg bg-surface-elevated px-4 py-2.5 text-sm font-semibold">Remove</button>}
+          <button onClick={() => { onChange(d.kind === "mains" ? null : { ...d, usedWh: 0 }); onOpenChange(false); }} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">Save (resets from charge %)</button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

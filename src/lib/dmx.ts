@@ -303,6 +303,8 @@ export interface PatchedFixture {
   gel?: string; // gel id from the gel library
   /** one pixel of a split pixel fixture, controlled as its own light */
   split?: { from: string; name: string; index: number; of: number; cpp: number };
+  /** battery the light runs on (V-mount / Instagrid) for runtime estimates */
+  power?: import("./power").PowerSource;
 }
 
 export type FanMode = "auto" | "silent" | "low" | "medium" | "high" | "max" | "off";

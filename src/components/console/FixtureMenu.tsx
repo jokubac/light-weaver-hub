@@ -1,19 +1,23 @@
 import { useState } from "react";
-import { MoreVertical, Pencil, Lock, Split, Merge, FolderPlus, FolderMinus } from "lucide-react";
+import { MoreVertical, Pencil, Lock, Split, Merge, FolderPlus, FolderMinus, BatteryCharging } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getDef, overlaps, type PatchedFixture } from "@/lib/dmx";
 import { pixelCount } from "@/lib/pixels";
 import { LABEL_COLORS } from "./PatchPanel";
+import { PowerDialog } from "./PowerDialog";
+import type { PowerSource } from "@/lib/power";
 
 const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground";
 
-export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, onJoin, onGroup }: {
+export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, onJoin, onGroup, onPower, level }: {
+  onPower: (p: PowerSource | null) => void; level: number;
   f: PatchedFixture; fixtures: PatchedFixture[]; locked: boolean; groups: string[];
   onChange: (p: Partial<PatchedFixture>) => void; onSplit: () => void; onJoin: () => void; onGroup: (g: string | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [grouping, setGrouping] = useState(false);
+  const [powering, setPowering] = useState(false);
   const [draft, setDraft] = useState(f);
   const [groupName, setGroupName] = useState("");
   const def = getDef(f.defId);
@@ -30,6 +34,7 @@ export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, on
           {locked && <DropdownMenuLabel className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3 w-3" />Patch locked — unlock to edit</DropdownMenuLabel>}
           <DropdownMenuItem disabled={locked} onSelect={() => { setDraft(f); setEditing(true); }}><Pencil className="mr-2 h-4 w-4" />Edit name, address, mode</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => { setGroupName(f.group ?? ""); setGrouping(true); }}><FolderPlus className="mr-2 h-4 w-4" />{f.group ? "Change group" : "Add to group"}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setPowering(true)}><BatteryCharging className="mr-2 h-4 w-4" />{f.power ? "Battery settings" : "Run on V-mount / Instagrid"}</DropdownMenuItem>
           {f.group && <DropdownMenuItem onSelect={() => onGroup(null)}><FolderMinus className="mr-2 h-4 w-4" />Remove from "{f.group}"</DropdownMenuItem>}
           {(pixelCount(f) > 0 || f.split) && <DropdownMenuSeparator />}
           {pixelCount(f) > 0 && <DropdownMenuItem disabled={locked} onSelect={onSplit}><Split className="mr-2 h-4 w-4" />Split into {pixelCount(f)} pixel lights</DropdownMenuItem>}
@@ -74,6 +79,8 @@ export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, on
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {powering && <PowerDialog f={f} open={powering} onOpenChange={setPowering} onChange={onPower} level={level} />}
 
       <Dialog open={grouping} onOpenChange={setGrouping}>
         <DialogContent>

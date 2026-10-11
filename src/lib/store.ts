@@ -66,10 +66,12 @@ export interface Connection {
   protocol: "artnet" | "sacn";
   bridge: string; // address of the local bridge that sends UDP
   node: { name: string; ip: string } | null;
+  transmitter: string | null; // id from the transmitter library
+  autoMap: boolean; // auto universe numbering + colour channel order from the transmitter profile
 }
 
 const CKEY = "crmx-console-connection-v1";
-export const defaultConnection = (): Connection => ({ network: "wifi", protocol: "artnet", bridge: "localhost:8765", node: null });
+export const defaultConnection = (): Connection => ({ network: "wifi", protocol: "artnet", bridge: "localhost:8765", node: null, transmitter: null, autoMap: true });
 export function loadConnection(): Connection {
   try { const r = localStorage.getItem(CKEY); if (r) return { ...defaultConnection(), ...JSON.parse(r) }; } catch { /* ignore */ }
   return defaultConnection();
