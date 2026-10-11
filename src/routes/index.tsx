@@ -1,4 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
+import { LogIn, LogOut, Cloud, Map as MapIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -14,7 +17,8 @@ import {
   Unlock,
   X,
 } from "lucide-react";
-import { fixtureColor, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
+import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel";
+import { fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
@@ -72,6 +76,10 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>({ name: "projects" });
 
+  const { user } = useUser();
+  const [sync, setSync] = useState<"off" | "syncing" | "ok" | "error">("off");
+  const merged = useRef<string | null>(null);
+
   useEffect(() => {
     setProjects(loadProjects());
     setLoaded(true);
@@ -82,6 +90,28 @@ function App() {
     if (loaded) saveProjects(projects);
   }, [projects, loaded]);
 
+  // Signed in: merge cloud projects/favourites/effects once, then keep the cloud updated
+  useEffect(() => {
+    if (!loaded || !user || merged.current === user.id) return;
+    merged.current = user.id;
+    setSync("syncing");
+    pullAndMerge(loadProjects()).then((ps) => { setProjects(ps); setSync("ok"); }).catch(() => setSync("error"));
+  }, [user, loaded]);
+  useEffect(() => {
+    if (!user || merged.current !== user.id || sync === "syncing") return;
+    const id = setTimeout(() => { pushProjects(user.id, projects).then(() => setSync("ok")).catch(() => setSync("error")); }, 1500);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, user]);
+  useEffect(() => {
+    if (!user) { merged.current = null; setSync("off"); return; }
+    let id: ReturnType<typeof setTimeout>;
+    const push = (e: Event) => { if ((e as CustomEvent).detail?.silent) return; clearTimeout(id); id = setTimeout(() => void pushUserData(user.id).catch(() => setSync("error")), 1000); };
+    window.addEventListener("crmx-favorites", push);
+    window.addEventListener("crmx-effects", push);
+    return () => { clearTimeout(id); window.removeEventListener("crmx-favorites", push); window.removeEventListener("crmx-effects", push); };
+  }, [user]);
+
   const updateProject = (id: string, fn: (p: Project) => Project) =>
     setProjects((ps) => ps.map((p) => (p.id === id ? fn(p) : p)));
 
@@ -91,6 +121,7 @@ function App() {
     return (
       <ProjectsScreen
         projects={projects}
+        account={<AccountButton email={user?.email ?? null} sync={sync} />}
         onOpen={(id) => setView({ name: "scenes", projectId: id })}
         onCreate={(name, color) => {
           const p: Project = {
@@ -224,14 +255,28 @@ const fmtDate = (t: number) => new Date(t).toLocaleDateString(undefined, { month
 
 /* ---------------- Projects ---------------- */
 
-function ProjectsScreen({ projects, onOpen, onCreate, onDelete, onUpdate, onDuplicate }: {
-  projects: Project[]; onOpen: (id: string) => void; onCreate: (n: string, color: string) => void; onDelete: (id: string) => void;
+function AccountButton({ email, sync }: { email: string | null; sync: "off" | "syncing" | "ok" | "error" }) {
+  if (!email) return <Link to="/auth" className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground"><LogIn className="h-4 w-4" />Sign in</Link>;
+  return (
+    <div className="flex items-center gap-2">
+      <div className="hidden text-right sm:block">
+        <p className="max-w-40 truncate text-xs">{email}</p>
+        <p className="text-[10px] text-muted-foreground">{sync === "syncing" ? "Syncing…" : sync === "error" ? "Sync failed — saved on this device" : "Synced to account"}</p>
+      </div>
+      <Cloud className={`h-4 w-4 ${sync === "error" ? "text-destructive" : "text-primary"}`} />
+      <button onClick={() => void supabase.auth.signOut()} className="rounded-lg bg-surface-elevated p-2.5" aria-label="Sign out"><LogOut className="h-4 w-4" /></button>
+    </div>
+  );
+}
+
+function ProjectsScreen({ projects, account, onOpen, onCreate, onDelete, onUpdate, onDuplicate }: {
+  projects: Project[]; account: React.ReactNode; onOpen: (id: string) => void; onCreate: (n: string, color: string) => void; onDelete: (id: string) => void;
   onUpdate: (id: string, fn: (p: Project) => Project) => void; onDuplicate: (id: string) => void;
 }) {
   const [color, setColor] = useState(PROJECT_COLORS[0]!);
   return (
     <div className="min-h-screen">
-      <Header title="CRMX Console" subtitle="Projects" />
+      <Header title="CRMX Console" subtitle="Projects" right={account} />
       <main className="mx-auto max-w-5xl space-y-6 p-5">
         <div className="space-y-3">
           <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={(n) => onCreate(n, color)} />
@@ -320,6 +365,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   const [panelOpen, setPanelOpen] = useState(true);
   const [layers, setLayers] = useState<PixelLayer[]>(() => migrateLayers(scene));
   const [locked, setLocked] = useState(true);
+  const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
+  const [plotOpen, setPlotOpen] = useState(false);
   const [lastLook, setLastLook] = useState<string | null>(null);
   const [conn, setConnState] = useState<Connection>(() => loadConnection());
   const [connOpen, setConnOpen] = useState(false);
@@ -340,11 +387,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const latest = useRef({ fixtures, master, layers });
-  latest.current = { fixtures, master, layers };
+  const latest = useRef({ fixtures, master, layers, plot });
+  latest.current = { fixtures, master, layers, plot };
   const save = () => {
     const { pixelMap: _legacy, ...rest } = scene;
-    onSave({ ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers });
+    onSave({ ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot });
   };
 
   // Blackout fades smoothly out / in over FADE seconds
@@ -554,12 +601,19 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
         {tab("pixels", "PIXELS")}
         {tab("groups", "GROUPS")}
         {tab("looks", "LOOKS")}
+        <button onClick={() => setPlotOpen(true)} className="flex items-center gap-1 rounded-lg bg-surface-elevated px-3 py-2.5 text-xs font-bold active:scale-95"><MapIcon className="h-4 w-4" />PLOT</button>
         <button onClick={() => setSettingsOpen(true)} className="rounded-lg bg-surface-elevated p-2.5 active:scale-95" aria-label="Settings"><SettingsIcon className="h-4 w-4" /></button>
         <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? (bridge === "error" ? "bg-destructive text-destructive-foreground" : "bg-success text-primary-foreground") : "bg-surface-elevated"}`}>
           <Radio className="h-4 w-4" />{conn.node ? (bridge === "error" ? "NO BRIDGE" : conn.node.ip) : "CONNECT"}
         </button>
       </div>
 
+      {plotOpen && (
+        <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
+          colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
+          levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
+          onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
+      )}
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}

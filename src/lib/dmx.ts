@@ -1,4 +1,6 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
+import { asteraModes, asteraSpec } from "./astera";
+import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
 
 export type ModeKind = "dim" | "cct" | "cctgm" | "hsi" | "rgb" | "rgbw" | "full";
 
@@ -10,6 +12,8 @@ export interface FixtureMode {
   kind: ModeKind;
   profile?: "astera-hsi" | "astera-hsi-strobe" | "nanlux-evoke-cct" | "nanlux-dyno-cct" | "nanlux-dyno-hsi" | "nanlux-dyno-rgbw";
   source?: string;
+  /** exact Astera profile layout (number + per-pixel channel order) */
+  astera?: import("./astera").AsteraSpec;
 }
 
 export interface FixtureDef {
@@ -167,16 +171,19 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Astera", ["Titan Tube"], [
     ...asteraPx(16).map((mode) => {
       const code = mode.name === "3ch RGB" ? 1 : mode.name === "4ch RGBW" ? 2 : mode.name === "5ch RGBAW" ? 3 : mode.name === "6ch Dim RGBAW" ? 6 : mode.name === "Pixel RGB (16 px)" ? 42 : mode.name === "Pixel RGBW (16 px)" ? 43 : mode.name === "Pixel RGBAW (16 px)" ? 44 : undefined;
-      return code ? { ...mode, name: `${code} — ${mode.name}` } : mode;
+      const spec = code ? asteraSpec(code) : undefined;
+      return code ? { ...mode, name: `${code} — ${mode.name}`, ...(spec ? { astera: spec } : {}) } : mode;
     }),
     { name: "90 — D CCT GM HUE SAT", channels: 5, kind: "full", profile: "astera-hsi", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
     { name: "95 — D CCT GM HUE SAT S", channels: 6, kind: "full", profile: "astera-hsi-strobe", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
-    m("18 — Pixel RGB (4 px)", 12, "rgb", 4),
+    { ...m("18 — Pixel RGB (4 px)", 12, "rgb", 4), astera: asteraSpec(18)! },
+    // every other Titan profile, appended so saved mode numbers stay valid
+    ...asteraModes([1, 4, 8, 16], [1, 2, 3, 6, 18, 42, 43, 44, 90, 95]),
   ]),
-  ...fam("Astera", ["Helios Tube", "AX1 PixelTube"], asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5))),
-  ...fam("Astera", ["Hyperion Tube"], asteraPx(32)),
-  ...fam("Astera", ["PixelBrick"], asteraPx(4)),
-  ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb", "Leoht", "HydraPanel"], ASTERA),
+  ...fam("Astera", ["Helios Tube", "AX1 PixelTube"], [...asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5)), ...asteraModes([1, 4, 8])]),
+  ...fam("Astera", ["Hyperion Tube"], [...asteraPx(32), ...asteraModes([1, 4, 8, 16])]),
+  ...fam("Astera", ["PixelBrick"], [...asteraPx(4), ...asteraModes([1, 4])]),
+  ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb", "Leoht", "HydraPanel"], [...ASTERA, ...asteraModes([1])]),
   ...fam("Quasar Science", ["Rainbow 2 (2ft)"], pxModes(12, QUASAR)),
   ...fam("Quasar Science", ["Rainbow 2 (4ft)", "Double Rainbow (4ft)"], pxModes(24, QUASAR)),
   ...fam("Quasar Science", ["Rainbow 2 (8ft)", "Double Rainbow (8ft)"], pxModes(48, QUASAR)),
@@ -201,7 +208,17 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Generic", ["Pixel strip 8 px"], pxModes(8)),
   ...fam("Generic", ["Pixel strip 16 px"], pxModes(16)),
   ...fam("Generic", ["Pixel strip 32 px"], pxModes(32)),
-];
+  // Arclight.lt + Cinevera (cine.lt) rental stock not listed above
+  ...RENTAL_FIXTURES.flatMap((r) => fam(r.brand, r.models, ({ DIM, DIM_STROBE, BI, APUTURE_COLOR, APUTURE_BI, APUTURE_MC, NANLITE_PAVO, NANLITE_BI, GODOX_RGB, KINO, LITEPANELS, DMG, CHAUVET, QUASAR, CREAM_MICRO, ARRI_SKYPANEL } as Record<string, FixtureMode[]>)[r.modes]!)),
+].filter((d, i, all) => all.findIndex((x) => x.id === d.id) === i);
+
+/** Which local rental house stocks a fixture (search by "arclight" / "cinevera"). */
+export const RENTAL_STOCK: Record<string, string[]> = (() => {
+  const out: Record<string, string[]> = {};
+  for (const r of RENTAL_FIXTURES) for (const model of r.models) (out[slug(`${r.brand} ${model}`)] ??= []).push(...r.stock);
+  for (const [id, houses] of Object.entries(RENTAL_ALIASES)) (out[id] ??= []).push(...houses);
+  return out;
+})();
 
 export const BRANDS = Array.from(new Set(FIXTURE_LIBRARY.map((d) => d.brand)));
 export const DEF_BY_ID: Record<string, FixtureDef> = Object.fromEntries(FIXTURE_LIBRARY.map((d) => [d.id, d]));

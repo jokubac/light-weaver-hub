@@ -1,3 +1,5 @@
+import { SavedEffects } from "./SavedEffects";
+import { useFxLibrary } from "@/lib/fxlib";
 import { useState } from "react";
 import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
@@ -19,6 +21,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
   const [activeId, setActiveId] = useState(layers[0]?.id ?? "");
   const px = fixtures.filter(isPixelFixture);
   const layer = layers.find((l) => l.id === activeId) ?? layers[0]!;
+  const fxLib = useFxLibrary();
   const set = (p: Partial<PixelLayer>) => setLayers(layers.map((l) => (l.id === layer.id ? { ...l, ...p } : l)));
   const inMap = layer.order.filter((u) => px.some((f) => f.uid === u));
   const toggle = (u: string) => set({ order: inMap.includes(u) ? inMap.filter((x) => x !== u) : [...inMap, u] });
@@ -134,6 +137,8 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
         </div>
       )}
 
+      <SavedEffects label="My pixel effects" items={fxLib.lib.pixel} onSave={(n) => fxLib.savePixel(n, layer)} onDelete={(id) => fxLib.remove("pixel", id)}
+        onLoad={(it) => set({ ...structuredClone(it.layer), id: layer.id, order: layer.order, name: it.name })} />
       {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size, phase: layer.phase ?? 0 })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
       <SpeedControl label="Pixel speed" value={layer.speed} unit="×" onChange={(speed) => set({ speed })} />
       {["runner", "meteor", "text"].includes(layer.kind) && <div className="font-mono text-[10px] text-muted-foreground">{+(layer.speed * 10).toFixed(3)} px/s · {+(W / (layer.speed * 10)).toFixed(3)} s / map</div>}

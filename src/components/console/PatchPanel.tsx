@@ -4,7 +4,7 @@ import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import {
   BRANDS,
-  FIXTURE_LIBRARY,
+  FIXTURE_LIBRARY, RENTAL_STOCK,
   createFixture,
   findFreeAddress,
   overlaps,
@@ -27,7 +27,7 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
 
   const q = query.trim().toLowerCase();
   const searchHits = useMemo(
-    () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""}`.toLowerCase().includes(q)).slice(0, 60) : []),
+    () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""} ${(RENTAL_STOCK[d.id] ?? []).join(" ")}`.toLowerCase().includes(q)).slice(0, 120) : []),
     [q],
   );
 
@@ -63,7 +63,7 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
       {!def && (
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand or model…" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model, Arclight or Cinevera…" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
         </div>
       )}
 

@@ -11,6 +11,7 @@ export interface Scene {
   master: number;
   pixelMap?: PixelMap; // legacy single layer
   pixelLayers?: PixelLayer[];
+  plot?: import("@/components/console/PlotPanel").Plot;
 }
 
 /** A saved snapshot of fixture settings, recallable from any scene in the project. */
