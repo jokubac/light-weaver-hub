@@ -98,6 +98,13 @@ const ASTERA = [
   m("8ch Dim RGBAW Strobe Prog", 8, "full"), m("16ch Full 16-bit", 16, "full"),
 ];
 
+const astera = (px: number) => [
+  ...ASTERA,
+  m(`Pixel RGB (${px} px)`, px * 3, "rgb"),
+  m(`Pixel RGBW (${px} px)`, px * 4, "rgbw"),
+  m(`Pixel Dim+RGBW (${px} px)`, px * 4 + 1, "rgbw"),
+];
+
 const KINO = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGB 8-bit", 5, "rgb"), m("RGBW 8-bit", 6, "rgbw"), m("Full 8-bit", 12, "full"), m("Full 16-bit", 20, "full")];
 const LITEPANELS = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBWW 8-bit", 6, "rgbw"), m("Gel 8-bit", 4, "cctgm"), m("Full 16-bit", 21, "full")];
 const CREAM_MICRO = [m("Basic 8-bit", 4, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBW 8-bit", 6, "rgbw"), m("Full 16-bit", 16, "full")];
@@ -122,7 +129,12 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Godox", ["Knowled M200R", "TL60", "TL120", "LC500R", "F200R"], GODOX_RGB),
   ...fam("Creamsource", ["Vortex4", "Vortex8", "Vortex24"], VORTEX),
   ...fam("Creamsource", ["Micro Colour", "SpaceX"], CREAM_MICRO),
-  ...fam("Astera", ["Titan Tube", "Helios Tube", "Hyperion Tube", "AX1 PixelTube", "AX3 LightDrop", "AX9 PowerPar", "NYX Bulb", "PixelBrick"], ASTERA),
+  ...fam("Astera", ["Titan Tube"], astera(16)),
+  ...fam("Astera", ["Helios Tube"], astera(8)),
+  ...fam("Astera", ["Hyperion Tube"], astera(16)),
+  ...fam("Astera", ["AX1 PixelTube"], astera(16)),
+  ...fam("Astera", ["PixelBrick"], astera(4)),
+  ...fam("Astera", ["AX3 LightDrop", "AX9 PowerPar", "NYX Bulb"], ASTERA),
   ...fam("Kino Flo", ["FreeStyle 21", "FreeStyle 31", "Celeb 250", "Celeb 450", "MIMIK 120"], KINO),
   ...fam("Litepanels", ["Gemini 2x1", "Gemini 1x1", "Astra 6X Bi", "Studio X"], LITEPANELS),
   ...fam("DMG Lumière", ["SL1 MIX", "MAXI MIX", "MINI MIX"], DMG),
@@ -468,17 +480,20 @@ export function kelvinToRgb(k: number): [number, number, number] {
   return [c(r), c(g), c(b)];
 }
 
-export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): string {
-  const kind = getMode(f).kind;
-  const cp = caps(kind);
+/** Effect × trigger level multiplier (0-1+) for a fixture at time t. */
+export function fixtureLevel(f: PatchedFixture, t: number): number {
   const seed = seedOf(f.uid);
   let level = f.fx.kind === "none" ? 1 : f.fx.min + (f.fx.max - f.fx.min) * rawEffect(f.fx, t, seed);
   const trig = triggerLevel(f.trigger, t, seed);
   if (trig !== null) {
     level = f.trigger?.kind === "switch-on" || f.trigger?.kind === "switch-off" ? level * trig : Math.max(level * 0.15, trig);
   }
-  const v = clamp01(f.intensity * level * masterLevel);
+  return level;
+}
 
+/** Full-intensity colour (0-255) of a fixture, before dimming. */
+export function fixtureBaseRgb(f: PatchedFixture): [number, number, number] {
+  const cp = caps(getMode(f).kind);
   let [r, g, b] = kelvinToRgb(2000 + f.cct * 8000);
   if (cp.gm) {
     if (f.gm > 0) { r *= 1 - f.gm * 0.3; b *= 1 - f.gm * 0.3; }
@@ -489,10 +504,22 @@ export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): str
     const x = f.crossfade;
     r = r + (hr - r) * x; g = g + (hg - g) * x; b = b + (hb - b) * x;
   }
+  return [r, g, b];
+}
+
+export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): string {
+  const v = clamp01(f.intensity * fixtureLevel(f, t) * masterLevel);
+  const [r, g, b] = fixtureBaseRgb(f);
   return `rgb(${Math.round(r * v)}, ${Math.round(g * v)}, ${Math.round(b * v)})`;
 }
 
 /** Preview the normalised effect waveform (0-1) for drawing. */
 export function sampleEffect(fx: FxParams, t: number, seed = 0.3) {
   return fx.kind === "none" ? 1 : fx.min + (fx.max - fx.min) * rawEffect(fx, t, seed);
+}
+
+/** Number of individually addressable pixels in the fixture's current mode (1 = not a pixel mode). */
+export function pixelCount(f: { defId: string; modeIdx: number }): number {
+  const mm = /\((\d+) px\)/.exec(getMode(f).name);
+  return mm ? Number(mm[1]) : 1;
 }
