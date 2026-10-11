@@ -4,6 +4,7 @@
 
 import { fixtureState, getMode, type PatchedFixture } from "./dmx";
 import type { Connection } from "./store";
+import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
 
 type RGB = [number, number, number];
 
@@ -25,12 +26,12 @@ function writer(buf: Uint8Array, start: number, wide: boolean) {
   };
 }
 
-function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pixels?: RGB[]) {
+function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pixels: RGB[] | undefined, order: ColorOrder) {
   const mode = getMode(f);
   const wide = /16/.test(mode.name);
   const st = fixtureState(f, t, level);
   const v = st.v;
-  const [r, g, b] = st.rgb.map((c) => c / 255) as RGB;
+  const [r, g, b] = reorder(st.rgb.map((c) => c / 255) as RGB, order);
 
   if (f.split) {
     const w = writer(buf, f.address, false);
@@ -43,7 +44,7 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
     const pv = f.on === false ? 0 : f.intensity * level;
     pixels.forEach((c, i) => {
       const w = writer(buf, f.address + i * cpp, false);
-      const [pr, pg, pb] = [c[0] / 255, c[1] / 255, c[2] / 255];
+      const [pr, pg, pb] = reorder([c[0] / 255, c[1] / 255, c[2] / 255], order);
       const white = cpp >= 4 ? Math.min(pr, pg, pb) : 0;
       w((pr - white) * pv); w((pg - white) * pv); w((pb - white) * pv);
       if (cpp >= 4) w(white * pv);
@@ -64,12 +65,17 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
 }
 
 /** One Uint8Array(512) per universe that has lights patched. */
-export function buildUniverses(fixtures: PatchedFixture[], t: number, level: number, frame: Map<string, RGB[]>) {
+export function buildUniverses(fixtures: PatchedFixture[], t: number, level: number, frame: Map<string, RGB[]>, conn?: Connection) {
   const out = new Map<number, Uint8Array>();
+  const tx = conn?.autoMap ? getTransmitter(conn.transmitter ?? undefined) : undefined;
+  const order: ColorOrder = tx?.order ?? "RGB";
   for (const f of fixtures) {
-    let buf = out.get(f.universe);
-    if (!buf) { buf = new Uint8Array(512); out.set(f.universe, buf); }
-    encode(f, buf, t, level, frame.get(f.uid));
+    if (tx && f.universe > tx.universes) continue; // transmitter can't carry this universe
+    // bridge numbers Art-Net as (u-1) and sACN as u; shift so app U1 lands on the transmitter's first input
+    const u = tx ? f.universe + (conn!.protocol === "artnet" ? tx.artnetStart : tx.sacnStart - 1) : f.universe;
+    let buf = out.get(u);
+    if (!buf) { buf = new Uint8Array(512); out.set(u, buf); }
+    encode(f, buf, t, level, frame.get(f.uid), order);
   }
   return out;
 }
