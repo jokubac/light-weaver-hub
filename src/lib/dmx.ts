@@ -416,21 +416,6 @@ function cycle(p: number, fx: FxParams): number {
   return 1;
 }
 
-function stepsLevel(fx: FxParams, t: number): number {
-  const steps = fx.steps.length ? fx.steps : defaultFx().steps;
-  const total = steps.reduce((s, x) => s + x.hold + x.fade, 0) || 1;
-  let pos = (t * fx.rate) % total;
-  for (let i = 0; i < steps.length; i++) {
-    const st = steps[i]!;
-    const prev = steps[(i - 1 + steps.length) % steps.length]!.level;
-    if (pos < st.fade) return prev + (st.level - prev) * shape(pos / st.fade, fx.curve);
-    pos -= st.fade;
-    if (pos < st.hold) return st.level;
-    pos -= st.hold;
-  }
-  return steps[steps.length - 1]!.level;
-}
-
 /** Raw 0-1 effect value before min/max mapping. */
 function rawEffect(fx: FxParams, t: number, seed: number): number {
   const rnd = fx.random;
