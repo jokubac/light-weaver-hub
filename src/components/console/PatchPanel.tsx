@@ -22,7 +22,7 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
 
   const q = query.trim().toLowerCase();
   const searchHits = useMemo(
-    () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}`.toLowerCase().includes(q)).slice(0, 60) : []),
+    () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""}`.toLowerCase().includes(q)).slice(0, 60) : []),
     [q],
   );
 

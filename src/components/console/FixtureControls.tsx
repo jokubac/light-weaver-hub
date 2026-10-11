@@ -1,4 +1,5 @@
-import { Plus, Trash2, Zap, AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, Zap, AlertTriangle, Play, Square, Power, TrendingUp } from "lucide-react";
 import {
   CURVES,
   DEFAULT_CCT,
@@ -12,6 +13,8 @@ import {
   overlaps,
   sampleEffect,
   type FxParams,
+  type Curve,
+  type Step,
   type PatchedFixture,
   type TriggerKind,
 } from "@/lib/dmx";
@@ -89,6 +92,11 @@ export function FixtureControls({
         </div>
       )}
 
+      <button onClick={() => update({ on: first.on === false })}
+        className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.on === false ? "bg-surface-elevated text-muted-foreground" : "bg-success text-primary-foreground"}`}>
+        <Power className="h-4 w-4" /> {first.on === false ? "OFF — tap to turn on" : "ON — tap to turn off"}
+      </button>
+
       <Control label="Intensity" value={first.intensity} display={`${Math.round(first.intensity * 100)}%`} onChange={(v) => update({ intensity: v })} />
       <div className="flex gap-2">
         {[0, 0.25, 0.5, 0.75, 1].map((v) => (
@@ -146,9 +154,15 @@ export function FixtureControls({
       </Section>
 
       <Section title="Effect">
+        {fx.kind !== "none" && (
+          <button onClick={() => update({ fxPlaying: first.fxPlaying === false })}
+            className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.fxPlaying === false ? "bg-amber-glow text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+            {first.fxPlaying === false ? <><Play className="h-4 w-4" /> PLAY {fx.kind.toUpperCase()}</> : <><Square className="h-4 w-4" /> STOP {fx.kind.toUpperCase()}</>}
+          </button>
+        )}
         <div className="grid grid-cols-4 gap-2">
           {EFFECTS.map((e) => (
-            <button key={e.id} onClick={() => setFx({ ...FX_PRESETS[e.id], kind: e.id })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${fx.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
+            <button key={e.id} onClick={() => update({ fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id }, fxPlaying: true })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${fx.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
               {e.label}
             </button>
           ))}
@@ -209,24 +223,69 @@ function EffectEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams
 }
 
 function StepsEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>) => void }) {
-  const set = (i: number, p: Partial<FxParams["steps"][number]>) => setFx({ steps: fx.steps.map((s, j) => (j === i ? { ...s, ...p } : s)) });
+  const set = (i: number, p: Partial<Step>) => setFx({ steps: fx.steps.map((s, j) => (j === i ? { ...s, ...p } : s)) });
+  const [ramp, setRamp] = useState({ from: 20, to: 100, secs: 3, k1: 3200, k2: 5600, c1: "", c2: "", hold: 1 });
   const num = "w-full rounded-md border border-input bg-surface px-2 py-1.5 text-xs";
+  const buildRamp = () => setFx({
+    steps: [
+      { level: ramp.from / 100, fade: 0, hold: ramp.hold, ...(ramp.c1 ? { color: ramp.c1 } : { kelvin: ramp.k1 }) },
+      { level: ramp.to / 100, fade: ramp.secs, hold: ramp.hold, ...(ramp.c2 ? { color: ramp.c2 } : { kelvin: ramp.k2 }), curve: "linear" },
+    ],
+    min: 0, max: 1, rate: 1,
+  });
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-[1.5rem_1fr_1fr_1fr_1.5rem] gap-1.5 text-[10px] uppercase text-muted-foreground">
-        <span>#</span><span>Level %</span><span>Fade s</span><span>Hold s</span><span />
+    <div className="space-y-3">
+      <div className="space-y-2 rounded-lg border border-border p-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-muted-foreground"><TrendingUp className="h-3.5 w-3.5 text-amber-glow" />Quick ramp</div>
+        <div className="grid grid-cols-3 gap-1.5 text-[10px] uppercase text-muted-foreground">
+          <label>From %<input type="number" value={ramp.from} onChange={(e) => setRamp({ ...ramp, from: +e.target.value })} className={num} /></label>
+          <label>To %<input type="number" value={ramp.to} onChange={(e) => setRamp({ ...ramp, to: +e.target.value })} className={num} /></label>
+          <label>Over s<input type="number" step={0.1} value={ramp.secs} onChange={(e) => setRamp({ ...ramp, secs: Math.max(0, +e.target.value) })} className={num} /></label>
+          <label>Start K<input type="number" step={100} value={ramp.k1} onChange={(e) => setRamp({ ...ramp, k1: +e.target.value })} className={num} /></label>
+          <label>End K<input type="number" step={100} value={ramp.k2} onChange={(e) => setRamp({ ...ramp, k2: +e.target.value })} className={num} /></label>
+          <label>Hold s<input type="number" step={0.1} value={ramp.hold} onChange={(e) => setRamp({ ...ramp, hold: Math.max(0, +e.target.value) })} className={num} /></label>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] uppercase text-muted-foreground">
+          <span>or colours</span>
+          <ColorPick value={ramp.c1} onChange={(c) => setRamp({ ...ramp, c1: c })} />→
+          <ColorPick value={ramp.c2} onChange={(c) => setRamp({ ...ramp, c2: c })} />
+          <button onClick={buildRamp} className="ml-auto rounded-md bg-amber-glow px-3 py-1.5 text-[11px] font-bold text-primary-foreground">Build</button>
+        </div>
       </div>
+
       {fx.steps.map((s, i) => (
-        <div key={i} className="grid grid-cols-[1.5rem_1fr_1fr_1fr_1.5rem] items-center gap-1.5">
-          <span className="font-mono text-xs text-muted-foreground">{i + 1}</span>
-          <input type="number" min={0} max={100} value={Math.round(s.level * 100)} onChange={(e) => set(i, { level: Math.min(1, Math.max(0, +e.target.value / 100)) })} className={num} />
-          <input type="number" min={0} step={0.05} value={s.fade} onChange={(e) => set(i, { fade: Math.max(0, +e.target.value) })} className={num} />
-          <input type="number" min={0} step={0.05} value={s.hold} onChange={(e) => set(i, { hold: Math.max(0, +e.target.value) })} className={num} />
-          <button onClick={() => setFx({ steps: fx.steps.filter((_, j) => j !== i) })} disabled={fx.steps.length <= 1} className="text-muted-foreground hover:text-destructive disabled:opacity-30" aria-label="Remove step"><Trash2 className="h-3.5 w-3.5" /></button>
+        <div key={i} className="space-y-1.5 rounded-lg bg-surface-elevated p-2">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs font-bold text-amber-glow">Step {i + 1}</span>
+            <button onClick={() => setFx({ steps: fx.steps.filter((_, j) => j !== i) })} disabled={fx.steps.length <= 1} className="text-muted-foreground hover:text-destructive disabled:opacity-30" aria-label="Remove step"><Trash2 className="h-3.5 w-3.5" /></button>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 text-[10px] uppercase text-muted-foreground">
+            <label>Level %<input type="number" min={0} max={100} value={Math.round(s.level * 100)} onChange={(e) => set(i, { level: Math.min(1, Math.max(0, +e.target.value / 100)) })} className={num} /></label>
+            <label>Fade in s<input type="number" min={0} step={0.05} value={s.fade} onChange={(e) => set(i, { fade: Math.max(0, +e.target.value) })} className={num} /></label>
+            <label>Hold s<input type="number" min={0} step={0.05} value={s.hold} onChange={(e) => set(i, { hold: Math.max(0, +e.target.value) })} className={num} /></label>
+            <label>Kelvin<input type="number" step={100} placeholder="—" value={s.kelvin ?? ""} onChange={(e) => set(i, { kelvin: e.target.value ? Math.min(10000, Math.max(2000, +e.target.value)) : undefined })} className={num} /></label>
+            <label>Colour<div className="mt-0.5"><ColorPick value={s.color ?? ""} onChange={(c) => set(i, { color: c || undefined })} /></div></label>
+            <label>Curve
+              <select value={s.curve ?? ""} onChange={(e) => set(i, { curve: (e.target.value || undefined) as Curve | undefined })} className={num}>
+                <option value="">Default</option>
+                {CURVES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
       ))}
-      <button onClick={() => setFx({ steps: [...fx.steps, { level: 1, fade: 0.2, hold: 0.3 }] })} className="flex w-full items-center justify-center gap-1.5 rounded-md bg-surface-elevated py-2 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add step</button>
+      <button onClick={() => setFx({ steps: [...fx.steps, { level: 1, fade: 0.5, hold: 0.5 }] })} className="flex w-full items-center justify-center gap-1.5 rounded-md bg-surface-elevated py-2 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add step</button>
+      <p className="text-[10px] text-muted-foreground">Each step fades from the previous one. Set Kelvin or Colour to change colour while the level moves.</p>
     </div>
+  );
+}
+
+function ColorPick({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <input type="color" value={value || "#ffffff"} onChange={(e) => onChange(e.target.value)} className="h-7 w-9 cursor-pointer rounded border border-input bg-transparent" />
+      {value && <button onClick={(e) => { e.preventDefault(); onChange(""); }} className="text-[10px] text-muted-foreground">✕</button>}
+    </span>
   );
 }
 
