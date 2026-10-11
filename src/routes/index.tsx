@@ -615,6 +615,17 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
     holdTimer.current = setTimeout(() => { held.current = true; selectRange(id); navigator.vibrate?.(20); }, 450);
   };
   const holdEnd = () => { if (holdTimer.current) clearTimeout(holdTimer.current); holdTimer.current = null; };
+  // Sweep: drag across tiles to add every light you pass over
+  const [sweep, setSweep] = useState(false);
+  const swept = useRef<Set<string> | null>(null);
+  const sweepAt = (x: number, y: number) => {
+    const id = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>("[data-fixture]")?.dataset["fixture"];
+    if (!id || !swept.current || swept.current.has(id)) return;
+    swept.current.add(id);
+    lastPick.current = id;
+    navigator.vibrate?.(8);
+    setSelected((s) => (s.includes(id) ? s : [...s, id]));
+  };
   const tileClick = (e: React.MouseEvent, id: string) => {
     if (held.current) { held.current = false; return; }
     if (e.shiftKey) selectRange(id); else toggleSelect(id);
@@ -694,6 +705,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
               <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
                 <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
+                <button onClick={() => setSweep((s) => !s)} aria-pressed={sweep} title="Drag a finger across lights to select them"
+                  className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
                 <span>{selected.length} selected</span>
                 {groups.map((g) => (
                   <span key={g} className="flex items-center overflow-hidden rounded-md bg-primary/15 text-foreground">
@@ -702,7 +715,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                   </span>
                 ))}
               </div>
-              <div className="fixture-grid">
+              <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
+                onPointerDown={(e) => { if (!sweep) return; e.preventDefault(); swept.current = new Set(); sweepAt(e.clientX, e.clientY); }}
+                onPointerMove={(e) => { if (sweep && swept.current && (e.buttons || e.pointerType === "touch")) sweepAt(e.clientX, e.clientY); }}
+                onPointerUp={() => { if (swept.current) { swept.current = null; if (panel !== "looks" && panel !== "groups") { setPanel("control"); setPanelOpen(true); } } }}
+                onPointerCancel={() => { swept.current = null; }}>
                 {fixtures.map((f) => {
                   const def = getDef(f.defId);
                   const color = fixtureColor(f, t, outLevel);
@@ -711,7 +728,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                   const pv = f.on === false ? 0 : f.intensity * outLevel;
                   const [gc, gr] = pixelGrid(f);
                   return (
-                    <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`Select ${f.name}`} aria-pressed={isSel} tabIndex={0} onPointerDown={() => holdStart(f.uid)} onPointerUp={holdEnd} onPointerCancel={holdEnd} onClick={(e) => tileClick(e, f.uid)} onKeyDown={(e) => e.key === "Enter" && toggleSelect(f.uid)}
+                    <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`Select ${f.name}`} aria-pressed={isSel} tabIndex={0} onPointerDown={() => { if (!sweep) holdStart(f.uid); }} onPointerUp={holdEnd} onPointerCancel={holdEnd} onClick={(e) => { if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => e.key === "Enter" && toggleSelect(f.uid)}
                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${isSel ? "border-primary bg-primary/5" : "border-border"}`}>
                       {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
                       <FixtureGlyph className="min-h-0 w-full flex-1" model={def.model} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
