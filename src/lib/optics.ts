@@ -16,7 +16,7 @@ export const OPTIC_BY_ID = Object.fromEntries(OPTICS.map((o) => [o.id, o])) as R
 export function defaultOptic(model: string): Optic {
   const m = model.toLowerCase();
   if (/titan|helios|hyperion|tube|infinibar|pavotube|pixel ?bar|strip|lightblade|ax1|nyx/.test(m)) return "tube";
-  if (/fresnel|l7|l10|l5|t12|t24|\bt[0-9]|m18|m40|m90|arrimax|daylight|joker|hmi|max/.test(m)) return "fresnel";
+  if (/fresnel|l7|l10|l5|t12|t24|\bt[0-9]|m18|m40|m90|arrimax|daylight|joker|hmi/.test(m)) return "fresnel";
   if (/parabeam|parallel|dino|maxi|brute/.test(m)) return "parallel";
   if (/skypanel|panel|litemat|astra|gemini|vortex|orbiter|mat|kino|freestyle|celeb|select|s30|s60|s120|s360|p360|quasar/.test(m)) return "panel";
   if (/lantern|space|balloon|chimera/.test(m)) return "lantern";
