@@ -647,7 +647,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
                 const src = fs.find((x) => x.group === from);
                 if (!src) return fs;
                 const exists = fs.some((x) => x.group === to);
-                const copy = { intensity: src.intensity, on: src.on, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying };
+                const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
           ) : panel === "pixels" ? (
