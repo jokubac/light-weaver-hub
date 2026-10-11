@@ -433,7 +433,10 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} />
           ) : panel === "pixels" ? (
-            <PixelPanel fixtures={fixtures} pm={pm} setPm={setPm} frame={frame} />
+            <PixelPanel fixtures={fixtures} pm={pm} frame={frame} setPm={(next) => {
+              if (next.playing && !pm.playing) setFixtures((fs) => fs.map((f) => (next.order.includes(f.uid) && f.intensity === 0 ? { ...f, intensity: 1, on: true } : f)));
+              setPm(next);
+            }} />
           ) : sel.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
           ) : (

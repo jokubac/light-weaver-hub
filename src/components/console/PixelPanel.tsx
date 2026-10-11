@@ -6,8 +6,8 @@ export function PixelPanel({ fixtures, pm, setPm, frame }: {
   fixtures: PatchedFixture[]; pm: PixelMap; setPm: (p: PixelMap) => void; frame: Map<string, [number, number, number][]>;
 }) {
   const px = fixtures.filter(isPixelFixture);
-  const set = (p: Partial<PixelMap>) => setPm({ ...pm, ...p });
-  const inMap = pm.order.filter((u) => px.some((f) => f.uid === u));
+  const set = (p: Partial<PixelMap>) => setPm({ ...pm, order: pm.order.length ? pm.order : px.map((f) => f.uid), ...p });
+  const inMap = pm.order.length ? pm.order.filter((u) => px.some((f) => f.uid === u)) : px.map((f) => f.uid);
   const toggle = (u: string) => set({ order: inMap.includes(u) ? inMap.filter((x) => x !== u) : [...inMap, u] });
   const move = (u: string, d: number) => {
     const i = inMap.indexOf(u); const j = i + d;
