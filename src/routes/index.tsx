@@ -34,7 +34,7 @@ import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
-import { Settings as SettingsIcon, BatteryMedium } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { LooksPanel, applyLook } from "@/components/console/LooksPanel";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
