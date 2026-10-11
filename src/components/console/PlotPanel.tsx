@@ -28,6 +28,7 @@ export interface Plot {
   floors?: PlotFloor[];
   openings?: Opening[];
   objects?: SetObject[];
+  view?: { view3d: boolean; yaw: number; pitch: number; zoom: number; pan: [number, number]; active: number };
 }
 export const emptyPlot = (): Plot => ({ strokes: [], items: {}, size: [20, 14] });
 
@@ -72,20 +73,27 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
-  const [view3d, setView3d] = useState(false);
+  const [view3d, setView3d] = useState(plot.view?.view3d ?? false);
   const [spaceGap, setSpaceGap] = useState(0);
-  const [yaw, setYaw] = useState(0);
-  const [pitch, setPitch] = useState(55);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState<[number, number]>([0, 0]);
+  const [yaw, setYaw] = useState(plot.view?.yaw ?? 0);
+  const [pitch, setPitch] = useState(plot.view?.pitch ?? 55);
+  const [zoom, setZoom] = useState(plot.view?.zoom ?? 1);
+  const [pan, setPan] = useState<[number, number]>(plot.view?.pan ?? [0, 0]);
   const [tool, setTool] = useState<Tool>("move");
   const [ink, setInk] = useState("#e5e7eb");
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(plot.view?.active ?? 0);
   const [box, setBox] = useState<[number, number, number, number] | null>(null);
   const drag = useRef<Drag | null>(null);
   const pointers = useRef(new Map<number, [number, number]>());
   const plotRef = useRef(plot);
   plotRef.current = plot;
+  useEffect(() => {
+    const next = { ...plotRef.current, view: { view3d, yaw, pitch, zoom, pan, active } };
+    plotRef.current = next;
+    commitPlot(next);
+    // Camera changes are persisted without adding geometry undo steps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view3d, yaw, pitch, zoom, pan, active]);
   const imgs = useRef(new Map<string, HTMLImageElement>());
   const [, force] = useState(0);
   const [layoutUnlocked, setLayoutUnlocked] = useState(false);

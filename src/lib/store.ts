@@ -30,6 +30,7 @@ export interface Project {
   createdAt: number;
   scenes: Scene[];
   looks?: Look[];
+  setups?: Scene[]; // named, complete scene snapshots shared within this project
 }
 
 export const PROJECT_COLORS = ["#00E5FF", "#00E676", "#FFEA00", "#FF9100", "#FF3D00", "#F50057", "#D500F9", "#651FFF", "#2979FF", "#BDBDBD"];

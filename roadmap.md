@@ -1,4 +1,7 @@
 # Tasks
+- [x] Save and restore complete project scene setups, including plot view and effects
+- [x] Square fixture tiles with eight columns on roomy console layouts
+- [x] Verify project restore and fixture layout in the browser
 - [x] Live Plot top remove with confirmation and undo
 - [x] Organise intensity, colour and effects; copy settings between lights
 - [x] Editable colour palettes for every fixture and pixel effect
