@@ -2,11 +2,14 @@
 // see their beams live in 2D or tilted 3D, and control them straight from the plot.
 // View: wheel / pinch zoom, hand or middle-drag pan, right-drag (or shift+hand) rotates / tilts.
 import { useEffect, useRef, useState } from "react";
-import { Box, Eraser, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X } from "lucide-react";
+import { Box, Eraser, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X, DoorOpen, PanelsTopLeft, Undo2, Redo2 } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { fixtureWatts } from "@/lib/power";
 import { OPTICS, OPTIC_BY_ID, defaultOptic, type Optic } from "@/lib/optics";
-import { ColorWheel } from "./AdvancedControls";
+import { ColourControls } from "./ColourControls";
+import { Button } from "@/components/ui/button";
+import { wallSegments, openingBounds, wallPanels, rayBlocked, type Opening } from "@/lib/plot-geometry";
+import { editHistory } from "@/lib/edit-history";
 import { hexToHs } from "@/lib/gels";
 
 const WALL_H = 2.6; // drawn lines and boxes are treated as walls this tall
@@ -21,10 +24,11 @@ export interface Plot {
   items: Record<string, PlotItem>;
   size: [number, number]; // stage size in metres
   floors?: PlotFloor[];
+  openings?: Opening[];
 }
 export const emptyPlot = (): Plot => ({ strokes: [], items: {}, size: [20, 14] });
 
-type Tool = "move" | "pan" | "draw" | "rect" | "erase";
+type Tool = "move" | "pan" | "draw" | "rect" | "erase" | "door" | "window";
 type Mat = [number, number, number, number, number, number];
 interface View { m: Mat; zs: number }
 type Drag =
@@ -39,7 +43,7 @@ type Drag =
 const DEFAULT_TILT = 24;
 const clampN = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
-export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colorOf, levelOf, update, onClose, onOpenControls }: {
+export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSelected, colorOf, levelOf, update: commitFixture, onClose, onOpenControls }: {
   plot: Plot; setPlot: (p: Plot) => void; fixtures: PatchedFixture[]; selected: string[]; setSelected: (s: string[]) => void;
   colorOf: (f: PatchedFixture) => [number, number, number]; levelOf: (f: PatchedFixture) => number;
   update: (uid: string, p: Partial<PatchedFixture>) => void; onClose: () => void; onOpenControls: () => void;
@@ -62,6 +66,27 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
   plotRef.current = plot;
   const imgs = useRef(new Map<string, HTMLImageElement>());
   const [, force] = useState(0);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  type Snapshot = { plot: Plot; lights: PatchedFixture[] };
+  const history = useRef(editHistory<Snapshot>());
+  const gesture = useRef({ active: false, recorded: false });
+  const snapshot = (): Snapshot => ({ plot: plotRef.current, lights: fixtures.map((f) => ({ ...f })) });
+  const record = () => {
+    if (gesture.current.active && gesture.current.recorded) return;
+    history.current.push(snapshot());
+    gesture.current.recorded = true;
+    force((n) => n + 1);
+  };
+  const setPlot = (p: Plot) => { record(); plotRef.current = p; commitPlot(p); };
+  const update = (uid: string, p: Partial<PatchedFixture>) => { record(); commitFixture(uid, p); };
+  const restore = (s: Snapshot | undefined) => {
+    if (!s) return;
+    plotRef.current = s.plot; commitPlot(s.plot);
+    for (const f of s.lights) commitFixture(f.uid, { intensity: f.intensity, on: f.on, cct: f.cct, hue: f.hue, saturation: f.saturation, crossfade: f.crossfade, cctOnly: f.cctOnly, gm: f.gm, gel: f.gel });
+    force((n) => n + 1);
+  };
+  const undo = () => restore(history.current.undo(snapshot()));
+  const redo = () => restore(history.current.redo(snapshot()));
 
   const floors: PlotFloor[] = plot.floors?.length ? plot.floors : [{ name: "Ground", z: 0 }];
   const fl = Math.min(active, floors.length - 1);
@@ -73,14 +98,7 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
     const optic = it.optic ?? defaultOptic(model);
     return { optic, beam: it.optic ? it.beam : OPTIC_BY_ID[optic].angle, watts: fixtureWatts(model) };
   };
-  const segsOf = (floor: number) => {
-    const out: [number, number, number, number][] = [];
-    for (const st of plot.strokes) {
-      if ((st.floor ?? 0) !== floor) continue;
-      for (let k = 1; k < st.pts.length; k++) { const [x1, y1] = st.pts[k - 1]!, [x2, y2] = st.pts[k]!; out.push([x1, y1, x2 - x1, y2 - y1]); }
-    }
-    return out;
-  };
+  const segsOf = (floor: number) => wallSegments(plot.strokes, floor);
 
   useEffect(() => {
     for (let i = 0; i < floors.length; i++) {
@@ -204,8 +222,12 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
           if ((s.floor ?? 0) !== i) continue;
           for (let k = 1; k < s.pts.length; k++) {
             const [x1, y1] = s.pts[k - 1]!, [x2, y2] = s.pts[k]!;
-            const q = [proj(V, x1, y1, z), proj(V, x2, y2, z), proj(V, x2, y2, z + WALL_H), proj(V, x1, y1, z + WALL_H)];
-            ctx.beginPath(); q.forEach((pt, j) => (j ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1]))); ctx.closePath(); ctx.fill(); ctx.stroke();
+            const stroke = plot.strokes.indexOf(s);
+            const wall = { x: x1, y: y1, dx: x2 - x1, dy: y2 - y1, stroke, segment: k - 1 };
+            for (const [a, b, lo, hi] of wallPanels(wall, plot.openings ?? [])) {
+              const q = [proj(V, x1 + wall.dx * a, y1 + wall.dy * a, z + lo), proj(V, x1 + wall.dx * b, y1 + wall.dy * b, z + lo), proj(V, x1 + wall.dx * b, y1 + wall.dy * b, z + hi), proj(V, x1 + wall.dx * a, y1 + wall.dy * a, z + hi)];
+              ctx.beginPath(); q.forEach((pt, j) => (j ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1]))); ctx.closePath(); ctx.fill(); ctx.stroke();
+            }
           }
         }
       }
@@ -215,6 +237,24 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
         ctx.font = "600 11px system-ui, sans-serif"; ctx.textAlign = "left";
         ctx.fillText(floors[i]!.name, lx + 4, ly - 4);
       }
+    }
+
+    for (const o of plot.openings ?? []) {
+      const st = plot.strokes[o.stroke];
+      if (!st || (!view3d && (st.floor ?? 0) !== fl)) continue;
+      const wall = segsOf(st.floor ?? 0).find((w) => w.stroke === o.stroke && w.segment === o.segment);
+      if (!wall) continue;
+      const z = floors[st.floor ?? 0]?.z ?? 0;
+      const [a, b] = openingBounds(o, wall);
+      const points = view3d
+        ? [[a, o.bottom], [b, o.bottom], [b, o.bottom + o.height], [a, o.bottom + o.height]]
+        : [[a, 0], [b, 0]];
+      ctx.strokeStyle = getComputedStyle(c).getPropertyValue(o.kind === "door" ? "--color-success" : "--color-primary");
+      ctx.lineWidth = openingId === o.id ? 5 : 3;
+      ctx.beginPath();
+      points.forEach(([u, h], k) => { const q = proj(V, wall.x + wall.dx * (u ?? 0), wall.y + wall.dy * (u ?? 0), z + (h ?? 0)); if (k) ctx.lineTo(...q); else ctx.moveTo(...q); });
+      if (view3d) ctx.closePath();
+      ctx.stroke();
     }
 
     const placed = fixtures.filter((f) => plot.items[f.uid] && visible(plot.items[f.uid]!));
@@ -239,52 +279,26 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
       const hs = all ? 180 : Math.min(180, half / Math.max(0.35, Math.sin(((th || 1) * Math.PI) / 180)) );
       const a = (it.rot * Math.PI) / 180;
       const walls = segsOf(floorOf(it));
-      const N = 48, outer: [number, number][] = [], inner: [number, number][] = [];
-      for (let i = 0; i <= N; i++) {
-        const ang = a + (((i / N) * 2 - 1) * hs * Math.PI) / 180;
-        const dx = Math.cos(ang), dy = Math.sin(ang);
-        let t = rFar;
-        for (const [qx, qy, ex, ey] of walls) {
-          const den = dx * ey - dy * ex;
-          if (Math.abs(den) < 1e-9) continue;
-          const wx = qx - it.x, wy = qy - it.y;
-          const tt = (wx * ey - wy * ex) / den, u = (wx * dy - wy * dx) / den;
-          if (tt > 0.02 && u >= 0 && u <= 1 && tt < t) t = tt;
-        }
-        outer.push([it.x + dx * t, it.y + dy * t]);
-        const tn = Math.min(rNear, t);
-        inner.push([it.x + dx * tn, it.y + dy * tn]);
-      }
-      const omega = 2 * Math.PI * (1 - Math.cos((Math.min(half, 90) * Math.PI) / 180));
-      const lux = (rr: number) => ((watts * lv) / omega) * h / Math.pow(rr * rr + h * h, 1.5);
-      const glow = (rr: number) => 0.85 * (1 - Math.exp(-lux(rr) / LREF));
+      const omega = Math.max(0.001, 2 * Math.PI * (1 - Math.cos((Math.min(half, 90) * Math.PI) / 180)));
       const z0 = fz(it);
       ctx.save();
       ctx.setTransform(m[0] * dpr, m[1] * dpr, m[2] * dpr, m[3] * dpr, m[4] * dpr, (m[5] - z0 * zs) * dpr);
-      const rg = ctx.createRadialGradient(it.x, it.y, 0, it.x, it.y, Math.max(0.01, rFar));
-      for (let k = 0; k <= 10; k++) {
-        const rr = (rFar * k) / 10;
-        const edge = rr < rNear ? 0.15 : 1; // outside the beam cone close to the stand
-        const al = glow(rr) * edge * (k === 10 ? 0.3 : 1);
-        rg.addColorStop(k / 10, `rgba(${r},${g},${b},${al.toFixed(3)})`);
+      const cell = 0.3;
+      for (let x = Math.max(0, it.x - rFar); x < Math.min(SW, it.x + rFar); x += cell) {
+        for (let y = Math.max(0, it.y - rFar); y < Math.min(SH, it.y + rFar); y += cell) {
+          const cx = x + cell / 2, cy = y + cell / 2;
+          const dx = cx - it.x, dy = cy - it.y, rr = Math.hypot(dx, dy);
+          if (rr > rFar || rr < rNear) continue;
+          const diff = Math.atan2(Math.sin(Math.atan2(dy, dx) - a), Math.cos(Math.atan2(dy, dx) - a));
+          if (Math.abs(diff) > hs * Math.PI / 180) continue;
+          if (rayBlocked([it.x, it.y, h], [cx, cy, 0], walls, plot.openings ?? [])) continue;
+          const lux = ((watts * lv) / omega) * h / Math.pow(rr * rr + h * h, 1.5);
+          const alpha = 0.85 * (1 - Math.exp(-lux / LREF));
+          ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(3)})`;
+          ctx.fillRect(x, y, Math.min(cell, SW - x), Math.min(cell, SH - y));
+        }
       }
-      ctx.fillStyle = rg;
-      ctx.beginPath();
-      outer.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-      for (let k = inner.length - 1; k >= 0; k--) ctx.lineTo(inner[k]![0], inner[k]![1]);
-      ctx.closePath();
-      ctx.fill();
       ctx.restore();
-      // faint volumetric cone from the head to the middle of the pool
-      const mid = outer[N / 2]!;
-      const origin = headOf(V, it), pool = proj(V, mid[0], mid[1], z0);
-      const vol = 0.25 * (1 - Math.exp(-(watts * lv) / 500));
-      const cg = ctx.createLinearGradient(origin[0], origin[1], pool[0], pool[1]);
-      cg.addColorStop(0, `rgba(${r},${g},${b},${vol.toFixed(3)})`);
-      cg.addColorStop(1, `rgba(${r},${g},${b},0)`);
-      ctx.fillStyle = cg;
-      const l = proj(V, outer[Math.round(N * 0.3)]![0], outer[Math.round(N * 0.3)]![1], z0), rr2 = proj(V, outer[Math.round(N * 0.7)]![0], outer[Math.round(N * 0.7)]![1], z0);
-      ctx.beginPath(); ctx.moveTo(origin[0], origin[1]); ctx.lineTo(l[0], l[1]); ctx.lineTo(rr2[0], rr2[1]); ctx.closePath(); ctx.fill();
     }
     ctx.globalCompositeOperation = "source-over";
 
@@ -374,6 +388,26 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
     if (e.button === 2 || (tool === "pan" && e.shiftKey)) { drag.current = { kind: "orbit", sx, sy, yaw0: yaw, pitch0: pitch }; return; }
     if (e.button === 1 || tool === "pan") { drag.current = { kind: "pan", sx, sy, pan0: pan }; return; }
     const fp = clampFloor(unproj(viewOf(), sx, sy, floorZ));
+    if (tool === "door" || tool === "window") {
+      let nearest: { wall: ReturnType<typeof segsOf>[number]; u: number; distance: number } | undefined;
+      for (const wall of segsOf(fl)) {
+        const len2 = wall.dx * wall.dx + wall.dy * wall.dy;
+        if (len2 < 0.001) continue;
+        const u = clampN(((fp[0] - wall.x) * wall.dx + (fp[1] - wall.y) * wall.dy) / len2, 0, 1);
+        const q = proj(viewOf(), wall.x + wall.dx * u, wall.y + wall.dy * u, floorZ);
+        const distance = Math.hypot(q[0] - sx, q[1] - sy);
+        if (distance < 24 && (!nearest || distance < nearest.distance)) nearest = { wall, u, distance };
+      }
+      if (nearest) {
+        const { wall, u } = nearest;
+        const len = Math.hypot(wall.dx, wall.dy);
+        const width = Math.min(len, tool === "door" ? 0.9 : 1.2);
+        const o: Opening = { id: crypto.randomUUID(), kind: tool, stroke: wall.stroke, segment: wall.segment, center: clampN(u, width / (2 * len), 1 - width / (2 * len)), width, bottom: tool === "door" ? 0 : 0.9, height: tool === "door" ? 2.1 : 1.2 };
+        setPlot({ ...plot, openings: [...(plot.openings ?? []), o] });
+        setOpeningId(o.id);
+      }
+      return;
+    }
     if (tool === "move") {
       const h = hitHandle(sx, sy);
       if (h) { drag.current = { kind: "rot", uid: h, sy, tilt0: plot.items[h]!.tilt ?? DEFAULT_TILT, alt: e.altKey }; return; }
@@ -393,7 +427,7 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
       setPlot({ ...plot, strokes: [...plot.strokes, { pts: [fp, fp], color: ink, w: 0.08, ...(fl ? { floor: fl } : {}) }] });
     } else if (tool === "erase") {
       const keep = plot.strokes.filter((s) => (s.floor ?? 0) !== fl || !s.pts.some(([x, y]) => Math.hypot(x - fp[0], y - fp[1]) < 0.4));
-      setPlot({ ...plot, strokes: keep });
+      setPlot({ ...plot, strokes: keep, openings: remapOpenings(keep) });
     }
   };
   const move = (e: React.PointerEvent) => {
@@ -529,6 +563,11 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
     setActive(nf.length - 1);
   };
   const setFloor = (p: Partial<PlotFloor>) => setPlot({ ...plot, floors: floors.map((x, j) => (j === fl ? { ...x, ...p } : x)) });
+  const remapOpenings = (strokes: Plot["strokes"]) => (plot.openings ?? []).flatMap((o) => {
+    const old = plot.strokes[o.stroke];
+    const stroke = old ? strokes.indexOf(old) : -1;
+    return stroke < 0 ? [] : [{ ...o, stroke }];
+  });
   const deleteFloor = () => {
     if (fl === 0 || !confirm(`Delete "${floors[fl]!.name}"? Its lights go back to the list.`)) return;
     const items: Record<string, PlotItem> = {};
@@ -537,8 +576,10 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
       if (f0 === fl) continue;
       items[k] = f0 > fl ? { ...v, floor: f0 - 1 } : v;
     }
-    const strokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl).map((s) => ((s.floor ?? 0) > fl ? { ...s, floor: (s.floor ?? 0) - 1 } : s));
-    setPlot({ ...plot, items, strokes, floors: floors.filter((_, j) => j !== fl) });
+    const keptStrokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl);
+    const openings = remapOpenings(keptStrokes);
+    const strokes = keptStrokes.map((s) => ((s.floor ?? 0) > fl ? { ...s, floor: (s.floor ?? 0) - 1 } : s));
+    setPlot({ ...plot, items, strokes, openings, floors: floors.filter((_, j) => j !== fl) });
     setActive(fl - 1);
   };
 
@@ -547,11 +588,12 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
   const quick = firstItem && visible(firstItem) ? headOf(V, firstItem) : null;
 
   const toolBtn = (t: Tool, icon: React.ReactNode, label: string) => (
-    <button onClick={() => setTool(t)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${tool === t ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`} aria-label={label}>{icon}<span className="hidden md:inline">{label}</span></button>
+    <Button variant="secondary" title={label} onClick={() => setTool(t)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${tool === t ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`} aria-label={label}>{icon}<span className="hidden md:inline">{label}</span></Button>
   );
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-background">
+    <div className="fixed inset-0 z-40 flex flex-col bg-background" onPointerDownCapture={() => { gesture.current = { active: true, recorded: false }; }} onPointerUp={() => { gesture.current.active = false; }} onPointerCancel={() => { gesture.current.active = false; }}>
+
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2.5">
         <h2 className="mr-2 font-display text-lg font-semibold">Live plot</h2>
         <div className="flex overflow-hidden rounded-lg">
@@ -562,6 +604,10 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
         {toolBtn("pan", <Hand className="h-4 w-4" />, "Pan")}
         {toolBtn("draw", <Pencil className="h-4 w-4" />, "Draw")}
         {toolBtn("rect", <SquareIcon className="h-4 w-4" />, "Wall / box")}
+        {toolBtn("door", <DoorOpen className="h-4 w-4" />, "Door")}
+        {toolBtn("window", <PanelsTopLeft className="h-4 w-4" />, "Window")}
+        <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
+        <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
         {toolBtn("erase", <Eraser className="h-4 w-4" />, "Erase")}
         {(tool === "draw" || tool === "rect") && (
           <input type="color" value={ink} onChange={(e) => setInk(e.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" aria-label="Drawing colour" />
@@ -571,7 +617,7 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
           <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
         </label>
         {bgOf(fl) && <button onClick={removeImage} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">Remove image</button>}
-        {plot.strokes.some((s) => (s.floor ?? 0) === fl) && <button onClick={() => { if (confirm("Clear the drawing on this floor?")) setPlot({ ...plot, strokes: plot.strokes.filter((s) => (s.floor ?? 0) !== fl) }); }} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">Clear drawing</button>}
+        {plot.strokes.some((s) => (s.floor ?? 0) === fl) && <button onClick={() => { if (confirm("Clear the drawing on this floor?"))  { const strokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl); setPlot({ ...plot, strokes, openings: remapOpenings(strokes) }); } }} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">Clear drawing</button>}
         <div className="flex-1" />
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-2.5" aria-label="Close plot"><X className="h-4 w-4" /></button>
       </div>
@@ -580,7 +626,7 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
         <div ref={wrap} className="relative min-h-[300px] flex-1 touch-none overflow-hidden">
           <canvas ref={canvas} style={{ width: dims.w, height: dims.h }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
             onDoubleClick={dbl} onContextMenu={(e) => e.preventDefault()}
-            className={tool === "pan" ? "cursor-move" : tool === "move" ? "cursor-default" : "cursor-crosshair"} />
+            aria-label="Live plot canvas" className={tool === "pan" ? "cursor-move" : tool === "move" ? "cursor-default" : "cursor-crosshair"} />
           {box && (
             <div className="pointer-events-none absolute border border-primary bg-primary/10"
               style={{ left: Math.min(box[0], box[2]), top: Math.min(box[1], box[3]), width: Math.abs(box[2] - box[0]), height: Math.abs(box[3] - box[1]) }} />
@@ -619,7 +665,7 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
           <div className="absolute right-3 top-3 rounded-md bg-surface/80 px-2 py-1 font-mono text-[10px] text-muted-foreground">{SW} × {SH} m · grid 1 m</div>
         </div>
 
-        <aside className="w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-4 lg:w-80 lg:border-l lg:border-t-0">
+        <aside className="max-h-[45vh] lg:max-h-none w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-4 lg:w-80 lg:border-l lg:border-t-0">
           {first && firstItem ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -646,7 +692,7 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
                 );
               })()}
               <div className="grid grid-cols-8 gap-1">{["#ffffff","#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => selItems.forEach((u) => update(u, c === "#ffffff" ? { crossfade: 0 } : { hue: hexToHs(c).h, saturation: hexToHs(c).s, crossfade: 1, cctOnly: false }))} className="h-6 rounded border border-input" style={{ background: c }} />)}</div>
-              <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={(p) => selItems.forEach((u) => update(u, p))} />
+              <ColourControls value={first} update={(p) => selItems.forEach((u) => update(u, p))} />
               {floors.length > 1 && (
                 <label className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Floor</span>
                   <select value={floorOf(firstItem)} onChange={(e) => { const n = +e.target.value; setItems({ floor: n }); setActive(n); }} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
@@ -662,6 +708,19 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
           ) : (
             <p className="text-xs text-muted-foreground">Tap a light to control it, drag to move. Drag on empty space to select several. Double-tap a light to switch it on/off. Drag the round handle to turn a light (hold Alt to tilt it). Scroll or pinch to zoom, right-drag to rotate the view.</p>
           )}
+
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-xs font-semibold">Doors / windows</p>
+            {(plot.openings ?? []).filter((o) => (plot.strokes[o.stroke]?.floor ?? 0) === fl).map((o, i) => <div key={o.id} className="space-y-2">
+              <div className="flex items-center gap-2"><Button variant={openingId === o.id ? "default" : "secondary"} size="sm" onClick={() => setOpeningId(o.id)}>{o.kind === "door" ? <DoorOpen /> : <PanelsTopLeft />}{o.kind} {i + 1}</Button><Button variant="ghost" size="icon" aria-label={`Remove ${o.kind} ${i + 1}`} onClick={() => setPlot({ ...plot, openings: plot.openings?.filter((x) => x.id !== o.id) ?? [] })}><Trash2 /></Button></div>
+              {openingId === o.id && <>
+                <Slider label="Opening width" value={o.width} min={0.2} max={Math.hypot((plot.strokes[o.stroke]?.pts[o.segment + 1]?.[0] ?? 0) - (plot.strokes[o.stroke]?.pts[o.segment]?.[0] ?? 0), (plot.strokes[o.stroke]?.pts[o.segment + 1]?.[1] ?? 0) - (plot.strokes[o.stroke]?.pts[o.segment]?.[1] ?? 0))} step={0.1} unit=" m" onChange={(width) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, width } : x) ?? [] })} />
+                <Slider label="Opening position" value={o.center * 100} min={0} max={100} unit="%" onChange={(v) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, center: v / 100 } : x) ?? [] })} />
+                <Slider label="Sill height" value={o.bottom} min={0} max={WALL_H - 0.1} step={0.1} unit=" m" onChange={(bottom) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, bottom, height: Math.min(x.height, WALL_H - bottom) } : x) ?? [] })} />
+                <Slider label="Opening height" value={o.height} min={0.1} max={WALL_H - o.bottom} step={0.1} unit=" m" onChange={(height) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, height } : x) ?? [] })} />
+              </>}
+            </div>)}
+          </div>
 
           <div className="space-y-2">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">+ Fixture on {floors[fl]!.name}</p>

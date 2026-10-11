@@ -20,11 +20,12 @@ import {
   type TriggerKind,
 } from "@/lib/dmx";
 import { ColorSource } from "./ColorSource";
+import { ColourControls, HexColourControls } from "./ColourControls";
 import { SavedEffects } from "./SavedEffects";
 import { useFxLibrary } from "@/lib/fxlib";
 import { SpeedControl } from "./SpeedControl";
 import { hexToHs } from "@/lib/gels";
-import { IntensityMacros, CctMacros, GmMacros, ColorWheel, FanControl, GelPicker } from "./AdvancedControls";
+import { IntensityMacros, GmMacros, FanControl, GelPicker } from "./AdvancedControls";
 
 export function Control({
   label, value, display, onChange, onReset, gradient, min = 0, max = 1, entry,
@@ -81,7 +82,9 @@ export function FixtureControls({
   remove: () => void;
   fire: (k: TriggerKind) => void;
 }) {
-  const first = sel[0]!;
+  const first = sel[0];
+  const fxLib = useFxLibrary();
+  if (!first) return null;
   const mode = getMode(first);
   const anyCaps = sel.reduce(
     (a, f) => { const c = caps(getMode(f).kind); return { cct: a.cct || c.cct, gm: a.gm || c.gm, color: a.color || c.color }; },
@@ -89,9 +92,7 @@ export function FixtureControls({
   );
   const fx = first.fx;
   const setFx = (p: Partial<FxParams>) => update({ fx: { ...fx, ...p } });
-  const fxLib = useFxLibrary();
   const conflicts = sel.length === 1 ? overlaps(fixtures, first.universe, first.address, mode.channels, first.uid) : [];
-  const showHsi = anyCaps.color && !first.cctOnly;
 
   return (
     <div className="space-y-5">
@@ -130,57 +131,14 @@ export function FixtureControls({
       <IntensityMacros updateEach={updateEach} />
 
       <Section title="Colour">
-          {!anyCaps.color && <p className="rounded-md bg-surface-elevated px-3 py-2 text-[11px] text-muted-foreground">This mode ({mode.name}) is white only — colour won't reach the light. Pick a colour mode in the light's ⋯ menu → Edit.</p>}
-          {first.cctOnly && anyCaps.color && <p className="text-[11px] text-muted-foreground">"CCT only" is on — picking a colour turns it off.</p>}
-          <div className="grid grid-cols-8 gap-1.5">{["#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#8000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => { const { h, s } = hexToHs(c); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }} className="h-8 rounded-md border border-input" style={{ background: c }} />)}</div>
-          <div onTouchEnd={tapReset(() => update({ hue: 0, saturation: 0 }))}>
-            <Control label="Hue" value={first.hue / 360} display={`${Math.round(first.hue)}°`} onChange={(v) => update({ hue: v * 360, cctOnly: false, ...(first.crossfade < 1 ? { crossfade: 1 } : {}) })} onReset={() => update({ hue: 0, saturation: 0 })}
-              gradient="linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)" />
-          </div>
-          <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={update} />
-          <div onTouchEnd={tapReset(() => update({ saturation: 0 }))}>
-            <Control label="Saturation" value={first.saturation} display={`${Math.round(first.saturation * 100)}%`} onChange={(v) => update({ saturation: v, cctOnly: false })} onReset={() => update({ saturation: 0 })} />
-          </div>
-          <ColorSource onPick={(hex, lbl) => {
-            if (lbl.endsWith("K")) update({ cct: Math.min(1, Math.max(0, cctFromKelvin(parseInt(lbl, 10)))), crossfade: 0 });
-            else { const { h, s } = hexToHs(hex); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }
-          }} />
-          {first.crossfade > 0 && <button onClick={() => update({ crossfade: 0 })} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Back to white (CCT)</button>}
+        <ColourControls value={first} update={update} />
+        {anyCaps.color && <label className="flex items-center justify-between text-xs">CCT only<input type="checkbox" checked={first.cctOnly} onChange={(e) => update({ cctOnly: e.target.checked })} /></label>}
+        {anyCaps.gm && <><Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm.toFixed(2)} onChange={(gm) => update({ gm })} onReset={() => update({ gm: 0 })} /><GmMacros value={first.gm} update={update} /></>}
+        <ColorSource onPick={(hex, lbl) => {
+          if (lbl.endsWith("K")) update({ cct: cctFromKelvin(parseInt(lbl, 10)), crossfade: 0 });
+          else { const { h, s } = hexToHs(hex); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }
+        }} />
       </Section>
-
-      {(anyCaps.cct || anyCaps.gm || anyCaps.color) && (
-        <Section title="Colour corrections">
-          {anyCaps.color && (
-            <label className="flex items-center justify-between rounded-md bg-surface-elevated px-3 py-2 text-xs font-semibold">
-              CCT only
-              <input type="checkbox" checked={first.cctOnly} onChange={(e) => update({ cctOnly: e.target.checked })} className="h-4 w-4 accent-[var(--color-primary)]" />
-            </label>
-          )}
-          {anyCaps.cct && (
-            <div onTouchEnd={tapReset(() => update({ cct: DEFAULT_CCT }))}>
-              <Control label="CCT" value={first.cct} display="" entry={{ text: String(kelvin(first.cct)), suffix: "K", parse: (n) => Math.min(1, Math.max(0, cctFromKelvin(n))) }} onChange={(v) => update({ cct: v })} onReset={() => update({ cct: DEFAULT_CCT })}
-                gradient="linear-gradient(to right, rgb(255,137,18), rgb(255,228,206), rgb(255,250,244), rgb(204,219,255))" />
-            </div>
-          )}
-          {anyCaps.cct && <CctMacros value={first.cct} update={update} />}
-          {anyCaps.gm && (
-            <div onTouchEnd={tapReset(() => update({ gm: 0 }))}>
-              <Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm === 0 ? "0" : `${first.gm > 0 ? "+G" : "−M"} ${Math.abs(first.gm).toFixed(2)}`}
-                onChange={(v) => update({ gm: Math.abs(v) < 0.02 ? 0 : v })} onReset={() => update({ gm: 0 })}
-                gradient="linear-gradient(to right, rgb(255,0,200), rgb(240,240,240), rgb(0,220,80))" />
-            </div>
-          )}
-          {anyCaps.gm && <GmMacros value={first.gm} update={update} />}
-          {showHsi && (
-            <>
-              <div onTouchEnd={tapReset(() => update({ crossfade: 0 }))}>
-                <Control label="Crossfade CCT ↔ HSI" value={first.crossfade} display={`${Math.round(first.crossfade * 100)}%`} onChange={(v) => update({ crossfade: v })} onReset={() => update({ crossfade: 0 })} />
-              </div>
-            </>
-          )}
-          <p className="text-[10px] text-muted-foreground">Double-tap a slider to reset it (G/M → 0, HSI → neutral, CCT → 5600K).</p>
-        </Section>
-      )}
 
       <Section title="Advanced">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fan</div>
@@ -213,7 +171,7 @@ export function FixtureControls({
             </button>
           ))}
         </div>
-        {fx.kind !== "none" && <EffectEditor fx={fx} setFx={setFx} />}
+        {fx.kind !== "none" && <><EffectEditor fx={fx} setFx={setFx} /><ColourControls value={first} update={update} /></>}
         <SavedEffects label="My effects" items={fxLib.lib.fx} onSave={(n) => fxLib.saveFx(n, fx)} onDelete={(id) => fxLib.remove("fx", id)}
           onLoad={(it) => update({ fx: structuredClone(it.fx), fxPlaying: true })} />
       </Section>
@@ -322,6 +280,7 @@ function StepsEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>
               </select>
             </label>
           </div>
+          <HexColourControls value={s.color ?? "#ffffff"} onChange={(color) => set(i, { color, kelvin: undefined })} />
           <ColorSource compact onPick={(hex, lbl) => (lbl.endsWith("K") ? set(i, { kelvin: parseInt(lbl, 10), color: undefined }) : set(i, { color: hex, kelvin: undefined }))} />
         </div>
       ))}
