@@ -3,6 +3,9 @@ import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
+import { FixtureIconPicker } from "./FixtureIconPicker";
+import { FixtureGlyph } from "./FixtureGlyph";
+import type { FixtureIcon } from "@/lib/fixture-icons";
 import { planPatch } from "@/lib/patch-plan";
 import {
   BRANDS,
@@ -159,6 +162,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate }: {
                     <button onClick={() => setUnpick((u) => (on ? u.filter((x) => x !== f.uid) : [...u, f.uid]))} aria-label={`Pick ${f.name}`}
                       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${on ? "border-destructive bg-destructive text-destructive-foreground" : "border-input"}`}>{on ? "✓" : ""}</button>
                     {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
+                    <FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-7 w-9 shrink-0" />
                     <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
                     <span className={`shrink-0 font-mono text-[10px] ${clash.length ? "text-destructive" : "text-muted-foreground"}`}>U{f.universe}.{f.address} · {ch}ch</span>
                     <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`rounded p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
@@ -166,6 +170,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate }: {
                   {editing === f.uid && (
                     <div className="space-y-2 border-t border-border p-2">
                       <Field label="Name"><input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} className={inputCls} /></Field>
+                      <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                       <Field label="Mode">
                         <select value={f.modeIdx} onChange={(e) => onUpdate(f.uid, { modeIdx: +e.target.value })} className={inputCls}>
                           {d.modes.map((m, i) => <option key={m.name} value={i}>{m.name} · {m.channels} ch</option>)}
@@ -197,6 +202,7 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
   const [offset, setOffset] = useState(0);
   const [baseName, setBaseName] = useState(def.model);
   const [label, setLabel] = useState<string | null>(null);
+  const [icon, setIcon] = useState<FixtureIcon>("auto");
 
   const changeUniverse = (u: number) => {
     setUniverse(u);
@@ -210,7 +216,7 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
   const problem = strict.overflows ? spread.problem : strict.problem;
   const build = (slots: typeof strict.slots) => slots.map((s, i) => {
     const nf = createFixture(def, modeIdx, s.universe, s.address, qty === 1 && existing === 0 ? baseName : `${baseName} ${existing + i + 1}`);
-    return label ? { ...nf, label } : nf;
+    return { ...nf, icon, ...(label ? { label } : {}) };
   });
   const patch = () => {
     if (strict.overflows) {
@@ -225,6 +231,7 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
   return (
     <div className="space-y-3 rounded-lg bg-surface-elevated p-3">
       <Field label="Name"><input value={baseName} onChange={(e) => setBaseName(e.target.value)} className={inputCls} /></Field>
+      <FixtureIconPicker model={def.model} value={icon} onChange={setIcon} />
       <div>
         <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Colour tag (optional)</span>
         <div className="flex flex-wrap gap-1.5">
