@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon } from "lucide-react";
+import { LogIn, LogOut, Cloud, Map as MapIcon, Save, FolderOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -205,6 +207,7 @@ function App() {
       }
       onExit={() => setView({ name: "scenes", projectId: project.id })}
       onLooks={(looks) => updateProject(project.id, (p) => ({ ...p, looks }))}
+      onSetups={(setups) => updateProject(project.id, (p) => ({ ...p, setups }))}
     />
   );
 }
@@ -356,8 +359,8 @@ type Panel = "patch" | "control" | "pixels" | "groups" | "looks";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
-  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void;
+function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
+  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void;
 }) {
   const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
@@ -378,6 +381,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   const [connOpen, setConnOpen] = useState(false);
   const setConn = (c: Connection) => { setConnState(c); saveConnection(c); };
   const [savedFlash, setSavedFlash] = useState(false);
+  const [setupsOpen, setSetupsOpen] = useState(false);
   const [t, setT] = useState(0);
   const clock = useRef(0);
 
@@ -395,9 +399,22 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
 
   const latest = useRef({ fixtures, master, layers, plot });
   latest.current = { fixtures, master, layers, plot };
-  const save = () => {
+  const currentScene = (): Scene => {
     const { pixelMap: _legacy, ...rest } = scene;
-    onSave({ ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot });
+    return { ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot };
+  };
+  const save = () => onSave(currentScene());
+  const restoreSetup = (setup: Scene) => {
+    const restored = structuredClone(setup);
+    setPlotOpen(false);
+    setFixtures(restored.fixtures);
+    setMaster(restored.master);
+    setLayers(migrateLayers(restored));
+    setPlot(restored.plot ?? emptyPlot());
+    setSelected([]);
+    setLastLook(null);
+    setBo({ target: 0, at: -10, from: 0 });
+    onSave({ ...restored, id: scene.id, name: scene.name, createdAt: scene.createdAt });
   };
 
   // Blackout fades smoothly out / in over FADE seconds
@@ -496,14 +513,18 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   }, [midi.enabled]);
 
   useEffect(() => {
-    const id = setInterval(() => {
+    const id = setTimeout(() => {
       save();
       setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 1500);
-    }, 10000);
-    return () => clearInterval(id);
+    }, 400);
+    return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fixtures, master, layers, plot]);
+  useEffect(() => {
+    if (!savedFlash) return;
+    const id = setTimeout(() => setSavedFlash(false), 1500);
+    return () => clearTimeout(id);
+  }, [savedFlash]);
 
   const exit = () => { save(); onExit(); };
 
@@ -614,6 +635,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
           <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
         </div>
         <div className="flex-1" />
+        <Button variant="secondary" size="icon" aria-label="Save scene" title="Save scene" onClick={() => { save(); setSavedFlash(true); }}><Save /></Button>
+        <Button variant="secondary" size="sm" onClick={() => setSetupsOpen(true)}><FolderOpen />SETUPS</Button>
         <div className={`flex items-center gap-1.5 text-xs text-success transition-opacity ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" /> Auto-saved</div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-amber-glow">MASTER</span>
@@ -640,6 +663,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
         </button>
       </div>
 
+      <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
+        onSave={(name) => { onSetups([{ ...structuredClone(currentScene()), id: uid(), name, createdAt: Date.now() }, ...(project.setups ?? [])]); save(); setSavedFlash(true); }}
+        onRestore={restoreSetup} onDelete={(id) => onSetups((project.setups ?? []).filter((s) => s.id !== id))} />
       {plotOpen && (
         <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
           copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
@@ -660,7 +686,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
           ]),
         ]} />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="min-h-0 flex-1 overflow-auto p-4">
+        <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
           {fixtures.length === 0 ? (
             <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
           ) : (
@@ -676,7 +702,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
                   </span>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <div className="fixture-grid">
                 {fixtures.map((f) => {
                   const def = getDef(f.defId);
                   const color = fixtureColor(f, t, outLevel);
@@ -686,11 +712,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
                   const [gc, gr] = pixelGrid(f);
                   return (
                     <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`Select ${f.name}`} aria-pressed={isSel} tabIndex={0} onPointerDown={() => holdStart(f.uid)} onPointerUp={holdEnd} onPointerCancel={holdEnd} onClick={(e) => tileClick(e, f.uid)} onKeyDown={(e) => e.key === "Enter" && toggleSelect(f.uid)}
-                      className={`relative min-h-44 cursor-pointer overflow-hidden rounded-lg border bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary bg-primary/5" : "border-border"}`}>
+                      className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${isSel ? "border-primary bg-primary/5" : "border-border"}`}>
                       {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
-                      <FixtureGlyph model={def.model} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
-                      <div className="flex items-center gap-1">
-                        <div className="flex min-w-0 flex-1 items-center gap-1 truncate text-sm font-semibold">
+                      <FixtureGlyph className="min-h-0 w-full flex-1" model={def.model} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
+                      <div className="flex shrink-0 items-center gap-1">
+                        <div title={f.name} className="flex min-w-0 flex-1 items-center gap-1 truncate text-[11px] font-semibold">
                           {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
                           {f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}
                         </div>
@@ -698,16 +724,16 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
                           onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g) => setGroup(f, g)}
                           level={outLevel} onPower={(p) => setFixtures((fs) => fs.map((x) => { if (x.uid !== f.uid) return x; const { power: _p, ...rest } = x; return p ? { ...rest, power: p } : rest; }))} />
                       </div>
-                      <div className="flex justify-between text-[11px] text-muted-foreground">
-                        <span className="truncate">{def.brand} · U{f.universe}.{f.address}</span>
+                      <div className="flex shrink-0 justify-between gap-1 text-[9px] text-muted-foreground">
+                        <span className="truncate">U{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
-                      {f.group && <div className="truncate text-[10px] text-primary">{f.group}</div>}
+                      {f.group && <div className="shrink-0 truncate text-[9px] text-primary">{f.group}</div>}
                       {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
-                        <div className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
-                          <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)} left
+                        <div title={`${fmtHours(b.hours)} left`} className={`flex shrink-0 items-center gap-1 text-[9px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
+                          <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}%
                         </div>); })()}
-                      {f.fx.kind !== "none" && <div className={`mt-1 text-[10px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
+                      {f.fx.kind !== "none" && <div className={`shrink-0 truncate text-[9px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
                     </div>
                   );
                 })}
