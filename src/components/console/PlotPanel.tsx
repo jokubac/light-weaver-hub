@@ -45,6 +45,22 @@ type Drag =
 
 const DEFAULT_TILT = 24;
 const clampN = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+/** Beam textures are reused until the fixture, its light or the wall geometry changes. */
+const beamCache = new Map<string, { key: string; canvas: HTMLCanvasElement }>();
+/** Theme colours are read once and refreshed only when the root theme class/style changes. */
+let themeCache: { sig: string; values: Map<string, string> } | null = null;
+function themeOf() {
+  const root = document.documentElement;
+  const sig = `${root.className}|${root.getAttribute("style") ?? ""}`;
+  if (!themeCache || themeCache.sig !== sig) {
+    const cs = getComputedStyle(root);
+    const values = new Map<string, string>();
+    for (const n of ["--color-success", "--color-primary", "--color-foreground", "--color-muted-foreground", "--color-surface-elevated"]) values.set(n, cs.getPropertyValue(n));
+    themeCache = { sig, values };
+  }
+  const values = themeCache.values;
+  return { getPropertyValue: (n: string) => values.get(n) ?? "" };
+}
 
 export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSelected, colorOf, levelOf, update: commitFixture, onClose, onOpenControls }: {
   plot: Plot; setPlot: (p: Plot) => void; fixtures: PatchedFixture[]; selected: string[]; setSelected: (s: string[]) => void;
@@ -183,6 +199,13 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     const dpr = window.devicePixelRatio || 1;
     if (c.width !== dims.w * dpr || c.height !== dims.h * dpr) { c.width = dims.w * dpr; c.height = dims.h * dpr; }
     const ctx = c.getContext("2d")!;
+    const theme = themeOf();
+    const geoKeys = new Map<number, string>();
+    const geometryKey = (floor: number) => {
+      let k = geoKeys.get(floor);
+      if (k === undefined) { k = JSON.stringify([segsOf(floor), plot.openings ?? []]); geoKeys.set(floor, k); }
+      return k;
+    };
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#0b0d10";
     ctx.fillRect(0, 0, dims.w, dims.h);
