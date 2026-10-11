@@ -3,6 +3,7 @@
 export type ModeKind = "dim" | "cct" | "cctgm" | "hsi" | "rgb" | "rgbw" | "full";
 
 export interface FixtureMode {
+  pixels?: number; // pixel count for pixel modes
   name: string;
   channels: number;
   kind: ModeKind;
@@ -27,7 +28,7 @@ export function caps(kind: ModeKind) {
 // Channel counts follow manufacturer DMX charts as closely as possible;
 // always double-check against the fixture's firmware manual on set.
 
-const m = (name: string, channels: number, kind: ModeKind): FixtureMode => ({ name, channels, kind });
+const m = (name: string, channels: number, kind: ModeKind, pixels?: number): FixtureMode => ({ name, channels, kind, ...(pixels ? { pixels } : {}) });
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const fam = (brand: string, models: string[], modes: FixtureMode[]): FixtureDef[] =>
   models.map((model) => ({ id: slug(`${brand} ${model}`), brand, model, modes }));
@@ -91,46 +92,98 @@ const VORTEX = [
   m("Pixel RGBW 8-bit (per tile)", 32, "rgbw"),
 ];
 
-const ASTERA = [
+const ASTERA_BASE = [
   m("1ch Dimmer", 1, "dim"), m("2ch Dim + CCT", 2, "cct"), m("3ch Dim CCT G/M", 3, "cctgm"),
   m("3ch RGB", 3, "rgb"), m("4ch RGBW", 4, "rgbw"), m("5ch RGBAW", 5, "rgbw"),
   m("4ch HSI", 4, "hsi"), m("6ch Dim RGBAW", 6, "rgbw"),
   m("8ch Dim RGBAW Strobe Prog", 8, "full"), m("16ch Full 16-bit", 16, "full"),
 ];
+// Astera pixel modes: n pixels × channels-per-pixel
+const asteraPx = (px: number) => [
+  ...ASTERA_BASE,
+  m(`Pixel RGB (${px} px)`, px * 3, "rgb", px), m(`Pixel RGBW (${px} px)`, px * 4, "rgbw", px),
+  m(`Pixel RGBAW (${px} px)`, px * 5, "rgbw", px), m(`Pixel Dim+RGBAW (${px} px)`, px * 6, "rgbw", px),
+  m(`Pixel CCT (${px} px)`, px * 2, "cct", px),
+];
+const pxModes = (px: number, extra: FixtureMode[] = []) => [
+  ...extra,
+  m(`Pixel RGB (${px} px)`, px * 3, "rgb", px), m(`Pixel RGBW (${px} px)`, px * 4, "rgbw", px),
+];
+const QUASAR = [
+  m("Dimmer 1ch", 1, "dim"), m("CCT 2ch", 2, "cct"), m("CCT+G/M 3ch", 3, "cctgm"), m("HSI 4ch", 4, "hsi"),
+  m("RGBX 5ch", 5, "rgbw"), m("Full 8-bit 12ch", 12, "full"), m("Full 16-bit 20ch", 20, "full"),
+];
+const ASTERA = ASTERA_BASE;
 
 const KINO = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGB 8-bit", 5, "rgb"), m("RGBW 8-bit", 6, "rgbw"), m("Full 8-bit", 12, "full"), m("Full 16-bit", 20, "full")];
 const LITEPANELS = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBWW 8-bit", 6, "rgbw"), m("Gel 8-bit", 4, "cctgm"), m("Full 16-bit", 21, "full")];
 const CREAM_MICRO = [m("Basic 8-bit", 4, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBW 8-bit", 6, "rgbw"), m("Full 16-bit", 16, "full")];
 const DMG = [m("Simple 8-bit (CCT)", 4, "cctgm"), m("Simple 16-bit (CCT)", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGB 8-bit", 4, "rgb"), m("Full 8-bit", 12, "full"), m("Full 16-bit", 21, "full")];
+const CHAUVET = [m("Dim 1ch", 1, "dim"), m("RGB 3ch", 3, "rgb"), m("RGBW 4ch", 4, "rgbw"), m("Dim RGBW Strobe 6ch", 6, "rgbw"), m("HSI 5ch", 5, "hsi"), m("CCT 4ch", 4, "cctgm"), m("Full 12ch", 12, "full"), m("Full 16-bit 20ch", 20, "full")];
 
 export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("ARRI", ["SkyPanel S30-C", "SkyPanel S60-C", "SkyPanel S120-C", "SkyPanel S360-C", "SkyPanel X"], ARRI_SKYPANEL),
+  ...fam("ARRI", ["SkyPanel S60-C (Pixel)"], [...ARRI_SKYPANEL, m("Pixel RGBW 8-bit (4 px)", 24, "rgbw", 4), m("Pixel HSI 8-bit (4 px)", 20, "hsi", 4)]),
+  ...fam("ARRI", ["SkyPanel S360-C (Pixel)"], [...ARRI_SKYPANEL, m("Pixel RGBW 8-bit (12 px)", 72, "rgbw", 12), m("Pixel HSI 8-bit (12 px)", 60, "hsi", 12)]),
   ...fam("ARRI", ["Orbiter"], ARRI_ORBITER),
   ...fam("ARRI", ["L5-C", "L7-C", "L10-C"], ARRI_L),
-  ...fam("ARRI", ["M18 (EB Max ballast)", "M40 (EB Max ballast)", "M90 (EB Max ballast)", "Studio Fresnel (dimmer)"], DIM),
-  ...fam("Aputure", ["600c Pro", "300c", "Nova P300c", "Nova P600c", "Infinibar PB12", "STORM 1200x"], APUTURE_COLOR),
-  ...fam("Aputure", ["MC", "MC Pro", "Accent B7c"], APUTURE_MC),
-  ...fam("Aputure", ["LS 600d Pro", "LS 1200d Pro", "LS 300d II", "Electro Storm CS15"], APUTURE_DAY),
-  ...fam("Aputure", ["LS 600x Pro", "Electro Storm XT26", "Amaran 200x S", "Amaran 300c"], APUTURE_BI),
-  ...fam("Nanlite", ["Forza 60", "Forza 300 II", "Forza 500 II", "Forza 720"], NANLITE_DAY),
-  ...fam("Nanlite", ["Forza 60B", "Forza 300B II", "Forza 720B", "FS-300B"], NANLITE_BI),
-  ...fam("Nanlite", ["PavoTube II 6C", "PavoTube II 15C", "PavoTube II 30C", "PavoTube II 15X", "PavoTube II 30X", "PavoSlim 120C", "PavoSlim 240C", "Forza 60C", "Forza 300C"], NANLITE_PAVO),
-  ...fam("Nanlux", ["Evoke 900C", "Evoke 1200", "Evoke 2400B"], [...NANLITE_BI, m("Dimmer 16-bit", 2, "dim")]),
-  ...fam("Nanlux", ["Dyno 650C", "Dyno 1200C", "TK-280B", "TK-450B"], NANLUX_DYNO),
-  ...fam("Godox", ["Knowled M600D", "VL300", "VL150", "SL300 III"], DIM_STROBE),
-  ...fam("Godox", ["Knowled MG1200Bi", "Knowled M600Bi", "Knowled F600Bi", "Knowled P600Bi", "LF308Bi"], BI),
-  ...fam("Godox", ["Knowled M200R", "TL60", "TL120", "LC500R", "F200R"], GODOX_RGB),
-  ...fam("Creamsource", ["Vortex4", "Vortex8", "Vortex24"], VORTEX),
-  ...fam("Creamsource", ["Micro Colour", "SpaceX"], CREAM_MICRO),
-  ...fam("Astera", ["Titan Tube", "Helios Tube", "Hyperion Tube", "AX1 PixelTube", "AX3 LightDrop", "AX9 PowerPar", "NYX Bulb", "PixelBrick"], ASTERA),
-  ...fam("Kino Flo", ["FreeStyle 21", "FreeStyle 31", "Celeb 250", "Celeb 450", "MIMIK 120"], KINO),
-  ...fam("Litepanels", ["Gemini 2x1", "Gemini 1x1", "Astra 6X Bi", "Studio X"], LITEPANELS),
-  ...fam("DMG Lumière", ["SL1 MIX", "MAXI MIX", "MINI MIX"], DMG),
-  ...fam("Rotolight", ["AEOS 2 Pro", "Titan X2"], DMG),
+  ...fam("ARRI", ["M18 (EB Max ballast)", "M40 (EB Max ballast)", "M90 (EB Max ballast)", "Studio Fresnel (dimmer)", "ARRIMAX 18/12"], DIM),
+  ...fam("Aputure", ["600c Pro", "600c Pro II", "300c", "Nova P300c", "Nova P600c", "STORM 1200x", "STORM 80c", "LS 1200x"], APUTURE_COLOR),
+  ...fam("Aputure", ["INFINIBAR PB3"], pxModes(4, APUTURE_COLOR)),
+  ...fam("Aputure", ["INFINIBAR PB6"], pxModes(8, APUTURE_COLOR)),
+  ...fam("Aputure", ["INFINIBAR PB12"], pxModes(16, APUTURE_COLOR)),
+  ...fam("Aputure", ["MT Pro"], pxModes(36, APUTURE_MC)),
+  ...fam("Aputure", ["MC", "MC Pro", "Accent B7c", "Amaran Ace 25c"], APUTURE_MC),
+  ...fam("Aputure", ["LS 600d Pro", "LS 1200d Pro", "LS 300d II", "Electro Storm CS15", "STORM 1000c"], APUTURE_DAY),
+  ...fam("Aputure", ["LS 600x Pro", "Electro Storm XT26", "Electro Storm XT52", "Amaran 200x S", "Amaran 300c", "Amaran F22x", "Amaran F22c", "Nova P300c"], APUTURE_BI),
+  ...fam("Nanlite", ["Forza 60", "Forza 150", "Forza 300 II", "Forza 500 II", "Forza 720", "FC-500B"], NANLITE_DAY),
+  ...fam("Nanlite", ["Forza 60B", "Forza 150B", "Forza 300B II", "Forza 720B", "FS-300B", "FS-150B"], NANLITE_BI),
+  ...fam("Nanlite", ["PavoTube II 6C"], pxModes(4, NANLITE_PAVO)),
+  ...fam("Nanlite", ["PavoTube II 15C", "PavoTube II 15X"], pxModes(8, NANLITE_PAVO)),
+  ...fam("Nanlite", ["PavoTube II 30C", "PavoTube II 30X"], pxModes(16, NANLITE_PAVO)),
+  ...fam("Nanlite", ["PavoTube T8-7X"], pxModes(8, NANLITE_PAVO)),
+  ...fam("Nanlite", ["PavoSlim 60C", "PavoSlim 120C", "PavoSlim 240C", "Forza 60C", "Forza 300C", "PavoBulb 10C", "PavoLink"], NANLITE_PAVO),
+  ...fam("Nanlux", ["Evoke 900C", "Evoke 1200", "Evoke 1200B", "Evoke 2400B", "Evoke 150C"], [...NANLITE_BI, m("Dimmer 16-bit", 2, "dim")]),
+  ...fam("Nanlux", ["Dyno 650C", "Dyno 1200C", "TK-140B", "TK-280B", "TK-450B"], NANLUX_DYNO),
+  ...fam("Godox", ["Knowled M600D", "VL300", "VL150", "SL300 III", "M1200D"], DIM_STROBE),
+  ...fam("Godox", ["Knowled MG1200Bi", "Knowled M600Bi", "Knowled F600Bi", "Knowled P600Bi", "LF308Bi", "LiteFlow"], BI),
+  ...fam("Godox", ["Knowled M200R", "LC500R", "F200R", "F400R", "MS300R"], GODOX_RGB),
+  ...fam("Godox", ["TL30"], pxModes(8, GODOX_RGB)),
+  ...fam("Godox", ["TL60", "TP4R"], pxModes(16, GODOX_RGB)),
+  ...fam("Godox", ["TL120", "TP8R"], pxModes(32, GODOX_RGB)),
+  ...fam("Creamsource", ["Vortex4"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (4 px)", 16, "rgbw", 4), m("Pixel HSI 8-bit (4 px)", 20, "hsi", 4)]),
+  ...fam("Creamsource", ["Vortex8"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (8 px)", 32, "rgbw", 8), m("Pixel HSI 8-bit (8 px)", 40, "hsi", 8)]),
+  ...fam("Creamsource", ["Vortex24"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (24 px)", 96, "rgbw", 24), m("Pixel HSI 8-bit (24 px)", 120, "hsi", 24)]),
+  ...fam("Creamsource", ["Micro Colour", "SpaceX", "Slyce"], CREAM_MICRO),
+  ...fam("Astera", ["Titan Tube"], asteraPx(16)),
+  ...fam("Astera", ["Helios Tube", "AX1 PixelTube"], asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5))),
+  ...fam("Astera", ["Hyperion Tube"], asteraPx(32)),
+  ...fam("Astera", ["PixelBrick"], asteraPx(4)),
+  ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb", "Leoht", "HydraPanel"], ASTERA),
+  ...fam("Quasar Science", ["Rainbow 2 (2ft)"], pxModes(12, QUASAR)),
+  ...fam("Quasar Science", ["Rainbow 2 (4ft)", "Double Rainbow (4ft)"], pxModes(24, QUASAR)),
+  ...fam("Quasar Science", ["Rainbow 2 (8ft)", "Double Rainbow (8ft)"], pxModes(48, QUASAR)),
+  ...fam("Quasar Science", ["Crossfade X", "Q-LED"], QUASAR),
+  ...fam("Kino Flo", ["FreeStyle 21", "FreeStyle 31", "FreeStyle T44", "Celeb 250", "Celeb 450", "Celeb 850", "Select 30", "MIMIK 120", "Diva-Lite LED 30"], KINO),
+  ...fam("Litepanels", ["Gemini 2x1", "Gemini 1x1", "Gemini 2x1 Hard", "Astra 6X Bi", "Studio X", "Apollo Bridge"], LITEPANELS),
+  ...fam("DMG Lumière", ["SL1 MIX", "MAXI MIX", "MINI MIX", "DASH"], DMG),
+  ...fam("LiteGear", ["LiteMat Spectrum 2", "LiteMat Spectrum 4", "LiteMat Spectrum 8"], [...LITEPANELS, m("Pixel RGBW (8 px)", 32, "rgbw", 8)]),
+  ...fam("Rotolight", ["AEOS 2 Pro", "Titan X1", "Titan X2", "NEO 3 Pro"], DMG),
+  ...fam("Cineo", ["Matchbox", "Lightblade", "HS2"], LITEPANELS),
+  ...fam("Chauvet", ["onAir Panel 1 IP", "onAir Panel 2 IP", "Ovation E-260WW", "COLORado Solo Batten"], CHAUVET),
+  ...fam("Chauvet", ["Epix Strip IP"], pxModes(20, CHAUVET)),
+  ...fam("Prolycht", ["Orion 300 FS", "Orion 675 FS"], APUTURE_COLOR),
+  ...fam("Zylight", ["Go-Panel", "F8-200"], APUTURE_MC),
+  ...fam("Velvet", ["EVO 2", "Power 2", "Mini 1"], LITEPANELS),
+  ...fam("Fiilex", ["Q1000 Color", "P360 Pro Plus"], GODOX_RGB),
+  ...fam("Digital Sputnik", ["DS1", "DS3", "DS6"], [...ARRI_SKYPANEL, m("Pixel RGBW (3 px per module)", 18, "rgbw", 3)]),
   ...fam("Generic", ["Dimmer"], DIM),
   ...fam("Generic", ["Bi-colour LED"], BI),
   ...fam("Generic", ["RGB Par"], [m("RGB 3ch", 3, "rgb"), m("Dim RGB 4ch", 4, "rgb")]),
   ...fam("Generic", ["RGBW Par"], [m("RGBW 4ch", 4, "rgbw"), m("Dim RGBW 5ch", 5, "rgbw"), m("Dim RGBW Strobe 6ch", 6, "rgbw")]),
+  ...fam("Generic", ["Pixel strip 8 px"], pxModes(8)),
+  ...fam("Generic", ["Pixel strip 16 px"], pxModes(16)),
+  ...fam("Generic", ["Pixel strip 32 px"], pxModes(32)),
 ];
 
 export const BRANDS = Array.from(new Set(FIXTURE_LIBRARY.map((d) => d.brand)));
@@ -176,6 +229,9 @@ export interface Step {
   level: number; // 0-1
   hold: number; // seconds
   fade: number; // seconds into this step
+  kelvin?: number | undefined; // optional colour temperature for this step
+  color?: string | undefined; // optional hex colour for this step (wins over kelvin)
+  curve?: Curve | undefined; // optional per-step fade curve
 }
 
 export interface FxParams {
@@ -238,6 +294,8 @@ export interface PatchedFixture {
   cctOnly: boolean;
   fx: FxParams;
   trigger?: { kind: TriggerKind; at: number } | null;
+  on?: boolean; // lamp on/off, independent of effects
+  fxPlaying?: boolean; // effect play / stop
 }
 
 export const kelvin = (cct: number) => Math.round((2000 + cct * 8000) / 50) * 50;
@@ -262,6 +320,8 @@ export function createFixture(def: FixtureDef, modeIdx: number, universe: number
     cctOnly: !caps(kind).color,
     fx: defaultFx(),
     trigger: null,
+    on: true,
+    fxPlaying: true,
   };
 }
 
@@ -288,6 +348,8 @@ export function normalizeFixture(raw: Record<string, unknown>): PatchedFixture {
     cctOnly: r.cctOnly ?? false,
     fx,
     trigger: null,
+    on: r.on ?? true,
+    fxPlaying: r.fxPlaying ?? true,
   };
 }
 
@@ -354,21 +416,6 @@ function cycle(p: number, fx: FxParams): number {
   return 1;
 }
 
-function stepsLevel(fx: FxParams, t: number): number {
-  const steps = fx.steps.length ? fx.steps : defaultFx().steps;
-  const total = steps.reduce((s, x) => s + x.hold + x.fade, 0) || 1;
-  let pos = (t * fx.rate) % total;
-  for (let i = 0; i < steps.length; i++) {
-    const st = steps[i]!;
-    const prev = steps[(i - 1 + steps.length) % steps.length]!.level;
-    if (pos < st.fade) return prev + (st.level - prev) * shape(pos / st.fade, fx.curve);
-    pos -= st.fade;
-    if (pos < st.hold) return st.level;
-    pos -= st.hold;
-  }
-  return steps[steps.length - 1]!.level;
-}
-
 /** Raw 0-1 effect value before min/max mapping. */
 function rawEffect(fx: FxParams, t: number, seed: number): number {
   const rnd = fx.random;
@@ -403,7 +450,7 @@ function rawEffect(fx: FxParams, t: number, seed: number): number {
       if (dt < 0 || dt > len) return 0;
       return boltEnvelope(dt / len, slot + seed * 100, fx.curve);
     }
-    case "steps": return stepsLevel(fx, t);
+    case "steps": return stepsState(fx, t).level;
   }
 }
 
@@ -468,16 +515,28 @@ export function kelvinToRgb(k: number): [number, number, number] {
   return [c(r), c(g), c(b)];
 }
 
-export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): string {
+/** Final level (0-1) and base colour (0-255 rgb, unscaled) of a fixture at time t. */
+export function fixtureState(f: PatchedFixture, t: number, masterLevel = 1): { v: number; rgb: [number, number, number] } {
   const kind = getMode(f).kind;
   const cp = caps(kind);
   const seed = seedOf(f.uid);
-  let level = f.fx.kind === "none" ? 1 : f.fx.min + (f.fx.max - f.fx.min) * rawEffect(f.fx, t, seed);
+  const playing = f.fx.kind !== "none" && f.fxPlaying !== false;
+  let stepRgb: [number, number, number] | null = null;
+  let level = 1;
+  if (playing) {
+    if (f.fx.kind === "steps") {
+      const st = stepsState(f.fx, t);
+      level = f.fx.min + (f.fx.max - f.fx.min) * st.level;
+      stepRgb = st.rgb;
+    } else {
+      level = f.fx.min + (f.fx.max - f.fx.min) * rawEffect(f.fx, t, seed);
+    }
+  }
   const trig = triggerLevel(f.trigger, t, seed);
   if (trig !== null) {
     level = f.trigger?.kind === "switch-on" || f.trigger?.kind === "switch-off" ? level * trig : Math.max(level * 0.15, trig);
   }
-  const v = clamp01(f.intensity * level * masterLevel);
+  const v = f.on === false ? 0 : clamp01(f.intensity * level * masterLevel);
 
   let [r, g, b] = kelvinToRgb(2000 + f.cct * 8000);
   if (cp.gm) {
@@ -489,7 +548,48 @@ export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): str
     const x = f.crossfade;
     r = r + (hr - r) * x; g = g + (hg - g) * x; b = b + (hb - b) * x;
   }
+  if (stepRgb) [r, g, b] = stepRgb;
+  return { v, rgb: [r, g, b] };
+}
+
+export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): string {
+  const { v, rgb: [r, g, b] } = fixtureState(f, t, masterLevel);
   return `rgb(${Math.round(r * v)}, ${Math.round(g * v)}, ${Math.round(b * v)})`;
+}
+
+export function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16) || 0;
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function stepRgbOf(s: Step): [number, number, number] | null {
+  if (s.color) return hexToRgb(s.color);
+  if (s.kelvin) return kelvinToRgb(s.kelvin);
+  return null;
+}
+
+/** Steps effect: level 0-1 plus optional interpolated colour. */
+export function stepsState(fx: FxParams, t: number): { level: number; rgb: [number, number, number] | null } {
+  const steps = fx.steps.length ? fx.steps : defaultFx().steps;
+  const total = steps.reduce((s, x) => s + x.hold + x.fade, 0) || 1;
+  let pos = (t * fx.rate) % total;
+  for (let i = 0; i < steps.length; i++) {
+    const st = steps[i]!;
+    const prevStep = steps[(i - 1 + steps.length) % steps.length]!;
+    const cur = stepRgbOf(st);
+    if (pos < st.fade) {
+      const k = shape(pos / st.fade, st.curve ?? fx.curve);
+      const prevRgb = stepRgbOf(prevStep) ?? cur;
+      const rgb = cur && prevRgb ? (prevRgb.map((p, j) => p + (cur[j]! - p) * k) as [number, number, number]) : cur;
+      return { level: prevStep.level + (st.level - prevStep.level) * k, rgb };
+    }
+    pos -= st.fade;
+    if (pos < st.hold) return { level: st.level, rgb: cur };
+    pos -= st.hold;
+  }
+  const last = steps[steps.length - 1]!;
+  return { level: last.level, rgb: stepRgbOf(last) };
 }
 
 /** Preview the normalised effect waveform (0-1) for drawing. */

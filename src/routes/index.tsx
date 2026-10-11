@@ -8,16 +8,23 @@ import {
   Check,
   Folder,
   Clapperboard,
+  Radio,
+  Power,
 } from "lucide-react";
 import { fixtureColor, getDef, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
-import { AiLookPanel } from "@/components/console/AiLookPanel";
+import { PixelPanel } from "@/components/console/PixelPanel";
+import { ConnectDialog } from "@/components/console/ConnectDialog";
+import { defaultPixelMap, gridHeight, renderPixels, textMask, type PixelMap } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
   loadProjects,
   saveProjects,
+  loadConnection,
+  saveConnection,
+  type Connection,
   uid,
   type Project,
   type Scene,
@@ -285,7 +292,7 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "ai";
+type Panel = "patch" | "control" | "pixels";
 
 function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void }) {
   const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
@@ -293,6 +300,11 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
   const [blackout, setBlackout] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [panel, setPanel] = useState<Panel>("patch");
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [pm, setPm] = useState<PixelMap>(() => ({ ...defaultPixelMap(), ...(scene.pixelMap ?? {}), playing: false }));
+  const [conn, setConnState] = useState<Connection>(() => loadConnection());
+  const [connOpen, setConnOpen] = useState(false);
+  const setConn = (c: Connection) => { setConnState(c); saveConnection(c); };
   const [savedFlash, setSavedFlash] = useState(false);
   const [t, setT] = useState(0);
   const clock = useRef(0);
@@ -309,9 +321,13 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const latest = useRef({ fixtures, master });
-  latest.current = { fixtures, master };
-  const save = () => onSave({ ...scene, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master });
+  const latest = useRef({ fixtures, master, pm });
+  latest.current = { fixtures, master, pm };
+  const save = () => onSave({ ...scene, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelMap: latest.current.pm });
+
+  const textH = gridHeight(pm, fixtures);
+  const mask = useMemo(() => (pm.kind === "text" ? textMask(pm.text.toUpperCase(), textH) : null), [pm.kind, pm.text, textH]);
+  const frame = pm.playing ? renderPixels(pm, fixtures, t, mask) : new Map<string, [number, number, number][]>();
   useEffect(() => {
     const id = setInterval(() => {
       save();
@@ -337,9 +353,12 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
   const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
     setPanel("control");
+    setPanelOpen(true);
   };
+  // tapping the active tab again collapses / expands the side panel
   const tab = (p: Panel, label: string) => (
-    <button onClick={() => setPanel(p)} className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{label}</button>
+    <button onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
+      className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</button>
   );
 
   return (
@@ -362,9 +381,13 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
         </button>
         {tab("patch", "PATCH")}
         {tab("control", "CONTROL")}
-        {tab("ai", "AI LOOK")}
+        {tab("pixels", "PIXELS")}
+        <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}>
+          <Radio className="h-4 w-4" />{conn.node ? conn.node.ip : "CONNECT"}
+        </button>
       </div>
 
+      <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="min-h-0 flex-1 overflow-auto p-4">
           {fixtures.length === 0 ? (
@@ -381,15 +404,23 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
                   const def = getDef(f.defId);
                   const color = fixtureColor(f, t, blackout ? 0 : master);
                   const isSel = selected.includes(f.uid);
+                  const pix = frame.get(f.uid);
+                  const pv = f.on === false || blackout ? 0 : f.intensity * master;
                   return (
                     <button key={f.uid} onClick={() => toggleSelect(f.uid)} className={`rounded-xl border-2 bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary" : "border-transparent"}`}>
-                      <div className="mb-3 h-16 rounded-lg" style={{ background: color, boxShadow: `0 0 24px ${color}` }} />
-                      <div className="truncate text-sm font-semibold">{f.name}</div>
+                      {pix ? (
+                        <div className="mb-3 flex h-16 gap-px overflow-hidden rounded-lg bg-background">
+                          {pix.map((c, i) => <div key={i} className="flex-1" style={{ background: `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})` }} />)}
+                        </div>
+                      ) : (
+                        <div className="mb-3 h-16 rounded-lg" style={{ background: color, boxShadow: `0 0 24px ${color}` }} />
+                      )}
+                      <div className="flex items-center gap-1 truncate text-sm font-semibold">{f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}</div>
                       <div className="flex justify-between text-[11px] text-muted-foreground">
                         <span className="truncate">{def.brand} · U{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
-                      {f.fx.kind !== "none" && <div className="mt-1 text-[10px] font-semibold uppercase text-amber-glow">{f.fx.kind}</div>}
+                      {f.fx.kind !== "none" && <div className={`mt-1 text-[10px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
                     </button>
                   );
                 })}
@@ -398,18 +429,21 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
           )}
         </div>
 
-        <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
+        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} />
-          ) : panel === "ai" ? (
-            <AiLookPanel fixtures={fixtures} onApply={setFixtures} />
+          ) : panel === "pixels" ? (
+            <PixelPanel fixtures={fixtures} pm={pm} frame={frame} setPm={(next) => {
+              if (next.playing && !pm.playing) setFixtures((fs) => fs.map((f) => (next.order.includes(f.uid) && f.intensity === 0 ? { ...f, intensity: 1, on: true } : f)));
+              setPm(next);
+            }} />
           ) : sel.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
           ) : (
             <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} fire={fire}
               remove={() => { setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
-        </aside>
+        </aside>}
       </div>
     </div>
   );

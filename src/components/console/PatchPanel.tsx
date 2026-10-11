@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3 } from "lucide-react";
+import { DmxMap } from "./DmxMap";
 import {
   BRANDS,
   FIXTURE_LIBRARY,
@@ -15,10 +16,13 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
   const [brand, setBrand] = useState<string | null>(null);
   const [def, setDef] = useState<FixtureDef | null>(null);
   const [modeIdx, setModeIdx] = useState<number | null>(null);
+  const [mapU, setMapU] = useState(1);
+  const [showMap, setShowMap] = useState(true);
+  const universes = Array.from(new Set([1, ...fixtures.map((f) => f.universe)])).sort((a, b) => a - b);
 
   const q = query.trim().toLowerCase();
   const searchHits = useMemo(
-    () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}`.toLowerCase().includes(q)).slice(0, 60) : []),
+    () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""}`.toLowerCase().includes(q)).slice(0, 60) : []),
     [q],
   );
 
@@ -29,7 +33,21 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
 
   return (
     <div className="space-y-3">
-      <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Patch</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Patch</h2>
+        <button onClick={() => setShowMap((v) => !v)} className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${showMap ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Grid3x3 className="h-3.5 w-3.5" />DMX map</button>
+      </div>
+      {showMap && modeIdx === null && (
+        <div className="space-y-2 rounded-lg bg-surface-elevated/50 p-2">
+          <div className="flex flex-wrap gap-1">
+            {universes.map((u) => (
+              <button key={u} onClick={() => setMapU(u)} className={`rounded px-2 py-1 font-mono text-[11px] ${mapU === u ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>U{u}</button>
+            ))}
+            <input type="number" min={1} max={64} value={mapU} onChange={(e) => setMapU(Math.max(1, Math.min(64, +e.target.value || 1)))} className="w-14 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Universe" />
+          </div>
+          <DmxMap fixtures={fixtures} universe={mapU} />
+        </div>
+      )}
       {crumbs.length > 0 && (
         <div className="flex items-center gap-2">
           <button onClick={back} className="rounded-md bg-surface-elevated p-2 text-primary" aria-label="Back"><ChevronLeft className="h-4 w-4" /></button>
@@ -47,8 +65,9 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
       {!def && q ? (
         <List>
           {searchHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
+          {searchHits.length > 0 && <p className="text-[10px] text-muted-foreground">{searchHits.length} results · {FIXTURE_LIBRARY.length} fixtures in library</p>}
           {searchHits.map((d) => (
-            <Row key={d.id} onClick={() => { setBrand(d.brand); setDef(d); setQuery(""); }} title={d.model} sub={`${d.brand} · ${d.modes.length} modes`} />
+            <Row key={d.id} onClick={() => { setBrand(d.brand); setDef(d); setQuery(""); }} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
           ))}
         </List>
       ) : !brand ? (
@@ -60,13 +79,13 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
       ) : !def ? (
         <List>
           {FIXTURE_LIBRARY.filter((d) => d.brand === brand).map((d) => (
-            <Row key={d.id} onClick={() => setDef(d)} title={d.model} sub={`${d.modes.length} modes`} />
+            <Row key={d.id} onClick={() => setDef(d)} title={d.model} sub={`${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
           ))}
         </List>
       ) : modeIdx === null ? (
         <List>
           {def.modes.map((mo, i) => (
-            <Row key={mo.name} onClick={() => setModeIdx(i)} title={mo.name} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}`} />
+            <Row key={mo.name} onClick={() => setModeIdx(i)} title={mo.name} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${mo.pixels ? ` · ${mo.pixels} px` : ""}`} />
           ))}
         </List>
       ) : (
@@ -112,6 +131,7 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
         <Field label="Quantity"><input type="number" min={1} max={64} value={qty} onChange={(e) => setQty(Math.max(1, Math.min(64, +e.target.value || 1)))} className={inputCls} /></Field>
         <Field label="Offset (gap ch)"><input type="number" min={0} max={100} value={offset} onChange={(e) => setOffset(Math.max(0, +e.target.value || 0))} className={inputCls} /></Field>
       </div>
+      <DmxMap fixtures={fixtures} universe={universe} planned={planned.map((a) => ({ address: a, channels: ch }))} />
       <p className="text-[11px] text-muted-foreground">
         {ch} ch each · addresses {planned.slice(0, 6).join(", ")}{planned.length > 6 ? "…" : ""} · {used} fixtures already in U{universe}
       </p>
