@@ -4,6 +4,7 @@
 
 import { fixtureState, getMode, kelvin, type PatchedFixture } from "./dmx";
 import type { Connection } from "./store";
+import { asteraTokens, CELL_TOKENS } from "./astera";
 import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
 
 type RGB = [number, number, number];
@@ -26,12 +27,72 @@ function writer(buf: Uint8Array, start: number, wide: boolean) {
   };
 }
 
+const CELL_HAS = CELL_TOKENS as Record<string, string[]>;
+
+function rgbToHs(r: number, g: number, b: number): [number, number] {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [((h * 60 + 360) % 360) / 360, max ? d / max : 0];
+}
+
+/** sRGB → CIE 1931 xy (0-1); white falls back to D65. */
+function rgbToXy(r: number, g: number, b: number): [number, number] {
+  const lin = (c: number) => (c > 0.04045 ? ((c + 0.055) / 1.055) ** 2.4 : c / 12.92);
+  const [R, G, B] = [lin(r), lin(g), lin(b)];
+  const X = 0.4124 * R + 0.3576 * G + 0.1805 * B, Y = 0.2126 * R + 0.7152 * G + 0.0722 * B, Z = 0.0193 * R + 0.1192 * G + 0.9505 * B;
+  const s = X + Y + Z;
+  return s ? [X / s, Y / s] : [0.3127, 0.329];
+}
+
 function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pixels: RGB[] | undefined, order: ColorOrder) {
   const mode = getMode(f);
   const wide = /16/.test(mode.name);
   const st = fixtureState(f, t, level);
   const v = st.v;
   const [r, g, b] = reorder(st.rgb.map((c) => c / 255) as RGB, order);
+
+  if (mode.astera && !f.split) {
+    const tokens = asteraTokens(mode.astera);
+    const hasDim = tokens.some((x) => x.token.startsWith("D"));
+    const pv = f.on === false ? 0 : f.intensity * level;
+    tokens.forEach(({ token, px }, i) => {
+      const idx = f.address - 1 + i;
+      if (idx < 0 || idx >= 512) return;
+      const c = pixels?.[px];
+      const [pr, pg, pb] = c ? reorder([c[0] / 255, c[1] / 255, c[2] / 255], order) : [r, g, b];
+      const lv = c ? pv : v;
+      const [ph, ps] = c ? rgbToHs(pr, pg, pb) : [f.hue / 360, f.cctOnly ? 0 : f.saturation];
+      const k = (hasDim ? 1 : lv); // colour channels carry level when there's no dimmer channel
+      const white = Math.min(pr, pg, pb);
+      const has = (t: string) => CELL_HAS[mode.astera!.cell]?.includes(t);
+      let val = 0, raw: number | null = null;
+      switch (token) {
+        case "D": val = lv; break;
+        case "D16": raw = Math.round(lv * 65535) >> 8; break;
+        case "D16b": raw = Math.round(lv * 65535) & 255; break;
+        case "CCT": val = (kelvin(f.cct) - 1750) / 8160; break;
+        case "GM": raw = f.gm === 0 ? 0 : Math.max(5, Math.min(255, Math.round(128 * (f.gm + 1)))); break;
+        case "CRO": val = c ? 1 : f.cctOnly ? 0 : f.crossfade; break;
+        case "HUE": val = ph; break;
+        case "HUE16": raw = Math.round(ph * 65535) >> 8; break;
+        case "HUE16b": raw = Math.round(ph * 65535) & 255; break;
+        case "SAT": val = c ? ps : ps * (f.cctOnly ? 0 : f.crossfade || 1); break;
+        case "R": val = (has("W") ? pr - white : pr) * k; break;
+        case "G": val = (has("W") ? pg - white : pg) * k; break;
+        case "B": val = (has("W") ? pb - white : pb) * k; break;
+        case "W": val = white * k; break;
+        case "X16": case "X16b": case "Y16": case "Y16b": {
+          const [x, y] = rgbToXy(pr, pg, pb);
+          const n = Math.round((token.startsWith("X") ? x : y) * 65535);
+          raw = token.endsWith("b") ? n & 255 : n >> 8; break;
+        }
+        default: val = 0; // A (amber), IND (index colour off), S (strobe off), "." spare
+      }
+      buf[idx] = raw ?? to8(val);
+    });
+    return;
+  }
 
   if (mode.profile) {
     const put = (channel: number, value: number) => {
