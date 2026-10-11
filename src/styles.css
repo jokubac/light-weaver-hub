@@ -34,19 +34,19 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-amber-glow: var(--amber-glow);
   --color-success: var(--success);
-  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-display: "Syne", system-ui, sans-serif;
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.85rem;
   /* Dark console theme — always dark, like a lighting desk */
-  --background: oklch(0.14 0.01 260);
+  --background: oklch(0.13 0.008 300);
   --foreground: oklch(0.92 0.01 250);
-  --card: oklch(0.18 0.012 260);
+  --card: oklch(0.175 0.012 300);
   --card-foreground: oklch(0.92 0.01 250);
   --popover: oklch(0.2 0.014 260);
   --popover-foreground: oklch(0.92 0.01 250);
-  --primary: oklch(0.85 0.14 195);
+  --primary: oklch(0.8 0.17 60);
   --primary-foreground: oklch(0.14 0.01 260);
   --secondary: oklch(0.24 0.016 260);
   --secondary-foreground: oklch(0.92 0.01 250);
@@ -58,10 +58,10 @@
   --destructive-foreground: oklch(0.95 0.01 250);
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.85 0.14 195);
-  --surface: oklch(0.18 0.012 260);
-  --surface-elevated: oklch(0.24 0.016 260);
-  --amber-glow: oklch(0.82 0.16 85);
+  --ring: oklch(0.8 0.17 60);
+  --surface: oklch(0.17 0.012 300);
+  --surface-elevated: oklch(0.235 0.016 300);
+  --amber-glow: oklch(0.72 0.2 15);
   --success: oklch(0.75 0.18 155);
 }
 
@@ -74,8 +74,10 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: "DM Sans", system-ui, sans-serif;
+    font-family: "Manrope", system-ui, sans-serif;
     overscroll-behavior: none;
+    background-image: radial-gradient(60rem 30rem at 85% -10%, oklch(0.8 0.17 60 / 0.08), transparent 70%), radial-gradient(50rem 30rem at -10% 110%, oklch(0.72 0.2 15 / 0.07), transparent 70%);
+    background-attachment: fixed;
   }
 
   /* Slim console scrollbars */

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CRMX Console bridge — receives DMX from the CRMX Console app and sends it as
+// KROMA bridge — receives DMX from the KROMA app and sends it as
 // Art-Net or sACN (E1.31) to your CRMX transmitter (LumenRadio, Astera ART7, Ratpac, DMXking…).
 //
 // Run on a laptop / Raspberry Pi on the same network as the transmitter:
@@ -68,7 +68,7 @@ function sacn(universe, data) {
   b.writeUInt16BE(0x7000 | (638 - 16), 16); b.writeUInt32BE(0x00000004, 18); CID.copy(b, 22);
   // framing layer
   b.writeUInt16BE(0x7000 | (638 - 38), 38); b.writeUInt32BE(0x00000002, 40);
-  b.write("CRMX Console", 44, "utf8"); b[108] = 100; b.writeUInt16BE(0, 109); b[111] = s; b[112] = 0; b.writeUInt16BE(universe, 113);
+  b.write("KROMA", 44, "utf8"); b[108] = 100; b.writeUInt16BE(0, 109); b[111] = s; b[112] = 0; b.writeUInt16BE(universe, 113);
   // DMP layer
   b.writeUInt16BE(0x7000 | (638 - 115), 115); b[117] = 0x02; b[118] = 0xa1;
   b.writeUInt16BE(0, 119); b.writeUInt16BE(1, 121); b.writeUInt16BE(513, 123); b[125] = 0;
