@@ -10,6 +10,7 @@ import {
   getDef,
   getMode,
   kelvin,
+  cctFromKelvin,
   overlaps,
   sampleEffect,
   type FxParams,
