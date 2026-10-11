@@ -37,10 +37,11 @@ export interface Plot {
 }
 export const emptyPlot = (): Plot => ({ strokes: [], items: {}, size: [20, 14] });
 
-type Tool = "move" | "pan" | "draw" | "rect" | "erase" | "door" | "window" | "fixture" | "object";
+type Tool = "move" | "pan" | "draw" | "rect" | "erase" | "door" | "window" | "fixture" | "object" | "camera";
 type Mat = [number, number, number, number, number, number];
 interface View { m: Mat; zs: number }
 type Drag =
+  | { kind: "camera"; id: string; last: [number, number]; z: number }
   | { kind: "item"; last: [number, number]; z: number }
   | { kind: "rot"; uid: string; sy: number; tilt0: number; alt: boolean }
   | { kind: "layout"; target: "wall" | "object"; id: number | string; segment?: number; last: [number, number] }
@@ -48,7 +49,7 @@ type Drag =
   | { kind: "box"; sx: number; sy: number; add: boolean }
   | { kind: "pan"; sx: number; sy: number; pan0: [number, number] }
   | { kind: "orbit"; sx: number; sy: number; yaw0: number; pitch0: number }
-  | { kind: "pinch"; d0: number; z0: number; mid0: [number, number]; pan0: [number, number]; a0: number; yaw0: number; objRot0?: number; itemRot0?: Record<string, number> }
+  | { kind: "pinch"; d0: number; z0: number; mid0: [number, number]; pan0: [number, number]; a0: number; yaw0: number; objRot0?: number; itemRot0?: Record<string, number>; cameraRot0?: number }
   | { kind: "tilt3"; my0: number; pitch0: number };
 
 const DEFAULT_TILT = 24;
@@ -511,6 +512,23 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     }
     return best;
   };
+  const hitCamera = (sx: number, sy: number) => {
+    const V = viewOf();
+    return [...(plot.cameras ?? [])].reverse().find((cam) => {
+      if (!view3d && cam.floor !== fl) return false;
+      const q = proj(V, cam.x, cam.y, (floors[cam.floor]?.z ?? 0) + cam.h);
+      return Math.hypot(q[0] - sx, q[1] - sy) < 22;
+    });
+  };
+  const selectCamera = (cam: PlotCamera) => {
+    setCameraId(cam.id); setSelected([]); setObjectId(null); setWallIndex(null); setOpeningId(null); setActive(cam.floor);
+  };
+  const removeCamera = (id: string) => {
+    const cam = plot.cameras?.find((c) => c.id === id);
+    if (!cam || !confirm(`Remove ${cam.name}?`)) return;
+    setPlot({ ...plot, cameras: (plot.cameras ?? []).filter((c) => c.id !== id) });
+    setCameraId(null); setCamViewOpen(false);
+  };
   const hitHandle = (sx: number, sy: number) => {
     const V = viewOf();
     for (const u of selected) {
@@ -554,10 +572,11 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()] as [[number, number], [number, number]];
       const obj = layoutUnlocked && objectId ? plot.objects?.find((o) => o.id === objectId) : undefined;
-      const selIt = layoutUnlocked && !obj ? selected.filter((u) => plot.items[u]) : [];
+      const cam = layoutUnlocked && cameraId ? plot.cameras?.find((c) => c.id === cameraId) : undefined;
+      const selIt = layoutUnlocked && !obj && !cam ? selected.filter((u) => plot.items[u]) : [];
       drag.current = { kind: "pinch", d0: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z0: zoom, mid0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], pan0: pan,
         a0: Math.atan2(b[1] - a[1], b[0] - a[0]), yaw0: yaw,
-        ...(obj ? { objRot0: obj.rot } : {}), ...(selIt.length ? { itemRot0: Object.fromEntries(selIt.map((u) => [u, plot.items[u]!.rot])) } : {}) };
+        ...(cam ? { cameraRot0: cam.rot } : {}), ...(obj ? { objRot0: obj.rot } : {}), ...(selIt.length ? { itemRot0: Object.fromEntries(selIt.map((u) => [u, plot.items[u]!.rot])) } : {}) };
       setBox(null);
       return;
     }
@@ -575,8 +594,14 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       if (placementUid && !plot.items[placementUid]) { setPlot({ ...plot, items:{ ...plot.items,[placementUid]:{ ...newItem(0),x:fp[0],y:fp[1] } } }); setSelected([placementUid]); setTool("move"); }
       return;
     }
-    if (tool === "object") { addObjectAt(...fp); return; }
+    if (tool === "camera") {
+      const c = { ...defaultCamera(fp[0], fp[1], fl), name: `Camera ${(plot.cameras?.length ?? 0) + 1}`, rot: -90 };
+      setPlot({ ...plot, cameras: [...(plot.cameras ?? []), c] }); selectCamera(c); setTool("move");
+      return;
+    }
+    if (tool === "object") { setCameraId(null); addObjectAt(...fp); return; }
     if (tool === "erase") {
+      const cam = hitCamera(sx, sy); if (cam) { removeCamera(cam.id); return; }
       const u = hit(sx,sy);
       if (u) { if (confirm("Remove this light from the plot?")) { const items = {...plot.items}; delete items[u]; setPlot({...plot,items}); } return; }
       const o = [...(plot.objects ?? [])].reverse().find((o) => o.floor === fl && objectContains(o,...fp));
@@ -610,6 +635,14 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       return;
     }
     if (tool === "move") {
+      const cam = hitCamera(sx, sy);
+      if (cam) {
+        selectCamera(cam);
+        const z = (floors[cam.floor]?.z ?? 0) + cam.h;
+        if (layoutUnlocked) drag.current = { kind: "camera", id: cam.id, last: unproj(viewOf(), sx, sy, z), z };
+        return;
+      }
+      setCameraId(null);
       const h = layoutUnlocked ? hitHandle(sx, sy) : null;
       if (h) { drag.current = { kind: "rot", uid: h, sy, tilt0: plot.items[h]!.tilt ?? DEFAULT_TILT, alt: e.altKey }; return; }
       const u = hit(sx, sy);
@@ -653,6 +686,11 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       let dAng = ((Math.atan2(b[1] - a[1], b[0] - a[0]) - d.a0) * 180) / Math.PI;
       dAng = ((dAng + 540) % 360) - 180;
       const wrap = (r: number) => Math.round(((r + 540) % 360) - 180);
+      if (d.cameraRot0 !== undefined) {
+        const rot = wrap(d.cameraRot0 + dAng);
+        setPlot({ ...p, cameras: (p.cameras ?? []).map((c) => c.id === cameraId ? { ...c, rot } : c) });
+        return;
+      }
       if (d.objRot0 !== undefined) {
         // two-finger twist rotates the selected set object
         setPlot({ ...p, objects: (p.objects ?? []).map((o) => o.id === objectId ? { ...o, rot: wrap(d.objRot0! + dAng) } : o) });
@@ -696,6 +734,10 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         const norm = (r: number) => Math.round(((r + 540) % 360) - 180);
         setPlot({ ...p, items: Object.fromEntries(Object.entries(p.items).map(([k, v]) => [k, sel.includes(k) ? { ...v, rot: norm(v.rot + delta) } : v])) });
       }
+    } else if (d.kind === "camera") {
+      const fp = unproj(viewOf(), sx, sy, d.z);
+      const dx = fp[0] - d.last[0], dy = fp[1] - d.last[1]; d.last = fp;
+      setPlot({ ...p, cameras: (p.cameras ?? []).map((c) => c.id === d.id ? { ...c, x: +(c.x + dx).toFixed(2), y: +(c.y + dy).toFixed(2) } : c) });
     } else if (d.kind === "layout") {
       const fp = clampFloor(unproj(viewOf(),sx,sy,floorZ)), dx = fp[0]-d.last[0], dy = fp[1]-d.last[1]; d.last=fp;
       if (d.target === "wall") setPlot({...p,strokes:p.strokes.map((st,i) => {
@@ -780,7 +822,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const place = (uid: string) => {
     setPlot({ ...plot, items: { ...plot.items, [uid]: newItem(Object.keys(plot.items).length) } });
     setSelected([uid]);
-    setWallIndex(null); setObjectId(null); setOpeningId(null);
+    setWallIndex(null); setObjectId(null); setOpeningId(null); setCameraId(null);
     setTool("move");
   };
   const placeAll = () => {
@@ -814,6 +856,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const nudge = (d: number) => selItems.forEach((u) => { const f = fixtures.find((x) => x.uid === u); if (f) update(u, { intensity: clampN(+(f.intensity + d).toFixed(3), 0, 1), on: true }); });
   const allOn = selItems.every((u) => fixtures.find((x) => x.uid === u)?.on !== false);
   const removeSelection = () => {
+    if (cameraId) { removeCamera(cameraId); return; }
     if (openingId) {
       if (!confirm("Remove selected door/window?")) return;
       setPlot({ ...plot, openings: (plot.openings ?? []).filter((o) => o.id !== openingId) }); setOpeningId(null);
@@ -850,7 +893,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     const keptStrokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl);
     const openings = remapOpenings(keptStrokes);
     const strokes = keptStrokes.map((s) => ((s.floor ?? 0) > fl ? { ...s, floor: (s.floor ?? 0) - 1 } : s));
-    setPlot({ ...plot, items, strokes, openings, objects: (plot.objects ?? []).filter((o) => o.floor !== fl).map((o) => o.floor > fl ? {...o,floor:o.floor-1}:o), floors: floors.filter((_, j) => j !== fl) });
+    setPlot({ ...plot, items, strokes, openings, objects: (plot.objects ?? []).filter((o) => o.floor !== fl).map((o) => o.floor > fl ? {...o,floor:o.floor-1}:o), cameras: (plot.cameras ?? []).filter((c) => c.floor !== fl).map((c) => c.floor > fl ? { ...c, floor: c.floor - 1 } : c), floors: floors.filter((_, j) => j !== fl) });
     setActive(fl - 1);
   };
 
@@ -879,12 +922,12 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         {toolBtn("window", <PanelsTopLeft className="h-4 w-4" />, "Window")}
         <Button variant={tool === "fixture" ? "default" : "secondary"} aria-label="Add fixture" title="Add fixture" onClick={() => { setTool("fixture"); setPlacementUid(unplaced[0]?.uid ?? ""); }}><LampDesk className="h-4 w-4" /><span className="hidden md:inline">Add fixture</span></Button>
         <Button variant={tool === "object" ? "default" : "secondary"} aria-label="Add furniture / person" title="Add furniture / person" onClick={() => setTool("object")}><Armchair className="h-4 w-4" /><UserRound className="h-4 w-4" /></Button>
-        <Button variant="secondary" aria-label="Add camera" title="Add camera" onClick={() => { const c = { ...defaultCamera(SW / 2, SH - 1, fl), name: `Camera ${String.fromCharCode(65 + (plot.cameras?.length ?? 0))}`, rot: -90 }; setPlot({ ...plot, cameras: [...(plot.cameras ?? []), c] }); setCameraId(c.id); setCamViewOpen(true); }}><Video className="h-4 w-4" /><span className="hidden md:inline">Camera</span></Button>
+        <Button variant={tool === "camera" ? "default" : "secondary"} aria-label="Add camera" title="Place camera" onClick={() => { setTool("camera"); setCameraId(null); setSelected([]); }}><Video className="h-4 w-4" /><span className="hidden md:inline">Camera</span></Button>
         <Button variant={layoutUnlocked ? "default" : "secondary"} aria-label={layoutUnlocked ? "Lock layout" : "Unlock layout editing"} title={layoutUnlocked ? "Lock layout" : "Unlock layout editing"} onClick={() => setLayoutUnlocked(!layoutUnlocked)}>{layoutUnlocked ? <Unlock /> : <LockKeyhole />}</Button>
         <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
         {toolBtn("erase", <Eraser className="h-4 w-4" />, "Erase")}
-        <Button variant="destructive" size="sm" aria-label="Remove selected from plot" title="Remove selected item" disabled={!selItems.length && wallIndex === null && !objectId && !openingId} onClick={removeSelection}><Trash2 className="h-4 w-4" />Remove</Button>
+        <Button variant="destructive" size="sm" aria-label="Remove selected from plot" title="Remove selected item" disabled={!selItems.length && wallIndex === null && !objectId && !openingId && !cameraId} onClick={removeSelection}><Trash2 className="h-4 w-4" />Remove</Button>
         {(tool === "draw" || tool === "rect") && (
           <input type="color" value={ink} onChange={(e) => setInk(e.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" aria-label="Drawing colour" />
         )}
@@ -945,6 +988,54 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         </div>
 
         <aside className="max-h-[45vh] lg:max-h-none w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-4 lg:w-80 lg:border-l lg:border-t-0">
+          {(plot.cameras?.length ?? 0) > 0 && (() => {
+            const cams = plot.cameras ?? [];
+            const cam = cams.find((c) => c.id === cameraId) ?? cams[0];
+            if (!cam) return null;
+            const editCam = (p: Partial<PlotCamera>) => setPlot({ ...plot, cameras: cams.map((c) => (c.id === cam.id ? { ...c, ...p } : c)) });
+            const camLights = fixtures.filter((f) => plot.items[f.uid] && floorOf(plot.items[f.uid]!) === cam.floor).map((f) => {
+              const it = plot.items[f.uid]!; const o = opticsOf(f, it);
+              return { x: it.x, y: it.y, z: fz(it) + it.h, rot: it.rot, tilt: it.tilt ?? DEFAULT_TILT, beam: o.beam, watts: o.watts, level: levelOf(f), rgb: colorOf(f) };
+            });
+            const pick = (label: string, value: number, opts: number[], fmt: (n: number) => string, on: (n: number) => void) => (
+              <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">{label}</span>
+                <select value={value} onChange={(e) => on(+e.target.value)} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
+                  {[...new Set([...opts, value])].sort((a, b) => a - b).map((n) => <option key={n} value={n}>{fmt(n)}</option>)}
+                </select>
+              </label>
+            );
+            return (
+              <div className="space-y-2 border-t border-border pt-3">
+                <div className="flex items-center gap-2">
+                  <Video className="h-4 w-4 shrink-0 text-primary" />
+                  <select aria-label="Select camera" value={cam.id} onChange={(e) => { const c = cams.find((c) => c.id === e.target.value); if (c) selectCamera(c); }} className="min-w-0 flex-1 rounded border border-input bg-surface-elevated p-2 text-xs">
+                    {cams.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <Button size="icon" variant="ghost" aria-label="Remove camera" title="Remove camera" onClick={() => removeCamera(cam.id)}><Trash2 /></Button>
+                </div>
+                <Button size="sm" className="w-full" variant={camViewOpen ? "default" : "secondary"} onClick={() => setCamViewOpen(!camViewOpen)}><Video />{camViewOpen ? "Hide camera view" : "Camera view"}</Button>
+                {camViewOpen && <CameraView cam={cam} size={plot.size} strokes={plot.strokes} openings={plot.openings ?? []} objects={plot.objects ?? []} floorZ={floors[cam.floor]?.z ?? 0} lights={camLights} />}
+                <input aria-label="Camera name" value={cam.name} onChange={(e) => editCam({ name: e.target.value })} className="w-full rounded border border-input bg-surface-elevated p-2 text-xs" />
+                {pick("Lens", cam.lens, LENSES, (n) => `${n} mm`, (lens) => editCam({ lens }))}
+                <Slider label="Focal length" value={cam.lens} min={8} max={300} step={1} unit=" mm" onChange={(lens) => editCam({ lens })} />
+                {pick("Iris", cam.fstop, FSTOPS, (n) => `f/${n}`, (fstop) => editCam({ fstop }))}
+                {pick("ISO", cam.iso, ISOS, (n) => `ISO ${n}`, (iso) => editCam({ iso }))}
+                <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Sensor</span>
+                  <select value={cam.sensor} onChange={(e) => editCam({ sensor: e.target.value as PlotCamera["sensor"] })} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
+                    {SENSORS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+                  </select>
+                </label>
+                <p className="text-[10px] text-muted-foreground">Horizontal view {horizontalFov(cam).toFixed(1)}°</p>
+                <Slider label="Camera X" value={cam.x} unbounded min={cam.x - 50} max={cam.x + 50} step={0.1} unit=" m" onChange={(x) => editCam({ x })} />
+                <Slider label="Camera Y" value={cam.y} unbounded min={cam.y - 50} max={cam.y + 50} step={0.1} unit=" m" onChange={(y) => editCam({ y })} />
+                <Slider label="Camera height" value={cam.h} min={0.1} max={50} step={0.1} unit=" m" onChange={(h) => editCam({ h })} />
+                <Slider label="Camera pan" value={cam.rot} min={-180} max={180} unit="°" onChange={(rot) => editCam({ rot })} />
+                <Slider label="Camera tilt down" value={cam.tilt} min={-60} max={90} unit="°" onChange={(tilt) => editCam({ tilt })} />
+                {floors.length > 1 && <label className="flex items-center justify-between text-xs">Camera floor<select aria-label="Camera floor" value={cam.floor} onChange={(e) => { editCam({ floor: +e.target.value }); setActive(+e.target.value); }} className="rounded border border-input bg-surface-elevated p-2">{floors.map((f, i) => <option key={i} value={i}>{f.name}</option>)}</select></label>}
+              </div>
+            );
+          })()}
+
           {tool === "fixture" && <label className="block space-y-2 text-xs">Add fixture<select aria-label="Fixture to place" value={placementUid} onChange={(e) => setPlacementUid(e.target.value)} className="w-full rounded border border-input bg-surface-elevated p-2"><option value="">{unplaced.length ? "Select fixture" : "No unplaced lights — patch first"}</option>{unplaced.map((f) => <option key={f.uid} value={f.uid}>{f.name}</option>)}</select></label>}
           {tool === "object" && <div className="grid grid-cols-2 gap-2">{SET_OBJECTS.map((o) => <Button key={o.kind} variant={objectKind === o.kind ? "default":"secondary"} onClick={() => setObjectKind(o.kind)}>{o.label}</Button>)}</div>}
           {(tool === "draw" || tool === "rect") && <Slider label="New wall height" value={wallHeight} min={.2} max={12} step={.1} unit=" m" onChange={setWallHeight} />}
@@ -1032,49 +1123,6 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
             <div />
           )}
 
-          {(plot.cameras?.length ?? 0) > 0 && (() => {
-            const cams = plot.cameras ?? [];
-            const cam = cams.find((c) => c.id === cameraId) ?? cams[0]!;
-            const editCam = (p: Partial<PlotCamera>) => setPlot({ ...plot, cameras: cams.map((c) => (c.id === cam.id ? { ...c, ...p } : c)) });
-            const camLights = fixtures.filter((f) => plot.items[f.uid] && floorOf(plot.items[f.uid]!) === cam.floor).map((f) => {
-              const it = plot.items[f.uid]!; const o = opticsOf(f, it);
-              return { x: it.x, y: it.y, z: fz(it) + it.h, rot: it.rot, tilt: it.tilt ?? DEFAULT_TILT, beam: o.beam, watts: o.watts, level: levelOf(f), rgb: colorOf(f) };
-            });
-            const pick = (label: string, value: number, opts: number[], fmt: (n: number) => string, on: (n: number) => void) => (
-              <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">{label}</span>
-                <select value={value} onChange={(e) => on(+e.target.value)} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
-                  {[...new Set([...opts, value])].sort((a, b) => a - b).map((n) => <option key={n} value={n}>{fmt(n)}</option>)}
-                </select>
-              </label>
-            );
-            return (
-              <div className="space-y-2 border-t border-border pt-3">
-                <div className="flex items-center gap-1.5">
-                  <p className="mr-auto text-xs font-semibold">Cameras</p>
-                  {cams.map((c) => <Button key={c.id} size="sm" variant={c.id === cam.id ? "default" : "secondary"} onClick={() => setCameraId(c.id)}>{c.name}</Button>)}
-                </div>
-                <Button size="sm" className="w-full" variant={camViewOpen ? "default" : "secondary"} onClick={() => setCamViewOpen(!camViewOpen)}><Video />{camViewOpen ? "Hide camera view" : "Camera view"}</Button>
-                {camViewOpen && <CameraView cam={cam} size={plot.size} strokes={plot.strokes} openings={plot.openings ?? []} objects={plot.objects ?? []} floorZ={floors[cam.floor]?.z ?? 0} lights={camLights} />}
-                <input aria-label="Camera name" value={cam.name} onChange={(e) => editCam({ name: e.target.value })} className="w-full rounded border border-input bg-surface-elevated p-2 text-xs" />
-                {pick("Lens", cam.lens, LENSES, (n) => `${n} mm`, (lens) => editCam({ lens }))}
-                <Slider label="Focal length" value={cam.lens} min={8} max={300} step={1} unit=" mm" onChange={(lens) => editCam({ lens })} />
-                {pick("Iris", cam.fstop, FSTOPS, (n) => `f/${n}`, (fstop) => editCam({ fstop }))}
-                {pick("ISO", cam.iso, ISOS, (n) => `ISO ${n}`, (iso) => editCam({ iso }))}
-                <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Sensor</span>
-                  <select value={cam.sensor} onChange={(e) => editCam({ sensor: e.target.value as PlotCamera["sensor"] })} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
-                    {SENSORS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-                  </select>
-                </label>
-                <p className="text-[10px] text-muted-foreground">Horizontal view {horizontalFov(cam).toFixed(1)}°</p>
-                <Slider label="Camera X" value={cam.x} unbounded min={cam.x - 50} max={cam.x + 50} step={0.1} unit=" m" onChange={(x) => editCam({ x })} />
-                <Slider label="Camera Y" value={cam.y} unbounded min={cam.y - 50} max={cam.y + 50} step={0.1} unit=" m" onChange={(y) => editCam({ y })} />
-                <Slider label="Camera height" value={cam.h} min={0.1} max={50} step={0.1} unit=" m" onChange={(h) => editCam({ h })} />
-                <Slider label="Camera pan" value={cam.rot} min={-180} max={180} unit="°" onChange={(rot) => editCam({ rot })} />
-                <Slider label="Camera tilt down" value={cam.tilt} min={-60} max={90} unit="°" onChange={(tilt) => editCam({ tilt })} />
-                <Button variant="ghost" size="sm" onClick={() => { if (confirm(`Remove ${cam.name}?`)) { setPlot({ ...plot, cameras: cams.filter((c) => c.id !== cam.id) }); setCameraId(null); } }}><Trash2 />Remove camera</Button>
-              </div>
-            );
-          })()}
 
           <div className="space-y-2 border-t border-border pt-3">
             <p className="text-xs font-semibold">Doors / windows</p>
