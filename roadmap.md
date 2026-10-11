@@ -1,4 +1,8 @@
 # Tasks
+- [x] Colour controls ordered CCT → Crossfade → Hue → wheel; effect colour controls
+- [x] Live plot CCT control
+- [x] Door/window openings with height-aware wall blocking
+- [x] Live plot undo/redo; tests and browser verification
 - [x] All Astera Titan-family DMX profiles with exact channel layouts
 - [x] Arclight.lt + Cinevera lighting stock in the library (searchable by rental house)
 - [x] Sign-in; projects, favourites and saved effects sync to the account

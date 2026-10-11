@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { ColorSource } from "./ColorSource";
+import { HexColourControls } from "./ColourControls";
+import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
 import { PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
 
@@ -18,6 +20,7 @@ const LAYOUTS: { id: PixelLayout; label: string; hint: string }[] = [
 export function PixelPanel({ fixtures, layers, setLayers, frame }: {
   fixtures: PatchedFixture[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>;
 }) {
+  const [activeColour, setActiveColour] = useState(0);
   const [activeId, setActiveId] = useState(layers[0]?.id ?? "");
   const px = fixtures.filter(isPixelFixture);
   const layer = layers.find((l) => l.id === activeId) ?? layers[0]!;
@@ -111,12 +114,14 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
           <div className="flex flex-wrap items-center gap-1.5">
             {layer.colors.map((c, i) => (
               <span key={i} className="relative">
+                <Button variant={activeColour === i ? "default" : "secondary"} size="sm" onClick={() => setActiveColour(i)} aria-label={`Edit colour ${i + 1}`}>{i + 1}</Button>
                 <input type="color" value={c} onChange={(e) => set({ colors: layer.colors.map((x, j) => (j === i ? e.target.value : x)) })} className="h-9 w-9 cursor-pointer rounded border border-input bg-transparent" />
                 {layer.colors.length > 1 && <button onClick={() => set({ colors: layer.colors.filter((_, j) => j !== i) })} className="absolute -right-1 -top-1 rounded-full bg-surface p-0.5"><X className="h-2.5 w-2.5" /></button>}
               </span>
             ))}
             {layer.colors.length < 8 && <button onClick={() => set({ colors: [...layer.colors, "#ffffff"] })} className="flex h-9 w-9 items-center justify-center rounded border border-dashed border-input"><Plus className="h-4 w-4" /></button>}
           </div>
+          <HexColourControls value={layer.colors[Math.min(activeColour, layer.colors.length - 1)] ?? "#ffffff"} onChange={(hex) => set({ colors: layer.colors.map((c, i) => i === Math.min(activeColour, layer.colors.length - 1) ? hex : c) })} />
           {layer.colors.length < 8 && <ColorSource onPick={(hex) => set({ colors: [...layer.colors, hex] })} />}
         </div>
       )}
