@@ -19,7 +19,7 @@ export function CameraView({ cam, size, strokes, openings, objects, floorZ, ligh
     const W = c.width = c.clientWidth * (window.devicePixelRatio || 1);
     const H = c.height = Math.round(W * 9 / 16);
     const ctx = c.getContext("2d"); if (!ctx) return;
-    const polys = buildScene(size, strokes, openings, objects, cam.floor);
+    const polys = buildScene(size, strokes, openings, objects, cam);
     const walls = wallSegments(strokes, cam.floor);
     const eye: V3 = [cam.x, cam.y, cam.h];
     const { forward: fwd, right, up } = cameraBasis(cam);
@@ -95,13 +95,17 @@ export function CameraView({ cam, size, strokes, openings, objects, floorZ, ligh
   return <canvas ref={ref} className="aspect-video w-full rounded-md bg-background" aria-label="Camera view" />;
 }
 
-function buildScene(size: [number, number], strokes: WallStroke[], openings: Opening[], objects: SetObject[], floor: number): Poly[] {
+function buildScene(size: [number, number], strokes: WallStroke[], openings: Opening[], objects: SetObject[], cam: PlotCamera): Poly[] {
   const polys: Poly[] = [];
+  const floor = cam.floor;
   const [SW, SH] = size;
-  const step = Math.max(0.25, Math.max(SW, SH) / 40);
-  for (let x = 0; x < SW; x += step) for (let y = 0; y < SH; y += step) {
-    const x2 = Math.min(SW, x + step), y2 = Math.min(SH, y + step);
-    polys.push({ pts: [[x, y, 0], [x2, y, 0], [x2, y2, 0], [x, y2, 0]], n: [0, 0, 1], albedo: [0.35, 0.33, 0.3] });
+  // Camera-local detail plus a distant floor, independent of the legacy stage dimensions.
+  const extent = Math.max(40, Math.min(100, Math.max(SW, SH)));
+  const step = extent / 40;
+  polys.push({ pts: [[cam.x-10000,cam.y-10000,0], [cam.x+10000,cam.y-10000,0], [cam.x+10000,cam.y+10000,0], [cam.x-10000,cam.y+10000,0]], n: [0,0,1], albedo: [.35,.33,.3] });
+  for (let ix = 0; ix < 40; ix++) for (let iy = 0; iy < 40; iy++) {
+    const x = cam.x - extent / 2 + ix * step, y = cam.y - extent / 2 + iy * step;
+    polys.push({ pts: [[x, y, 0], [x+step, y, 0], [x+step, y+step, 0], [x, y+step, 0]], n: [0, 0, 1], albedo: [0.35, 0.33, 0.3] });
   }
   for (const w of wallSegments(strokes, floor)) {
     const len = Math.hypot(w.dx, w.dy); if (len < 0.01) continue;

@@ -1126,7 +1126,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
 function Slider({ label, value, min, max, step = 1, unit, unbounded = false, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit: string; unbounded?: boolean; onChange: (v: number) => void }) {
   return (
     <label className="block space-y-1">
-      <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} min={unbounded ? undefined : min} max={unbounded ? undefined : max} value={+value.toFixed(2)} onChange={(v) => { if (v !== undefined) onChange(v); }} className="w-16 rounded border border-input bg-surface-elevated px-1 text-right" />{unit}</span></div>
+      <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} {...(unbounded ? {} : { min, max })} value={+value.toFixed(2)} onChange={(v) => { if (v !== undefined) onChange(v); }} className="w-16 rounded border border-input bg-surface-elevated px-1 text-right" />{unit}</span></div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} className="w-full accent-[var(--color-primary)]" />
     </label>
   );
