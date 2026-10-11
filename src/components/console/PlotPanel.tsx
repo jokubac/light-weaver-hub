@@ -680,7 +680,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     const items = { ...plot.items };
     list.forEach(([u, v], i) => {
       if (i > 0) pos += bodyLen(list[i - 1]![0]) / 2 + gap + bodyLen(u) / 2;
-      items[u] = { ...v, [axis]: pos, [other]: lineAt, rot: axis === "x" ? 90 : 0 };
+      items[u] = { ...v, [axis]: pos, [other]: lineAt };
     });
     setPlot({ ...plot, items });
   };
