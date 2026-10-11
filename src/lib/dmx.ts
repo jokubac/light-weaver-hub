@@ -480,17 +480,20 @@ export function kelvinToRgb(k: number): [number, number, number] {
   return [c(r), c(g), c(b)];
 }
 
-export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): string {
-  const kind = getMode(f).kind;
-  const cp = caps(kind);
+/** Effect × trigger level multiplier (0-1+) for a fixture at time t. */
+export function fixtureLevel(f: PatchedFixture, t: number): number {
   const seed = seedOf(f.uid);
   let level = f.fx.kind === "none" ? 1 : f.fx.min + (f.fx.max - f.fx.min) * rawEffect(f.fx, t, seed);
   const trig = triggerLevel(f.trigger, t, seed);
   if (trig !== null) {
     level = f.trigger?.kind === "switch-on" || f.trigger?.kind === "switch-off" ? level * trig : Math.max(level * 0.15, trig);
   }
-  const v = clamp01(f.intensity * level * masterLevel);
+  return level;
+}
 
+/** Full-intensity colour (0-255) of a fixture, before dimming. */
+export function fixtureBaseRgb(f: PatchedFixture): [number, number, number] {
+  const cp = caps(getMode(f).kind);
   let [r, g, b] = kelvinToRgb(2000 + f.cct * 8000);
   if (cp.gm) {
     if (f.gm > 0) { r *= 1 - f.gm * 0.3; b *= 1 - f.gm * 0.3; }
@@ -501,6 +504,12 @@ export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): str
     const x = f.crossfade;
     r = r + (hr - r) * x; g = g + (hg - g) * x; b = b + (hb - b) * x;
   }
+  return [r, g, b];
+}
+
+export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): string {
+  const v = clamp01(f.intensity * fixtureLevel(f, t) * masterLevel);
+  const [r, g, b] = fixtureBaseRgb(f);
   return `rgb(${Math.round(r * v)}, ${Math.round(g * v)}, ${Math.round(b * v)})`;
 }
 
