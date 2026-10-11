@@ -20,6 +20,7 @@ import {
   type TriggerKind,
 } from "@/lib/dmx";
 import { ColorSource } from "./ColorSource";
+import { hexToHs } from "@/lib/gels";
 import { IntensityMacros, CctMacros, GmMacros, ColorWheel, FanControl, GelPicker } from "./AdvancedControls";
 
 export function Control({
@@ -66,8 +67,8 @@ const tapReset = (fn: () => void) => () => {
   lastTap = now;
 };
 
-const rateToSlider = (r: number) => Math.log(r / 0.05) / Math.log(400);
-const sliderToRate = (v: number) => 0.05 * Math.pow(400, v);
+const rateToSlider = (r: number) => Math.log(r / 0.02) / Math.log(2500);
+const sliderToRate = (v: number) => 0.02 * Math.pow(2500, v); // 0.02 Hz … 50 Hz
 
 export function FixtureControls({
   fixtures, sel, update, updateEach, remove, fire, locked,
@@ -126,6 +127,17 @@ export function FixtureControls({
         ))}
       </div>
       <IntensityMacros updateEach={updateEach} />
+
+      {anyCaps.color && (
+        <Section title="Colour">
+          <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={(p) => update({ ...p, cctOnly: false, crossfade: Math.max(first.crossfade, 1) })} />
+          <ColorSource onPick={(hex, lbl) => {
+            if (lbl.endsWith("K")) update({ cct: Math.min(1, Math.max(0, cctFromKelvin(parseInt(lbl, 10)))), crossfade: 0 });
+            else { const { h, s } = hexToHs(hex); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }
+          }} />
+          {first.crossfade > 0 && <button onClick={() => update({ crossfade: 0 })} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Back to white (CCT)</button>}
+        </Section>
+      )}
 
       {(anyCaps.cct || anyCaps.gm || anyCaps.color) && (
         <Section title="Colour corrections">
