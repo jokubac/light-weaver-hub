@@ -619,7 +619,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   const [sweep, setSweep] = useState(false);
   const swept = useRef<Set<string> | null>(null);
   const sweepAt = (x: number, y: number) => {
-    const id = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>("[data-fixture]")?.dataset.fixture;
+    const id = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>("[data-fixture]")?.dataset["fixture"];
     if (!id || !swept.current || swept.current.has(id)) return;
     swept.current.add(id);
     lastPick.current = id;
