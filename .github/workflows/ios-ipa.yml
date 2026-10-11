@@ -24,7 +24,8 @@ jobs:
       - name: Build unsigned app
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+          if [ -d App.xcworkspace ]; then SRC="-workspace App.xcworkspace"; else SRC="-project App.xcodeproj"; fi
+          xcodebuild $SRC -scheme App -configuration Release \
             -sdk iphoneos -destination generic/platform=iOS \
             -derivedDataPath $RUNNER_TEMP/dd \
             PRODUCT_BUNDLE_IDENTIFIER=com.kroma.console \
