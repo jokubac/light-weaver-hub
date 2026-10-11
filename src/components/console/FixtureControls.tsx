@@ -133,7 +133,7 @@ export function FixtureControls({
       <Section title="Colour">
         <ColourControls value={first} update={update} />
         {anyCaps.gm && <><Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm.toFixed(2)} onChange={(gm) => update({ gm })} onReset={() => update({ gm: 0 })} /><GmMacros value={first.gm} update={update} /></>}
-        <ColorSource onPick={(hex, lbl) => {
+        <ColorSource noCct onPick={(hex, lbl) => {
           if (lbl.endsWith("K")) update({ cct: cctFromKelvin(parseInt(lbl, 10)), crossfade: 0 });
           else { const { h, s } = hexToHs(hex); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }
         }} />

@@ -8,7 +8,7 @@ const toHex = (rgb: [number, number, number]) => "#" + rgb.map((c) => Math.round
 export const kelvinHex = (k: number) => toHex(kelvinToRgb(k));
 
 /** Adds a colour from a Kelvin value or a Rosco / LEE gel. */
-export function ColorSource({ onPick, compact }: { onPick: (hex: string, label: string) => void; compact?: boolean }) {
+export function ColorSource({ onPick, compact, noCct }: { onPick: (hex: string, label: string) => void; compact?: boolean; noCct?: boolean }) {
   const [mode, setMode] = useState<"none" | "cct" | "gel">("none");
   const [k, setK] = useState("3200");
   const [q, setQ] = useState("");
@@ -24,7 +24,7 @@ export function ColorSource({ onPick, compact }: { onPick: (hex: string, label: 
   return (
     <div className="space-y-1.5">
       <div className="flex gap-1.5">
-        <button type="button" onClick={() => setMode(mode === "cct" ? "none" : "cct")} className={b(mode === "cct")}><Thermometer className="h-3.5 w-3.5" />{compact ? "K" : "+ CCT"}</button>
+        {!noCct && <button type="button" onClick={() => setMode(mode === "cct" ? "none" : "cct")} className={b(mode === "cct")}><Thermometer className="h-3.5 w-3.5" />{compact ? "K" : "+ CCT"}</button>}
         <button type="button" onClick={() => setMode(mode === "gel" ? "none" : "gel")} className={b(mode === "gel")}><Palette className="h-3.5 w-3.5" />{compact ? "Gel" : "+ Gel"}</button>
       </div>
       {mode === "cct" && (
