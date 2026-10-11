@@ -1,0 +1,39 @@
+import { useState } from "react";
+import { Minus, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { clampSpeed, MAX_SPEED, MIN_SPEED, positionToSpeed, speedToPosition } from "@/lib/speed";
+
+export function SpeedControl({ label, value, unit, onChange }: { label: string; value: number; unit: string; onChange: (value: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [fine, setFine] = useState(true);
+  const commit = () => {
+    if (draft !== null) {
+      const parsed = Number(draft.replace(",", "."));
+      if (draft.trim() && Number.isFinite(parsed)) onChange(clampSpeed(parsed));
+    }
+    setDraft(null);
+  };
+  return <div className="space-y-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+      <label className="font-semibold uppercase tracking-wider text-muted-foreground" htmlFor={`speed-${label}`}>{label}</label>
+      <div className="flex items-center gap-1 font-mono">
+        <input id={`speed-${label}`} aria-label={`${label} value`} inputMode="decimal" value={draft ?? String(+value.toFixed(5))}
+          onFocus={(e) => { setDraft(String(value)); e.target.select(); }} onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setDraft(null); e.currentTarget.blur(); } }}
+          className="w-20 rounded border border-input bg-surface-elevated px-2 py-1 text-right" />
+        <span>{unit}</span>
+      </div>
+    </div>
+    <input aria-label={`${label} slider`} type="range" min={0} max={1} step={0.0001} value={speedToPosition(value)} onChange={(e) => onChange(positionToSpeed(+e.target.value))} className="w-full accent-primary" />
+    <div className="flex items-center gap-1">
+      <Button variant="secondary" size="icon" title={fine ? "Decrease speed 1%" : "Halve speed"} aria-label={`Decrease ${label}`} onClick={() => onChange(clampSpeed(value / (fine ? 1.01 : 2)))}><Minus /></Button>
+      <Button variant="secondary" size="icon" title={fine ? "Increase speed 1%" : "Double speed"} aria-label={`Increase ${label}`} onClick={() => onChange(clampSpeed(value * (fine ? 1.01 : 2)))}><Plus /></Button>
+      <div className="ml-1 flex gap-1" role="group" aria-label={`${label} adjustment`}>
+        <Button variant={fine ? "default" : "secondary"} size="sm" aria-pressed={fine} onClick={() => setFine(true)}>1%</Button>
+        <Button variant={!fine ? "default" : "secondary"} size="sm" aria-pressed={!fine} onClick={() => setFine(false)}>×2</Button>
+      </div>
+      <Button variant="ghost" size="sm" className="ml-auto font-mono" onClick={() => onChange(1)}>1 {unit}</Button>
+    </div>
+    <div className="flex justify-between font-mono text-[10px] text-muted-foreground"><span>{MIN_SPEED}–{MAX_SPEED} {unit}</span>{unit === "Hz" && <span>{+(1 / value).toFixed(3)} s / cycle</span>}</div>
+  </div>;
+}

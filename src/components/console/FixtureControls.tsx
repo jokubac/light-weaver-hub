@@ -20,6 +20,7 @@ import {
   type TriggerKind,
 } from "@/lib/dmx";
 import { ColorSource } from "./ColorSource";
+import { SpeedControl } from "./SpeedControl";
 import { hexToHs } from "@/lib/gels";
 import { IntensityMacros, CctMacros, GmMacros, ColorWheel, FanControl, GelPicker } from "./AdvancedControls";
 
@@ -66,9 +67,6 @@ const tapReset = (fn: () => void) => () => {
   if (now - lastTap < 300) fn();
   lastTap = now;
 };
-
-const rateToSlider = (r: number) => Math.log(r / 0.02) / Math.log(2500);
-const sliderToRate = (v: number) => 0.02 * Math.pow(2500, v); // 0.02 Hz … 50 Hz
 
 export function FixtureControls({
   fixtures, sel, update, updateEach, remove, fire, locked,
@@ -130,7 +128,6 @@ export function FixtureControls({
 
       {anyCaps.color && (
         <Section title="Colour">
-          <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={update} />
           <div className="grid grid-cols-8 gap-1.5">{["#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#8000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => { const { h, s } = hexToHs(c); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }} className="h-8 rounded-md border border-input" style={{ background: c }} />)}</div>
           <ColorSource onPick={(hex, lbl) => {
             if (lbl.endsWith("K")) update({ cct: Math.min(1, Math.max(0, cctFromKelvin(parseInt(lbl, 10)))), crossfade: 0 });
@@ -172,6 +169,7 @@ export function FixtureControls({
                 <Control label="Hue" value={first.hue / 360} display={`${Math.round(first.hue)}°`} onChange={(v) => update({ hue: v * 360 })} onReset={() => update({ hue: 0, saturation: 0 })}
                   gradient="linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)" />
               </div>
+              <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={update} />
               <div onTouchEnd={tapReset(() => update({ saturation: 0 }))}>
                 <Control label="Saturation" value={first.saturation} display={`${Math.round(first.saturation * 100)}%`} onChange={(v) => update({ saturation: v })} onReset={() => update({ saturation: 0 })} />
               </div>
@@ -220,7 +218,8 @@ export function FixtureControls({
 
 function EffectEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>) => void }) {
   const periodic = fx.kind === "pulse" || fx.kind === "strobe";
-  const W = 300, H = 60, secs = fx.kind === "lightning" ? 20 : 4;
+  const W = 300, H = 60;
+  const secs = fx.kind === "steps" ? fx.steps.reduce((sum, step) => sum + step.hold + step.fade, 0) / fx.rate : 3 / fx.rate;
   const pts = Array.from({ length: 200 }, (_, i) => {
     const t = (i / 199) * secs;
     return `${(i / 199) * W},${H - sampleEffect(fx, t) * H}`;
@@ -232,22 +231,23 @@ function EffectEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams
         <polyline points={pts} fill="none" stroke="var(--color-amber-glow)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
       </svg>
 
-      <Control
+      <SpeedControl
         label={fx.kind === "steps" ? "Speed" : fx.kind === "lightning" ? "Strike rate" : "Rate"}
-        value={rateToSlider(fx.rate)}
-        display={fx.kind === "steps" ? `×${fx.rate.toFixed(2)}` : fx.rate < 1 ? `${(1 / fx.rate).toFixed(1)} s` : `${fx.rate.toFixed(2)} Hz`}
-        onChange={(v) => setFx({ rate: sliderToRate(v) })}
+        value={fx.rate}
+        unit={fx.kind === "steps" ? "×" : "Hz"}
+        onChange={(rate) => setFx({ rate })}
       />
       <div className="grid grid-cols-2 gap-3">
-        <Control label="Low" value={fx.min} display={`${Math.round(fx.min * 100)}%`} onChange={(v) => setFx({ min: v })} />
-        <Control label="High" value={fx.max} display={`${Math.round(fx.max * 100)}%`} onChange={(v) => setFx({ max: v })} />
+        <Control label="Low" value={fx.min} display="" entry={{ text: String(+(fx.min * 100).toFixed(2)), suffix: "%", parse: (n) => Math.min(fx.max, Math.max(0, n / 100)) }} onChange={(v) => setFx({ min: Math.min(fx.max, v) })} />
+        <Control label="High" value={fx.max} display="" entry={{ text: String(+(fx.max * 100).toFixed(2)), suffix: "%", parse: (n) => Math.max(fx.min, Math.min(1, n / 100)) }} onChange={(v) => setFx({ max: Math.max(fx.min, v) })} />
       </div>
       {periodic && (
         <>
-          <Control label="On time (gap)" value={fx.duty} display={`${Math.round(fx.duty * 100)}% on`} onChange={(v) => setFx({ duty: Math.max(0.02, v) })} />
+          <Control label="On time (gap)" value={fx.duty} display="" entry={{ text: String(+(fx.duty * 100).toFixed(2)), suffix: "%", parse: (n) => Math.max(0.001, Math.min(1, n / 100)) }} onChange={(v) => setFx({ duty: Math.max(0.001, v) })} />
+          <div className="flex justify-between font-mono text-[10px] text-muted-foreground"><span>On: {+(fx.duty / fx.rate * 1000).toFixed(2)} ms</span><span>Gap: {+((1 - fx.duty) / fx.rate * 1000).toFixed(2)} ms</span></div>
           <div className="grid grid-cols-2 gap-3">
-            <Control label="Attack" value={fx.attack} display={`${Math.round(fx.attack * 100)}%`} onChange={(v) => setFx({ attack: v })} />
-            <Control label="Release" value={fx.release} display={`${Math.round(fx.release * 100)}%`} onChange={(v) => setFx({ release: v })} />
+            <Control label="Attack" value={fx.attack} display="" entry={{ text: String(+(fx.attack * 100).toFixed(2)), suffix: "%", parse: (n) => Math.max(0, Math.min(1, n / 100)) }} onChange={(v) => setFx({ attack: v })} />
+            <Control label="Release" value={fx.release} display="" entry={{ text: String(+(fx.release * 100).toFixed(2)), suffix: "%", parse: (n) => Math.max(0, Math.min(1, n / 100)) }} onChange={(v) => setFx({ release: v })} />
           </div>
         </>
       )}

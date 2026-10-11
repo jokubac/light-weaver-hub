@@ -423,7 +423,7 @@ export function shape(x: number, curve: Curve): number {
 }
 
 function cycle(p: number, fx: FxParams): number {
-  const duty = Math.max(0.02, fx.duty);
+  const duty = Math.max(0.001, fx.duty);
   if (p >= duty) return 0;
   const q = p / duty;
   let a = fx.attack, r = fx.release;
@@ -458,7 +458,7 @@ function rawEffect(fx: FxParams, t: number, seed: number): number {
       return shape(clamp01(base + (noise1(t * 25 + seed) - 0.5) * rnd * 0.3), fx.curve);
     }
     case "lightning": {
-      const slotLen = 1 / Math.max(0.02, fx.rate);
+      const slotLen = 1 / Math.max(0.001, fx.rate);
       const slot = Math.floor(t / slotLen);
       if (hash(slot * 3.1 + seed * 17) > 0.35 + (1 - rnd) * 0.6) return 0;
       const start = hash(slot * 7.7 + seed) * slotLen * 0.6;

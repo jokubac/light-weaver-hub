@@ -59,7 +59,8 @@ export function GmMacros({ value, update }: { value: number; update: Upd }) {
 export function ColorWheel({ hue, sat, crossfade, update }: { hue: number; sat: number; crossfade: number; update: Upd }) {
   const ref = useRef<HTMLDivElement>(null);
   const pick = (e: React.PointerEvent) => {
-    const r = ref.current!.getBoundingClientRect();
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
     const x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
     const s = clamp(Math.hypot(x, y) / (r.width / 2), 0, 1);
     const h = ((Math.atan2(y, x) * 180) / Math.PI + 90 + 360) % 360;
@@ -68,7 +69,7 @@ export function ColorWheel({ hue, sat, crossfade, update }: { hue: number; sat: 
   const a = ((hue - 90) * Math.PI) / 180;
   return (
     <div className="flex items-center gap-4">
-      <div ref={ref} onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture(e.pointerId); pick(e); }} onPointerMove={(e) => e.buttons && pick(e)}
+      <div ref={ref} aria-label="Colour wheel" onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pick(e); }} onPointerMove={(e) => e.buttons && pick(e)}
         className="relative aspect-square w-40 shrink-0 touch-none rounded-full"
         style={{ background: "radial-gradient(circle, #fff 0%, transparent 70%), conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}>
         <div className="pointer-events-none absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background shadow"
