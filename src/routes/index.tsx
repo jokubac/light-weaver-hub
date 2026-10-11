@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -618,6 +618,25 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   const holdEnd = () => { if (holdTimer.current) clearTimeout(holdTimer.current); holdTimer.current = null; };
   // Sweep: drag across tiles to add every light you pass over
   const [sweep, setSweep] = useState(false);
+  const [swapping, setSwapping] = useState(false);
+  const [swapSource, setSwapSource] = useState<string | null>(null);
+  const swapTile = (id: string) => {
+    if (!swapSource) { setSwapSource(id); return; }
+    if (swapSource !== id) {
+      setFixtures((fs) => {
+        const from = fs.findIndex((f) => f.uid === swapSource);
+        const to = fs.findIndex((f) => f.uid === id);
+        const source = fs[from];
+        const target = fs[to];
+        if (!source || !target) return fs;
+        const next = [...fs];
+        next[from] = target;
+        next[to] = source;
+        return next;
+      });
+    }
+    setSwapSource(null);
+  };
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const swept = useRef<Set<string> | null>(null);
@@ -713,8 +732,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
               <div className="sticky -top-4 z-10 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-2 text-xs text-muted-foreground backdrop-blur">
                 <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
                 <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
-                <button onClick={() => setSweep((s) => !s)} aria-pressed={sweep} title="Drag a finger across lights to select them"
+                 <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
                   className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
+                 <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
+                   onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
+                   className={swapping ? "bg-primary text-primary-foreground" : ""}><ArrowLeftRight className="h-4 w-4" /></Button>
                 <span>{selected.length} selected</span>
                 {groups.map((g) => (
                   <span key={g} className="flex items-center overflow-hidden rounded-md bg-primary/15 text-foreground">
@@ -737,8 +759,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                   const pv = f.on === false ? 0 : f.intensity * outLevel;
                   const [gc, gr] = pixelGrid(f);
                   return (
-                    <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`Select ${f.name}`} aria-pressed={isSel} tabIndex={0} onPointerDown={() => { if (!sweep) holdStart(f.uid); }} onPointerUp={holdEnd} onPointerCancel={holdEnd} onClick={(e) => { if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => e.key === "Enter" && toggleSelect(f.uid)}
-                      className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${isSel ? "border-primary bg-primary/5" : "border-border"}`}>
+                     <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`${swapping ? "Swap" : "Select"} ${f.name}`} aria-pressed={swapping ? swapSource === f.uid : isSel} tabIndex={0} onPointerDown={() => { if (!sweep && !swapping) holdStart(f.uid); }} onPointerUp={holdEnd} onPointerCancel={holdEnd} onClick={(e) => { if (swapping) swapTile(f.uid); else if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (swapping) swapTile(f.uid); else toggleSelect(f.uid); } if (e.key === "Escape") { setSwapSource(null); setSwapping(false); } }}
+                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"}`}>
                       {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
                       <FixtureGlyph className="min-h-0 w-full flex-1" model={def.model} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
                       <div className="flex shrink-0 items-center gap-1">

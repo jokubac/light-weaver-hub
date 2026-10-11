@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Swap console fixture positions without repatching; verify persistence and selection
 - [x] Pixel preview tilt and unrestricted stage dimensions/placement
 - [x] Correct upright camera projection and verify rendering
 - [x] Thicken all faders by 1.5×
