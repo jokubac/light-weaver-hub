@@ -1,5 +1,4 @@
 import { ColorWheel, CctMacros } from "./AdvancedControls";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cctFromKelvin, kelvin, kelvinToRgb, hsvToRgb, type PatchedFixture } from "@/lib/dmx";
 import { hexToHs } from "@/lib/gels";
