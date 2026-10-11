@@ -26,6 +26,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
   const layer = layers.find((l) => l.id === activeId) ?? layers[0]!;
   const fxLib = useFxLibrary();
   const set = (p: Partial<PixelLayer>) => setLayers(layers.map((l) => (l.id === layer.id ? { ...l, ...p } : l)));
+  const setLayerRaw = (next: PixelLayer) => setLayers(layers.map((l) => (l.id === layer.id ? next : l)));
   const inMap = layer.order.filter((u) => px.some((f) => f.uid === u));
   const toggle = (u: string) => set({ order: inMap.includes(u) ? inMap.filter((x) => x !== u) : [...inMap, u] });
   const move = (u: string, d: number) => {
