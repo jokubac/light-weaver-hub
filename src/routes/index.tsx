@@ -23,6 +23,10 @@ import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
 import { FixtureMenu } from "@/components/console/FixtureMenu";
+import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
+import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
+import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
+import { Settings as SettingsIcon, BatteryMedium } from "lucide-react";
 import { LooksPanel, applyLook } from "@/components/console/LooksPanel";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
@@ -362,8 +366,81 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   const [bridge, setBridge] = useState<BridgeStatus>("off");
   const sender = useMemo(() => createSender(setBridge), []);
   useEffect(() => {
-    if (conn.node) void sender(conn, buildUniverses(fixtures, t, outLevel, frame));
+    if (conn.node) void sender(conn, buildUniverses(fixtures, t, outLevel, frame, conn));
   });
+
+  // Battery drain: integrate each light's draw every 5 s
+  const outRef = useRef(outLevel);
+  outRef.current = outLevel;
+  useEffect(() => {
+    const id = setInterval(() => {
+      setFixtures((fs) => fs.some((f) => f.power) ? fs.map((f) => (f.power ? { ...f, power: { ...f.power, usedWh: f.power.usedWh + (f.power.watts * drawFactor(f, outRef.current) * 5) / 3600 } } : f)) : fs);
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Settings: Bluetooth + MIDI
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [bt, setBt] = useState<BtDevice[]>([]);
+  const connectBt = async () => {
+    const nb = (navigator as Navigator & { bluetooth?: { requestDevice: (o: object) => Promise<any> } }).bluetooth;
+    if (!nb) { alert("This browser can't use Bluetooth. Use Chrome or Edge (Android, Windows, Mac)."); return; }
+    try {
+      const dev = await nb.requestDevice({ acceptAllDevices: true, optionalServices: ["battery_service", "device_information"] });
+      const entry: BtDevice = { id: dev.id, name: dev.name || "Bluetooth device", battery: null };
+      setBt((b) => [...b.filter((x) => x.id !== dev.id), entry]);
+      const server = await dev.gatt.connect();
+      try {
+        const ch = await (await server.getPrimaryService("battery_service")).getCharacteristic("battery_level");
+        const set = (v: number) => setBt((b) => b.map((x) => (x.id === dev.id ? { ...x, battery: v } : x)));
+        set((await ch.readValue()).getUint8(0));
+        await ch.startNotifications().catch(() => {});
+        ch.addEventListener("characteristicvaluechanged", (e: any) => set(e.target.value.getUint8(0)));
+      } catch { /* device has no standard battery service */ }
+    } catch { /* user cancelled */ }
+  };
+
+  const [midi, setMidiState] = useState(() => ({ enabled: false, maps: [] as ReturnType<typeof loadMidi>["maps"] }));
+  useEffect(() => { setMidiState(loadMidi()); }, []);
+  const setMidi = (m: typeof midi) => { setMidiState(m); saveMidi(m); };
+  const [learning, setLearning] = useState<string | null>(null);
+  const [lastMsg, setLastMsg] = useState<string | null>(null);
+  const [midiDevices, setMidiDevices] = useState<string[]>([]);
+  const [midiError, setMidiError] = useState<string | null>(null);
+  const midiRef = useRef({ midi, learning, handle: (_m: MidiMsg) => {} });
+  midiRef.current.midi = midi;
+  midiRef.current.learning = learning;
+  midiRef.current.handle = (m: MidiMsg) => {
+    for (const map of midi.maps.filter((x) => x.key === m.key)) {
+      const [kind, id] = [map.target.split(":")[0], map.target.slice(map.target.indexOf(":") + 1)];
+      if (kind === "master") setMaster(m.value);
+      else if (kind === "blackout") { if (!m.isNote || m.on) toggleBlackout(); }
+      else if (kind === "int") updateOne(id, { intensity: m.value });
+      else if (kind === "on" && (!m.isNote || m.on)) setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, on: m.isNote ? f.on === false : m.value > 0.5 } : f)));
+      else if (kind === "fx" && (!m.isNote || m.on)) setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, fxPlaying: f.fxPlaying === false } : f)));
+      else if (kind === "group") setFixtures((fs) => fs.map((f) => (f.group === id ? { ...f, intensity: m.value } : f)));
+      else if (kind === "look" && (!m.isNote || m.on)) { const l = project.looks?.find((x) => x.id === id); if (l) recallLook(l); }
+      else if (kind === "trig" && (!m.isNote || m.on)) fire(id as TriggerKind);
+    }
+  };
+  useEffect(() => {
+    if (!midi.enabled) return;
+    let off: (() => void) | undefined;
+    listenMidi((m) => {
+      setLastMsg(`${m.key} = ${Math.round(m.value * 127)}`);
+      const r = midiRef.current;
+      if (r.learning) {
+        if (m.isNote && !m.on) return;
+        const t = r.learning;
+        setMidi({ ...r.midi, maps: [...r.midi.maps.filter((x) => x.key !== m.key), { key: m.key, target: t, label: t }] });
+        setLearning(null);
+        return;
+      }
+      r.handle(m);
+    }, setMidiDevices).then((u) => { off = u; setMidiError(null); }).catch((e: Error) => setMidiError(e.message));
+    return () => off?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [midi.enabled]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -477,12 +554,24 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
         {tab("pixels", "PIXELS")}
         {tab("groups", "GROUPS")}
         {tab("looks", "LOOKS")}
+        <button onClick={() => setSettingsOpen(true)} className="rounded-lg bg-surface-elevated p-2.5 active:scale-95" aria-label="Settings"><SettingsIcon className="h-4 w-4" /></button>
         <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? (bridge === "error" ? "bg-destructive text-destructive-foreground" : "bg-success text-primary-foreground") : "bg-surface-elevated"}`}>
           <Radio className="h-4 w-4" />{conn.node ? (bridge === "error" ? "NO BRIDGE" : conn.node.ip) : "CONNECT"}
         </button>
       </div>
 
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
+        learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
+        targets={[
+          { id: "master", label: "Master fader" }, { id: "blackout", label: "Blackout" },
+          { id: "trig:lightning", label: "Trigger: lightning" }, { id: "trig:flash", label: "Trigger: flash" },
+          ...groups.map((g) => ({ id: `group:${g}`, label: `Group "${g}" intensity` })),
+          ...(project.looks ?? []).map((l) => ({ id: `look:${l.id}`, label: `Look: ${l.name}` })),
+          ...fixtures.flatMap((f) => [
+            { id: `int:${f.uid}`, label: `${f.name} — intensity` }, { id: `on:${f.uid}`, label: `${f.name} — on/off` }, { id: `fx:${f.uid}`, label: `${f.name} — play/stop effect` },
+          ]),
+        ]} />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="min-h-0 flex-1 overflow-auto p-4">
           {fixtures.length === 0 ? (
@@ -525,13 +614,18 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
                           {f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}
                         </div>
                         <FixtureMenu f={f} fixtures={fixtures} locked={locked} groups={groups}
-                          onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g) => setGroup(f, g)} />
+                          onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g) => setGroup(f, g)}
+                          level={outLevel} onPower={(p) => setFixtures((fs) => fs.map((x) => { if (x.uid !== f.uid) return x; const { power: _p, ...rest } = x; return p ? { ...rest, power: p } : rest; }))} />
                       </div>
                       <div className="flex justify-between text-[11px] text-muted-foreground">
                         <span className="truncate">{def.brand} · U{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
                       {f.group && <div className="truncate text-[10px] text-primary">{f.group}</div>}
+                      {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
+                        <div className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
+                          <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)} left
+                        </div>); })()}
                       {f.fx.kind !== "none" && <div className={`mt-1 text-[10px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
                     </div>
                   );
