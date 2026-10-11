@@ -13,7 +13,7 @@ export interface Gel {
   gm?: number;
 }
 
-type Row = [string, string, string, number?, number?];
+type Row = [string, string, string, (number | undefined)?, number?];
 
 const R: Row[] = [
   // Rosco corrections (Cinegel / E-Colour)
