@@ -8,3 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Real DMX output: the app POSTs universes to a local Node bridge (public/crmx-bridge.mjs) that sends Art-Net/sACN — browsers cannot send UDP.
