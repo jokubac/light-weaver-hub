@@ -1,3 +1,4 @@
+import { NumberField } from "./NumberField";
 import { useState } from "react";
 import { MoreVertical, Pencil, Lock, Split, Merge, FolderPlus, FolderMinus, BatteryCharging } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -57,8 +58,8 @@ export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, on
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <label className="block">Universe<input type="number" min={1} max={64} value={draft.universe} onChange={(e) => setDraft({ ...draft, universe: Math.max(1, Math.min(64, +e.target.value || 1)) })} className={inputCls} /></label>
-              <label className="block">Address<input type="number" min={1} max={512} value={draft.address} onChange={(e) => setDraft({ ...draft, address: Math.max(1, Math.min(512, +e.target.value || 1)) })} className={inputCls} /></label>
+              <label className="block">Universe<NumberField integer min={1} max={64} value={draft.universe} onChange={(v) => v && setDraft({ ...draft, universe: v })} className={inputCls} /></label>
+              <label className="block">Address<NumberField integer min={1} max={512} value={draft.address} onChange={(v) => v && setDraft({ ...draft, address: v })} className={inputCls} /></label>
             </div>
             {!f.split && (
               <label className="block">Mode

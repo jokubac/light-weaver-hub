@@ -28,3 +28,6 @@
 - Complete named setups are immutable Scene snapshots under Project.setups; restore replaces scene content but preserves scene identity so walls, fixture angles and all effects travel together.
 - Plot camera state is an optional Scene.plot.view field and persists outside geometry undo history, keeping older saved projects compatible.
 - Fixture grid columns use the available console container width rather than viewport width so the control panel cannot squeeze square tiles.
+- Number inputs use the shared NumberField (commit on blur/Enter) so fields can be cleared while typing without snapping to a value.
+- Multi-fixture patch layout lives in src/lib/patch-plan.ts; universe overflow is only applied after the user confirms.
+- Live-plot cameras are an optional Plot.cameras field; CameraView renders a perspective view with exposure from lens/iris/ISO (src/lib/plot-camera.ts).

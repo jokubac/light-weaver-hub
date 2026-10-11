@@ -5,6 +5,8 @@ export const SET_OBJECTS = [
   { kind: "sofa", label: "Sofa", w: 2.1, d: 0.9, h: 0.85 },
   { kind: "chair", label: "Chair", w: 0.5, d: 0.5, h: 0.85 },
   { kind: "person", label: "Person", w: 0.5, d: 0.4, h: 1.75 },
+  { kind: "car", label: "Car", w: 1.8, d: 4.5, h: 1.5 },
+  { kind: "tree", label: "Tree", w: 3, d: 3, h: 6 },
 ] as const;
 export type SetObjectKind = typeof SET_OBJECTS[number]["kind"];
 export interface SetObject { id: string; kind: SetObjectKind; name: string; x: number; y: number; w: number; d: number; h: number; rot: number; floor: number }

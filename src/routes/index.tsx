@@ -744,7 +744,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
 
         {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
           {panel === "patch" ? (
-            <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
+            <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
           ) : panel === "looks" ? (
             <LooksPanel fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
           ) : panel === "groups" ? (
@@ -758,7 +758,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
           ) : panel === "pixels" ? (
-            <PixelPanel fixtures={fixtures} layers={layers} frame={frame} setLayers={(next) => {
+            <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} setLayers={(next) => {
               const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
               if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
               setLayers(next);
@@ -771,6 +771,24 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
               remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
         </aside>}
+        {groups.length > 0 && (
+          <aside aria-label="Groups" className="flex w-full shrink-0 gap-1.5 overflow-auto border-t border-border bg-surface p-2 lg:w-44 lg:flex-col lg:border-l lg:border-t-0">
+            <p className="hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:block">Groups</p>
+            {groups.map((g) => {
+              const ids = fixtures.filter((f) => f.group === g).map((f) => f.uid);
+              const all = ids.every((id) => selected.includes(id));
+              const some = !all && ids.some((id) => selected.includes(id));
+              return (
+                <button key={g} aria-pressed={all}
+                  onClick={() => { setSelected((s) => (all ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])])); if (panel !== "pixels" && panel !== "looks") { setPanel("control"); setPanelOpen(true); } }}
+                  className={`shrink-0 rounded-lg px-3 py-2.5 text-left text-xs font-semibold active:scale-95 ${all ? "bg-primary text-primary-foreground" : some ? "bg-primary/30" : "bg-surface-elevated"}`}>
+                  <span className="block truncate">{g}</span>
+                  <span className="block text-[10px] font-normal opacity-80">{ids.length} lights{all ? " · selected" : ""}</span>
+                </button>
+              );
+            })}
+          </aside>
+        )}
       </div>
     </div>
   );

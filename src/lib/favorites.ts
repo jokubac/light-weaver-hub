@@ -1,13 +1,13 @@
-// Favourites (gels, fixture models) saved in localStorage and shared across all projects.
+// Favourites (gels, fixture models, fixture+mode pairs) saved in localStorage and shared across all projects.
 import { useEffect, useState } from "react";
 
-export type FavKind = "gels" | "fixtures";
+export type FavKind = "gels" | "fixtures" | "modes";
 const KEY = "crmx-console-favorites-v1";
 const EVT = "crmx-favorites";
 
 function read(): Record<FavKind, string[]> {
-  try { const r = localStorage.getItem(KEY); if (r) return { gels: [], fixtures: [], ...JSON.parse(r) }; } catch { /* ignore */ }
-  return { gels: [], fixtures: [] };
+  try { const r = localStorage.getItem(KEY); if (r) return { gels: [], fixtures: [], modes: [], ...JSON.parse(r) }; } catch { /* ignore */ }
+  return { gels: [], fixtures: [], modes: [] };
 }
 
 export function useFavorites(kind: FavKind) {

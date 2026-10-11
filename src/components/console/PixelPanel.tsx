@@ -1,12 +1,12 @@
 import { SavedEffects } from "./SavedEffects";
 import { useFxLibrary } from "@/lib/fxlib";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
-import { PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
+import { renderLayer, textMask, PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
 
 type RGB = [number, number, number];
 
@@ -16,16 +16,20 @@ const LAYOUTS: { id: PixelLayout; label: string; hint: string }[] = [
   { id: "stack", label: "Stacked", hint: "Horizontal lights stacked on top of each other" },
 ];
 
-export function PixelPanel({ fixtures, layers, setLayers, frame }: {
-  fixtures: PatchedFixture[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>;
+export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame }: {
+  fixtures: PatchedFixture[]; selected?: string[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>;
 }) {
   const [activeId, setActiveId] = useState(layers[0]?.id ?? "");
-  const px = fixtures.filter(isPixelFixture);
+  const allPx = fixtures.filter(isPixelFixture);
+  const selPx = allPx.filter((f) => selected.includes(f.uid));
+  // programming works on the lights selected in the console; with nothing selected every pixel light is listed
+  const px = selPx.length ? selPx : allPx;
   const layer = layers.find((l) => l.id === activeId) ?? layers[0]!;
   const fxLib = useFxLibrary();
+  const now = useClock();
   const set = (p: Partial<PixelLayer>) => setLayers(layers.map((l) => (l.id === layer.id ? { ...l, ...p } : l)));
   const setLayerRaw = (next: PixelLayer) => setLayers(layers.map((l) => (l.id === layer.id ? next : l)));
-  const inMap = layer.order.filter((u) => px.some((f) => f.uid === u));
+  const inMap = layer.order.filter((u) => allPx.some((f) => f.uid === u));
   const toggle = (u: string) => set({ order: inMap.includes(u) ? inMap.filter((x) => x !== u) : [...inMap, u] });
   const move = (u: string, d: number) => {
     const i = inMap.indexOf(u); const j = i + d;
@@ -34,13 +38,13 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
   };
   const usedElsewhere = (u: string) => layers.filter((l) => l.id !== layer.id && l.order.includes(u)).map((l) => l.name);
   const addLayer = () => {
-    const l = defaultLayer(`Layer ${layers.length + 1}`);
+    const l = defaultLayer(`Layer ${layers.length + 1}`, selPx.map((f) => f.uid));
     setLayers([...layers, l]);
     setActiveId(l.id);
   };
   const anyPlaying = layers.some((l) => l.playing);
 
-  if (px.length === 0) {
+  if (allPx.length === 0) {
     return (
       <div className="space-y-2">
         <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pixel map</h2>
@@ -50,6 +54,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
   }
 
   const { placed, W, H } = layoutLayer({ ...layer, order: inMap }, fixtures);
+  const preview = layer.playing ? new Map<string, RGB[]>() : renderLayer({ ...layer, order: inMap }, fixtures, now, layer.kind === "text" ? textMask(layer.text.toUpperCase(), H) : null);
 
   return (
     <div className="space-y-4">
@@ -81,22 +86,27 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
         </button>
       </div>
 
+      <div className="flex items-center gap-2 rounded-md bg-surface-elevated/60 px-2 py-1.5 text-[11px]">
+        <span className="min-w-0 flex-1 text-muted-foreground">{selPx.length ? `Programming ${selPx.length} selected pixel light${selPx.length > 1 ? "s" : ""}` : "No lights selected in the console — showing all pixel lights"}</span>
+        {selPx.length > 0 && <button onClick={() => set({ order: selPx.map((f) => f.uid) })} className="rounded bg-primary px-2 py-1 font-semibold text-primary-foreground">Use selected</button>}
+      </div>
+      {!layer.playing && inMap.length > 0 && <p className="text-[10px] text-muted-foreground">Preview below — press PLAY to send it to the lights.</p>}
       {/* live preview of the layer grid */}
       {placed.length > 0 && (
-        <div className="overflow-x-auto rounded-lg bg-background p-2">
+        <InfiniteGrid>
           <div className="grid gap-px" style={{ gridTemplateColumns: `repeat(${W}, 10px)`, gridTemplateRows: `repeat(${H}, 10px)` }}>
             {placed.flatMap((p, fi) => p.cells.map((c, i) => {
-              const col = layer.playing ? frame.get(p.f.uid)?.[i] : undefined;
+              const col = (layer.playing ? frame.get(p.f.uid) : preview.get(p.f.uid))?.[i];
               return <div key={`${p.f.uid}-${i}`} title={`${p.f.name} px ${i + 1}`} className="rounded-[2px]"
                 style={{ gridColumn: c.x + 1, gridRow: c.y + 1, background: col ? `rgb(${col[0]},${col[1]},${col[2]})` : `hsl(${(fi * 47) % 360} 30% 22%)` }} />;
             }))}
           </div>
-        </div>
+        </InfiniteGrid>
       )}
 
       <div className="grid grid-cols-3 gap-1.5">
         {PIXEL_FX.map((e) => (
-          <button key={e.id} onClick={() => set({ kind: e.id, playing: inMap.length > 0 })} className={`rounded-md py-2.5 text-xs font-semibold ${layer.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>{e.label}</button>
+          <button key={e.id} onClick={() => set({ kind: e.id })} className={`rounded-md py-2.5 text-xs font-semibold ${layer.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>{e.label}</button>
         ))}
       </div>
 
@@ -128,7 +138,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
       )}
 
       <SavedEffects label="My pixel effects" items={fxLib.lib.pixel} onSave={(n) => fxLib.savePixel(n, layer)} onDelete={(id) => fxLib.remove("pixel", id)}
-        onLoad={(it) => set({ ...structuredClone(it.layer), id: layer.id, order: layer.order, name: it.name })} />
+        onLoad={(it) => set({ ...structuredClone(it.layer), id: layer.id, order: selPx.length ? selPx.map((f) => f.uid) : layer.order, name: it.name, playing: false })} />
       {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size, phase: layer.phase ?? 0 })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
       <SpeedControl label="Pixel speed" value={layer.speed} unit="×" onChange={(speed) => set({ speed })} />
       {["runner", "meteor", "text"].includes(layer.kind) && <div className="font-mono text-[10px] text-muted-foreground">{+(layer.speed * 10).toFixed(3)} px/s · {+(W / (layer.speed * 10)).toFixed(3)} s / map</div>}
@@ -186,5 +196,40 @@ function Slider({ label, value, min, max, step, display, onChange }: { label: st
       <div className="mb-1 flex justify-between text-xs"><span className="font-semibold uppercase tracking-wider text-muted-foreground">{label}</span><span className="font-mono">{display}</span></div>
       <input type="range" min={min} max={max} step={step ?? (max - min) / 200} value={value} onChange={(e) => onChange(+e.target.value)} className="w-full accent-[var(--color-primary)]" />
     </label>
+  );
+}
+
+/** Seconds since mount, refreshed every animation frame (drives the effect preview). */
+export function useClock() {
+  const [t, setT] = useState(0);
+  useEffect(() => {
+    let raf = 0; const start = performance.now();
+    const loop = () => { setT((performance.now() - start) / 1000); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return t;
+}
+
+/** Endless, pannable and zoomable canvas for the pixel layout preview. */
+function InfiniteGrid({ children }: { children: React.ReactNode }) {
+  const [pan, setPan] = useState<[number, number]>([12, 12]);
+  const [zoom, setZoom] = useState(1);
+  const drag = useRef<{ x: number; y: number; p: [number, number] } | null>(null);
+  const cell = 11 * zoom;
+  return (
+    <div className="relative h-48 touch-none overflow-hidden rounded-lg bg-background"
+      style={{ backgroundImage: "linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)", backgroundSize: `${cell}px ${cell}px`, backgroundPosition: `${pan[0]}px ${pan[1]}px` }}
+      onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, p: pan }; }}
+      onPointerMove={(e) => { const d = drag.current; if (d) setPan([d.p[0] + e.clientX - d.x, d.p[1] + e.clientY - d.y]); }}
+      onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}
+      onWheel={(e) => setZoom((z) => Math.max(0.1, z * (e.deltaY < 0 ? 1.1 : 0.9)))}>
+      <div className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${pan[0]}px, ${pan[1]}px) scale(${zoom})` }}>{children}</div>
+      <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setZoom((z) => z * 1.25)} className="rounded bg-surface-elevated px-2 text-xs font-bold" aria-label="Zoom in">+</button>
+        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setZoom((z) => Math.max(0.1, z / 1.25))} className="rounded bg-surface-elevated px-2 text-xs font-bold" aria-label="Zoom out">−</button>
+        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => { setZoom(1); setPan([12, 12]); }} className="rounded bg-surface-elevated px-2 text-[10px]">Reset</button>
+      </div>
+    </div>
   );
 }

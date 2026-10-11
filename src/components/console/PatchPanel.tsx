@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
+import { NumberField } from "./NumberField";
+import { planPatch } from "@/lib/patch-plan";
 import {
   BRANDS,
   FIXTURE_LIBRARY, RENTAL_STOCK,
   createFixture,
   findFreeAddress,
+  getDef,
   overlaps,
   type FixtureDef,
   type PatchedFixture,
@@ -14,15 +17,22 @@ import {
 
 export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
 
-export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void }) {
+const modeKey = (defId: string, i: number) => `${defId}:${i}`;
+
+export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate }: {
+  fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
+}) {
   const [query, setQuery] = useState("");
+  const [modeQuery, setModeQuery] = useState("");
   const [unpick, setUnpick] = useState<string[]>([]);
+  const [editing, setEditing] = useState<string | null>(null);
   const [brand, setBrand] = useState<string | null>(null);
   const [def, setDef] = useState<FixtureDef | null>(null);
   const [modeIdx, setModeIdx] = useState<number | null>(null);
   const [mapU, setMapU] = useState(1);
   const [showMap, setShowMap] = useState(true);
   const fav = useFavorites("fixtures");
+  const favModes = useFavorites("modes");
   const star = (id: string) => ({ starred: fav.has(id), onStar: () => fav.toggle(id) });
   const universes = Array.from(new Set([1, ...fixtures.map((f) => f.universe)])).sort((a, b) => a - b);
 
@@ -31,11 +41,16 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
     () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""} ${(RENTAL_STOCK[d.id] ?? []).join(" ")}`.toLowerCase().includes(q)).slice(0, 120) : []),
     [q],
   );
+  const favPairs = favModes.list.map((k) => {
+    const [id, i] = [k.slice(0, k.lastIndexOf(":")), +k.slice(k.lastIndexOf(":") + 1)];
+    const d = FIXTURE_LIBRARY.find((x) => x.id === id);
+    return d && d.modes[i] ? { d, i, k } : null;
+  }).filter((x): x is { d: FixtureDef; i: number; k: string } => !!x);
 
-  const reset = () => { setBrand(null); setDef(null); setModeIdx(null); };
-  const back = () => (modeIdx !== null ? setModeIdx(null) : def ? setDef(null) : setBrand(null));
-
+  const reset = () => { setBrand(null); setDef(null); setModeIdx(null); setModeQuery(""); };
+  const back = () => (modeIdx !== null ? setModeIdx(null) : def ? (setDef(null), setModeQuery("")) : setBrand(null));
   const crumbs = [brand, def?.model, modeIdx !== null ? def?.modes[modeIdx]?.name : null].filter(Boolean);
+  const mq = modeQuery.trim().toLowerCase();
 
   return (
     <div className="space-y-3">
@@ -49,7 +64,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
             {universes.map((u) => (
               <button key={u} onClick={() => setMapU(u)} className={`rounded px-2 py-1 font-mono text-[11px] ${mapU === u ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>U{u}</button>
             ))}
-            <input type="number" min={1} max={64} value={mapU} onChange={(e) => setMapU(Math.max(1, Math.min(64, +e.target.value || 1)))} className="w-14 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Universe" />
+            <NumberField integer min={1} max={64} value={mapU} onChange={(v) => v && setMapU(v)} className="w-14 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Universe" />
           </div>
           <DmxMap fixtures={fixtures} universe={mapU} />
         </div>
@@ -64,7 +79,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
       {!def && (
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model, Arclight or Cinevera…" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
         </div>
       )}
 
@@ -78,11 +93,15 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
         </List>
       ) : !brand ? (
         <List>
-          {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourites</p>}
+          {favPairs.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixture + mode</p>}
+          {favPairs.map(({ d, i, k }) => (
+            <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => { setBrand(d.brand); setDef(d); setModeIdx(i); }} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
+          ))}
+          {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixtures</p>}
           {FIXTURE_LIBRARY.filter((d) => fav.has(d.id)).map((d) => (
             <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); }} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes`} />
           ))}
-          {fav.list.length > 0 && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers</p>}
+          {(fav.list.length > 0 || favPairs.length > 0) && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers</p>}
           {BRANDS.map((b) => (
             <Row key={b} onClick={() => setBrand(b)} title={b} sub={`${FIXTURE_LIBRARY.filter((d) => d.brand === b).length} models`} />
           ))}
@@ -95,8 +114,12 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
         </List>
       ) : modeIdx === null ? (
         <List>
-          {def.modes.map((mo, i) => (
-            <Row key={mo.name} onClick={() => setModeIdx(i)} title={mo.name} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${mo.pixels ? ` · ${mo.pixels} px` : ""}`} />
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+          </div>
+          {def.modes.map((mo, i) => ({ mo, i })).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
+            <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={mo.name} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${mo.pixels ? ` · ${mo.pixels} px` : ""}`} />
           ))}
         </List>
       ) : (
@@ -105,8 +128,10 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
 
       {fixtures.length > 0 && (
         <div className="space-y-2 rounded-lg bg-surface-elevated/50 p-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Patched ({fixtures.length})</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-auto text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Patched ({fixtures.length})</span>
+            <button onClick={() => setUnpick(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-2 py-1 text-[11px] font-semibold">Select all</button>
+            <button onClick={() => setUnpick([])} disabled={!unpick.length} className="rounded-md bg-surface-elevated px-2 py-1 text-[11px] font-semibold disabled:opacity-40">Deselect</button>
             <button
               onClick={() => {
                 if (unpick.length === 0) return;
@@ -122,20 +147,39 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
               <Unplug className="h-3.5 w-3.5" />Unpatch{unpick.length > 0 ? ` (${unpick.length})` : ""}
             </button>
           </div>
-          <div className="max-h-48 space-y-1 overflow-y-auto">
+          <div className="max-h-96 space-y-1 overflow-y-auto">
             {fixtures.map((f) => {
               const on = unpick.includes(f.uid);
+              const d = getDef(f.defId);
+              const ch = d.modes[f.modeIdx]?.channels ?? 1;
+              const clash = overlaps(fixtures, f.universe, f.address, ch, f.uid);
               return (
-                <button
-                  key={f.uid}
-                  onClick={() => setUnpick((u) => (on ? u.filter((x) => x !== f.uid) : [...u, f.uid]))}
-                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${on ? "bg-destructive/20 ring-1 ring-destructive" : "bg-surface-elevated"}`}
-                >
-                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${on ? "border-destructive bg-destructive text-destructive-foreground" : "border-input"}`}>{on ? "✓" : ""}</span>
-                  {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
-                  <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
-                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">U{f.universe}.{f.address} · {FIXTURE_LIBRARY.find((d) => d.id === f.defId)?.modes[f.modeIdx]?.channels ?? "?"}ch</span>
-                </button>
+                <div key={f.uid} className={`rounded-md ${on ? "bg-destructive/20 ring-1 ring-destructive" : "bg-surface-elevated"}`}>
+                  <div className="flex items-center gap-2 px-2 py-1.5 text-xs">
+                    <button onClick={() => setUnpick((u) => (on ? u.filter((x) => x !== f.uid) : [...u, f.uid]))} aria-label={`Pick ${f.name}`}
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${on ? "border-destructive bg-destructive text-destructive-foreground" : "border-input"}`}>{on ? "✓" : ""}</button>
+                    {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
+                    <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
+                    <span className={`shrink-0 font-mono text-[10px] ${clash.length ? "text-destructive" : "text-muted-foreground"}`}>U{f.universe}.{f.address} · {ch}ch</span>
+                    <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`rounded p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
+                  </div>
+                  {editing === f.uid && (
+                    <div className="space-y-2 border-t border-border p-2">
+                      <Field label="Name"><input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} className={inputCls} /></Field>
+                      <Field label="Mode">
+                        <select value={f.modeIdx} onChange={(e) => onUpdate(f.uid, { modeIdx: +e.target.value })} className={inputCls}>
+                          {d.modes.map((m, i) => <option key={m.name} value={i}>{m.name} · {m.channels} ch</option>)}
+                        </select>
+                      </Field>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Field label="Universe"><NumberField integer min={1} max={64} value={f.universe} onChange={(v) => v && onUpdate(f.uid, { universe: v })} className={inputCls} /></Field>
+                        <Field label="Address"><NumberField integer min={1} max={512} value={f.address} onChange={(v) => v && onUpdate(f.uid, { address: Math.min(v, 513 - ch) })} className={inputCls} /></Field>
+                      </div>
+                      {clash.length > 0 && <p className="flex gap-1.5 text-[11px] text-destructive"><AlertTriangle className="h-3.5 w-3.5" />Overlaps {clash.map((c) => c.name).join(", ")}</p>}
+                      <DmxMap fixtures={fixtures} universe={f.universe} highlight={f.uid} onPick={(a) => onUpdate(f.uid, { address: Math.min(a, 513 - ch) })} />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -155,23 +199,27 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
   const [label, setLabel] = useState<string | null>(null);
 
   const changeUniverse = (u: number) => {
-    const uu = Math.max(1, Math.min(64, u || 1));
-    setUniverse(uu);
-    setAddress(findFreeAddress(fixtures, uu, ch) ?? 1);
+    setUniverse(u);
+    setAddress(findFreeAddress(fixtures, u, ch) ?? 1);
   };
 
   const existing = fixtures.filter((f) => f.defId === def.id).length;
-  const planned = Array.from({ length: qty }, (_, i) => address + i * (ch + offset));
-  const temp: PatchedFixture[] = [];
-  let problem: string | null = null;
-  for (const [i, a] of planned.entries()) {
-    if (a + ch - 1 > 512) { problem = `Fixture ${i + 1} would run past channel 512.`; break; }
-    const hit = overlaps(fixtures, universe, a, ch);
-    if (hit.length) { problem = `Address ${a} overlaps "${hit[0]!.name}" (U${universe}.${hit[0]!.address}).`; break; }
-    const nf = createFixture(def, modeIdx, universe, a, qty === 1 && existing === 0 ? baseName : `${baseName} ${existing + i + 1}`);
-    temp.push(label ? { ...nf, label } : nf);
-  }
-
+  const strict = planPatch(fixtures, universe, address, ch, qty, offset, false);
+  const spread = strict.overflows ? planPatch(fixtures, universe, address, ch, qty, offset, true) : strict;
+  const shown = strict.overflows ? spread : strict;
+  const problem = strict.overflows ? spread.problem : strict.problem;
+  const build = (slots: typeof strict.slots) => slots.map((s, i) => {
+    const nf = createFixture(def, modeIdx, s.universe, s.address, qty === 1 && existing === 0 ? baseName : `${baseName} ${existing + i + 1}`);
+    return label ? { ...nf, label } : nf;
+  });
+  const patch = () => {
+    if (strict.overflows) {
+      const us = Array.from(new Set(spread.slots.map((s) => s.universe)));
+      if (!window.confirm(`Not all ${qty} fixtures fit in universe ${universe}. Continue into universe ${us.slice(1).join(", ")}, starting the next fixture at a fresh address and leaving the leftover channels empty?`)) return;
+      onAdd(build(spread.slots));
+    } else onAdd(build(strict.slots));
+  };
+  const planned = shown.slots.filter((s) => s.universe === universe).map((s) => ({ address: s.address, channels: ch }));
   const used = fixtures.filter((f) => f.universe === universe).length;
 
   return (
@@ -187,21 +235,20 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Universe"><input type="number" min={1} max={64} value={universe} onChange={(e) => changeUniverse(+e.target.value)} className={inputCls} /></Field>
-        <Field label="Start address"><input type="number" min={1} max={512} value={address} onChange={(e) => setAddress(Math.max(1, Math.min(512, +e.target.value || 1)))} className={inputCls} /></Field>
-        <Field label="Quantity"><input type="number" min={1} max={64} value={qty} onChange={(e) => setQty(Math.max(1, Math.min(64, +e.target.value || 1)))} className={inputCls} /></Field>
-        <Field label="Offset (gap ch)"><input type="number" min={0} max={100} value={offset} onChange={(e) => setOffset(Math.max(0, +e.target.value || 0))} className={inputCls} /></Field>
+        <Field label="Universe"><NumberField integer min={1} max={64} value={universe} onChange={(v) => v && changeUniverse(v)} className={inputCls} /></Field>
+        <Field label="Start address"><NumberField integer min={1} max={512} value={address} onChange={(v) => v && setAddress(v)} className={inputCls} /></Field>
+        <Field label="Quantity"><NumberField integer min={1} max={256} value={qty} onChange={(v) => v && setQty(v)} className={inputCls} /></Field>
+        <Field label="Offset (gap ch)"><NumberField integer min={0} max={100} value={offset} onChange={(v) => setOffset(v ?? 0)} className={inputCls} /></Field>
       </div>
-      <DmxMap fixtures={fixtures} universe={universe} planned={planned.map((a) => ({ address: a, channels: ch }))} />
+      <DmxMap fixtures={fixtures} universe={universe} planned={planned} onPick={setAddress} />
       <p className="text-[11px] text-muted-foreground">
-        {ch} ch each · addresses {planned.slice(0, 6).join(", ")}{planned.length > 6 ? "…" : ""} · {used} fixtures already in U{universe}
+        {ch} ch each · {shown.slots.slice(0, 6).map((s) => `U${s.universe}.${s.address}`).join(", ")}{shown.slots.length > 6 ? "…" : ""} · {used} fixtures already in U{universe}
       </p>
-      {problem && (
-        <p className="flex items-start gap-2 text-xs text-destructive"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{problem}</p>
-      )}
+      {strict.overflows && !problem && <p className="flex items-start gap-2 text-xs text-amber-glow"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />Doesn't fit in U{universe} — you'll be asked to continue into the next universe.</p>}
+      {problem && <p className="flex items-start gap-2 text-xs text-destructive"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{problem}</p>}
       <div className="flex gap-2">
         <button onClick={() => setAddress(findFreeAddress(fixtures, universe, ch) ?? 1)} className="flex-1 rounded-md bg-surface py-2.5 text-xs font-semibold">Next free</button>
-        <button disabled={!!problem} onClick={() => onAdd(temp)} className="flex-[2] rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40">
+        <button disabled={!!problem} onClick={patch} className="flex-[2] rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40">
           Patch {qty > 1 ? `${qty} fixtures` : "fixture"}
         </button>
       </div>

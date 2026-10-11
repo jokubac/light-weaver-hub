@@ -28,6 +28,8 @@ import { PaletteEditor } from "./PaletteEditor";
 import { SettingsTransfer } from "./SettingsTransfer";
 import { SpeedControl } from "./SpeedControl";
 import { hexToHs } from "@/lib/gels";
+import { NumberField } from "./NumberField";
+import { useClock } from "./PixelPanel";
 import { IntensityMacros, GmMacros, FanControl, GelPicker } from "./AdvancedControls";
 
 export function Control({
@@ -116,8 +118,8 @@ export function FixtureControls({
         <div className="space-y-2">
           <input value={first.name} onChange={(e) => update({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
           <div className="grid grid-cols-2 gap-2 text-[10px] uppercase text-muted-foreground">
-            <label>Universe<input type="number" min={1} max={64} disabled={locked} value={first.universe} onChange={(e) => update({ universe: Math.max(1, +e.target.value || 1) })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" /></label>
-            <label>Address<input type="number" min={1} max={512} disabled={locked} value={first.address} onChange={(e) => update({ address: Math.min(512, Math.max(1, +e.target.value || 1)) })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" /></label>
+            <label>Universe<NumberField integer min={1} max={64} disabled={locked} value={first.universe} onChange={(v) => v && update({ universe: v })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" /></label>
+            <label>Address<NumberField integer min={1} max={512} disabled={locked} value={first.address} onChange={(v) => v && update({ address: v })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" /></label>
           </div>
           {locked && <p className="text-[10px] text-muted-foreground">🔒 Patch locked — unlock in the top bar to change address.</p>}
           <p className="text-[11px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels} ch</p>
@@ -174,12 +176,13 @@ export function FixtureControls({
         )}
         <div className="grid grid-cols-4 gap-2">
           {EFFECTS.map((e) => (
-            <button key={e.id} onClick={() => update({ fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id }, fxPlaying: true })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${fx.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
+            <button key={e.id} onClick={() => update({ fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id }, fxPlaying: false })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${fx.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
               {e.label}
             </button>
           ))}
         </div>
         {fx.kind !== "none" && <>
+          {first.fxPlaying === false && <p className="text-[11px] text-amber-glow">Armed — watch the preview, then press PLAY to send it to the {sel.length} selected light{sel.length > 1 ? "s" : ""}.</p>}
           <EffectEditor fx={fx} setFx={setFx} />
           <details open className="border-t border-border pt-3"><summary className="mb-3 cursor-pointer text-xs font-semibold text-muted-foreground">Effect colours</summary>
             <PaletteEditor colours={fx.colors ?? []} onChange={(colors) => setFx({ colors })} onReset={() => setFx({ colors: [] })} />
@@ -187,13 +190,14 @@ export function FixtureControls({
           {!fx.colors?.length && <ColourControls value={first} update={update} />}
         </>}
         <SavedEffects label="My effects" items={fxLib.lib.fx} onSave={(n) => fxLib.saveFx(n, fx)} onDelete={(id) => fxLib.remove("fx", id)}
-          onLoad={(it) => update({ fx: structuredClone(it.fx), fxPlaying: true })} />
+          onLoad={(it) => update({ fx: structuredClone(it.fx), fxPlaying: fx.kind !== "none" && first.fxPlaying !== false })} />
       </Section>}
     </div>
   );
 }
 
 function EffectEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>) => void }) {
+  const now = useClock();
   const periodic = fx.kind === "pulse" || fx.kind === "strobe";
   const W = 300, H = 60;
   const secs = fx.kind === "steps" ? fx.steps.reduce((sum, step) => sum + step.hold + step.fade, 0) / fx.rate : 3 / fx.rate;
@@ -206,7 +210,13 @@ function EffectEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams
     <div className="space-y-4">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-16 w-full rounded-md bg-surface-elevated" preserveAspectRatio="none">
         <polyline points={pts} fill="none" stroke="var(--color-amber-glow)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+        <line x1={((now % secs) / secs) * W} x2={((now % secs) / secs) * W} y1={0} y2={H} stroke="var(--color-primary)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       </svg>
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span>Preview</span>
+        <div className="h-5 flex-1 rounded" style={{ background: "var(--color-amber-glow)", opacity: Math.max(0.03, sampleEffect(fx, now % secs)) }} />
+        <span className="w-10 text-right font-mono">{Math.round(sampleEffect(fx, now % secs) * 100)}%</span>
+      </div>
 
       <SpeedControl
         label={fx.kind === "steps" ? "Speed" : fx.kind === "lightning" ? "Strike rate" : "Rate"}
@@ -234,7 +244,12 @@ function EffectEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams
         <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Curve</div>
         <div className="grid grid-cols-5 gap-1.5">
           {CURVES.map((c) => (
-            <button key={c.id} onClick={() => setFx({ curve: c.id })} className={`rounded-md px-1 py-2 text-[10px] font-semibold ${fx.curve === c.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{c.label}</button>
+            <button key={c.id} onClick={() => setFx({
+              curve: c.id,
+              // a curve only shapes fades: give hard-edged pulses some attack/release and let steps follow the global curve
+              ...(periodic && fx.attack === 0 && fx.release === 0 ? { attack: 0.3, release: 0.3 } : {}),
+              ...(fx.kind === "steps" ? { steps: fx.steps.map(({ curve: _c, ...st }) => st) } : {}),
+            })} className={`rounded-md px-1 py-2 text-[10px] font-semibold ${fx.curve === c.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{c.label}</button>
           ))}
         </div>
       </div>
@@ -260,12 +275,12 @@ function StepsEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>
       <div className="space-y-2 rounded-lg border border-border p-2">
         <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-muted-foreground"><TrendingUp className="h-3.5 w-3.5 text-amber-glow" />Quick ramp</div>
         <div className="grid grid-cols-3 gap-1.5 text-[10px] uppercase text-muted-foreground">
-          <label>From %<input type="number" value={ramp.from} onChange={(e) => setRamp({ ...ramp, from: +e.target.value })} className={num} /></label>
-          <label>To %<input type="number" value={ramp.to} onChange={(e) => setRamp({ ...ramp, to: +e.target.value })} className={num} /></label>
-          <label>Over s<input type="number" step={0.1} value={ramp.secs} onChange={(e) => setRamp({ ...ramp, secs: Math.max(0, +e.target.value) })} className={num} /></label>
-          <label>Start K<input type="number" step={100} value={ramp.k1} onChange={(e) => setRamp({ ...ramp, k1: +e.target.value })} className={num} /></label>
-          <label>End K<input type="number" step={100} value={ramp.k2} onChange={(e) => setRamp({ ...ramp, k2: +e.target.value })} className={num} /></label>
-          <label>Hold s<input type="number" step={0.1} value={ramp.hold} onChange={(e) => setRamp({ ...ramp, hold: Math.max(0, +e.target.value) })} className={num} /></label>
+          <label>From %<NumberField value={ramp.from} min={0} max={100} onChange={(v) => setRamp({ ...ramp, from: v ?? 0 })} className={num} /></label>
+          <label>To %<NumberField value={ramp.to} min={0} max={100} onChange={(v) => setRamp({ ...ramp, to: v ?? 0 })} className={num} /></label>
+          <label>Over s<NumberField value={ramp.secs} min={0} onChange={(v) => setRamp({ ...ramp, secs: v ?? 0 })} className={num} /></label>
+          <label>Start K<NumberField integer value={ramp.k1} min={2000} max={10000} onChange={(v) => setRamp({ ...ramp, k1: v ?? 3200 })} className={num} /></label>
+          <label>End K<NumberField integer value={ramp.k2} min={2000} max={10000} onChange={(v) => setRamp({ ...ramp, k2: v ?? 5600 })} className={num} /></label>
+          <label>Hold s<NumberField value={ramp.hold} min={0} onChange={(v) => setRamp({ ...ramp, hold: v ?? 0 })} className={num} /></label>
         </div>
         <div className="flex items-center gap-2 text-[10px] uppercase text-muted-foreground">
           <span>or colours</span>
@@ -282,10 +297,10 @@ function StepsEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>
             <button onClick={() => setFx({ steps: fx.steps.filter((_, j) => j !== i) })} disabled={fx.steps.length <= 1} className="text-muted-foreground hover:text-destructive disabled:opacity-30" aria-label="Remove step"><Trash2 className="h-3.5 w-3.5" /></button>
           </div>
           <div className="grid grid-cols-3 gap-1.5 text-[10px] uppercase text-muted-foreground">
-            <label>Level %<input type="number" min={0} max={100} value={Math.round(s.level * 100)} onChange={(e) => set(i, { level: Math.min(1, Math.max(0, +e.target.value / 100)) })} className={num} /></label>
-            <label>Fade in s<input type="number" min={0} step={0.05} value={s.fade} onChange={(e) => set(i, { fade: Math.max(0, +e.target.value) })} className={num} /></label>
-            <label>Hold s<input type="number" min={0} step={0.05} value={s.hold} onChange={(e) => set(i, { hold: Math.max(0, +e.target.value) })} className={num} /></label>
-            <label>Kelvin<input type="number" step={100} placeholder="—" value={s.kelvin ?? ""} onChange={(e) => set(i, { kelvin: e.target.value ? Math.min(10000, Math.max(2000, +e.target.value)) : undefined })} className={num} /></label>
+            <label>Level %<NumberField min={0} max={100} value={Math.round(s.level * 100)} onChange={(v) => set(i, { level: (v ?? 0) / 100 })} className={num} /></label>
+            <label>Fade in s<NumberField min={0} value={s.fade} onChange={(v) => set(i, { fade: v ?? 0 })} className={num} /></label>
+            <label>Hold s<NumberField min={0} value={s.hold} onChange={(v) => set(i, { hold: v ?? 0 })} className={num} /></label>
+            <label>Kelvin<NumberField integer allowEmpty placeholder="—" min={2000} max={10000} value={s.kelvin} onChange={(v) => set(i, { kelvin: v })} className={num} /></label>
             <div>Colour<div className="mt-0.5"><ColorPick value={s.color ?? ""} onChange={(c) => set(i, { color: c || undefined })} /></div></div>
             <label>Curve
               <select value={s.curve ?? ""} onChange={(e) => set(i, { curve: (e.target.value || undefined) as Curve | undefined })} className={num}>
