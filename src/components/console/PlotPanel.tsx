@@ -519,7 +519,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         if (object || wh) {
           setSelected([]); setObjectId(object?.id ?? null); setWallIndex(object ? null : wh?.index ?? null);
           if (wh && !object) setOpeningId(plot.openings?.find((o) => o.stroke === wh.index && o.segment === wh.segment && Math.abs(o.center - wh.t) < .1)?.id ?? null);
-          if (layoutUnlocked) drag.current = { kind:"layout",target:object ? "object":"wall",id:object?.id ?? wh?.index ?? 0,segment:wh?.segment,last:fp };
+          if (layoutUnlocked) drag.current = { kind:"layout",target:object ? "object":"wall",id:object?.id ?? wh?.index ?? 0,...(wh ? { segment: wh.segment } : {}),last:fp };
           return;
         }
         setWallIndex(null); setObjectId(null); setOpeningId(null);
