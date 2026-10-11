@@ -1,0 +1,42 @@
+name: iOS IPA (unsigned, for Sideloadly)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/ios-ipa.yml"
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - name: Add iOS platform
+        run: |
+          [ -d ios ] || bunx cap add ios
+          bunx cap sync ios
+      - name: App icon
+        run: |
+          ICON=ios/App/App/Assets.xcassets/AppIcon.appiconset
+          sips -z 1024 1024 public/icon-512.png --out $ICON/AppIcon-512@2x.png
+      - name: Build unsigned app
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -sdk iphoneos -destination generic/platform=iOS \
+            -derivedDataPath $RUNNER_TEMP/dd \
+            PRODUCT_BUNDLE_IDENTIFIER=com.kroma.console \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+      - name: Package IPA
+        run: |
+          APP=$(find $RUNNER_TEMP/dd/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          mkdir -p $RUNNER_TEMP/pkg/Payload
+          cp -R "$APP" $RUNNER_TEMP/pkg/Payload/
+          cd $RUNNER_TEMP/pkg && zip -qry $RUNNER_TEMP/KROMA.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KROMA-ipa
+          path: ${{ runner.temp }}/KROMA.ipa
