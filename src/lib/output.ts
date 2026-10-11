@@ -172,25 +172,31 @@ export function buildUniverses(fixtures: PatchedFixture[], t: number, level: num
   return out;
 }
 
-export type BridgeStatus = "off" | "ok" | "error";
+export type BridgeStatus = "off" | "ok" | "slow" | "error";
 
 /** Sends frames to the bridge at up to ~30 fps, skipping frames while one is in flight. */
 export function createSender(onStatus: (s: BridgeStatus) => void) {
   let busy = false, last = "", lastAt = 0, status: BridgeStatus = "off";
   const set = (s: BridgeStatus) => { if (s !== status) { status = s; onStatus(s); } };
   return async (conn: Connection, universes: Map<number, Uint8Array>) => {
-    if (!conn.node || busy) return;
+    if (!conn.node) { set("off"); return; }
+    if (busy) return;
     const body = JSON.stringify({ protocol: conn.protocol, ip: conn.node.ip, universes: Object.fromEntries([...universes].map(([u, b]) => [u, Array.from(b)])) });
     const now = performance.now();
     if (body === last && now - lastAt < 1000) return; // bridge keeps refreshing on its own
     busy = true;
+    const ctrl = new AbortController();
+    const slowTimer = setTimeout(() => set("slow"), 500);
+    const timeout = setTimeout(() => ctrl.abort(), 3000);
     try {
-      const res = await fetch(`http://${conn.bridge}/dmx`, { method: "POST", body, headers: { "Content-Type": "text/plain" } });
-      set(res.ok ? "ok" : "error");
+      const res = await fetch(`http://${conn.bridge}/dmx`, { method: "POST", body, signal: ctrl.signal, headers: { "Content-Type": "text/plain" } });
+      set(res.ok ? (performance.now() - now > 500 ? "slow" : "ok") : "error");
       last = body; lastAt = now;
     } catch {
       set("error");
     } finally {
+      clearTimeout(slowTimer);
+      clearTimeout(timeout);
       busy = false;
     }
   };

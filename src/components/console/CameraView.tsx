@@ -1,7 +1,7 @@
 // Perspective render of the live plot from a virtual camera, exposed by lens / iris / ISO.
 import { useEffect, useRef } from "react";
 import { rayBlocked, wallPanels, wallSegments, type Opening, type WallStroke } from "@/lib/plot-geometry";
-import { exposureGain, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
+import { cameraBasis, exposureGain, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
 import type { SetObject } from "@/lib/plot-objects";
 
 export interface CamLight { x: number; y: number; z: number; rot: number; tilt: number; beam: number; watts: number; level: number; rgb: [number, number, number] }
@@ -22,10 +22,7 @@ export function CameraView({ cam, size, strokes, openings, objects, floorZ, ligh
     const polys = buildScene(size, strokes, openings, objects, cam.floor);
     const walls = wallSegments(strokes, cam.floor);
     const eye: V3 = [cam.x, cam.y, cam.h];
-    const yaw = cam.rot * Math.PI / 180, pitch = -cam.tilt * Math.PI / 180;
-    const fwd: V3 = [Math.cos(yaw) * Math.cos(pitch), Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch)];
-    const right: V3 = norm([-fwd[1], fwd[0], 0]);
-    const up: V3 = cross(right, fwd);
+    const { forward: fwd, right, up } = cameraBasis(cam);
     const f = (W / 2) / Math.tan(horizontalFov(cam) * Math.PI / 360);
     const gain = exposureGain(cam);
     const project = (p: V3): [number, number, number] | null => {
