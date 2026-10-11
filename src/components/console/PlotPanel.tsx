@@ -665,6 +665,25 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const first = fixtures.find((f) => f.uid === selItems[0]);
   const firstItem = first ? plot.items[first.uid] : undefined;
   const setItems = (p: Partial<PlotItem>) => setPlot({ ...plot, items: Object.fromEntries(Object.entries(plot.items).map(([k, v]) => [k, selItems.includes(k) ? { ...v, ...p } : v])) });
+  /** Approximate body length (m) so "touching" spacing puts tubes end to end. */
+  const bodyLen = (uid: string) => {
+    const f = fixtures.find((x) => x.uid === uid); const m = f ? getDef(f.defId).model.toLowerCase() : "";
+    if (/hyperion/.test(m)) return 2.07; if (/titan/.test(m)) return 1.035; if (/helios/.test(m)) return 0.52; if (/pixelbrick|nyx|ax3|ax5|pixel ?bulb/.test(m)) return 0.12; if (/ax1/.test(m)) return 1.0;
+    return 0.3;
+  };
+  const arrange = (axis: "x" | "y", gap: number) => {
+    const list = selItems.map((u) => [u, plot.items[u]!] as const).filter(([, v]) => v).sort((a, b) => a[1][axis] - b[1][axis]);
+    if (list.length < 2) return;
+    const other = axis === "x" ? "y" : "x";
+    const lineAt = list[0]![1][other];
+    let pos = list[0]![1][axis];
+    const items = { ...plot.items };
+    list.forEach(([u, v], i) => {
+      if (i > 0) pos += bodyLen(list[i - 1]![0]) / 2 + gap + bodyLen(u) / 2;
+      items[u] = { ...v, [axis]: pos, [other]: lineAt, rot: axis === "x" ? 90 : 0 };
+    });
+    setPlot({ ...plot, items });
+  };
   const nudge = (d: number) => selItems.forEach((u) => { const f = fixtures.find((x) => x.uid === u); if (f) update(u, { intensity: clampN(+(f.intensity + d).toFixed(3), 0, 1), on: true }); });
   const allOn = selItems.every((u) => fixtures.find((x) => x.uid === u)?.on !== false);
 
