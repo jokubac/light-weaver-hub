@@ -308,7 +308,7 @@ export interface PatchedFixture {
 export type FanMode = "auto" | "silent" | "low" | "medium" | "high" | "max" | "off";
 export const FAN_MODES: FanMode[] = ["auto", "silent", "low", "medium", "high", "max", "off"];
 
-export const kelvin = (cct: number) => Math.round((2000 + cct * 8000) / 50) * 50;
+export const kelvin = (cct: number) => Math.round(2000 + cct * 8000);
 export const cctFromKelvin = (k: number) => (k - 2000) / 8000;
 export const DEFAULT_CCT = cctFromKelvin(5600);
 
