@@ -98,6 +98,13 @@ const ASTERA = [
   m("8ch Dim RGBAW Strobe Prog", 8, "full"), m("16ch Full 16-bit", 16, "full"),
 ];
 
+const astera = (px: number) => [
+  ...ASTERA,
+  m(`Pixel RGB (${px} px)`, px * 3, "rgb"),
+  m(`Pixel RGBW (${px} px)`, px * 4, "rgbw"),
+  m(`Pixel Dim+RGBW (${px} px)`, px * 4 + 1, "rgbw"),
+];
+
 const KINO = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGB 8-bit", 5, "rgb"), m("RGBW 8-bit", 6, "rgbw"), m("Full 8-bit", 12, "full"), m("Full 16-bit", 20, "full")];
 const LITEPANELS = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBWW 8-bit", 6, "rgbw"), m("Gel 8-bit", 4, "cctgm"), m("Full 16-bit", 21, "full")];
 const CREAM_MICRO = [m("Basic 8-bit", 4, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBW 8-bit", 6, "rgbw"), m("Full 16-bit", 16, "full")];
@@ -122,7 +129,12 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Godox", ["Knowled M200R", "TL60", "TL120", "LC500R", "F200R"], GODOX_RGB),
   ...fam("Creamsource", ["Vortex4", "Vortex8", "Vortex24"], VORTEX),
   ...fam("Creamsource", ["Micro Colour", "SpaceX"], CREAM_MICRO),
-  ...fam("Astera", ["Titan Tube", "Helios Tube", "Hyperion Tube", "AX1 PixelTube", "AX3 LightDrop", "AX9 PowerPar", "NYX Bulb", "PixelBrick"], ASTERA),
+  ...fam("Astera", ["Titan Tube"], astera(16)),
+  ...fam("Astera", ["Helios Tube"], astera(8)),
+  ...fam("Astera", ["Hyperion Tube"], astera(16)),
+  ...fam("Astera", ["AX1 PixelTube"], astera(16)),
+  ...fam("Astera", ["PixelBrick"], astera(4)),
+  ...fam("Astera", ["AX3 LightDrop", "AX9 PowerPar", "NYX Bulb"], ASTERA),
   ...fam("Kino Flo", ["FreeStyle 21", "FreeStyle 31", "Celeb 250", "Celeb 450", "MIMIK 120"], KINO),
   ...fam("Litepanels", ["Gemini 2x1", "Gemini 1x1", "Astra 6X Bi", "Studio X"], LITEPANELS),
   ...fam("DMG Lumière", ["SL1 MIX", "MAXI MIX", "MINI MIX"], DMG),
@@ -495,4 +507,10 @@ export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): str
 /** Preview the normalised effect waveform (0-1) for drawing. */
 export function sampleEffect(fx: FxParams, t: number, seed = 0.3) {
   return fx.kind === "none" ? 1 : fx.min + (fx.max - fx.min) * rawEffect(fx, t, seed);
+}
+
+/** Number of individually addressable pixels in the fixture's current mode (1 = not a pixel mode). */
+export function pixelCount(f: { defId: string; modeIdx: number }): number {
+  const mm = /\((\d+) px\)/.exec(getMode(f).name);
+  return mm ? Number(mm[1]) : 1;
 }
