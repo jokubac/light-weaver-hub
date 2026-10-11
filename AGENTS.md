@@ -25,3 +25,6 @@
 - Fixture settings transfer uses an explicit whitelist in fixture-settings.ts, excluding identity, patch, grouping, position and power to prevent accidental repatching.
 - PaletteEditor shares CCT/HSI/gel editing across fixture and pixel effects; generated pixel effects opt into custom palettes to preserve older saved looks.
 - FixtureGlyph renders browser-safe SVG fixture bodies with a stable stage, leaving DMX definitions and saved mode indices unchanged.
+- Complete named setups are immutable Scene snapshots under Project.setups; restore replaces scene content but preserves scene identity so walls, fixture angles and all effects travel together.
+- Plot camera state is an optional Scene.plot.view field and persists outside geometry undo history, keeping older saved projects compatible.
+- Fixture grid columns use the available console container width rather than viewport width so the control panel cannot squeeze square tiles.

@@ -1,11 +1,11 @@
 /** Recognisable fixture bodies, with a stable common stage and model-relative tube lengths. */
-export function FixtureGlyph({ model, colour, pixels }: { model: string; colour: string; pixels?: string[] | undefined }) {
+export function FixtureGlyph({ model, colour, pixels, className = "h-24 w-full" }: { model: string; colour: string; pixels?: string[] | undefined; className?: string }) {
   const m = model.toLowerCase();
   const tube = /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip/.test(m);
   const panel = /panel|pavoslim|dyno|vortex|mat|nova|mixpanel|flex|litemat|gemini/.test(m);
   const bulb = /bulb|nyx|mc\b|pixelbrick|ax3|ax5/.test(m);
   const width = tube ? (/helios/.test(m) ? 62 : /hyperion/.test(m) ? 132 : 110) : panel ? 88 : 54;
-  return <svg viewBox="0 0 160 100" className="h-24 w-full" role="img" aria-label={`${model} fixture icon`}>
+  return <svg viewBox="0 0 160 100" className={className} role="img" aria-label={`${model} fixture icon`}>
     <g stroke="var(--color-muted-foreground)" strokeWidth="2" strokeLinejoin="round">
       {tube ? <>
         <rect x={(160-width)/2-5} y="39" width={width+10} height="22" rx="4" fill="var(--color-surface-elevated)" />

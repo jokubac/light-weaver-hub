@@ -100,3 +100,9 @@
     var(--color-surface-elevated) var(--fill, 0%)
   );
 }
+
+.fixture-area { container-type: inline-size; }
+.fixture-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@container (min-width: 420px) { .fixture-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container (min-width: 600px) { .fixture-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@container (min-width: 760px) { .fixture-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
