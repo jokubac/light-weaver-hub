@@ -11,6 +11,8 @@ import {
   type PatchedFixture,
 } from "@/lib/dmx";
 
+export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
+
 export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void }) {
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState<string | null>(null);
@@ -102,6 +104,7 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
   const [qty, setQty] = useState(1);
   const [offset, setOffset] = useState(0);
   const [baseName, setBaseName] = useState(def.model);
+  const [label, setLabel] = useState<string | null>(null);
 
   const changeUniverse = (u: number) => {
     const uu = Math.max(1, Math.min(64, u || 1));
@@ -117,7 +120,8 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
     if (a + ch - 1 > 512) { problem = `Fixture ${i + 1} would run past channel 512.`; break; }
     const hit = overlaps(fixtures, universe, a, ch);
     if (hit.length) { problem = `Address ${a} overlaps "${hit[0]!.name}" (U${universe}.${hit[0]!.address}).`; break; }
-    temp.push(createFixture(def, modeIdx, universe, a, qty === 1 && existing === 0 ? baseName : `${baseName} ${existing + i + 1}`));
+    const nf = createFixture(def, modeIdx, universe, a, qty === 1 && existing === 0 ? baseName : `${baseName} ${existing + i + 1}`);
+    temp.push(label ? { ...nf, label } : nf);
   }
 
   const used = fixtures.filter((f) => f.universe === universe).length;
@@ -125,6 +129,15 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
   return (
     <div className="space-y-3 rounded-lg bg-surface-elevated p-3">
       <Field label="Name"><input value={baseName} onChange={(e) => setBaseName(e.target.value)} className={inputCls} /></Field>
+      <div>
+        <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Colour tag (optional)</span>
+        <div className="flex flex-wrap gap-1.5">
+          {LABEL_COLORS.map((c) => (
+            <button key={c} type="button" onClick={() => setLabel(label === c ? null : c)} aria-label={`Tag ${c}`}
+              className={`h-7 w-7 rounded-full border-2 ${label === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />
+          ))}
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Universe"><input type="number" min={1} max={64} value={universe} onChange={(e) => changeUniverse(+e.target.value)} className={inputCls} /></Field>
         <Field label="Start address"><input type="number" min={1} max={512} value={address} onChange={(e) => setAddress(Math.max(1, Math.min(512, +e.target.value || 1)))} className={inputCls} /></Field>
