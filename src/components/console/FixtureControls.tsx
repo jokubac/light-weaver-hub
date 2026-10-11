@@ -18,6 +18,7 @@ import {
   type PatchedFixture,
   type TriggerKind,
 } from "@/lib/dmx";
+import { IntensityMacros, CctMacros, GmMacros, ColorWheel, FanControl, GelPicker } from "./AdvancedControls";
 
 export function Control({
   label, value, display, onChange, onReset, gradient, min = 0, max = 1,
@@ -52,11 +53,13 @@ const rateToSlider = (r: number) => Math.log(r / 0.05) / Math.log(400);
 const sliderToRate = (v: number) => 0.05 * Math.pow(400, v);
 
 export function FixtureControls({
-  fixtures, sel, update, remove, fire,
+  fixtures, sel, update, updateEach, remove, fire, locked,
 }: {
   fixtures: PatchedFixture[];
   sel: PatchedFixture[];
   update: (patch: Partial<PatchedFixture>) => void;
+  updateEach: (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => void;
+  locked: boolean;
   remove: () => void;
   fire: (k: TriggerKind) => void;
 }) {
@@ -77,16 +80,17 @@ export function FixtureControls({
         <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           {sel.length === 1 ? first.name : `${sel.length} fixtures`}
         </h2>
-        <button onClick={remove} className="text-muted-foreground hover:text-destructive" aria-label="Remove"><Trash2 className="h-4 w-4" /></button>
+        <button onClick={remove} disabled={locked} title={locked ? "Unlock patch to remove" : "Remove"} className="disabled:opacity-30 text-muted-foreground hover:text-destructive" aria-label="Remove"><Trash2 className="h-4 w-4" /></button>
       </div>
 
       {sel.length === 1 && (
         <div className="space-y-2">
           <input value={first.name} onChange={(e) => update({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
           <div className="grid grid-cols-2 gap-2 text-[10px] uppercase text-muted-foreground">
-            <label>Universe<input type="number" min={1} max={64} value={first.universe} onChange={(e) => update({ universe: Math.max(1, +e.target.value || 1) })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" /></label>
-            <label>Address<input type="number" min={1} max={512} value={first.address} onChange={(e) => update({ address: Math.min(512, Math.max(1, +e.target.value || 1)) })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" /></label>
+            <label>Universe<input type="number" min={1} max={64} disabled={locked} value={first.universe} onChange={(e) => update({ universe: Math.max(1, +e.target.value || 1) })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" /></label>
+            <label>Address<input type="number" min={1} max={512} disabled={locked} value={first.address} onChange={(e) => update({ address: Math.min(512, Math.max(1, +e.target.value || 1)) })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" /></label>
           </div>
+          {locked && <p className="text-[10px] text-muted-foreground">🔒 Patch locked — unlock in the top bar to change address.</p>}
           <p className="text-[11px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels} ch</p>
           {conflicts.length > 0 && <p className="flex gap-1.5 text-xs text-destructive"><AlertTriangle className="h-3.5 w-3.5" />Overlaps {conflicts.map((c) => c.name).join(", ")}</p>}
         </div>
@@ -103,6 +107,7 @@ export function FixtureControls({
           <button key={v} onClick={() => update({ intensity: v })} className="flex-1 rounded-md bg-surface-elevated py-2 text-xs font-semibold active:scale-95">{v * 100}</button>
         ))}
       </div>
+      <IntensityMacros updateEach={updateEach} />
 
       {(anyCaps.cct || anyCaps.gm || anyCaps.color) && (
         <Section title="Colour corrections">
@@ -118,12 +123,20 @@ export function FixtureControls({
                 gradient="linear-gradient(to right, rgb(255,137,18), rgb(255,228,206), rgb(255,250,244), rgb(204,219,255))" />
             </div>
           )}
+          {anyCaps.cct && <CctMacros value={first.cct} update={update} />}
+          {false && (
+            <div />
+          )}
           {anyCaps.gm && (
             <div onTouchEnd={tapReset(() => update({ gm: 0 }))}>
               <Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm === 0 ? "0" : `${first.gm > 0 ? "+G" : "−M"} ${Math.abs(first.gm).toFixed(2)}`}
                 onChange={(v) => update({ gm: Math.abs(v) < 0.02 ? 0 : v })} onReset={() => update({ gm: 0 })}
                 gradient="linear-gradient(to right, rgb(255,0,200), rgb(240,240,240), rgb(0,220,80))" />
             </div>
+          )}
+          {anyCaps.gm && <GmMacros value={first.gm} update={update} />}
+          {false && (
+            <div />
           )}
           {showHsi && (
             <>
@@ -142,6 +155,14 @@ export function FixtureControls({
           <p className="text-[10px] text-muted-foreground">Double-tap a slider to reset it (G/M → 0, HSI → neutral, CCT → 5600K).</p>
         </Section>
       )}
+
+      <Section title="Advanced">
+        {anyCaps.color && <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={update} />}
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fan</div>
+        <FanControl value={first.fan} update={update} />
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Gels (Rosco / LEE)</div>
+        <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
+      </Section>
 
       <Section title="Trigger">
         <div className="grid grid-cols-2 gap-2">
