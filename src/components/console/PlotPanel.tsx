@@ -36,7 +36,7 @@ interface View { m: Mat; zs: number }
 type Drag =
   | { kind: "item"; last: [number, number]; z: number }
   | { kind: "rot"; uid: string; sy: number; tilt0: number; alt: boolean }
-  | { kind: "layout"; target: "wall" | "object"; id: number | string; last: [number, number] }
+  | { kind: "layout"; target: "wall" | "object"; id: number | string; segment?: number; last: [number, number] }
   | { kind: "stroke"; start: [number, number] }
   | { kind: "box"; sx: number; sy: number; add: boolean }
   | { kind: "pan"; sx: number; sy: number; pan0: [number, number] }
@@ -571,7 +571,13 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       }
     } else if (d.kind === "layout") {
       const fp = clampFloor(unproj(viewOf(),sx,sy,floorZ)), dx = fp[0]-d.last[0], dy = fp[1]-d.last[1]; d.last=fp;
-      if (d.target === "wall") setPlot({...p,strokes:p.strokes.map((st,i) => i === d.id ? {...st,pts:st.pts.map(([x,y]):[number,number] => [x+dx,y+dy])}:st)});
+      if (d.target === "wall") setPlot({...p,strokes:p.strokes.map((st,i) => {
+        if (i !== d.id) return st;
+        const seg = d.segment;
+        // drag only the grabbed segment (its two endpoints); whole stroke if unknown
+        if (seg == null || seg + 1 >= st.pts.length) return {...st,pts:st.pts.map(([x,y]):[number,number] => [x+dx,y+dy])};
+        return {...st,pts:st.pts.map(([x,y],pi):[number,number] => pi === seg || pi === seg + 1 ? [x+dx,y+dy] : [x,y])};
+      })});
       else setPlot({...p,objects:(p.objects ?? []).map((o) => o.id === d.id ? {...o,x:o.x+dx,y:o.y+dy}:o)});
     } else if (d.kind === "item") {
       const fp = unproj(viewOf(), sx, sy, d.z);
