@@ -2,7 +2,7 @@
 // local CRMX bridge, which sends Art-Net / sACN to the transmitter.
 // Channel layouts are generic per mode type — check against each fixture's DMX chart.
 
-import { fixtureState, getMode, type PatchedFixture } from "./dmx";
+import { fixtureState, getMode, kelvin, type PatchedFixture } from "./dmx";
 import type { Connection } from "./store";
 import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
 
@@ -32,6 +32,35 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
   const st = fixtureState(f, t, level);
   const v = st.v;
   const [r, g, b] = reorder(st.rgb.map((c) => c / 255) as RGB, order);
+
+  if (mode.profile) {
+    const put = (channel: number, value: number) => {
+      const index = f.address + channel - 2;
+      if (index >= 0 && index < 512) buf[index] = to8(value);
+    };
+    put(1, v);
+    if (mode.profile === "nanlux-evoke-cct") {
+      put(2, 0); put(3, (kelvin(f.cct) - 2700) / 3800);
+      put(11, (f.fan === "off" ? 224 : f.fan === "low" ? 160 : f.fan === "high" ? 96 : 0) / 255);
+    } else if (mode.profile.startsWith("nanlux-dyno")) {
+      put(7, (f.fan === "off" ? 213 : f.fan === "low" ? 128 : 0) / 255);
+      if (mode.profile === "nanlux-dyno-cct") {
+        put(2, 0); put(3, (kelvin(f.cct) - 2700) / 17300);
+        put(4, (f.gm < 0 ? 120 + f.gm * 100 : f.gm > 0 ? 145 + f.gm * 100 : 128) / 255);
+        put(5, 128 / 255);
+      } else if (mode.profile === "nanlux-dyno-hsi") {
+        put(2, 48 / 255); put(3, f.hue / 360); put(4, f.cctOnly ? 0 : f.saturation);
+      } else {
+        const white = Math.min(r, g, b);
+        put(2, 80 / 255); put(3, r - white); put(4, g - white); put(5, b - white); put(6, white);
+      }
+    } else {
+      put(2, (kelvin(f.cct) - 1750) / 8160); put(3, f.gm === 0 ? 0 : Math.max(5, Math.min(255, 128 * (f.gm + 1))) / 255);
+      put(4, f.hue / 360); put(5, f.cctOnly ? 0 : f.saturation * f.crossfade);
+      if (mode.profile === "astera-hsi-strobe") put(6, 0);
+    }
+    return;
+  }
 
   if (f.split) {
     const w = writer(buf, f.address, false);

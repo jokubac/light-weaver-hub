@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { ColorSource } from "./ColorSource";
+import { SpeedControl } from "./SpeedControl";
 import { PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
 
 type RGB = [number, number, number];
@@ -133,11 +134,18 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
         </div>
       )}
 
-      {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
-      <Slider label="Speed" value={Math.log(layer.speed / 0.05) / Math.log(600)} min={0} max={1} display={`×${layer.speed.toFixed(2)}`} onChange={(v) => set({ speed: +(0.05 * Math.pow(600, v)).toFixed(3) })} />
+      {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size, phase: layer.phase ?? 0 })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
+      <SpeedControl label="Pixel speed" value={layer.speed} unit="×" onChange={(speed) => set({ speed })} />
+      {["runner", "meteor", "text"].includes(layer.kind) && <div className="font-mono text-[10px] text-muted-foreground">{+(layer.speed * 10).toFixed(3)} px/s · {+(W / (layer.speed * 10)).toFixed(3)} s / map</div>}
+      <Slider label="Brightness" value={layer.brightness ?? 1} min={0} max={1} display={`${Math.round((layer.brightness ?? 1) * 100)}%`} onChange={(brightness) => set({ brightness })} />
+      <Slider label="Background level" value={layer.background ?? 0} min={0} max={1} display={`${Math.round((layer.background ?? 0) * 100)}%`} onChange={(background) => set({ background })} />
+      {layer.kind === "runner" && <Slider label="Edge softness" value={layer.softness ?? 0} min={0} max={1} display={`${Math.round((layer.softness ?? 0) * 100)}%`} onChange={(softness) => set({ softness })} />}
+      {layer.kind === "strobe" && <Slider label="On time" value={layer.duty ?? 0.5} min={0.001} max={1} display={`${+((layer.duty ?? 0.5) * 100).toFixed(1)}%`} onChange={(duty) => set({ duty })} />}
+      {layer.kind === "sparkle" && <Slider label="Density" value={layer.density ?? 0.15} min={0} max={1} display={`${Math.round((layer.density ?? 0.15) * 100)}%`} onChange={(density) => set({ density })} />}
+      <Slider label="Phase offset" value={layer.phase ?? 0} min={0} max={1} display={`${Math.round((layer.phase ?? 0) * 100)}%`} onChange={(phase) => set({ phase })} />
       {layer.kind === "runner" && <Slider label="Runners" value={layer.runners ?? 1} min={1} max={8} step={1} display={`${layer.runners ?? 1}`} onChange={(v) => set({ runners: v })} />}
       {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">A block of {layer.size} px travels through all {placed.length} lights ({W} px) one after another. Use "In a line".</p>}
-      {["runner", "chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label="Size" value={layer.size} min={1} max={32} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
+      {["runner", "chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label="Size" value={layer.size} min={1} max={Math.max(32, W)} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
 
       <div className="space-y-1.5">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Layout</div>

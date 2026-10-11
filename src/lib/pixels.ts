@@ -17,7 +17,7 @@ export interface PixelLayer {
   playing: boolean;
   kind: PixelFx;
   colors: string[];
-  speed: number; // 0.05 - 4
+  speed: number; // 0.001–100 multiplier
   size: number; // band width in pixels
   text: string;
   layout: PixelLayout;
@@ -29,6 +29,12 @@ export interface PixelLayer {
   policeMode?: "alternate" | "together" | "wigwag";
   /** runner: number of moving segments spread over the whole map */
   runners?: number;
+  brightness?: number; // output gain 0–1
+  background?: number; // minimum output 0–1
+  softness?: number; // moving segment edge softness 0–1
+  duty?: number; // strobe on-time fraction
+  density?: number; // sparkle probability
+  phase?: number; // time offset in effect units
 }
 
 export const POLICE_FLASHES = [{ n: 1, l: "Single" }, { n: 2, l: "Double" }, { n: 3, l: "Triple" }, { n: 4, l: "Quad" }];
@@ -163,7 +169,7 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
   const cols: RGB[] = layer.colors.length ? layer.colors.map(hexToRgb) : [[255, 255, 255]];
   const col = (i: number) => cols[((i % cols.length) + cols.length) % cols.length]!;
   const dir = layer.reverse ? -1 : 1;
-  const tt = t * layer.speed;
+  const tt = t * layer.speed + (layer.phase ?? 0);
   const size = Math.max(1, layer.size);
 
   const at = (x: number, y: number): RGB => {
@@ -205,14 +211,14 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
       }
       case "sparkle": {
         const r = hash(x * 13.1 + y * 71.7 + Math.floor(tt * 12) * 3.3);
-        return r > 0.85 ? col(Math.floor(r * 1000)) : BLACK;
+         return r > 1 - (layer.density ?? 0.15) ? col(Math.floor(r * 1000)) : BLACK;
       }
       case "twinkle": {
         const ph = hash(x * 7.7 + y * 3.3) * 6.28;
         const k = Math.pow((Math.sin(tt * (1 + hash(x + y * 9)) * 2 + ph) + 1) / 2, 3);
         return scale(col(Math.floor(hash(x * 5 + y) * 100)), k);
       }
-      case "strobe": return Math.floor(tt * 16) % 2 === 0 ? col(Math.floor(tt * 8)) : BLACK;
+      case "strobe": return ((tt * 8) % 1 + 1) % 1 < (layer.duty ?? 0.5) ? col(Math.floor(tt * 8)) : BLACK;
       case "runner": {
         // N-pixel segments travelling across every light in the layer, one after another
         const n = Math.max(1, layer.runners ?? 1);
@@ -221,7 +227,9 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
         const d = (((xd - pos) % span) + span) % span;
         const lap = Math.floor(tt * 10 / W);
         const k = Math.floor((xd - pos + W) / span);
-        return d < size ? col(lap + k) : BLACK;
+        const edge = Math.min(size / 2, size * (layer.softness ?? 0));
+        const gain = edge > 0 ? Math.min(1, d / edge, (size - d) / edge) : 1;
+        return d < size ? scale(col(lap + k), Math.max(0, gain)) : BLACK;
       }
       case "police": {
         const half = x < W / 2 ? 0 : 1;
@@ -248,7 +256,9 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
     }
   };
 
-  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => at(c.x, c.y)));
+  const brightness = Math.min(1, Math.max(0, layer.brightness ?? 1));
+  const background = Math.min(1, Math.max(0, layer.background ?? 0));
+  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => scale(mix(cols[0] ?? BLACK, at(c.x, c.y), 1 - background), brightness)));
   return out;
 }
 
