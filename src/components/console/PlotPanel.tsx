@@ -82,7 +82,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const restore = (s: Snapshot | undefined) => {
     if (!s) return;
     plotRef.current = s.plot; commitPlot(s.plot);
-    for (const f of s.lights) commitFixture(f.uid, { intensity: f.intensity, on: f.on, cct: f.cct, hue: f.hue, saturation: f.saturation, crossfade: f.crossfade, cctOnly: f.cctOnly, gm: f.gm, gel: f.gel });
+    for (const f of s.lights) commitFixture(f.uid, { intensity: f.intensity, on: f.on !== false, cct: f.cct, hue: f.hue, saturation: f.saturation, crossfade: f.crossfade, cctOnly: f.cctOnly, gm: f.gm, gel: f.gel ?? "" });
     force((n) => n + 1);
   };
   const undo = () => restore(history.current.undo(snapshot()));
