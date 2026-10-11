@@ -1,4 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
+import { LogIn, LogOut, Cloud, Map as MapIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -72,6 +75,10 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>({ name: "projects" });
 
+  const { user } = useUser();
+  const [sync, setSync] = useState<"off" | "syncing" | "ok" | "error">("off");
+  const merged = useRef<string | null>(null);
+
   useEffect(() => {
     setProjects(loadProjects());
     setLoaded(true);
@@ -82,6 +89,28 @@ function App() {
     if (loaded) saveProjects(projects);
   }, [projects, loaded]);
 
+  // Signed in: merge cloud projects/favourites/effects once, then keep the cloud updated
+  useEffect(() => {
+    if (!loaded || !user || merged.current === user.id) return;
+    merged.current = user.id;
+    setSync("syncing");
+    pullAndMerge(loadProjects()).then((ps) => { setProjects(ps); setSync("ok"); }).catch(() => setSync("error"));
+  }, [user, loaded]);
+  useEffect(() => {
+    if (!user || merged.current !== user.id || sync === "syncing") return;
+    const id = setTimeout(() => { pushProjects(user.id, projects).then(() => setSync("ok")).catch(() => setSync("error")); }, 1500);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, user]);
+  useEffect(() => {
+    if (!user) { merged.current = null; setSync("off"); return; }
+    let id: ReturnType<typeof setTimeout>;
+    const push = (e: Event) => { if ((e as CustomEvent).detail?.silent) return; clearTimeout(id); id = setTimeout(() => void pushUserData(user.id).catch(() => setSync("error")), 1000); };
+    window.addEventListener("crmx-favorites", push);
+    window.addEventListener("crmx-effects", push);
+    return () => { clearTimeout(id); window.removeEventListener("crmx-favorites", push); window.removeEventListener("crmx-effects", push); };
+  }, [user]);
+
   const updateProject = (id: string, fn: (p: Project) => Project) =>
     setProjects((ps) => ps.map((p) => (p.id === id ? fn(p) : p)));
 
@@ -91,6 +120,7 @@ function App() {
     return (
       <ProjectsScreen
         projects={projects}
+        account={<AccountButton email={user?.email ?? null} sync={sync} />}
         onOpen={(id) => setView({ name: "scenes", projectId: id })}
         onCreate={(name, color) => {
           const p: Project = {
@@ -224,14 +254,28 @@ const fmtDate = (t: number) => new Date(t).toLocaleDateString(undefined, { month
 
 /* ---------------- Projects ---------------- */
 
-function ProjectsScreen({ projects, onOpen, onCreate, onDelete, onUpdate, onDuplicate }: {
-  projects: Project[]; onOpen: (id: string) => void; onCreate: (n: string, color: string) => void; onDelete: (id: string) => void;
+function AccountButton({ email, sync }: { email: string | null; sync: "off" | "syncing" | "ok" | "error" }) {
+  if (!email) return <Link to="/auth" className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground"><LogIn className="h-4 w-4" />Sign in</Link>;
+  return (
+    <div className="flex items-center gap-2">
+      <div className="hidden text-right sm:block">
+        <p className="max-w-40 truncate text-xs">{email}</p>
+        <p className="text-[10px] text-muted-foreground">{sync === "syncing" ? "Syncing…" : sync === "error" ? "Sync failed — saved on this device" : "Synced to account"}</p>
+      </div>
+      <Cloud className={`h-4 w-4 ${sync === "error" ? "text-destructive" : "text-primary"}`} />
+      <button onClick={() => void supabase.auth.signOut()} className="rounded-lg bg-surface-elevated p-2.5" aria-label="Sign out"><LogOut className="h-4 w-4" /></button>
+    </div>
+  );
+}
+
+function ProjectsScreen({ projects, account, onOpen, onCreate, onDelete, onUpdate, onDuplicate }: {
+  projects: Project[]; account: React.ReactNode; onOpen: (id: string) => void; onCreate: (n: string, color: string) => void; onDelete: (id: string) => void;
   onUpdate: (id: string, fn: (p: Project) => Project) => void; onDuplicate: (id: string) => void;
 }) {
   const [color, setColor] = useState(PROJECT_COLORS[0]!);
   return (
     <div className="min-h-screen">
-      <Header title="CRMX Console" subtitle="Projects" />
+      <Header title="CRMX Console" subtitle="Projects" right={account} />
       <main className="mx-auto max-w-5xl space-y-6 p-5">
         <div className="space-y-3">
           <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={(n) => onCreate(n, color)} />
