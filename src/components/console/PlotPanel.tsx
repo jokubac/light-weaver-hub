@@ -67,7 +67,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   plot: Plot; setPlot: (p: Plot) => void; fixtures: PatchedFixture[]; selected: string[]; setSelected: (s: string[]) => void;
   colorOf: (f: PatchedFixture) => [number, number, number]; levelOf: (f: PatchedFixture) => number;
   update: (uid: string, p: Partial<PatchedFixture>) => void; onClose: () => void; onOpenControls: () => void;
-  copiedSource?: string; onCopy: () => void; onPaste: () => void;
+  copiedSource?: string | undefined; onCopy: () => void; onPaste: () => void;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -110,7 +110,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const restore = (s: Snapshot | undefined) => {
     if (!s) return;
     plotRef.current = s.plot; commitPlot(s.plot);
-    for (const f of s.lights) commitFixture(f.uid, { intensity: f.intensity, on: f.on !== false, cct: f.cct, hue: f.hue, saturation: f.saturation, crossfade: f.crossfade, cctOnly: f.cctOnly, gm: f.gm, gel: f.gel ?? "" });
+    for (const f of s.lights) commitFixture(f.uid, { intensity: f.intensity, on: f.on !== false, cct: f.cct, hue: f.hue, saturation: f.saturation, crossfade: f.crossfade, cctOnly: f.cctOnly, gm: f.gm, gel: f.gel ?? "", fan: f.fan ?? "auto", fx: structuredClone(f.fx), fxPlaying: f.fxPlaying !== false });
     force((n) => n + 1);
   };
   const undo = () => restore(history.current.undo(snapshot()));

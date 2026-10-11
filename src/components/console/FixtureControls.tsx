@@ -84,7 +84,7 @@ export function FixtureControls({
   locked: boolean;
   remove: () => void;
   fire: (k: TriggerKind) => void;
-  copiedSource?: string;
+  copiedSource?: string | undefined;
   onCopy: () => void;
   onPaste: () => void;
 }) {
@@ -182,7 +182,7 @@ export function FixtureControls({
         {fx.kind !== "none" && <>
           <EffectEditor fx={fx} setFx={setFx} />
           <details open className="border-t border-border pt-3"><summary className="mb-3 cursor-pointer text-xs font-semibold text-muted-foreground">Effect colours</summary>
-            <PaletteEditor colours={fx.colors ?? []} onChange={(colors) => setFx({ colors })} onReset={() => setFx({ colors: undefined })} />
+            <PaletteEditor colours={fx.colors ?? []} onChange={(colors) => setFx({ colors })} onReset={() => setFx({ colors: [] })} />
           </details>
           {!fx.colors?.length && <ColourControls value={first} update={update} />}
         </>}

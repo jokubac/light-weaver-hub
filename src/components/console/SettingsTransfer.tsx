@@ -2,7 +2,7 @@ import { Copy, ClipboardPaste, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function SettingsTransfer({ source, canCopy, onCopy, onPaste }: {
-  source?: string; canCopy: boolean; onCopy: () => void; onPaste: () => void;
+  source?: string | undefined; canCopy: boolean; onCopy: () => void; onPaste: () => void;
 }) {
   return <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
     <Button size="sm" variant="secondary" disabled={!canCopy} onClick={onCopy} title="Copy intensity, colour and effect" aria-label="Copy light settings"><Copy />Copy settings</Button>

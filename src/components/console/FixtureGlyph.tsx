@@ -1,5 +1,5 @@
 /** Recognisable fixture bodies, with a stable common stage and model-relative tube lengths. */
-export function FixtureGlyph({ model, colour, pixels }: { model: string; colour: string; pixels?: string[] }) {
+export function FixtureGlyph({ model, colour, pixels }: { model: string; colour: string; pixels?: string[] | undefined }) {
   const m = model.toLowerCase();
   const tube = /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip/.test(m);
   const panel = /panel|pavoslim|dyno|vortex|mat|nova|mixpanel|flex|litemat|gemini/.test(m);
