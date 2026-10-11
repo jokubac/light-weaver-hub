@@ -130,32 +130,32 @@ function fireColor(h: number): RGB {
   return [255, 120 + (x - 0.7) / 0.3 * 120, (x - 0.7) / 0.3 * 90];
 }
 
-interface Placed { f: PatchedFixture; cells: { x: number; y: number }[] }
+interface Placed { f: PatchedFixture; cells: { x: number; y: number; s: number }[] }
 
 /** Positions of every pixel of every fixture in the layer on one shared grid. */
-export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number } {
+export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number; S: number } {
   const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
   const placed: Placed[] = [];
-  let ox = 0, oy = 0, W = 0, H = 0;
+  let ox = 0, oy = 0, W = 0, H = 0, seq = 0;
   for (const f of list) {
     let [c, r] = pixelGrid(f);
     const tube = r === 1;
     const rotate = layer.layout === "upright" && tube;
     if (rotate) [c, r] = [1, c];
-    const cells: { x: number; y: number }[] = [];
+    const cells: { x: number; y: number; s: number }[] = [];
     const n = pixelCount(f);
     for (let i = 0; i < n; i++) {
       const [lc, lr] = pixelGrid(f);
       const px = i % lc, py = Math.floor(i / lc);
       // upright tubes: pixel 0 at the top
       const lx = rotate ? 0 : px, ly = rotate ? i : (lr > 1 ? py : 0);
-      cells.push({ x: ox + lx, y: oy + ly });
+      cells.push({ x: ox + lx, y: oy + ly, s: seq++ });
     }
     placed.push({ f, cells });
     if (layer.layout === "stack") { oy += r; W = Math.max(W, c); H = oy; }
     else { ox += c; W = ox; H = Math.max(H, r); }
   }
-  return { placed, W: Math.max(1, W), H: Math.max(1, H) };
+  return { placed, W: Math.max(1, W), H: Math.max(1, H), S: Math.max(1, seq) };
 }
 
 export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
@@ -164,7 +164,7 @@ export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
 
 /** Colours (0-255) per fixture uid, one entry per pixel. */
 export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null, out = new Map<string, RGB[]>()) {
-  const { placed, W, H } = layoutLayer(layer, fixtures);
+  const { placed, W, H, S } = layoutLayer(layer, fixtures);
   if (!placed.length) return out;
   const cols: RGB[] = layer.colors.length ? layer.colors.map(hexToRgb) : [[255, 255, 255]];
   const col = (i: number) => cols[((i % cols.length) + cols.length) % cols.length]!;
@@ -172,15 +172,16 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
   const tt = t * layer.speed + (layer.phase ?? 0);
   const size = Math.max(1, layer.size);
 
-  const at = (x: number, y: number): RGB => {
-    const xd = layer.reverse ? W - 1 - x : x;
+  // travelling effects follow the pixel path light → light (s), whatever the layout
+  const at = (x: number, y: number, s: number): RGB => {
+    const sd = layer.reverse ? S - 1 - s : s;
     switch (layer.kind) {
       case "solid": return cols[0]!;
-      case "chase": return col(Math.floor((x * dir - tt * 8) / size));
+      case "chase": return col(Math.floor((sd - tt * 8) / size));
       case "meteor": {
-        const span = W + size * 2;
+        const span = S + size * 2;
         const head = (tt * 10) % span;
-        const d = head - xd;
+        const d = head - sd;
         return d >= 0 && d < size * 2 ? scale(col(Math.floor(tt * 10 / span)), Math.pow(1 - d / (size * 2), 2)) : BLACK;
       }
       case "bounce": {
@@ -222,11 +223,11 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
       case "runner": {
         // N-pixel segments travelling across every light in the layer, one after another
         const n = Math.max(1, layer.runners ?? 1);
-        const span = W / n;
-        const pos = ((tt * 10) % W + W) % W;
-        const d = (((xd - pos) % span) + span) % span;
-        const lap = Math.floor(tt * 10 / W);
-        const k = Math.floor((xd - pos + W) / span);
+        const span = S / n;
+        const pos = ((tt * 10) % S + S) % S;
+        const d = (((sd - pos) % span) + span) % span;
+        const lap = Math.floor(tt * 10 / S);
+        const k = Math.floor((((sd - pos) % S) + S) % S / span);
         const edge = Math.min(size / 2, size * (layer.softness ?? 0));
         const gain = edge > 0 ? Math.min(1, d / edge, (size - d) / edge) : 1;
         return d < size ? scale(col(lap + k), Math.max(0, gain)) : BLACK;
@@ -258,7 +259,7 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
 
   const brightness = Math.min(1, Math.max(0, layer.brightness ?? 1));
   const background = Math.min(1, Math.max(0, layer.background ?? 0));
-  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => scale(mix(cols[0] ?? BLACK, at(c.x, c.y), 1 - background), brightness)));
+  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => scale(mix(cols[0] ?? BLACK, at(c.x, c.y, c.s), 1 - background), brightness)));
   return out;
 }
 
