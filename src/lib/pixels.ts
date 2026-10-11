@@ -221,7 +221,7 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
         const d = (((xd - pos) % span) + span) % span;
         const lap = Math.floor(tt * 10 / W);
         const k = Math.floor((xd - pos + W) / span);
-        return d < size ? col(lap + k) : (cols.length > 1 && layer.colors.length > 2 ? scale(cols[cols.length - 1]!, 0.08) : BLACK);
+        return d < size ? col(lap + k) : BLACK;
       }
       case "police": {
         const half = x < W / 2 ? 0 : 1;
