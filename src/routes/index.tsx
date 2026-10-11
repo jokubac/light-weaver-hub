@@ -19,6 +19,8 @@ import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
 import { PixelPanel } from "@/components/console/PixelPanel";
+import { GroupsPanel } from "@/components/console/GroupsPanel";
+import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
 import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { LooksPanel, applyLook } from "@/components/console/LooksPanel";
@@ -299,7 +301,7 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "pixels" | "looks";
+type Panel = "patch" | "control" | "pixels" | "groups" | "looks";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
@@ -355,6 +357,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maskKey]);
   const frame = layers.some((l) => l.playing) ? renderLayers(layers, fixtures, t, masks) : new Map<string, RGB[]>();
+
+  // Stream real DMX to the bridge (Art-Net / sACN → CRMX transmitter)
+  const [bridge, setBridge] = useState<BridgeStatus>("off");
+  const sender = useMemo(() => createSender(setBridge), []);
+  useEffect(() => {
+    if (conn.node) void sender(conn, buildUniverses(fixtures, t, outLevel, frame));
+  });
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -419,6 +428,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
       return rest;
     }));
   };
+  const renameGroup = (from: string, to: string) => setFixtures((fs) => fs.map((x) => (x.group === from ? { ...x, group: to } : x)));
+  const updateGroup = (g: string, p: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((x) => (x.group === g ? { ...x, ...p } : x)));
   const ungroup = (g: string) => setFixtures((fs) => fs.map((x) => { if (x.group !== g) return x; const { group: _g, ...rest } = x; return rest; }));
 
   const recallLook = (l: Look) => {
@@ -429,7 +440,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   const sel = fixtures.filter((f) => selected.includes(f.uid));
   const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-    if (panel !== "looks") { setPanel("control"); setPanelOpen(true); }
+    if (panel !== "looks" && panel !== "groups") { setPanel("control"); setPanelOpen(true); }
   };
   // tapping the active tab again collapses / expands the side panel
   const tab = (p: Panel, label: string) => (
@@ -464,13 +475,14 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
         {tab("patch", "PATCH")}
         {tab("control", "CONTROL")}
         {tab("pixels", "PIXELS")}
+        {tab("groups", "GROUPS")}
         {tab("looks", "LOOKS")}
-        <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}>
-          <Radio className="h-4 w-4" />{conn.node ? conn.node.ip : "CONNECT"}
+        <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? (bridge === "error" ? "bg-destructive text-destructive-foreground" : "bg-success text-primary-foreground") : "bg-surface-elevated"}`}>
+          <Radio className="h-4 w-4" />{conn.node ? (bridge === "error" ? "NO BRIDGE" : conn.node.ip) : "CONNECT"}
         </button>
       </div>
 
-      <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} />
+      <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="min-h-0 flex-1 overflow-auto p-4">
           {fixtures.length === 0 ? (
@@ -534,6 +546,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
             <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} />
           ) : panel === "looks" ? (
             <LooksPanel fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
+          ) : panel === "groups" ? (
+            <GroupsPanel fixtures={fixtures} selected={selected} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
+              onSelect={(g) => setSelected(fixtures.filter((f) => f.group === g).map((f) => f.uid))} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup} />
           ) : panel === "pixels" ? (
             <PixelPanel fixtures={fixtures} layers={layers} frame={frame} setLayers={(next) => {
               const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
