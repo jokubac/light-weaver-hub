@@ -1,10 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { wallSegments, wallPanels, rayBlocked, type Opening } from "@/lib/plot-geometry";
+import { wallSegments, wallPanels, rayBlocked, segmentDistance, type Opening } from "@/lib/plot-geometry";
+import { objectContains } from "@/lib/plot-objects";
 import { editHistory } from "@/lib/edit-history";
 
 const walls = wallSegments([{ pts: [[5, 0], [5, 10]] }], 0);
 const door: Opening = { id: "door", kind: "door", stroke: 0, segment: 0, center: 0.5, width: 1, bottom: 0, height: 2.1 };
 describe("Light through wall openings", () => {
+  it("hits the middle of a long wall and respects edited wall heights", () => {
+    expect(segmentDistance([5, 0.2], [0, 0], [10, 0]).distance).toBeCloseTo(0.2);
+    const low = wallSegments([{pts:[[5,0],[5,10]],height:0.8}],0);
+    expect(rayBlocked([2,5,2],[8,5,0],low,[])).toBe(false);
+    const high = wallSegments([{pts:[[5,0],[5,10]],height:4}],0);
+    expect(rayBlocked([2,5,6],[8,5,0],high,[])).toBe(true);
+    const wall = low[0]; if (!wall) throw new Error("No wall");
+    expect(wallPanels(wall,[])).toEqual([[0,1,0,0.8]]);
+  });
+  it("selects rotated furniture by its actual footprint", () => {
+    const sofa = {id:"s",kind:"sofa" as const,name:"Sofa",x:5,y:5,w:2,d:1,h:.8,rot:90,floor:0};
+    expect(objectContains(sofa,5,5.9)).toBe(true);
+    expect(objectContains(sofa,5.9,5)).toBe(false);
+  });
   it("blocks an opaque wall but passes through a doorway", () => {
     expect(rayBlocked([2, 5, 2], [8, 5, 0], walls, [])).toBe(true);
     expect(rayBlocked([2, 5, 2], [8, 5, 0], walls, [door])).toBe(false);
