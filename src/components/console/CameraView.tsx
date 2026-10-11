@@ -88,7 +88,7 @@ export function CameraView({ cam, size, strokes, openings, objects, floorZ, ligh
     ctx.globalCompositeOperation = "lighter";
     for (const L of lights) {
       const q = project([L.x, L.y, L.z - floorZ]); if (!q || L.level <= 0.002) continue;
-      const r = Math.max(4, 40 / q[2]) * Math.min(3, 0.6 + gain * L.watts * L.level * 4);
+      const r = Math.min(W * 0.08, Math.max(4, 40 / q[2]) * Math.min(3, 0.6 + gain * L.watts * L.level * 4));
       const g = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
       g.addColorStop(0, `rgba(${L.rgb.join(",")},0.95)`); g.addColorStop(1, `rgba(${L.rgb.join(",")},0)`);
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, Math.PI * 2); ctx.fill();
