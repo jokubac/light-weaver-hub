@@ -12,5 +12,5 @@
 - [x] Sign-in; projects, favourites and saved effects sync to the account
 - [x] Save programmed effects (light + pixel)
 - [x] Live plot 2D/3D: drawing, floor-plan image, lights on stands, beams, control from plot
-- [ ] Pixel efektuose spalvų parinkimas: CCT / HSI+ratas / gel
-- [ ] Gel/spalva pulte nerodoma — pataisyti
+- [x] Pixel efektuose spalvų parinkimas: CCT / HSI+ratas / gel
+- [x] Gel/spalva pulte nerodoma — pataisyti
