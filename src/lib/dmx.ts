@@ -229,9 +229,9 @@ export interface Step {
   level: number; // 0-1
   hold: number; // seconds
   fade: number; // seconds into this step
-  kelvin?: number; // optional colour temperature for this step
-  color?: string; // optional hex colour for this step (wins over kelvin)
-  curve?: Curve; // optional per-step fade curve
+  kelvin?: number | undefined; // optional colour temperature for this step
+  color?: string | undefined; // optional hex colour for this step (wins over kelvin)
+  curve?: Curve | undefined; // optional per-step fade curve
 }
 
 export interface FxParams {
