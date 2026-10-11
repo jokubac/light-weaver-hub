@@ -17,3 +17,6 @@
 - Rental-house stock (src/lib/rental-fixtures.ts) is appended to FIXTURE_LIBRARY and deduped by id; existing entries are tagged via aliases so patch search can filter by house.
 - localStorage stays the working copy; when signed in, src/lib/cloud.ts merges cloud data once per sign-in and pushes changes (projects → console_projects rows, favourites + saved effects → console_user_data).
 - The live plot is stored per scene (Scene.plot) in metres; floor-plan images are downscaled JPEG data URLs to keep project data small.
+- ColourControls is shared by fixture, effect and live-plot controls to keep the CCT/crossfade/HSI ordering consistent; HexColourControls edits step and pixel palette colours.
+- Live-plot openings reference stroke/segment indices and use height-aware ray intersections; remap their indices whenever walls are removed so saved openings stay attached.
+- Live-plot edit history stores plot and light-control snapshots, grouping pointer gestures as single edits so undo does not step through every drag frame.
