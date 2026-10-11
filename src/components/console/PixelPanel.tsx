@@ -108,6 +108,16 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
         </div>
       )}
 
+      {["rainbow", "plasma", "fire"].includes(layer.kind) && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span>Tint (CCT / HSI / Gel)</span>
+            {layer.tint && <button onClick={() => { const { tint: _t, ...rest } = layer; setLayerRaw(rest); }} className="normal-case text-primary">Reset</button>}
+          </div>
+          <HexColourControls value={layer.tint ?? "#ffffff"} onChange={(hex) => set({ tint: hex })} />
+          <ColorSource onPick={(hex) => set({ tint: hex })} />
+        </div>
+      )}
       {!["rainbow", "plasma", "fire"].includes(layer.kind) && (
         <div className="space-y-1.5">
           <HexColourControls value={layer.colors[Math.min(activeColour, layer.colors.length - 1)] ?? "#ffffff"} onChange={(hex) => set({ colors: layer.colors.map((c, i) => i === Math.min(activeColour, layer.colors.length - 1) ? hex : c) })} />
