@@ -51,6 +51,8 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
   const st = fixtureState(f, t, level);
   const v = st.v;
   const [r, g, b] = reorder(st.rgb.map((c) => c / 255) as RGB, order);
+  const paletteActive = f.fxPlaying !== false && f.fx.kind !== "none" && !!f.fx.colors?.length;
+  const [hue, saturation] = paletteActive ? rgbToHs(r, g, b) : [f.hue / 360, f.cctOnly ? 0 : f.saturation];
 
   if (mode.astera && !f.split) {
     const tokens = asteraTokens(mode.astera);
@@ -62,7 +64,7 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
       const c = pixels?.[px];
       const [pr, pg, pb] = c ? reorder([c[0] / 255, c[1] / 255, c[2] / 255], order) : [r, g, b];
       const lv = c ? pv : v;
-      const [ph, ps] = c ? rgbToHs(pr, pg, pb) : [f.hue / 360, f.cctOnly ? 0 : f.saturation];
+      const [ph, ps] = c ? rgbToHs(pr, pg, pb) : [hue, saturation];
       const k = (hasDim ? 1 : lv); // colour channels carry level when there's no dimmer channel
       const white = Math.min(pr, pg, pb);
       const has = (t: string) => CELL_HAS[mode.astera!.cell]?.includes(t);
@@ -73,11 +75,11 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
         case "D16b": raw = Math.round(lv * 65535) & 255; break;
         case "CCT": val = (kelvin(f.cct) - 1750) / 8160; break;
         case "GM": raw = f.gm === 0 ? 0 : Math.max(5, Math.min(255, Math.round(128 * (f.gm + 1)))); break;
-        case "CRO": val = c ? 1 : f.cctOnly ? 0 : f.crossfade; break;
+        case "CRO": val = c || paletteActive ? 1 : f.cctOnly ? 0 : f.crossfade; break;
         case "HUE": val = ph; break;
         case "HUE16": raw = Math.round(ph * 65535) >> 8; break;
         case "HUE16b": raw = Math.round(ph * 65535) & 255; break;
-        case "SAT": val = c ? ps : ps * (f.cctOnly ? 0 : f.crossfade || 1); break;
+        case "SAT": val = c || paletteActive ? ps : ps * (f.cctOnly ? 0 : f.crossfade || 1); break;
         case "R": val = (has("W") ? pr - white : pr) * k; break;
         case "G": val = (has("W") ? pg - white : pg) * k; break;
         case "B": val = (has("W") ? pb - white : pb) * k; break;
@@ -110,14 +112,14 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
         put(4, (f.gm < 0 ? 120 + f.gm * 100 : f.gm > 0 ? 145 + f.gm * 100 : 128) / 255);
         put(5, 128 / 255);
       } else if (mode.profile === "nanlux-dyno-hsi") {
-        put(2, 48 / 255); put(3, f.hue / 360); put(4, f.cctOnly ? 0 : f.saturation);
+        put(2, 48 / 255); put(3, hue); put(4, saturation);
       } else {
         const white = Math.min(r, g, b);
         put(2, 80 / 255); put(3, r - white); put(4, g - white); put(5, b - white); put(6, white);
       }
     } else {
       put(2, (kelvin(f.cct) - 1750) / 8160); put(3, f.gm === 0 ? 0 : Math.max(5, Math.min(255, 128 * (f.gm + 1))) / 255);
-      put(4, f.hue / 360); put(5, f.cctOnly ? 0 : f.saturation * f.crossfade);
+      put(4, hue); put(5, paletteActive ? saturation : f.cctOnly ? 0 : f.saturation * f.crossfade);
       if (mode.profile === "astera-hsi-strobe") put(6, 0);
     }
     return;
@@ -147,10 +149,10 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
     case "dim": w(v); break;
     case "cct": w(v); w(cct); break;
     case "cctgm": w(v); w(cct); w(gm); break;
-    case "hsi": w(v); w(f.hue / 360); w(f.cctOnly ? 0 : f.saturation); w(cct); break;
+    case "hsi": w(v); w(hue); w(saturation); w(cct); break;
     case "rgb": w(r * v); w(g * v); w(b * v); break;
     case "rgbw": { const wh = Math.min(r, g, b); w(v); w(r - wh); w(g - wh); w(b - wh); w(wh); break; }
-    case "full": w(v); w(cct); w(gm); w(f.cctOnly ? 0 : f.crossfade); w(f.hue / 360); w(f.saturation); break;
+    case "full": w(v); w(cct); w(gm); w(paletteActive ? 1 : f.cctOnly ? 0 : f.crossfade); w(hue); w(saturation); break;
   }
 }
 

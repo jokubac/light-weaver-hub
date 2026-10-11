@@ -23,6 +23,9 @@ import { ColorSource } from "./ColorSource";
 import { ColourControls, HexColourControls } from "./ColourControls";
 import { SavedEffects } from "./SavedEffects";
 import { useFxLibrary } from "@/lib/fxlib";
+import { Button } from "@/components/ui/button";
+import { PaletteEditor } from "./PaletteEditor";
+import { SettingsTransfer } from "./SettingsTransfer";
 import { SpeedControl } from "./SpeedControl";
 import { hexToHs } from "@/lib/gels";
 import { IntensityMacros, GmMacros, FanControl, GelPicker } from "./AdvancedControls";
@@ -72,7 +75,7 @@ const tapReset = (fn: () => void) => () => {
 };
 
 export function FixtureControls({
-  fixtures, sel, update, updateEach, remove, fire, locked,
+  fixtures, sel, update, updateEach, remove, fire, locked, copiedSource, onCopy, onPaste,
 }: {
   fixtures: PatchedFixture[];
   sel: PatchedFixture[];
@@ -81,9 +84,13 @@ export function FixtureControls({
   locked: boolean;
   remove: () => void;
   fire: (k: TriggerKind) => void;
+  copiedSource?: string | undefined;
+  onCopy: () => void;
+  onPaste: () => void;
 }) {
   const first = sel[0];
   const fxLib = useFxLibrary();
+  const [tab, setTab] = useState<"colour" | "effect" | "advanced">("colour");
   if (!first) return null;
   const mode = getMode(first);
   const anyCaps = sel.reduce(
@@ -102,6 +109,8 @@ export function FixtureControls({
         </h2>
         <button onClick={remove} disabled={locked} title={locked ? "Unlock patch to remove" : "Remove"} className="disabled:opacity-30 text-muted-foreground hover:text-destructive" aria-label="Remove"><Trash2 className="h-4 w-4" /></button>
       </div>
+
+      <SettingsTransfer source={copiedSource} canCopy={sel.length > 0} onCopy={onCopy} onPaste={onPaste} />
 
       {sel.length === 1 && (
         <div className="space-y-2">
@@ -130,21 +139,20 @@ export function FixtureControls({
       </div>
       <IntensityMacros updateEach={updateEach} />
 
-      <Section title="Colour">
+      <div className="grid grid-cols-3 gap-1 border-b border-border pb-3" role="tablist" aria-label="Light controls">
+        {([['colour','Colour'],['effect','Effects'],['advanced','Advanced']] as const).map(([id,label]) => <Button key={id} size="sm" variant={tab === id ? "default" : "secondary"} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{label}</Button>)}
+      </div>
+
+      {tab === "colour" && <Section title="Colour">
         {!anyCaps.color && <p className="rounded-md border border-destructive/50 bg-destructive/10 px-2 py-1.5 text-[11px] text-destructive">This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.</p>}
         <ColourControls value={first} update={update} />
         {anyCaps.gm && <><Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm.toFixed(2)} onChange={(gm) => update({ gm })} onReset={() => update({ gm: 0 })} /><GmMacros value={first.gm} update={update} /></>}
-        <ColorSource noCct onPick={(hex, lbl) => {
-          if (lbl.endsWith("K")) update({ cct: cctFromKelvin(parseInt(lbl, 10)), crossfade: 0 });
-          else { const { h, s } = hexToHs(hex); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }
-        }} />
-      </Section>
+        <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
+      </Section>}
 
-      <Section title="Advanced">
+      {tab === "advanced" && <><Section title="Advanced">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fan</div>
         <FanControl value={first.fan} update={update} />
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Gels (Rosco / LEE)</div>
-        <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
       </Section>
 
       <Section title="Trigger">
@@ -155,9 +163,9 @@ export function FixtureControls({
             </button>
           ))}
         </div>
-      </Section>
+      </Section></>}
 
-      <Section title="Effect">
+      {tab === "effect" && <Section title="Effect">
         {fx.kind !== "none" && (
           <button onClick={() => update({ fxPlaying: first.fxPlaying === false })}
             className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.fxPlaying === false ? "bg-amber-glow text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
@@ -171,10 +179,16 @@ export function FixtureControls({
             </button>
           ))}
         </div>
-        {fx.kind !== "none" && <><EffectEditor fx={fx} setFx={setFx} /><ColourControls value={first} update={update} /></>}
+        {fx.kind !== "none" && <>
+          <EffectEditor fx={fx} setFx={setFx} />
+          <details open className="border-t border-border pt-3"><summary className="mb-3 cursor-pointer text-xs font-semibold text-muted-foreground">Effect colours</summary>
+            <PaletteEditor colours={fx.colors ?? []} onChange={(colors) => setFx({ colors })} onReset={() => setFx({ colors: [] })} />
+          </details>
+          {!fx.colors?.length && <ColourControls value={first} update={update} />}
+        </>}
         <SavedEffects label="My effects" items={fxLib.lib.fx} onSave={(n) => fxLib.saveFx(n, fx)} onDelete={(id) => fxLib.remove("fx", id)}
           onLoad={(it) => update({ fx: structuredClone(it.fx), fxPlaying: true })} />
-      </Section>
+      </Section>}
     </div>
   );
 }

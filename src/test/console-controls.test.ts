@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { clampSpeed, positionToSpeed, speedToPosition } from "@/lib/speed";
-import { createFixture, getDef, sampleEffect, defaultFx } from "@/lib/dmx";
+import { createFixture, getDef, sampleEffect, defaultFx, fixtureState, EFFECTS } from "@/lib/dmx";
+import { copyFixtureSettings } from "@/lib/fixture-settings";
 import { defaultLayer, renderLayer } from "@/lib/pixels";
 import { buildUniverses } from "@/lib/output";
 
@@ -63,5 +64,36 @@ describe("Manufacturer profiles", () => {
     expect(data?.[2]).toBe(128);
     expect(data?.[3]).toBe(255);
     expect(data?.[6]).toBe(128);
+  });
+});
+
+describe("Effect palettes and settings transfer", () => {
+  it("uses selected colours for every fixture effect without changing patch identity", () => {
+    const f = { ...createFixture(getDef("generic-pixel-strip-16-px"), 0, 1, 1, "Source"), intensity: .73 };
+    for (const effect of EFFECTS.filter((e) => e.id !== "none")) {
+      expect(fixtureState({ ...f, fx: { ...defaultFx(), kind: effect.id, colors: ["#00ff00"] } }, .1).rgb).toEqual([0, 255, 0]);
+    }
+    const settings = copyFixtureSettings(f);
+    expect(settings.intensity).toBe(.73);
+    for (const field of ["uid", "name", "defId", "modeIdx", "universe", "address", "power", "group", "label", "trigger"]) expect(settings).not.toHaveProperty(field);
+    settings.fx.steps[0] = { level: 0, hold: 1, fade: 0 };
+    expect(f.fx.steps[0]?.level).toBe(1);
+  });
+  it("uses a custom palette for generated pixel effects while preserving their animation", () => {
+    const f = createFixture(getDef("generic-pixel-strip-16-px"), 0, 1, 1, "Strip");
+    for (const kind of ["rainbow", "plasma", "fire"] as const) {
+      const layer = { ...defaultLayer("Test", [f.uid]), kind, colors: ["#00ff00"], customPalette: true };
+      const values = renderLayer(layer, [f], .27, null).get(f.uid) ?? [];
+      expect(values.length).toBe(16);
+      expect(values.every(([r,g,b]) => r === 0 && g > 0 && b === 0)).toBe(true);
+    }
+  });
+  it("encodes effect palette colours into HSI DMX channels", () => {
+    const def = getDef("astera-titan-tube");
+    const index = def.modes.findIndex((m) => m.profile === "astera-hsi-strobe");
+    const f = { ...createFixture(def, index, 1, 1, "Titan"), intensity: 1, fx: { ...defaultFx(), kind: "fire" as const, colors: ["#00ff00"] } };
+    const data = buildUniverses([f], .2, 1, new Map()).get(1);
+    expect(data?.[3]).toBe(85);
+    expect(data?.[4]).toBe(255);
   });
 });

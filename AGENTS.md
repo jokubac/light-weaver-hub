@@ -22,3 +22,6 @@
 - ColourControls is shared by fixture, effect and live-plot controls to keep the CCT/crossfade/HSI ordering consistent; HexColourControls edits step and pixel palette colours.
 - Live-plot openings reference stroke/segment indices and use height-aware ray intersections; remap their indices whenever walls are removed so saved openings stay attached.
 - Live-plot edit history stores plot and light-control snapshots, grouping pointer gestures as single edits so undo does not step through every drag frame.
+- Fixture settings transfer uses an explicit whitelist in fixture-settings.ts, excluding identity, patch, grouping, position and power to prevent accidental repatching.
+- PaletteEditor shares CCT/HSI/gel editing across fixture and pixel effects; generated pixel effects opt into custom palettes to preserve older saved looks.
+- FixtureGlyph renders browser-safe SVG fixture bodies with a stable stage, leaving DMX definitions and saved mode indices unchanged.
