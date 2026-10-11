@@ -174,7 +174,6 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
 
   // travelling effects follow the pixel path light → light (s), whatever the layout
   const at = (x: number, y: number, s: number): RGB => {
-    const xd = layer.reverse ? W - 1 - x : x;
     const sd = layer.reverse ? S - 1 - s : s;
     switch (layer.kind) {
       case "solid": return cols[0]!;
