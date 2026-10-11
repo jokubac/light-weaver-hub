@@ -31,3 +31,8 @@
 - Number inputs use the shared NumberField (commit on blur/Enter) so fields can be cleared while typing without snapping to a value.
 - Multi-fixture patch layout lives in src/lib/patch-plan.ts; universe overflow is only applied after the user confirms.
 - Live-plot cameras are an optional Plot.cameras field; CameraView renders a perspective view with exposure from lens/iris/ISO (src/lib/plot-camera.ts).
+
+- Camera projection uses the tested cameraBasis helper with plot Z-up coordinates so lens views remain upright at every yaw.
+- Stage size remains a legacy framing/image reference, never a placement boundary; beam textures cover bounded fixture-local extents to keep unrestricted plots affordable.
+- Pixel preview gestures affect viewport tilt/rotation only, preserving logical pixel addressing and DMX output.
+- Connection health measures bridge HTTP responsiveness with a slow threshold and timeout, not wireless fixture reception.

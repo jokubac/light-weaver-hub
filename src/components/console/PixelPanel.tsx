@@ -1,7 +1,7 @@
 import { SavedEffects } from "./SavedEffects";
 import { useFxLibrary } from "@/lib/fxlib";
 import { useEffect, useRef, useState } from "react";
-import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, RotateCcw } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
@@ -211,25 +211,50 @@ export function useClock() {
   return t;
 }
 
-/** Endless, pannable and zoomable canvas for the pixel layout preview. */
+/** Endless preview viewport; gestures change only the view, never the programmed output. */
 function InfiniteGrid({ children }: { children: React.ReactNode }) {
   const [pan, setPan] = useState<[number, number]>([12, 12]);
   const [zoom, setZoom] = useState(1);
-  const drag = useRef<{ x: number; y: number; p: [number, number] } | null>(null);
+  const [tilt, setTilt] = useState(0);
+  const [turn, setTurn] = useState(0);
+  const pointers = useRef(new Map<number, [number, number]>());
+  const gesture = useRef<{ pan: [number, number]; zoom: number; turn: number; tilt: number; mid: [number, number]; distance: number; angle: number; count: number } | null>(null);
+  const measure = () => {
+    const pts = [...pointers.current.values()];
+    const a = pts[0], b = pts[1];
+    if (!a) return null;
+    return { mid: [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length] as [number, number], distance: b ? Math.hypot(b[0] - a[0], b[1] - a[1]) : 1, angle: b ? Math.atan2(b[1] - a[1], b[0] - a[0]) : 0, count: pts.length };
+  };
+  const begin = () => { const m = measure(); gesture.current = m ? { ...m, pan, zoom, turn, tilt } : null; };
+  const end = (e: React.PointerEvent) => { pointers.current.delete(e.pointerId); begin(); };
   const cell = 11 * zoom;
-  return (
-    <div className="relative h-48 touch-none overflow-hidden rounded-lg bg-background"
+  return <div className="space-y-2">
+    <div aria-label="Pixel mapping viewport" className="relative h-56 touch-none overflow-hidden rounded-lg bg-background"
       style={{ backgroundImage: "linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)", backgroundSize: `${cell}px ${cell}px`, backgroundPosition: `${pan[0]}px ${pan[1]}px` }}
-      onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, p: pan }; }}
-      onPointerMove={(e) => { const d = drag.current; if (d) setPan([d.p[0] + e.clientX - d.x, d.p[1] + e.clientY - d.y]); }}
-      onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}
-      onWheel={(e) => setZoom((z) => Math.max(0.1, z * (e.deltaY < 0 ? 1.1 : 0.9)))}>
-      <div className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${pan[0]}px, ${pan[1]}px) scale(${zoom})` }}>{children}</div>
-      <div className="absolute bottom-1.5 right-1.5 flex gap-1">
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setZoom((z) => z * 1.25)} className="rounded bg-surface-elevated px-2 text-xs font-bold" aria-label="Zoom in">+</button>
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setZoom((z) => Math.max(0.1, z / 1.25))} className="rounded bg-surface-elevated px-2 text-xs font-bold" aria-label="Zoom out">−</button>
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => { setZoom(1); setPan([12, 12]); }} className="rounded bg-surface-elevated px-2 text-[10px]">Reset</button>
+      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pointers.current.set(e.pointerId, [e.clientX, e.clientY]); begin(); }}
+      onPointerMove={(e) => {
+        if (!pointers.current.has(e.pointerId)) return;
+        pointers.current.set(e.pointerId, [e.clientX, e.clientY]); const m = measure(), g = gesture.current;
+        if (!m || !g) return;
+        if (m.count >= 3 || e.shiftKey) setTilt(Math.max(-80, Math.min(80, g.tilt + (m.mid[1] - g.mid[1]) * .4)));
+        else {
+          setPan([g.pan[0] + m.mid[0] - g.mid[0], g.pan[1] + m.mid[1] - g.mid[1]]);
+          if (m.count === 2) {
+            setZoom(Math.max(.1, Math.min(10, g.zoom * m.distance / Math.max(1, g.distance))));
+            const delta = Math.atan2(Math.sin(m.angle - g.angle), Math.cos(m.angle - g.angle));
+            setTurn(g.turn + delta * 180 / Math.PI);
+          }
+        }
+      }} onPointerUp={end} onPointerCancel={end}
+      onWheel={(e) => setZoom((z) => Math.max(.1, Math.min(10, z * (e.deltaY < 0 ? 1.1 : .9))))}>
+      <div className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${pan[0]}px, ${pan[1]}px) scale(${zoom}) rotate(${turn}deg) scaleY(${Math.cos(tilt * Math.PI / 180)})` }}>{children}</div>
+      <div className="absolute bottom-1.5 right-1.5 flex gap-1" onPointerDown={(e) => e.stopPropagation()}>
+        <Button size="icon" variant="secondary" onClick={() => setZoom((z) => Math.min(10, z * 1.25))} title="Zoom in" aria-label="Zoom in"><Plus /></Button>
+        <Button size="icon" variant="secondary" onClick={() => setZoom((z) => Math.max(.1, z / 1.25))} title="Zoom out" aria-label="Zoom out">−</Button>
+        <Button size="icon" variant="secondary" title="Reset pixel view" aria-label="Reset pixel view" onClick={() => { setZoom(1); setPan([12, 12]); setTilt(0); setTurn(0); }}><RotateCcw /></Button>
       </div>
     </div>
-  );
+    <Slider label="View tilt" value={tilt} min={-80} max={80} step={1} display={`${Math.round(tilt)}°`} onChange={setTilt} />
+    <Slider label="View rotation" value={((turn + 180) % 360 + 360) % 360 - 180} min={-180} max={180} step={1} display={`${Math.round(turn)}°`} onChange={setTurn} />
+  </div>;
 }

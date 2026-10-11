@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Bluetooth, BatteryMedium, Maximize, Music, Trash2, Tv } from "lucide-react";
+import { Bluetooth, BatteryMedium, Maximize, Music, Trash2, Tv, FolderOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { MidiMap } from "@/lib/midi";
 
 export interface BtDevice { id: string; name: string; battery: number | null }
 export interface MidiTarget { id: string; label: string }
 
-export function SettingsDialog({ open, onOpenChange, bt, connectBt, midi, setMidi, targets, learning, setLearning, lastMsg, midiDevices, midiError }: {
+export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, midi, setMidi, targets, learning, setLearning, lastMsg, midiDevices, midiError }: {
   open: boolean; onOpenChange: (o: boolean) => void;
+  onSetups: () => void;
   bt: BtDevice[]; connectBt: () => void;
   midi: { enabled: boolean; maps: MidiMap[] }; setMidi: (m: { enabled: boolean; maps: MidiMap[] }) => void;
   targets: MidiTarget[]; learning: string | null; setLearning: (t: string | null) => void;
@@ -23,6 +25,7 @@ export function SettingsDialog({ open, onOpenChange, bt, connectBt, midi, setMid
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader><DialogTitle>Settings</DialogTitle></DialogHeader>
         <div className="space-y-5 text-xs">
+          <Button variant="secondary" className="w-full" onClick={() => { onOpenChange(false); onSetups(); }}><FolderOpen />Project setups</Button>
           <section className="space-y-2">
             <h3 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground"><Tv className="h-4 w-4" />Tablet & screen</h3>
             <button onClick={toggleFs} className="flex w-full items-center justify-center gap-2 rounded-lg bg-surface-elevated py-3 font-semibold"><Maximize className="h-4 w-4" />{fs ? "Exit full screen" : "Full screen console"}</button>

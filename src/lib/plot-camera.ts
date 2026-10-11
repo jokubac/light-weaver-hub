@@ -24,8 +24,17 @@ export const defaultCamera = (x: number, y: number, floor = 0): PlotCamera => ({
 
 /** Horizontal field of view in degrees. */
 export function horizontalFov(c: PlotCamera) {
-  const s = SENSORS.find((x) => x.id === c.sensor) ?? SENSORS[0]!;
-  return (2 * Math.atan(s.w / (2 * Math.max(1, c.lens))) * 180) / Math.PI;
+  const s = SENSORS.find((x) => x.id === c.sensor);
+  return (2 * Math.atan((s?.w ?? 24.9) / (2 * Math.max(1, c.lens))) * 180) / Math.PI;
+}
+
+/** Plot coordinates are X/Y on the floor and +Z up; screen right must form an upright basis. */
+export function cameraBasis(c: Pick<PlotCamera, "rot" | "tilt">) {
+  const yaw = c.rot * Math.PI / 180, pitch = -c.tilt * Math.PI / 180;
+  const forward: [number, number, number] = [Math.cos(yaw) * Math.cos(pitch), Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch)];
+  const right: [number, number, number] = [Math.sin(yaw), -Math.cos(yaw), 0];
+  const up: [number, number, number] = [-Math.cos(yaw) * Math.sin(pitch), -Math.sin(yaw) * Math.sin(pitch), Math.cos(pitch)];
+  return { forward, right, up };
 }
 
 /** Scene-referred exposure multiplier: 18% grey at ~400 lux, ISO 800, f/2.8. */

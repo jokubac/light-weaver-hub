@@ -240,7 +240,9 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       ctx.setTransform(m[0] * dpr, m[1] * dpr, m[2] * dpr, m[3] * dpr, m[4] * dpr, (m[5] - z * zs) * dpr);
       ctx.globalAlpha = isActive ? 1 : 0.45;
       ctx.fillStyle = "rgba(255,255,255,0.035)";
-      ctx.fillRect(0, 0, SW, SH);
+      const corners = [[0, 0], [dims.w, 0], [0, dims.h], [dims.w, dims.h]].map(([x, y]) => unproj(V, x ?? 0, y ?? 0, z));
+      const left = Math.min(...corners.map((q) => q[0])), top = Math.min(...corners.map((q) => q[1]));
+      ctx.fillRect(left, top, Math.max(...corners.map((q) => q[0])) - left, Math.max(...corners.map((q) => q[1])) - top);
       const src = bgOf(i);
       const im = src ? imgs.current.get(src) : undefined;
       if (im) {
@@ -266,7 +268,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       }
       ctx.strokeStyle = isActive ? "rgba(34,211,238,0.5)" : "rgba(255,255,255,0.2)";
       ctx.lineWidth = 0.05;
-      ctx.strokeRect(0, 0, SW, SH);
+
       ctx.lineCap = "round"; ctx.lineJoin = "round";
       for (const s of plot.strokes) {
         if ((s.floor ?? 0) !== i) continue;
@@ -408,12 +410,14 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const walls = segsOf(floorOf(it));
       const omega = Math.max(0.001, 2 * Math.PI * (1 - Math.cos((Math.min(half, 90) * Math.PI) / 180)));
       const z0 = fz(it);
-      const cell = Math.max(0.04, Math.max(SW, SH) / 500);
-      const key = `${it.x},${it.y},${h},${it.rot},${tilt},${watts},${beam},${lv.toFixed(4)},${r},${g},${b},${SW},${SH}|${geometryKey(floorOf(it))}`;
+      const extent = Math.max(1, rFar * 2);
+      const cell = Math.max(.04, extent / 256);
+      const bx = it.x - extent / 2, by = it.y - extent / 2;
+      const key = `${it.x},${it.y},${h},${it.rot},${tilt},${watts},${beam},${lv.toFixed(4)},${r},${g},${b},${extent}|${geometryKey(floorOf(it))}`;
       let entry = beamCache.get(f.uid);
       if (!entry || entry.key !== key) {
         const texture = entry?.canvas ?? document.createElement("canvas");
-        const tw = Math.ceil(SW / cell), th2 = Math.ceil(SH / cell);
+        const tw = Math.ceil(extent / cell), th2 = tw;
         if (texture.width !== tw || texture.height !== th2) { texture.width = tw; texture.height = th2; }
         const tc = texture.getContext("2d");
         if (!tc) continue;
@@ -422,9 +426,9 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         const axis = [Math.cos(a) * Math.cos(tiltRad), Math.sin(a) * Math.cos(tiltRad), -Math.sin(tiltRad)];
         const halfRad = Math.min(90, half) * Math.PI / 180;
         const openings = plot.openings ?? [];
-        for (let ix = Math.max(0, Math.floor((it.x - rFar) / cell)); ix < Math.min(tw, Math.ceil((it.x + rFar) / cell)); ix++) {
-          for (let iy = Math.max(0, Math.floor((it.y - rFar) / cell)); iy < Math.min(th2, Math.ceil((it.y + rFar) / cell)); iy++) {
-            const cx = (ix + .5) * cell, cy = (iy + .5) * cell;
+        for (let ix = 0; ix < tw; ix++) {
+          for (let iy = 0; iy < th2; iy++) {
+            const cx = bx + (ix + .5) * cell, cy = by + (iy + .5) * cell;
             const dx = cx - it.x, dy = cy - it.y, rr = Math.hypot(dx,dy), distance = Math.hypot(rr,h);
             const angle = Math.acos(clampN((dx * (axis[0] ?? 0) + dy * (axis[1] ?? 0) - h * (axis[2] ?? 0)) / distance,-1,1));
             if (angle > halfRad || rayBlocked([it.x,it.y,h],[cx,cy,0],walls,openings)) continue;
@@ -442,7 +446,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       ctx.save();
       ctx.setTransform(m[0] * dpr, m[1] * dpr, m[2] * dpr, m[3] * dpr, m[4] * dpr, (m[5] - z0 * zs) * dpr);
       ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(entry.canvas,0,0,SW,SH);
+      ctx.drawImage(entry.canvas,bx,by,extent,extent);
       ctx.restore();
     }
     ctx.globalCompositeOperation = "source-over";
@@ -517,7 +521,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     }
     return null;
   };
-  const clampFloor = ([x, y]: [number, number]): [number, number] => [clampN(x, 0, SW), clampN(y, 0, SH)];
+  const clampFloor = ([x, y]: [number, number]): [number, number] => [x, y];
   const floorZ = floors[fl]!.z;
 
   const wallHit = (sx: number, sy: number) => {
@@ -707,7 +711,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const dx = fp[0] - d.last[0], dy = fp[1] - d.last[1];
       d.last = fp;
       const sel = selected.filter((u) => p.items[u]);
-      setPlot({ ...p, items: Object.fromEntries(Object.entries(p.items).map(([k, v]) => [k, sel.includes(k) ? { ...v, x: +clampN(v.x + dx, 0, SW).toFixed(2), y: +clampN(v.y + dy, 0, SH).toFixed(2) } : v])) });
+      setPlot({ ...p, items: Object.fromEntries(Object.entries(p.items).map(([k, v]) => [k, sel.includes(k) ? { ...v, x: +(v.x + dx).toFixed(2), y: +(v.y + dy).toFixed(2) } : v])) });
     } else {
       const fp = clampFloor(unproj(viewOf(), sx, sy, floorZ));
       const strokes = [...p.strokes];
@@ -937,7 +941,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               className={`rounded-md px-2 py-1.5 font-semibold ${beamsOn ? "bg-surface-elevated" : "bg-amber-glow text-primary-foreground"}`}>{beamsOn ? "Light preview on" : "Light preview off"}</button>
             <span className="hidden xl:inline">2 fingers: move · pinch · twist · 3 fingers: tilt</span>
           </div>
-          <div className="absolute right-3 top-3 rounded-md bg-surface/80 px-2 py-1 font-mono text-[10px] text-muted-foreground">{SW} × {SH} m · infinite grid</div>
+          <div className="absolute right-3 top-3 rounded-md bg-surface/80 px-2 py-1 font-mono text-[10px] text-muted-foreground">∞ × ∞ m</div>
         </div>
 
         <aside className="max-h-[45vh] lg:max-h-none w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-4 lg:w-80 lg:border-l lg:border-t-0">
@@ -950,8 +954,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
             const origin = st.pts[0] ?? [0,0];
             return <div className="space-y-2"><h3 className="text-sm font-semibold">Wall {wallIndex+1}</h3><fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50">
               <Slider label="Wall height" value={st.height ?? WALL_H} min={.2} max={12} step={.1} unit=" m" onChange={(height) => edit({...st,height})} />
-              <Slider label="Wall X" value={origin[0] ?? 0} min={0} max={SW} step={.1} unit=" m" onChange={(x) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a+x-(origin[0] ?? 0),b])})} />
-              <Slider label="Wall Y" value={origin[1] ?? 0} min={0} max={SH} step={.1} unit=" m" onChange={(y) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a,b+y-(origin[1] ?? 0)])})} />
+              <Slider label="Wall X" value={origin[0] ?? 0} unbounded min={(origin[0] ?? 0) - 50} max={(origin[0] ?? 0) + 50} step={.1} unit=" m" onChange={(x) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a+x-(origin[0] ?? 0),b])})} />
+              <Slider label="Wall Y" value={origin[1] ?? 0} unbounded min={(origin[1] ?? 0) - 50} max={(origin[1] ?? 0) + 50} step={.1} unit=" m" onChange={(y) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a,b+y-(origin[1] ?? 0)])})} />
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Wall lengths</p>
               {st.pts.slice(1).map((b,i) => {
                 const a = st.pts[i]!; const len = Math.hypot(b[0]-a[0], b[1]-a[1]);
@@ -971,7 +975,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           {objectId && (() => {
             const o = plot.objects?.find((o) => o.id === objectId); if (!o) return null;
             const edit = (patch: Partial<SetObject>) => setPlot({...plot,objects:(plot.objects ?? []).map((x) => x.id === o.id ? {...x,...patch}:x)});
-            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded border border-input bg-surface-elevated p-2" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} min={key === "rot" ? -180:0} max={max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
+            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded border border-input bg-surface-elevated p-2" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} unbounded={key === "x" || key === "y"} min={key === "x" || key === "y" ? o[key] - 50 : key === "rot" ? -180:0} max={key === "x" || key === "y" ? o[key] + 50 : max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
           })()}
           {first && firstItem ? (
             <div className="space-y-3">
@@ -1062,8 +1066,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                   </select>
                 </label>
                 <p className="text-[10px] text-muted-foreground">Horizontal view {horizontalFov(cam).toFixed(1)}°</p>
-                <Slider label="Camera X" value={cam.x} min={0} max={SW} step={0.1} unit=" m" onChange={(x) => editCam({ x })} />
-                <Slider label="Camera Y" value={cam.y} min={0} max={SH} step={0.1} unit=" m" onChange={(y) => editCam({ y })} />
+                <Slider label="Camera X" value={cam.x} unbounded min={cam.x - 50} max={cam.x + 50} step={0.1} unit=" m" onChange={(x) => editCam({ x })} />
+                <Slider label="Camera Y" value={cam.y} unbounded min={cam.y - 50} max={cam.y + 50} step={0.1} unit=" m" onChange={(y) => editCam({ y })} />
                 <Slider label="Camera height" value={cam.h} min={0.1} max={50} step={0.1} unit=" m" onChange={(h) => editCam({ h })} />
                 <Slider label="Camera pan" value={cam.rot} min={-180} max={180} unit="°" onChange={(rot) => editCam({ rot })} />
                 <Slider label="Camera tilt down" value={cam.tilt} min={-60} max={90} unit="°" onChange={(tilt) => editCam({ tilt })} />
@@ -1110,8 +1114,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
 
           {bgOf(fl) && <Slider label="Image visibility" value={(plot.bgOpacity ?? 0.8) * 100} min={5} max={100} unit="%" onChange={(v) => setPlot({ ...plot, bgOpacity: v / 100 })} />}
           <div className="grid grid-cols-2 gap-2">
-            <Slider label="Stage width" value={SW} min={4} max={80} unit=" m" onChange={(v) => setPlot({ ...plot, size: [v, SH] })} />
-            <Slider label="Stage depth" value={SH} min={4} max={80} unit=" m" onChange={(v) => setPlot({ ...plot, size: [SW, v] })} />
+            <label className="text-xs text-muted-foreground">Stage width <span className="ml-2 font-mono text-foreground">∞</span></label>
+            <label className="text-xs text-muted-foreground">Stage depth <span className="ml-2 font-mono text-foreground">∞</span></label>
           </div>
         </aside>
       </div>
@@ -1119,10 +1123,10 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   );
 }
 
-function Slider({ label, value, min, max, step = 1, unit, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit: string; onChange: (v: number) => void }) {
+function Slider({ label, value, min, max, step = 1, unit, unbounded = false, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit: string; unbounded?: boolean; onChange: (v: number) => void }) {
   return (
     <label className="block space-y-1">
-      <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} min={min} max={max} value={+value.toFixed(2)} onChange={(v) => { if (v !== undefined) onChange(v); }} className="w-16 rounded border border-input bg-surface-elevated px-1 text-right" />{unit}</span></div>
+      <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} {...(unbounded ? {} : { min, max })} value={+value.toFixed(2)} onChange={(v) => { if (v !== undefined) onChange(v); }} className="w-16 rounded border border-input bg-surface-elevated px-1 text-right" />{unit}</span></div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} className="w-full accent-[var(--color-primary)]" />
     </label>
   );
