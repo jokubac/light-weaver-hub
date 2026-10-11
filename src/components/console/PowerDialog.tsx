@@ -1,3 +1,4 @@
+import { NumberField } from "./NumberField";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
@@ -29,9 +30,9 @@ export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
                 ))}
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <label>Capacity kWh<input type="number" step={0.01} min={0} value={d.kwh} onChange={(e) => setD({ ...d, kwh: Math.max(0, +e.target.value) })} className={inputCls} /></label>
-                <label>Charged %<input type="number" min={0} max={100} value={Math.round(d.charge * 100)} onChange={(e) => setD({ ...d, charge: Math.min(1, Math.max(0, +e.target.value / 100)) })} className={inputCls} /></label>
-                <label>Light W<input type="number" min={0} value={d.watts} onChange={(e) => setD({ ...d, watts: Math.max(0, +e.target.value) })} className={inputCls} /></label>
+                <label>Capacity kWh<NumberField min={0} value={d.kwh} onChange={(v) => setD({ ...d, kwh: v ?? 0 })} className={inputCls} /></label>
+                <label>Charged %<NumberField min={0} max={100} value={Math.round(d.charge * 100)} onChange={(v) => setD({ ...d, charge: (v ?? 0) / 100 })} className={inputCls} /></label>
+                <label>Light W<NumberField min={0} value={d.watts} onChange={(v) => setD({ ...d, watts: v ?? 0 })} className={inputCls} /></label>
               </div>
               <p className="normal-case tracking-normal">Light watts auto-set from {getDef(f.defId).model}: {autoW} W max. {d.watts !== autoW && <button onClick={() => setD({ ...d, watts: autoW })} className="text-primary underline">Use {autoW} W</button>}</p>
               <p className="normal-case tracking-normal text-foreground">At 100% output: about <b>{fmtHours(st.hours)}</b>. Lower intensity stretches it — the estimate updates live while you work.</p>

@@ -1,3 +1,4 @@
+import { NumberField } from "./NumberField";
 // Live light plot: draw the set (or drop in a floor plan photo) per floor, place lights on stands,
 // see their beams live in 2D or tilted 3D, and control them straight from the plot.
 // View: wheel / pinch zoom, hand or middle-drag pan, right-drag (or shift+hand) rotates / tilts.
@@ -879,7 +880,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                   if (closed) pts[last] = [pts[0]![0], pts[0]![1]];
                   edit({...st,pts});
                 };
-                return <label key={i} className="flex items-center justify-between gap-2 text-xs"><span>Side {i+1}</span><span className="flex items-center gap-1"><input aria-label={`Wall side ${i+1} length`} type="number" step=".01" min={.05} value={+len.toFixed(2)} onChange={(e) => setLen(+e.target.value)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>;
+                return <label key={i} className="flex items-center justify-between gap-2 text-xs"><span>Side {i+1}</span><span className="flex items-center gap-1"><NumberField aria-label={`Wall side ${i+1} length`} min={.05} value={+len.toFixed(2)} onChange={(v) => v && setLen(v)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>;
               })}
             </fieldset><Button variant="ghost" size="sm" onClick={() => removeWall(wallIndex)}><Trash2 />Delete wall</Button></div>;
           })()}
@@ -901,7 +902,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               <Slider label="Height" value={firstItem.h} min={0.3} max={12} step={0.1} unit=" m" onChange={(v) => setItems({ h: v })} />
               {selItems.length > 1 && <div className="space-y-2 rounded-md border border-border p-2">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Align & space</p>
-                <label className="flex items-center justify-between gap-2 text-xs"><span>Gap between lights</span><span className="flex items-center gap-1"><input aria-label="Gap between lights" type="number" min={0} step={0.05} value={spaceGap} onChange={(e) => setSpaceGap(Math.max(0, +e.target.value || 0))} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>
+                <label className="flex items-center justify-between gap-2 text-xs"><span>Gap between lights</span><span className="flex items-center gap-1"><NumberField aria-label="Gap between lights" min={0} value={spaceGap} onChange={(v) => setSpaceGap(v ?? 0)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>
                 <div className="flex gap-1">{[0, 0.1, 0.5, 1].map((g) => <Button key={g} size="sm" variant={spaceGap === g ? "default" : "secondary"} className="flex-1" onClick={() => setSpaceGap(g)}>{g === 0 ? "Touch" : `${g} m`}</Button>)}</div>
                 <div className="grid grid-cols-2 gap-1">
                   <Button size="sm" variant="secondary" onClick={() => arrange("x", spaceGap)}>Row (left→right)</Button>
@@ -993,7 +994,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
 function Slider({ label, value, min, max, step = 1, unit, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit: string; onChange: (v: number) => void }) {
   return (
     <label className="block space-y-1">
-      <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><input aria-label={`${label} value`} type="number" min={min} max={max} step={step} value={+value.toFixed(2)} onChange={(e) => { if (e.target.value) onChange(clampN(+e.target.value,min,max)); }} className="w-16 rounded border border-input bg-surface-elevated px-1 text-right" />{unit}</span></div>
+      <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} min={min} max={max} value={+value.toFixed(2)} onChange={(v) => { if (v !== undefined) onChange(v); }} className="w-16 rounded border border-input bg-surface-elevated px-1 text-right" />{unit}</span></div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} className="w-full accent-[var(--color-primary)]" />
     </label>
   );
