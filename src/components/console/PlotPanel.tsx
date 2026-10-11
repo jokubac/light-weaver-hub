@@ -645,7 +645,7 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
                   </>
                 );
               })()}
-              <div className="grid grid-cols-8 gap-1">{["#ffffff","#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => selItems.forEach((u) => update(u, c === "#ffffff" ? { crossfade: 0 } : { ...hexToHs(c) && { hue: hexToHs(c).h, saturation: hexToHs(c).s }, crossfade: 1, cctOnly: false }))} className="h-6 rounded border border-input" style={{ background: c }} />)}</div>
+              <div className="grid grid-cols-8 gap-1">{["#ffffff","#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => selItems.forEach((u) => update(u, c === "#ffffff" ? { crossfade: 0 } : { hue: hexToHs(c).h, saturation: hexToHs(c).s, crossfade: 1, cctOnly: false }))} className="h-6 rounded border border-input" style={{ background: c }} />)}</div>
               <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={(p) => selItems.forEach((u) => update(u, p))} />
               {floors.length > 1 && (
                 <label className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Floor</span>
