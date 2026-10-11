@@ -46,7 +46,7 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center p-5">
       <div className="w-full max-w-sm space-y-5 rounded-xl border border-border bg-card p-6">
         <div>
-          <h1 className="font-display text-2xl font-semibold">KROMA</h1>
+          <h1 className="font-display text-4xl font-extrabold tracking-[0.2em] text-primary">KROMA</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to open your projects, favourites and saved effects on any device.</p>
         </div>
         <button onClick={google} className="w-full rounded-lg bg-surface-elevated py-3 text-sm font-semibold active:scale-95">Continue with Google</button>

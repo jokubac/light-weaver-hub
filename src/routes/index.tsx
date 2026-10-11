@@ -223,7 +223,7 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="truncate font-display text-xl font-bold tracking-tight">{title}</h1>
         {subtitle && <p className="truncate text-xs text-primary">{subtitle}</p>}
       </div>
       {right}
