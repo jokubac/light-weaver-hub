@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import {
@@ -14,8 +14,9 @@ import {
 
 export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
 
-export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void }) {
+export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void }) {
   const [query, setQuery] = useState("");
+  const [unpick, setUnpick] = useState<string[]>([]);
   const [brand, setBrand] = useState<string | null>(null);
   const [def, setDef] = useState<FixtureDef | null>(null);
   const [modeIdx, setModeIdx] = useState<number | null>(null);
@@ -100,6 +101,45 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
         </List>
       ) : (
         <PatchConfig fixtures={fixtures} def={def} modeIdx={modeIdx} onAdd={(fs) => { onAdd(fs); setModeIdx(null); }} />
+      )}
+
+      {fixtures.length > 0 && (
+        <div className="space-y-2 rounded-lg bg-surface-elevated/50 p-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Patched ({fixtures.length})</span>
+            <button
+              onClick={() => {
+                if (unpick.length === 0) return;
+                const names = fixtures.filter((f) => unpick.includes(f.uid)).map((f) => f.name);
+                if (window.confirm(`Unpatch ${names.length === 1 ? `"${names[0]}"` : `${names.length} fixtures`}? This cannot be undone.`)) {
+                  onRemove(unpick);
+                  setUnpick([]);
+                }
+              }}
+              disabled={unpick.length === 0}
+              className="flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-[11px] font-semibold text-destructive-foreground disabled:opacity-40"
+            >
+              <Unplug className="h-3.5 w-3.5" />Unpatch{unpick.length > 0 ? ` (${unpick.length})` : ""}
+            </button>
+          </div>
+          <div className="max-h-48 space-y-1 overflow-y-auto">
+            {fixtures.map((f) => {
+              const on = unpick.includes(f.uid);
+              return (
+                <button
+                  key={f.uid}
+                  onClick={() => setUnpick((u) => (on ? u.filter((x) => x !== f.uid) : [...u, f.uid]))}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${on ? "bg-destructive/20 ring-1 ring-destructive" : "bg-surface-elevated"}`}
+                >
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${on ? "border-destructive bg-destructive text-destructive-foreground" : "border-input"}`}>{on ? "✓" : ""}</span>
+                  {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
+                  <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
+                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">U{f.universe}.{f.address} · {FIXTURE_LIBRARY.find((d) => d.id === f.defId)?.modes[f.modeIdx]?.channels ?? "?"}ch</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );

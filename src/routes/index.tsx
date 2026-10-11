@@ -718,7 +718,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
 
         {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
           {panel === "patch" ? (
-            <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} />
+            <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
           ) : panel === "looks" ? (
             <LooksPanel fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
           ) : panel === "groups" ? (
