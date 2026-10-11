@@ -132,7 +132,6 @@ export function FixtureControls({
 
       <Section title="Colour">
         <ColourControls value={first} update={update} />
-        {anyCaps.color && <label className="flex items-center justify-between text-xs">CCT only<input type="checkbox" checked={first.cctOnly} onChange={(e) => update({ cctOnly: e.target.checked })} /></label>}
         {anyCaps.gm && <><Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm.toFixed(2)} onChange={(gm) => update({ gm })} onReset={() => update({ gm: 0 })} /><GmMacros value={first.gm} update={update} /></>}
         <ColorSource onPick={(hex, lbl) => {
           if (lbl.endsWith("K")) update({ cct: cctFromKelvin(parseInt(lbl, 10)), crossfade: 0 });
