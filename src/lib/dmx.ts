@@ -4,6 +4,7 @@ export type ModeKind = "dim" | "cct" | "cctgm" | "hsi" | "rgb" | "rgbw" | "full"
 
 export interface FixtureMode {
   pixels?: number; // pixel count for pixel modes
+  grid?: [number, number]; // physical pixel layout [cols, rows], numbered row by row from top-left
   name: string;
   channels: number;
   kind: ModeKind;
@@ -28,7 +29,7 @@ export function caps(kind: ModeKind) {
 // Channel counts follow manufacturer DMX charts as closely as possible;
 // always double-check against the fixture's firmware manual on set.
 
-const m = (name: string, channels: number, kind: ModeKind, pixels?: number): FixtureMode => ({ name, channels, kind, ...(pixels ? { pixels } : {}) });
+const m = (name: string, channels: number, kind: ModeKind, pixels?: number, grid?: [number, number]): FixtureMode => ({ name, channels, kind, ...(pixels ? { pixels } : {}), ...(grid ? { grid } : {}) });
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const fam = (brand: string, models: string[], modes: FixtureMode[]): FixtureDef[] =>
   models.map((model) => ({ id: slug(`${brand} ${model}`), brand, model, modes }));
@@ -123,8 +124,8 @@ const CHAUVET = [m("Dim 1ch", 1, "dim"), m("RGB 3ch", 3, "rgb"), m("RGBW 4ch", 4
 
 export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("ARRI", ["SkyPanel S30-C", "SkyPanel S60-C", "SkyPanel S120-C", "SkyPanel S360-C", "SkyPanel X"], ARRI_SKYPANEL),
-  ...fam("ARRI", ["SkyPanel S60-C (Pixel)"], [...ARRI_SKYPANEL, m("Pixel RGBW 8-bit (4 px)", 24, "rgbw", 4), m("Pixel HSI 8-bit (4 px)", 20, "hsi", 4)]),
-  ...fam("ARRI", ["SkyPanel S360-C (Pixel)"], [...ARRI_SKYPANEL, m("Pixel RGBW 8-bit (12 px)", 72, "rgbw", 12), m("Pixel HSI 8-bit (12 px)", 60, "hsi", 12)]),
+  ...fam("ARRI", ["SkyPanel S60-C (Pixel)"], [...ARRI_SKYPANEL, m("Pixel RGBW 8-bit (4 px)", 24, "rgbw", 4, [4, 1]), m("Pixel HSI 8-bit (4 px)", 20, "hsi", 4, [4, 1])]),
+  ...fam("ARRI", ["SkyPanel S360-C (Pixel)"], [...ARRI_SKYPANEL, m("Pixel RGBW 8-bit (12 px)", 72, "rgbw", 12, [4, 3]), m("Pixel HSI 8-bit (12 px)", 60, "hsi", 12, [4, 3])]),
   ...fam("ARRI", ["Orbiter"], ARRI_ORBITER),
   ...fam("ARRI", ["L5-C", "L7-C", "L10-C"], ARRI_L),
   ...fam("ARRI", ["M18 (EB Max ballast)", "M40 (EB Max ballast)", "M90 (EB Max ballast)", "Studio Fresnel (dimmer)", "ARRIMAX 18/12"], DIM),
@@ -151,9 +152,9 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Godox", ["TL30"], pxModes(8, GODOX_RGB)),
   ...fam("Godox", ["TL60", "TP4R"], pxModes(16, GODOX_RGB)),
   ...fam("Godox", ["TL120", "TP8R"], pxModes(32, GODOX_RGB)),
-  ...fam("Creamsource", ["Vortex4"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (4 px)", 16, "rgbw", 4), m("Pixel HSI 8-bit (4 px)", 20, "hsi", 4)]),
-  ...fam("Creamsource", ["Vortex8"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (8 px)", 32, "rgbw", 8), m("Pixel HSI 8-bit (8 px)", 40, "hsi", 8)]),
-  ...fam("Creamsource", ["Vortex24"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (24 px)", 96, "rgbw", 24), m("Pixel HSI 8-bit (24 px)", 120, "hsi", 24)]),
+  ...fam("Creamsource", ["Vortex4"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (4 px)", 16, "rgbw", 4, [2, 2]), m("Pixel HSI 8-bit (4 px)", 20, "hsi", 4, [2, 2])]),
+  ...fam("Creamsource", ["Vortex8"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (8 px)", 32, "rgbw", 8, [4, 2]), m("Pixel HSI 8-bit (8 px)", 40, "hsi", 8, [4, 2])]),
+  ...fam("Creamsource", ["Vortex24"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (24 px)", 96, "rgbw", 24, [6, 4]), m("Pixel HSI 8-bit (24 px)", 120, "hsi", 24, [6, 4])]),
   ...fam("Creamsource", ["Micro Colour", "SpaceX", "Slyce"], CREAM_MICRO),
   ...fam("Astera", ["Titan Tube"], asteraPx(16)),
   ...fam("Astera", ["Helios Tube", "AX1 PixelTube"], asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5))),
@@ -167,7 +168,7 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Kino Flo", ["FreeStyle 21", "FreeStyle 31", "FreeStyle T44", "Celeb 250", "Celeb 450", "Celeb 850", "Select 30", "MIMIK 120", "Diva-Lite LED 30"], KINO),
   ...fam("Litepanels", ["Gemini 2x1", "Gemini 1x1", "Gemini 2x1 Hard", "Astra 6X Bi", "Studio X", "Apollo Bridge"], LITEPANELS),
   ...fam("DMG Lumière", ["SL1 MIX", "MAXI MIX", "MINI MIX", "DASH"], DMG),
-  ...fam("LiteGear", ["LiteMat Spectrum 2", "LiteMat Spectrum 4", "LiteMat Spectrum 8"], [...LITEPANELS, m("Pixel RGBW (8 px)", 32, "rgbw", 8)]),
+  ...fam("LiteGear", ["LiteMat Spectrum 2", "LiteMat Spectrum 4", "LiteMat Spectrum 8"], [...LITEPANELS, m("Pixel RGBW (8 px)", 32, "rgbw", 8, [4, 2])]),
   ...fam("Rotolight", ["AEOS 2 Pro", "Titan X1", "Titan X2", "NEO 3 Pro"], DMG),
   ...fam("Cineo", ["Matchbox", "Lightblade", "HS2"], LITEPANELS),
   ...fam("Chauvet", ["onAir Panel 1 IP", "onAir Panel 2 IP", "Ovation E-260WW", "COLORado Solo Batten"], CHAUVET),
@@ -176,7 +177,7 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Zylight", ["Go-Panel", "F8-200"], APUTURE_MC),
   ...fam("Velvet", ["EVO 2", "Power 2", "Mini 1"], LITEPANELS),
   ...fam("Fiilex", ["Q1000 Color", "P360 Pro Plus"], GODOX_RGB),
-  ...fam("Digital Sputnik", ["DS1", "DS3", "DS6"], [...ARRI_SKYPANEL, m("Pixel RGBW (3 px per module)", 18, "rgbw", 3)]),
+  ...fam("Digital Sputnik", ["DS1", "DS3", "DS6"], [...ARRI_SKYPANEL, m("Pixel RGBW (3 px per module)", 18, "rgbw", 3, [1, 3])]),
   ...fam("Generic", ["Dimmer"], DIM),
   ...fam("Generic", ["Bi-colour LED"], BI),
   ...fam("Generic", ["RGB Par"], [m("RGB 3ch", 3, "rgb"), m("Dim RGB 4ch", 4, "rgb")]),
@@ -296,7 +297,16 @@ export interface PatchedFixture {
   trigger?: { kind: TriggerKind; at: number } | null;
   on?: boolean; // lamp on/off, independent of effects
   fxPlaying?: boolean; // effect play / stop
+  label?: string; // colour tag chosen when patching
+  group?: string; // group name
+  fan?: FanMode;
+  gel?: string; // gel id from the gel library
+  /** one pixel of a split pixel fixture, controlled as its own light */
+  split?: { from: string; name: string; index: number; of: number; cpp: number };
 }
+
+export type FanMode = "auto" | "silent" | "low" | "medium" | "high" | "max" | "off";
+export const FAN_MODES: FanMode[] = ["auto", "silent", "low", "medium", "high", "max", "off"];
 
 export const kelvin = (cct: number) => Math.round((2000 + cct * 8000) / 50) * 50;
 export const cctFromKelvin = (k: number) => (k - 2000) / 8000;
@@ -350,12 +360,17 @@ export function normalizeFixture(raw: Record<string, unknown>): PatchedFixture {
     trigger: null,
     on: r.on ?? true,
     fxPlaying: r.fxPlaying ?? true,
+    ...(r.label ? { label: r.label } : {}),
+    ...(r.group ? { group: r.group } : {}),
+    ...(r.fan ? { fan: r.fan } : {}),
+    ...(r.gel ? { gel: r.gel } : {}),
+    ...(r.split ? { split: r.split } : {}),
   };
 }
 
 /* ---------------- Patch helpers ---------------- */
 
-export const footprint = (f: PatchedFixture) => getMode(f).channels;
+export const footprint = (f: PatchedFixture) => (f.split ? f.split.cpp : getMode(f).channels);
 
 export function overlaps(fixtures: PatchedFixture[], universe: number, address: number, channels: number, ignoreUid?: string) {
   const end = address + channels - 1;
