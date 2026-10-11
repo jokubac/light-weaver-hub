@@ -1,7 +1,7 @@
 import type { FixtureIcon } from "@/lib/fixture-icons";
 
 /** Recognisable fixture bodies, with a stable common stage and model-relative tube lengths. */
-export function FixtureGlyph({ model, icon = "auto", colour, pixels, className = "h-24 w-full" }: { model: string; icon?: FixtureIcon; colour: string; pixels?: string[] | undefined; className?: string }) {
+export function FixtureGlyph({ model, icon = "auto", colour, pixels, className = "h-24 w-full" }: { model: string; icon?: FixtureIcon | undefined; colour: string; pixels?: string[] | undefined; className?: string }) {
   const m = model.toLowerCase();
   const auto = icon === "auto";
   const tube = auto ? /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip/.test(m) : icon.startsWith("tube-");

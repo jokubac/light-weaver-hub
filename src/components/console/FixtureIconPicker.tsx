@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FIXTURE_ICONS, type FixtureIcon } from "@/lib/fixture-icons";
 import { FixtureGlyph } from "./FixtureGlyph";
 
-export function FixtureIconPicker({ model, value = "auto", onChange }: { model: string; value?: FixtureIcon; onChange: (icon: FixtureIcon) => void }) {
+export function FixtureIconPicker({ model, value = "auto", onChange }: { model: string; value?: FixtureIcon | undefined; onChange: (icon: FixtureIcon) => void }) {
   return <fieldset className="space-y-2">
     <legend className="text-[10px] font-semibold uppercase text-muted-foreground">Fixture icon</legend>
     <div className="grid grid-cols-3 gap-1.5">
