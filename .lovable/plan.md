@@ -15,7 +15,7 @@ Tavo žinutė nutrūko ties „dary…“. Jei norėjai dar kažką pridėti, pa
 - Unpatch sąraše bus mygtukai „Select all“ ir „Deselect all“.
 
 ## 3. Grupės šoninėje juostoje
-- Kairėje šoninėje juostoje, po dabartiniais elementais, rodomos grupės.
+- Dešinėje šoninėje juostoje, po dabartiniais elementais, rodomos grupės.
 - Valdymo lange paspaudus grupę, visos jos lempos pažymimos, o paspaudus dar kartą – atžymimos. Taip vienu ypu keiti visų pažymėtų lempų parametrus.
 
 ## 4. Efektai ir pixel – tik pažymėtoms lempoms
