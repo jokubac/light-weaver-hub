@@ -17,6 +17,8 @@ export interface PixelLayer {
   playing: boolean;
   kind: PixelFx;
   colors: string[];
+  /** Optional tint for generated-colour effects (rainbow, plasma, fire). */
+  tint?: string;
   speed: number; // 0.001–100 multiplier
   size: number; // band width in pixels
   text: string;
@@ -167,6 +169,8 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
   const { placed, W, H, S } = layoutLayer(layer, fixtures);
   if (!placed.length) return out;
   const cols: RGB[] = layer.colors.length ? layer.colors.map(hexToRgb) : [[255, 255, 255]];
+  const tintRgb = layer.tint ? hexToRgb(layer.tint) : null;
+  const tinted = (c: RGB): RGB => (tintRgb ? (c.map((v, i) => (v * tintRgb[i]!) / 255) as RGB) : c);
   const col = (i: number) => cols[((i % cols.length) + cols.length) % cols.length]!;
   const dir = layer.reverse ? -1 : 1;
   const tt = t * layer.speed + (layer.phase ?? 0);
@@ -189,7 +193,7 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
         const d = Math.abs(x - p);
         return d < size ? scale(cols[0]!, 1 - d / size) : (cols[1] ? scale(cols[1], 0.15) : BLACK);
       }
-      case "rainbow": return hsvToRgb((((x / W + y / (H * 4)) * dir - tt * 0.3) * 360 % 360 + 360) % 360, 1, 1);
+      case "rainbow": return tinted(hsvToRgb((((x / W + y / (H * 4)) * dir - tt * 0.3) * 360 % 360 + 360) % 360, 1, 1));
       case "wave": {
         const k = (Math.sin((x / size) * dir - tt * 4) + 1) / 2;
         return mix(cols[1] ?? BLACK, cols[0]!, k);
@@ -201,14 +205,14 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
       }
       case "plasma": {
         const v = Math.sin(x * 0.4 + tt * 2) + Math.sin(y * 0.6 - tt * 1.5) + Math.sin((x + y) * 0.3 + tt);
-        return hsvToRgb((((v + 3) / 6) * 360 + tt * 40) % 360, 1, 1);
+        return tinted(hsvToRgb((((v + 3) / 6) * 360 + tt * 40) % 360, 1, 1));
       }
       case "fire": {
         // 2D: hottest at the bottom row. 1D: flickering embers along the length.
         const base = H > 1 ? (y + 1) / H : 0.75;
         const n = smooth(x * 0.9 + tt * 6 + y * 3.1) * 0.6 + smooth(x * 2.3 - tt * 11) * 0.4;
         const flick = smooth(tt * 9 + x * 0.5);
-        return fireColor(base * (0.55 + n * 0.6) * (0.75 + flick * 0.35));
+        return tinted(fireColor(base * (0.55 + n * 0.6) * (0.75 + flick * 0.35)));
       }
       case "sparkle": {
         const r = hash(x * 13.1 + y * 71.7 + Math.floor(tt * 12) * 3.3);
