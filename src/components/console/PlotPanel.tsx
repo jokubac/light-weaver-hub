@@ -55,6 +55,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const canvas = useRef<HTMLCanvasElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
   const [view3d, setView3d] = useState(false);
+  const [spaceGap, setSpaceGap] = useState(0);
   const [yaw, setYaw] = useState(0);
   const [pitch, setPitch] = useState(55);
   const [zoom, setZoom] = useState(1);
@@ -811,7 +812,20 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               <Slider label="Wall height" value={st.height ?? WALL_H} min={.2} max={12} step={.1} unit=" m" onChange={(height) => edit({...st,height})} />
               <Slider label="Wall X" value={origin[0] ?? 0} min={0} max={SW} step={.1} unit=" m" onChange={(x) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a+x-(origin[0] ?? 0),b])})} />
               <Slider label="Wall Y" value={origin[1] ?? 0} min={0} max={SH} step={.1} unit=" m" onChange={(y) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a,b+y-(origin[1] ?? 0)])})} />
-              {st.pts.map((point,i) => <div key={i} className="flex items-center gap-2 text-xs"><span>Point {i+1}</span>{point.map((v,axis) => <input key={axis} aria-label={`Wall point ${i+1} ${axis === 0 ? "X":"Y"}`} type="number" step=".01" value={+v.toFixed(2)} className="min-w-0 w-20 rounded border border-input bg-surface-elevated p-1" onChange={(e) => edit({...st,pts:st.pts.map((p,j):[number,number] => j === i ? [axis === 0 ? +e.target.value:p[0],axis === 1 ? +e.target.value:p[1]]:p)})} />)}<span>m</span></div>)}
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Wall lengths</p>
+              {st.pts.slice(1).map((b,i) => {
+                const a = st.pts[i]!; const len = Math.hypot(b[0]-a[0], b[1]-a[1]);
+                const closed = st.pts.length > 2 && Math.hypot(st.pts[0]![0]-st.pts[st.pts.length-1]![0], st.pts[0]![1]-st.pts[st.pts.length-1]![1]) < 1e-3;
+                const setLen = (next: number) => {
+                  if (!(next > 0.05) || len < 1e-6) return;
+                  const dx = (b[0]-a[0])/len*(next-len), dy = (b[1]-a[1])/len*(next-len);
+                  const last = st.pts.length - 1;
+                  const pts = st.pts.map((p,j):[number,number] => (j > i && !(closed && j === last)) ? [p[0]+dx,p[1]+dy] : p);
+                  if (closed) pts[last] = [pts[0]![0], pts[0]![1]];
+                  edit({...st,pts});
+                };
+                return <label key={i} className="flex items-center justify-between gap-2 text-xs"><span>Side {i+1}</span><span className="flex items-center gap-1"><input aria-label={`Wall side ${i+1} length`} type="number" step=".01" min={.05} value={+len.toFixed(2)} onChange={(e) => setLen(+e.target.value)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>;
+              })}
             </fieldset><Button variant="ghost" size="sm" onClick={() => removeWall(wallIndex)}><Trash2 />Delete wall</Button></div>;
           })()}
           {objectId && (() => {
@@ -829,6 +843,17 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               <fieldset disabled={!layoutUnlocked} className="space-y-3 disabled:opacity-50"><Slider label="Direction (pan)" value={firstItem.rot} min={-180} max={180} unit="°" onChange={(v) => setItems({ rot: v })} />
               <Slider label="Tilt down" value={firstItem.tilt ?? DEFAULT_TILT} min={0} max={90} unit="°" onChange={(v) => setItems({ tilt: v })} />
               <Slider label="Height" value={firstItem.h} min={0.3} max={12} step={0.1} unit=" m" onChange={(v) => setItems({ h: v })} />
+              {selItems.length > 1 && <div className="space-y-2 rounded-md border border-border p-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Align & space</p>
+                <label className="flex items-center justify-between gap-2 text-xs"><span>Gap between lights</span><span className="flex items-center gap-1"><input aria-label="Gap between lights" type="number" min={0} step={0.05} value={spaceGap} onChange={(e) => setSpaceGap(Math.max(0, +e.target.value || 0))} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>
+                <div className="flex gap-1">{[0, 0.1, 0.5, 1].map((g) => <Button key={g} size="sm" variant={spaceGap === g ? "default" : "secondary"} className="flex-1" onClick={() => setSpaceGap(g)}>{g === 0 ? "Touch" : `${g} m`}</Button>)}</div>
+                <div className="grid grid-cols-2 gap-1">
+                  <Button size="sm" variant="secondary" onClick={() => arrange("x", spaceGap)}>Row (left→right)</Button>
+                  <Button size="sm" variant="secondary" onClick={() => arrange("y", spaceGap)}>Column (top→bottom)</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setItems({ y: firstItem.y })}>Align Y only</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setItems({ x: firstItem.x })}>Align X only</Button>
+                </div>
+              </div>}
               {(() => {
                 const o = opticsOf(first, firstItem);
                 const spec = OPTIC_BY_ID[o.optic];
