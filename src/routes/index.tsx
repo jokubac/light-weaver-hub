@@ -3,21 +3,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Plus,
-  Trash2,
   Lightbulb,
   LightbulbOff,
   Check,
   Folder,
   Clapperboard,
-  Copy,
 } from "lucide-react";
-import {
-  EFFECTS,
-  FIXTURE_LIBRARY,
-  createFixture,
-  fixtureColor,
-  type PatchedFixture,
-} from "@/lib/dmx";
+import { fixtureColor, getDef, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
+import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
+import { PatchPanel } from "@/components/console/PatchPanel";
+import { FixtureControls } from "@/components/console/FixtureControls";
+import { AiLookPanel } from "@/components/console/AiLookPanel";
 import {
   PROJECT_COLORS,
   loadProjects,
@@ -77,17 +73,19 @@ function App() {
       <ProjectsScreen
         projects={projects}
         onOpen={(id) => setView({ name: "scenes", projectId: id })}
-        onCreate={(name) => {
+        onCreate={(name, color) => {
           const p: Project = {
             id: uid(),
             name,
-            color: PROJECT_COLORS[projects.length % PROJECT_COLORS.length] ?? PROJECT_COLORS[0]!,
+            color,
             createdAt: Date.now(),
             scenes: [],
           };
           setProjects((ps) => [p, ...ps]);
         }}
         onDelete={(id) => setProjects((ps) => ps.filter((p) => p.id !== id))}
+        onUpdate={updateProject}
+        onDuplicate={(id) => setProjects((ps) => { const src = ps.find((p) => p.id === id); return src ? [{ ...structuredClone(src), id: uid(), name: `${src.name} copy`, createdAt: Date.now() }, ...ps] : ps; })}
       />
     );
   }
@@ -112,7 +110,7 @@ function App() {
             name,
             createdAt: Date.now(),
             // new scenes inherit the patch from the latest scene
-            fixtures: prev ? prev.fixtures.map((f) => ({ ...f, intensity: 0, effect: "none" })) : [],
+            fixtures: prev ? prev.fixtures.map((f) => ({ ...f, intensity: 0, fx: { ...f.fx, kind: "none" as const }, trigger: null })) : [],
             master: 1,
           };
           updateProject(project.id, (p) => ({ ...p, scenes: [s, ...p.scenes] }));
@@ -128,6 +126,9 @@ function App() {
         }
         onDelete={(sceneId) =>
           updateProject(project.id, (p) => ({ ...p, scenes: p.scenes.filter((s) => s.id !== sceneId) }))
+        }
+        onRename={(sceneId, name) =>
+          updateProject(project.id, (p) => ({ ...p, scenes: p.scenes.map((s) => (s.id === sceneId ? { ...s, name } : s)) }))
         }
       />
     );
@@ -203,18 +204,27 @@ const fmtDate = (t: number) => new Date(t).toLocaleDateString(undefined, { month
 
 /* ---------------- Projects ---------------- */
 
-function ProjectsScreen({ projects, onOpen, onCreate, onDelete }: { projects: Project[]; onOpen: (id: string) => void; onCreate: (n: string) => void; onDelete: (id: string) => void }) {
+function ProjectsScreen({ projects, onOpen, onCreate, onDelete, onUpdate, onDuplicate }: {
+  projects: Project[]; onOpen: (id: string) => void; onCreate: (n: string, color: string) => void; onDelete: (id: string) => void;
+  onUpdate: (id: string, fn: (p: Project) => Project) => void; onDuplicate: (id: string) => void;
+}) {
+  const [color, setColor] = useState(PROJECT_COLORS[0]!);
   return (
     <div className="min-h-screen">
       <Header title="CRMX Console" subtitle="Projects" />
       <main className="mx-auto max-w-5xl space-y-6 p-5">
-        <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={onCreate} />
+        <div className="space-y-3">
+          <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={(n) => onCreate(n, color)} />
+          <ColorSwatches value={color} onChange={setColor} />
+        </div>
         {projects.length === 0 ? (
           <Empty icon={<Folder className="h-10 w-10" />} text="No projects yet. Create one to start patching lights." />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((p) => (
-              <Card key={p.id} color={p.color} title={p.name} meta={`${p.scenes.length} scenes · ${fmtDate(p.createdAt)}`} onClick={() => onOpen(p.id)} onDelete={() => confirm(`Delete "${p.name}"?`) && onDelete(p.id)} />
+              <Card key={p.id} color={p.color} title={p.name} meta={`${p.scenes.length} scenes · ${fmtDate(p.createdAt)}`} onClick={() => onOpen(p.id)}
+                menu={<ItemMenu name={p.name} color={p.color} onDuplicate={() => onDuplicate(p.id)} onDelete={() => onDelete(p.id)}
+                  onRename={(name) => onUpdate(p.id, (x) => ({ ...x, name }))} onColor={(c) => onUpdate(p.id, (x) => ({ ...x, color: c }))} />} />
             ))}
           </div>
         )}
@@ -225,7 +235,10 @@ function ProjectsScreen({ projects, onOpen, onCreate, onDelete }: { projects: Pr
 
 /* ---------------- Scenes ---------------- */
 
-function ScenesScreen({ project, onBack, onOpen, onCreate, onDuplicate, onDelete }: { project: Project; onBack: () => void; onOpen: (id: string) => void; onCreate: (n: string) => void; onDuplicate: (id: string) => void; onDelete: (id: string) => void }) {
+function ScenesScreen({ project, onBack, onOpen, onCreate, onDuplicate, onDelete, onRename }: {
+  project: Project; onBack: () => void; onOpen: (id: string) => void; onCreate: (n: string) => void;
+  onDuplicate: (id: string) => void; onDelete: (id: string) => void; onRename: (id: string, n: string) => void;
+}) {
   return (
     <div className="min-h-screen">
       <Header title={project.name} subtitle="Scenes" onBack={onBack} />
@@ -236,19 +249,8 @@ function ScenesScreen({ project, onBack, onOpen, onCreate, onDuplicate, onDelete
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {project.scenes.map((s) => (
-              <Card
-                key={s.id}
-                color={project.color}
-                title={s.name}
-                meta={`${s.fixtures.length} fixtures · ${fmtDate(s.createdAt)}`}
-                onClick={() => onOpen(s.id)}
-                onDelete={() => confirm(`Delete "${s.name}"?`) && onDelete(s.id)}
-                extra={
-                  <button onClick={(e) => { e.stopPropagation(); onDuplicate(s.id); }} className="rounded-md p-2 text-muted-foreground hover:text-foreground" aria-label="Duplicate">
-                    <Copy className="h-4 w-4" />
-                  </button>
-                }
-              />
+              <Card key={s.id} color={project.color} title={s.name} meta={`${s.fixtures.length} fixtures · ${fmtDate(s.createdAt)}`} onClick={() => onOpen(s.id)}
+                menu={<ItemMenu name={s.name} onDuplicate={() => onDuplicate(s.id)} onDelete={() => onDelete(s.id)} onRename={(n) => onRename(s.id, n)} />} />
             ))}
           </div>
         )}
@@ -257,21 +259,16 @@ function ScenesScreen({ project, onBack, onOpen, onCreate, onDuplicate, onDelete
   );
 }
 
-function Card({ color, title, meta, onClick, onDelete, extra }: { color: string; title: string; meta: string; onClick: () => void; onDelete: () => void; extra?: React.ReactNode }) {
+function Card({ color, title, meta, onClick, menu }: { color: string; title: string; meta: string; onClick: () => void; menu: React.ReactNode }) {
   return (
-    <div onClick={onClick} className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card p-5 transition active:scale-[0.98] hover:border-primary/40">
-      <div className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
+    <div onClick={onClick} className="relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card p-5 transition active:scale-[0.98] hover:border-primary/40">
+      <div className="absolute inset-y-0 left-0 w-1.5" style={{ background: color }} />
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="truncate font-display text-lg font-semibold">{title}</h3>
           <p className="mt-1 text-xs text-muted-foreground">{meta}</p>
         </div>
-        <div className="flex">
-          {extra}
-          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="rounded-md p-2 text-muted-foreground hover:text-destructive" aria-label="Delete">
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+        {menu}
       </div>
     </div>
   );
@@ -288,31 +285,33 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
+type Panel = "patch" | "control" | "ai";
+
 function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void }) {
   const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
   const [blackout, setBlackout] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const [showPatch, setShowPatch] = useState(scene.fixtures.length === 0);
+  const [panel, setPanel] = useState<Panel>("patch");
   const [savedFlash, setSavedFlash] = useState(false);
   const [t, setT] = useState(0);
+  const clock = useRef(0);
 
-  // Animation clock for effects preview
   useEffect(() => {
     let raf = 0;
     const start = performance.now();
     const loop = () => {
-      setT((performance.now() - start) / 1000);
+      clock.current = (performance.now() - start) / 1000;
+      setT(clock.current);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // Auto-save every 10 seconds + on exit
   const latest = useRef({ fixtures, master });
   latest.current = { fixtures, master };
-  const save = () => onSave({ ...scene, fixtures: latest.current.fixtures, master: latest.current.master });
+  const save = () => onSave({ ...scene, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master });
   useEffect(() => {
     const id = setInterval(() => {
       save();
@@ -323,61 +322,53 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const exit = () => {
-    save();
-    onExit();
-  };
-
-  const defs = useMemo(() => Object.fromEntries(FIXTURE_LIBRARY.map((d) => [d.id, d])), []);
-  const nextAddress = fixtures.reduce((max, f) => Math.max(max, f.address + (defs[f.defId]?.channels ?? 1)), 1);
+  const exit = () => { save(); onExit(); };
 
   const updateSelected = (patch: Partial<PatchedFixture>) =>
     setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
 
-  const sel = fixtures.filter((f) => selected.includes(f.uid));
-  const first = sel[0];
-  const firstDef = first ? defs[first.defId] : undefined;
-  const hasColor = sel.some((f) => ["rgb", "rgbw"].includes(defs[f.defId]?.mode ?? ""));
+  const fire = (kind: TriggerKind) => {
+    const targets = selected.length ? selected : fixtures.map((f) => f.uid);
+    const now = clock.current;
+    setFixtures((fs) => fs.map((f) => (targets.includes(f.uid) ? { ...f, trigger: { kind, at: now + (kind === "lightning" ? Math.random() * 0.25 : 0) } } : f)));
+  };
 
-  const toggleSelect = (id: string) =>
+  const sel = fixtures.filter((f) => selected.includes(f.uid));
+  const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    setPanel("control");
+  };
+  const tab = (p: Panel, label: string) => (
+    <button onClick={() => setPanel(p)} className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{label}</button>
+  );
 
   return (
     <div className="flex h-screen flex-col">
-      {/* Top bar */}
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
-        <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
+        <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
         <div className="min-w-0">
           <div className="truncate font-display text-lg font-semibold">{scene.name}</div>
-          <div className="truncate text-xs text-primary">{project.name}</div>
+          <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
         </div>
         <div className="flex-1" />
-        <div className={`flex items-center gap-1.5 text-xs text-success transition-opacity ${savedFlash ? "opacity-100" : "opacity-0"}`}>
-          <Check className="h-3.5 w-3.5" /> Auto-saved
-        </div>
+        <div className={`flex items-center gap-1.5 text-xs text-success transition-opacity ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" /> Auto-saved</div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-amber-glow">MASTER</span>
-          <input type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-32 accent-[var(--color-amber-glow)] sm:w-44" />
+          <input type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 accent-[var(--color-amber-glow)] sm:w-40" />
           <span className="w-9 text-right font-mono text-xs">{Math.round(master * 100)}%</span>
         </div>
-        <button
-          onClick={() => setBlackout((b) => !b)}
-          className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${blackout ? "bg-destructive text-destructive-foreground" : "bg-surface-elevated"}`}
-        >
+        <button onClick={() => setBlackout((b) => !b)} className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${blackout ? "bg-destructive text-destructive-foreground" : "bg-surface-elevated"}`}>
           {blackout ? <LightbulbOff className="inline h-4 w-4" /> : <Lightbulb className="inline h-4 w-4" />} BLACKOUT
         </button>
-        <button onClick={() => setShowPatch((v) => !v)} className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${showPatch ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
-          PATCH
-        </button>
+        {tab("patch", "PATCH")}
+        {tab("control", "CONTROL")}
+        {tab("ai", "AI LOOK")}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Fixtures grid */}
         <div className="min-h-0 flex-1 overflow-auto p-4">
           {fixtures.length === 0 ? (
-            <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Add fixtures from the patch library." />
+            <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
           ) : (
             <>
               <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
@@ -387,23 +378,18 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                 {fixtures.map((f) => {
-                  const def = defs[f.defId];
-                  const scaled = { ...f, intensity: blackout ? 0 : f.intensity * master };
-                  const color = fixtureColor(scaled, def, t);
+                  const def = getDef(f.defId);
+                  const color = fixtureColor(f, t, blackout ? 0 : master);
                   const isSel = selected.includes(f.uid);
                   return (
-                    <button
-                      key={f.uid}
-                      onClick={() => toggleSelect(f.uid)}
-                      className={`rounded-xl border-2 bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary" : "border-transparent"}`}
-                    >
+                    <button key={f.uid} onClick={() => toggleSelect(f.uid)} className={`rounded-xl border-2 bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary" : "border-transparent"}`}>
                       <div className="mb-3 h-16 rounded-lg" style={{ background: color, boxShadow: `0 0 24px ${color}` }} />
                       <div className="truncate text-sm font-semibold">{f.name}</div>
                       <div className="flex justify-between text-[11px] text-muted-foreground">
-                        <span>{def?.brand} · @{f.address}</span>
+                        <span className="truncate">{def.brand} · U{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
-                      {f.effect !== "none" && <div className="mt-1 text-[10px] font-semibold uppercase text-amber-glow">{f.effect}</div>}
+                      {f.fx.kind !== "none" && <div className="mt-1 text-[10px] font-semibold uppercase text-amber-glow">{f.fx.kind}</div>}
                     </button>
                   );
                 })}
@@ -412,118 +398,19 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
           )}
         </div>
 
-        {/* Side panel */}
-        <aside className="max-h-[50vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
-          {showPatch ? (
-            <div className="space-y-2">
-              <h2 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Fixture library</h2>
-              {FIXTURE_LIBRARY.map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => {
-                    const count = fixtures.filter((f) => f.defId === d.id).length + 1;
-                    setFixtures((fs) => [...fs, createFixture(d, nextAddress, count)]);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg bg-surface-elevated px-3 py-2.5 text-left text-sm active:scale-[0.98]"
-                >
-                  <span>
-                    <span className="font-semibold">{d.brand}</span> {d.model}
-                    <span className="block text-[11px] uppercase text-muted-foreground">{d.mode} · {d.channels} ch</span>
-                  </span>
-                  <Plus className="h-4 w-4 text-primary" />
-                </button>
-              ))}
-            </div>
-          ) : !first ? (
+        <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
+          {panel === "patch" ? (
+            <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} />
+          ) : panel === "ai" ? (
+            <AiLookPanel fixtures={fixtures} onApply={setFixtures} />
+          ) : sel.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
           ) : (
-            <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                  {sel.length === 1 ? first.name : `${sel.length} fixtures`}
-                </h2>
-                <button
-                  onClick={() => {
-                    setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid)));
-                    setSelected([]);
-                  }}
-                  className="text-muted-foreground hover:text-destructive"
-                  aria-label="Remove"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-
-              {sel.length === 1 && (
-                <div className="grid grid-cols-3 gap-2">
-                  <input value={first.name} onChange={(e) => updateSelected({ name: e.target.value })} className="col-span-2 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
-                  <input type="number" min={1} max={512} value={first.address} onChange={(e) => updateSelected({ address: Math.min(512, Math.max(1, +e.target.value)) })} className="rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
-                </div>
-              )}
-
-              <Control label="Intensity" value={first.intensity} display={`${Math.round(first.intensity * 100)}%`} onChange={(v) => updateSelected({ intensity: v })} />
-
-              <div className="flex gap-2">
-                {[0, 0.25, 0.5, 0.75, 1].map((v) => (
-                  <button key={v} onClick={() => updateSelected({ intensity: v })} className="flex-1 rounded-md bg-surface-elevated py-2 text-xs font-semibold active:scale-95">
-                    {v * 100}
-                  </button>
-                ))}
-              </div>
-
-              {(!hasColor || firstDef?.mode === "rgbw") && (
-                <Control label="CCT" value={first.cct} display={`${Math.round(2700 + first.cct * 3800)}K`} onChange={(v) => updateSelected({ cct: v })} gradient="linear-gradient(to right, rgb(255,169,87), rgb(200,220,255))" />
-              )}
-
-              {hasColor && (
-                <>
-                  <Control label="Hue" value={first.hue / 360} display={`${Math.round(first.hue)}°`} onChange={(v) => updateSelected({ hue: v * 360 })} gradient="linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red)" />
-                  <Control label="Saturation" value={first.saturation} display={`${Math.round(first.saturation * 100)}%`} onChange={(v) => updateSelected({ saturation: v })} />
-                </>
-              )}
-
-              <div>
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Effect</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {EFFECTS.map((e) => (
-                    <button key={e.id} onClick={() => updateSelected({ effect: e.id })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${first.effect === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
-                      {e.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {first.effect !== "none" && (
-                <>
-                  <Control label="Speed" value={first.effectSpeed} display={`${Math.round(first.effectSpeed * 100)}%`} onChange={(v) => updateSelected({ effectSpeed: v })} />
-                  <Control label="Size" value={first.effectSize} display={`${Math.round(first.effectSize * 100)}%`} onChange={(v) => updateSelected({ effectSize: v })} />
-                </>
-              )}
-            </div>
+            <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} fire={fire}
+              remove={() => { setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
         </aside>
       </div>
-    </div>
-  );
-}
-
-function Control({ label, value, display, onChange, gradient }: { label: string; value: number; display: string; onChange: (v: number) => void; gradient?: string }) {
-  return (
-    <div>
-      <div className="mb-1.5 flex justify-between text-xs">
-        <span className="font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-        <span className="font-mono">{display}</span>
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.005}
-        value={value}
-        onChange={(e) => onChange(+e.target.value)}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full accent-[var(--color-primary)]"
-        style={{ background: gradient ?? "var(--color-surface-elevated)" }}
-      />
     </div>
   );
 }

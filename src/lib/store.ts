@@ -1,6 +1,6 @@
 // Project / scene state with localStorage persistence.
 
-import type { PatchedFixture } from "./dmx";
+import { normalizeFixture, type PatchedFixture } from "./dmx";
 
 export interface Scene {
   id: string;
@@ -18,14 +18,20 @@ export interface Project {
   scenes: Scene[];
 }
 
-export const PROJECT_COLORS = ["#00E5FF", "#00E676", "#FFEA00", "#FF3D00", "#D500F9", "#F50057"];
+export const PROJECT_COLORS = ["#00E5FF", "#00E676", "#FFEA00", "#FF9100", "#FF3D00", "#F50057", "#D500F9", "#651FFF", "#2979FF", "#BDBDBD"];
 
 const KEY = "crmx-console-projects-v1";
 
 export function loadProjects(): Project[] {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as Project[];
+    if (raw) {
+      const ps = JSON.parse(raw) as Project[];
+      return ps.map((p) => ({
+        ...p,
+        scenes: p.scenes.map((s) => ({ ...s, fixtures: s.fixtures.map((f) => normalizeFixture(f as never)) })),
+      }));
+    }
   } catch {
     // corrupted storage — start fresh
   }
