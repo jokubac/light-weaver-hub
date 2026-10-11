@@ -134,7 +134,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
                   <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${on ? "border-destructive bg-destructive text-destructive-foreground" : "border-input"}`}>{on ? "✓" : ""}</span>
                   {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
                   <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
-                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">U{f.universe}.{f.address} · {f.mode.channels}ch</span>
+                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">U{f.universe}.{f.address} · {FIXTURE_LIBRARY.find((d) => d.id === f.defId)?.modes[f.modeIdx]?.channels ?? "?"}ch</span>
                 </button>
               );
             })}
