@@ -13,6 +13,8 @@ export interface Gel {
   gm?: number;
 }
 
+import { ROSCO_EXTRA, LEE_EXTRA } from "./gels-extra";
+
 type Row = [string, string, string, (number | undefined)?, number?];
 
 const R: Row[] = [
@@ -117,10 +119,13 @@ const L: Row[] = [
   ["795", "Magical Magenta", "#e6008c"], ["797", "Deep Purple", "#8000b3"], ["798", "Chrysalis Pink", "#b366cc"], ["799", "Special KH Lavender", "#6633cc"],
 ];
 
-export const GELS: Gel[] = [
-  ...R.map(([code, name, hex, kelvin, gm]) => ({ id: `rosco-${code}`, brand: "Rosco" as const, code, name, hex, ...(kelvin ? { kelvin } : {}), ...(gm !== undefined ? { gm } : {}) })),
-  ...L.map(([code, name, hex, kelvin, gm]) => ({ id: `lee-${code}`, brand: "LEE" as const, code, name, hex, ...(kelvin ? { kelvin } : {}), ...(gm !== undefined ? { gm } : {}) })),
-];
+const ALL_R = [...R, ...ROSCO_EXTRA];
+const ALL_L = [...L, ...LEE_EXTRA];
+const dedupe = (gs: Gel[]) => { const seen = new Set<string>(); return gs.filter((g) => (seen.has(g.id) ? false : (seen.add(g.id), true))); };
+export const GELS: Gel[] = dedupe([
+  ...ALL_R.map(([code, name, hex, kelvin, gm]) => ({ id: `rosco-${code}`, brand: "Rosco" as const, code, name, hex, ...(kelvin ? { kelvin } : {}), ...(gm !== undefined ? { gm } : {}) })),
+  ...ALL_L.map(([code, name, hex, kelvin, gm]) => ({ id: `lee-${code}`, brand: "LEE" as const, code, name, hex, ...(kelvin ? { kelvin } : {}), ...(gm !== undefined ? { gm } : {}) })),
+]);
 export const GEL_BY_ID: Record<string, Gel> = Object.fromEntries(GELS.map((g) => [g.id, g]));
 
 export function hexToHs(hex: string): { h: number; s: number } {

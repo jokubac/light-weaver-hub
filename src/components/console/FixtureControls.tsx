@@ -10,6 +10,7 @@ import {
   getDef,
   getMode,
   kelvin,
+  cctFromKelvin,
   overlaps,
   sampleEffect,
   type FxParams,
@@ -18,18 +19,21 @@ import {
   type PatchedFixture,
   type TriggerKind,
 } from "@/lib/dmx";
+import { ColorSource } from "./ColorSource";
 import { IntensityMacros, CctMacros, GmMacros, ColorWheel, FanControl, GelPicker } from "./AdvancedControls";
 
 export function Control({
-  label, value, display, onChange, onReset, gradient, min = 0, max = 1,
+  label, value, display, onChange, onReset, gradient, min = 0, max = 1, entry,
 }: {
   label: string; value: number; display: string; onChange: (v: number) => void; onReset?: () => void; gradient?: string; min?: number; max?: number;
+  /** makes the readout typeable: shows `text`, parses typed text back to a slider value */
+  entry?: { text: string; suffix: string; parse: (n: number) => number };
 }) {
   return (
     <div onDoubleClick={onReset} title={onReset ? "Double-tap to reset" : undefined}>
       <div className="mb-1.5 flex justify-between text-xs">
         <span className="font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-        <span className="font-mono">{display}</span>
+        {entry ? <EntryField entry={entry} onChange={onChange} /> : <span className="font-mono">{display}</span>}
       </div>
       <input
         type="range" min={min} max={max} step={(max - min) / 400} value={value}
@@ -38,6 +42,19 @@ export function Control({
         style={{ background: gradient ?? "var(--color-surface-elevated)" }}
       />
     </div>
+  );
+}
+
+function EntryField({ entry, onChange }: { entry: { text: string; suffix: string; parse: (n: number) => number }; onChange: (v: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => { if (draft !== null) { const n = parseFloat(draft.replace(",", ".")); if (Number.isFinite(n)) onChange(entry.parse(n)); } setDraft(null); };
+  return (
+    <span className="flex items-center gap-0.5">
+      <input inputMode="decimal" value={draft ?? entry.text} onFocus={(e) => { setDraft(entry.text); e.target.select(); }}
+        onChange={(e) => setDraft(e.target.value.replace(/[^\d.,]/g, ""))} onBlur={commit} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        className="w-16 rounded border border-input bg-surface-elevated px-1 py-0.5 text-right font-mono text-xs" aria-label="Type value" />
+      <span className="font-mono">{entry.suffix}</span>
+    </span>
   );
 }
 
@@ -101,7 +118,8 @@ export function FixtureControls({
         <Power className="h-4 w-4" /> {first.on === false ? "OFF — tap to turn on" : "ON — tap to turn off"}
       </button>
 
-      <Control label="Intensity" value={first.intensity} display={`${Math.round(first.intensity * 100)}%`} onChange={(v) => update({ intensity: v })} />
+      <Control label="Intensity" value={first.intensity} display="" onChange={(v) => update({ intensity: v })}
+        entry={{ text: String(+(first.intensity * 100).toFixed(2)), suffix: "%", parse: (n) => Math.min(1, Math.max(0, n / 100)) }} />
       <div className="flex gap-2">
         {[0, 0.25, 0.5, 0.75, 1].map((v) => (
           <button key={v} onClick={() => update({ intensity: v })} className="flex-1 rounded-md bg-surface-elevated py-2 text-xs font-semibold active:scale-95">{v * 100}</button>
@@ -119,7 +137,7 @@ export function FixtureControls({
           )}
           {anyCaps.cct && (
             <div onTouchEnd={tapReset(() => update({ cct: DEFAULT_CCT }))}>
-              <Control label="CCT" value={first.cct} display={`${kelvin(first.cct)}K`} onChange={(v) => update({ cct: v })} onReset={() => update({ cct: DEFAULT_CCT })}
+              <Control label="CCT" value={first.cct} display="" entry={{ text: String(kelvin(first.cct)), suffix: "K", parse: (n) => Math.min(1, Math.max(0, cctFromKelvin(n))) }} onChange={(v) => update({ cct: v })} onReset={() => update({ cct: DEFAULT_CCT })}
                 gradient="linear-gradient(to right, rgb(255,137,18), rgb(255,228,206), rgb(255,250,244), rgb(204,219,255))" />
             </div>
           )}
@@ -279,7 +297,7 @@ function StepsEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>
             <label>Fade in s<input type="number" min={0} step={0.05} value={s.fade} onChange={(e) => set(i, { fade: Math.max(0, +e.target.value) })} className={num} /></label>
             <label>Hold s<input type="number" min={0} step={0.05} value={s.hold} onChange={(e) => set(i, { hold: Math.max(0, +e.target.value) })} className={num} /></label>
             <label>Kelvin<input type="number" step={100} placeholder="—" value={s.kelvin ?? ""} onChange={(e) => set(i, { kelvin: e.target.value ? Math.min(10000, Math.max(2000, +e.target.value)) : undefined })} className={num} /></label>
-            <label>Colour<div className="mt-0.5"><ColorPick value={s.color ?? ""} onChange={(c) => set(i, { color: c || undefined })} /></div></label>
+            <div>Colour<div className="mt-0.5"><ColorPick value={s.color ?? ""} onChange={(c) => set(i, { color: c || undefined })} /></div></div>
             <label>Curve
               <select value={s.curve ?? ""} onChange={(e) => set(i, { curve: (e.target.value || undefined) as Curve | undefined })} className={num}>
                 <option value="">Default</option>
@@ -287,6 +305,7 @@ function StepsEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>
               </select>
             </label>
           </div>
+          <ColorSource compact onPick={(hex, lbl) => (lbl.endsWith("K") ? set(i, { kelvin: parseInt(lbl, 10), color: undefined }) : set(i, { color: hex, kelvin: undefined }))} />
         </div>
       ))}
       <button onClick={() => setFx({ steps: [...fx.steps, { level: 1, fade: 0.5, hold: 0.5 }] })} className="flex w-full items-center justify-center gap-1.5 rounded-md bg-surface-elevated py-2 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add step</button>

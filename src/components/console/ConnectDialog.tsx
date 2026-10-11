@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Wifi, Cable, Radar, Loader2, Check, Plus } from "lucide-react";
+import { Wifi, Cable, Radar, Loader2, Check, Plus, Download } from "lucide-react";
+import type { BridgeStatus } from "@/lib/output";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Connection } from "@/lib/store";
 
@@ -9,7 +10,7 @@ interface Node { name: string; ip: string; universes?: number }
  * Browsers cannot send Art-Net / sACN UDP directly, so scanning goes through a small
  * bridge app on the same network that exposes GET http://<bridge>/nodes and forwards DMX.
  */
-export function ConnectDialog({ open, onOpenChange, conn, setConn }: { open: boolean; onOpenChange: (o: boolean) => void; conn: Connection; setConn: (c: Connection) => void }) {
+export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { open: boolean; onOpenChange: (o: boolean) => void; conn: Connection; setConn: (c: Connection) => void; status: BridgeStatus }) {
   const [scanning, setScanning] = useState(false);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
@@ -40,6 +41,12 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn }: { open: boo
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>Connect to transmitter</DialogTitle></DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-1.5 rounded-lg border border-border p-3 text-xs">
+            <div className="font-semibold">1. Run the bridge on a laptop on the transmitter's network</div>
+            <a href="/crmx-bridge.mjs" download className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-semibold text-primary-foreground"><Download className="h-3.5 w-3.5" />Download bridge</a>
+            <p className="text-muted-foreground">Install Node.js (nodejs.org), then in Terminal: <code className="rounded bg-surface-elevated px-1 font-mono">node crmx-bridge.mjs</code>. Open this console on the same laptop and keep the bridge address as <span className="font-mono">localhost:8765</span>.</p>
+            <div className="font-semibold">2. Scan and pick your CRMX transmitter</div>
+          </div>
           <div className="flex gap-2">
             <button onClick={() => setConn({ ...conn, network: "wifi" })} className={opt(conn.network === "wifi")}><Wifi className="h-4 w-4" />Wireless</button>
             <button onClick={() => setConn({ ...conn, network: "ethernet" })} className={opt(conn.network === "ethernet")}><Cable className="h-4 w-4" />Ethernet</button>
@@ -68,6 +75,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn }: { open: boo
           {conn.node && (
             <div className="flex items-center justify-between rounded-lg border border-success/50 px-3 py-2 text-sm">
               <span><Check className="mr-1 inline h-4 w-4 text-success" />{conn.node.name} <span className="font-mono text-xs text-muted-foreground">{conn.node.ip}</span></span>
+              <span className={`text-[11px] ${status === "error" ? "text-destructive" : "text-success"}`}>{status === "error" ? "bridge not answering" : status === "ok" ? "sending" : ""}</span>
               <button onClick={() => setConn({ ...conn, node: null })} className="text-xs text-destructive">Disconnect</button>
             </div>
           )}

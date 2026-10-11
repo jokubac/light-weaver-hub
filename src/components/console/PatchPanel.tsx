@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star } from "lucide-react";
+import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import {
   BRANDS,
@@ -20,6 +21,8 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
   const [modeIdx, setModeIdx] = useState<number | null>(null);
   const [mapU, setMapU] = useState(1);
   const [showMap, setShowMap] = useState(true);
+  const fav = useFavorites("fixtures");
+  const star = (id: string) => ({ starred: fav.has(id), onStar: () => fav.toggle(id) });
   const universes = Array.from(new Set([1, ...fixtures.map((f) => f.universe)])).sort((a, b) => a - b);
 
   const q = query.trim().toLowerCase();
@@ -69,11 +72,16 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
           {searchHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
           {searchHits.length > 0 && <p className="text-[10px] text-muted-foreground">{searchHits.length} results · {FIXTURE_LIBRARY.length} fixtures in library</p>}
           {searchHits.map((d) => (
-            <Row key={d.id} onClick={() => { setBrand(d.brand); setDef(d); setQuery(""); }} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
+            <Row key={d.id} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); setQuery(""); }} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
           ))}
         </List>
       ) : !brand ? (
         <List>
+          {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourites</p>}
+          {FIXTURE_LIBRARY.filter((d) => fav.has(d.id)).map((d) => (
+            <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); }} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes`} />
+          ))}
+          {fav.list.length > 0 && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers</p>}
           {BRANDS.map((b) => (
             <Row key={b} onClick={() => setBrand(b)} title={b} sub={`${FIXTURE_LIBRARY.filter((d) => d.brand === b).length} models`} />
           ))}
@@ -81,7 +89,7 @@ export function PatchPanel({ fixtures, onAdd }: { fixtures: PatchedFixture[]; on
       ) : !def ? (
         <List>
           {FIXTURE_LIBRARY.filter((d) => d.brand === brand).map((d) => (
-            <Row key={d.id} onClick={() => setDef(d)} title={d.model} sub={`${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
+            <Row key={d.id} {...star(d.id)} onClick={() => setDef(d)} title={d.model} sub={`${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
           ))}
         </List>
       ) : modeIdx === null ? (
@@ -176,14 +184,17 @@ function List({ children }: { children: React.ReactNode }) {
   return <div className="space-y-1.5">{children}</div>;
 }
 
-function Row({ title, sub, onClick }: { title: string; sub: string; onClick: () => void }) {
+function Row({ title, sub, onClick, starred, onStar }: { title: string; sub: string; onClick: () => void; starred?: boolean; onStar?: () => void }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center justify-between rounded-lg bg-surface-elevated px-3 py-2.5 text-left text-sm active:scale-[0.98]">
-      <span className="min-w-0">
-        <span className="block truncate font-semibold">{title}</span>
-        <span className="block text-[11px] text-muted-foreground">{sub}</span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
-    </button>
+    <div className="flex w-full items-center rounded-lg bg-surface-elevated">
+      {onStar && <button onClick={onStar} className="py-2.5 pl-3" aria-label="Favourite"><Star className={`h-4 w-4 ${starred ? "fill-amber-glow text-amber-glow" : "text-muted-foreground"}`} /></button>}
+      <button onClick={onClick} className="flex min-w-0 flex-1 items-center justify-between px-3 py-2.5 text-left text-sm active:scale-[0.98]">
+        <span className="min-w-0">
+          <span className="block truncate font-semibold">{title}</span>
+          <span className="block text-[11px] text-muted-foreground">{sub}</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+      </button>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
-import { Search, X, Fan } from "lucide-react";
+import { Search, X, Fan, Star } from "lucide-react";
+import { useFavorites } from "@/lib/favorites";
 import { FAN_MODES, cctFromKelvin, kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, hexToHs, type Gel } from "@/lib/gels";
 
@@ -97,11 +98,12 @@ export function FanControl({ value, update }: { value: PatchedFixture["fan"]; up
 /** Rosco / LEE gel picker: corrections set CCT / G-M, colours set hue + saturation. */
 export function GelPicker({ value, update }: { value?: string; update: Upd }) {
   const [q, setQ] = useState("");
-  const [brand, setBrand] = useState<"all" | "Rosco" | "LEE">("all");
+  const [brand, setBrand] = useState<"all" | "Rosco" | "LEE" | "fav">("all");
+  const fav = useFavorites("gels");
   const hits = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return GELS.filter((g) => (brand === "all" || g.brand === brand) && (!s || g.code.toLowerCase().startsWith(s.replace(/^[rl]/, "")) || g.name.toLowerCase().includes(s))).slice(0, 40);
-  }, [q, brand]);
+    return GELS.filter((g) => (brand === "all" || (brand === "fav" ? fav.has(g.id) : g.brand === brand)) && (!s || g.code.toLowerCase().startsWith(s.replace(/^[rl]/, "")) || g.name.toLowerCase().includes(s))).slice(0, 80);
+  }, [q, brand, fav]);
   const cur = value ? GEL_BY_ID[value] : undefined;
   const apply = (g: Gel) => {
     if (g.kelvin) update({ cct: clamp(cctFromKelvin(g.kelvin), 0, 1), crossfade: 0, gel: g.id });
@@ -118,8 +120,8 @@ export function GelPicker({ value, update }: { value?: string; update: Upd }) {
         </div>
       )}
       <div className="flex gap-1">
-        {(["all", "Rosco", "LEE"] as const).map((b) => (
-          <button key={b} onClick={() => setBrand(b)} className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold ${brand === b ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{b === "all" ? "All" : b}</button>
+        {(["all", "Rosco", "LEE", "fav"] as const).map((b) => (
+          <button key={b} onClick={() => setBrand(b)} className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold ${brand === b ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{b === "all" ? "All" : b === "fav" ? `★ ${fav.list.length}` : b}</button>
         ))}
       </div>
       <div className="relative">
@@ -128,14 +130,17 @@ export function GelPicker({ value, update }: { value?: string; update: Upd }) {
       </div>
       <div className="max-h-56 space-y-1 overflow-auto">
         {hits.map((g) => (
-          <button key={g.id} onClick={() => apply(g)} className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs active:scale-[0.98] ${value === g.id ? "bg-primary/20" : "bg-surface-elevated"}`}>
+          <div key={g.id} className={`flex items-center gap-1 rounded-md pr-2 ${value === g.id ? "bg-primary/20" : "bg-surface-elevated"}`}>
+          <button onClick={() => apply(g)} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-xs active:scale-[0.98]">
             <span className="h-5 w-5 shrink-0 rounded border border-border" style={{ background: g.hex }} />
             <span className="w-14 font-mono font-semibold">{g.brand === "LEE" ? "L" : "R"}{g.code}</span>
             <span className="min-w-0 flex-1 truncate">{g.name}</span>
             {g.kelvin && <span className="font-mono text-[10px] text-muted-foreground">{g.kelvin}K</span>}
           </button>
+          <button onClick={() => fav.toggle(g.id)} aria-label="Favourite gel"><Star className={`h-3.5 w-3.5 ${fav.has(g.id) ? "fill-amber-glow text-amber-glow" : "text-muted-foreground"}`} /></button>
+          </div>
         ))}
-        {hits.length === 0 && <p className="py-3 text-center text-xs text-muted-foreground">No gels found</p>}
+        {hits.length === 0 && <p className="py-3 text-center text-xs text-muted-foreground">{brand === "fav" ? "No favourites yet — tap ★ on a gel" : "No gels found"}</p>}
       </div>
       <p className="text-[10px] text-muted-foreground">{GELS.length} gels. Colours are approximate on LED lights.</p>
     </div>

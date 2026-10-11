@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
-import { PIXEL_FX, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
+import { ColorSource } from "./ColorSource";
+import { PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
 
 type RGB = [number, number, number];
 
@@ -111,11 +112,30 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
             ))}
             {layer.colors.length < 8 && <button onClick={() => set({ colors: [...layer.colors, "#ffffff"] })} className="flex h-9 w-9 items-center justify-center rounded border border-dashed border-input"><Plus className="h-4 w-4" /></button>}
           </div>
+          {layer.colors.length < 8 && <ColorSource onPick={(hex) => set({ colors: [...layer.colors, hex] })} />}
+        </div>
+      )}
+
+      {layer.kind === "police" && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Flash pattern</div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {POLICE_FLASHES.map((p) => (
+              <button key={p.n} onClick={() => set({ flashes: p.n })} className={`rounded-md py-2 text-xs font-semibold ${(layer.flashes ?? 2) === p.n ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{p.l}</button>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {([["alternate", "Left / right"], ["together", "Both sides"], ["wigwag", "Wig-wag"]] as const).map(([id, l]) => (
+              <button key={id} onClick={() => set({ policeMode: id })} className={`rounded-md py-2 text-xs font-semibold ${(layer.policeMode ?? "alternate") === id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{l}</button>
+            ))}
+          </div>
         </div>
       )}
 
       <Slider label="Speed" value={layer.speed} min={0.05} max={4} display={`×${layer.speed.toFixed(2)}`} onChange={(v) => set({ speed: v })} />
-      {["chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label="Size" value={layer.size} min={1} max={32} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
+      {layer.kind === "runner" && <Slider label="Runners" value={layer.runners ?? 1} min={1} max={8} step={1} display={`${layer.runners ?? 1}`} onChange={(v) => set({ runners: v })} />}
+      {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">A block of {layer.size} px travels through all {placed.length} lights ({W} px) one after another. Use "In a line".</p>}
+      {["runner", "chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label="Size" value={layer.size} min={1} max={32} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
 
       <div className="space-y-1.5">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Layout</div>
