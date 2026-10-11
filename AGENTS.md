@@ -37,3 +37,4 @@
 - Pixel preview gestures affect viewport tilt/rotation only, preserving logical pixel addressing and DMX output.
 - Connection health measures bridge HTTP responsiveness with a slow threshold and timeout, not wireless fixture reception.
 - Console position swaps reorder whole fixture entries in the saved scene array without editing fixture identity, DMX patch, settings or pixel-layer order, so layout changes cannot repatch lights.
+- Emergency blackout sits beside the master fader in the console header, and saved looks live in the groups side rail, so neither is a view tab and both stay reachable while the panel area shows patch/control/pixels.

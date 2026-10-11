@@ -34,3 +34,4 @@
 - [x] Pixel height up to 50 m; infinite pixel grid
 - [x] Plot: car with windows, tree
 - [x] Plot camera with lens/iris/ISO and camera view
+- [x] Blackout beside master fader; looks in the groups rail

@@ -35,7 +35,8 @@ import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDial
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
-import { LooksPanel, applyLook } from "@/components/console/LooksPanel";
+import { applyLook } from "@/components/console/LooksPanel";
+import { LooksRail } from "@/components/console/LooksRail";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
@@ -355,7 +356,7 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "pixels" | "groups" | "looks";
+type Panel = "patch" | "control" | "pixels" | "groups";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
@@ -598,7 +599,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
     lastPick.current = id;
-    if (panel !== "looks" && panel !== "groups") { setPanel("control"); setPanelOpen(true); }
+    if (panel !== "groups") { setPanel("control"); setPanelOpen(true); }
   };
   // shift-click or press-and-hold selects every light between the last tapped one and this one
   const selectRange = (id: string) => {
@@ -608,7 +609,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
     const ids = fixtures.slice(Math.min(from, to), Math.max(from, to) + 1).map((f) => f.uid);
     setSelected((s) => [...new Set([...s, ...ids])]);
     lastPick.current = id;
-    if (panel !== "looks" && panel !== "groups") { setPanel("control"); setPanelOpen(true); }
+    if (panel !== "groups") { setPanel("control"); setPanelOpen(true); }
   };
   const holdStart = (id: string) => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
@@ -674,6 +675,10 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         <div className="flex-1" />
         <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
         <div className="flex items-center gap-2">
+          <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title="Blackout — 2 second fade" onClick={toggleBlackout} className={`relative overflow-hidden ${bo.target ? "bg-destructive text-destructive-foreground" : ""}`}>
+            {boActive ? <LightbulbOff /> : <Lightbulb />}
+            {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
+          </Button>
           <span className="text-xs font-semibold text-amber-glow">MASTER</span>
           <input aria-label="Master" type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
           <span className="w-9 text-right font-mono text-xs">{Math.round(master * 100)}%</span>
@@ -685,10 +690,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         </Button>
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
-        <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title="Blackout — 2 second fade" onClick={toggleBlackout} className={`relative overflow-hidden ${bo.target ? "bg-destructive text-destructive-foreground" : ""}`}>
-          {boActive ? <LightbulbOff /> : <Lightbulb />}
-          {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
-        </Button>
         <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={locked ? "" : "bg-amber-glow text-primary-foreground"}>
           {locked ? <Lock /> : <Unlock />}
         </Button>
@@ -696,9 +697,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         {tab("control", "CONTROL")}
         {tab("pixels", "PIXELS")}
         {tab("groups", "GROUPS")}
-        {tab("looks", "LOOKS")}
         <Button variant="secondary" onClick={() => setPlotOpen(true)} className="text-xs font-bold"><MapIcon />PLOT</Button>
-        {groups.length > 0 && <Button variant="ghost" size="icon" className="ml-auto" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups sidebar" : "Show groups sidebar"} title={groupsOpen ? "Hide groups sidebar" : "Show groups sidebar"}>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+        {(groups.length > 0 || (project.looks ?? []).length > 0) && <Button variant="ghost" size="icon" className="ml-auto" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
@@ -749,7 +749,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
                 onPointerDown={(e) => { if (!sweep) return; e.preventDefault(); swept.current = new Set(); sweepAt(e.clientX, e.clientY); }}
                 onPointerMove={(e) => { if (sweep && swept.current && (e.buttons || e.pointerType === "touch")) sweepAt(e.clientX, e.clientY); }}
-                onPointerUp={() => { if (swept.current) { swept.current = null; if (panel !== "looks" && panel !== "groups") { setPanel("control"); setPanelOpen(true); } } }}
+                onPointerUp={() => { if (swept.current) { swept.current = null; if (panel !== "groups") { setPanel("control"); setPanelOpen(true); } } }}
                 onPointerCancel={() => { swept.current = null; }}>
                 {fixtures.map((f) => {
                   const def = getDef(f.defId);
@@ -793,8 +793,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
-          ) : panel === "looks" ? (
-            <LooksPanel fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
           ) : panel === "groups" ? (
             <GroupsPanel fixtures={fixtures} selected={selected} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
               onSelect={(g) => setSelected(fixtures.filter((f) => f.group === g).map((f) => f.uid))} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
@@ -819,22 +817,23 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
               remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
         </aside>}
-        {groups.length > 0 && groupsOpen && (
-          <aside aria-label="Groups" className="flex w-full shrink-0 gap-1.5 overflow-auto border-t border-border bg-surface p-2 lg:w-44 lg:flex-col lg:border-l lg:border-t-0">
-            <p className="hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:block">Groups</p>
+        {(groups.length > 0 || (project.looks ?? []).length > 0) && groupsOpen && (
+          <aside aria-label="Groups and looks" className="flex max-h-[45vh] w-full shrink-0 flex-wrap gap-1.5 overflow-auto border-t border-border bg-surface p-2 lg:max-h-none lg:w-44 lg:flex-col lg:flex-nowrap lg:border-l lg:border-t-0">
+            {groups.length > 0 && <p className="hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:block">Groups</p>}
             {groups.map((g) => {
               const ids = fixtures.filter((f) => f.group === g).map((f) => f.uid);
               const all = ids.every((id) => selected.includes(id));
               const some = !all && ids.some((id) => selected.includes(id));
               return (
                 <button key={g} aria-pressed={all}
-                  onClick={() => { setSelected((s) => (all ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])])); if (panel !== "pixels" && panel !== "looks") { setPanel("control"); setPanelOpen(true); } }}
+                  onClick={() => { setSelected((s) => (all ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])])); if (panel !== "pixels") { setPanel("control"); setPanelOpen(true); } }}
                   className={`shrink-0 rounded-lg px-3 py-2.5 text-left text-xs font-semibold active:scale-95 ${all ? "bg-primary text-primary-foreground" : some ? "bg-primary/30" : "bg-surface-elevated"}`}>
                   <span className="block truncate">{g}</span>
                   <span className="block text-[10px] font-normal opacity-80">{ids.length} lights{all ? " · selected" : ""}</span>
                 </button>
               );
             })}
+            <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
           </aside>
         )}
       </div>
