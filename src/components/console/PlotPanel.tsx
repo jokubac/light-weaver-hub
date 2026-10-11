@@ -259,7 +259,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const points = view3d
         ? [[a, o.bottom], [b, o.bottom], [b, o.bottom + o.height], [a, o.bottom + o.height]]
         : [[a, 0], [b, 0]];
-      ctx.strokeStyle = getComputedStyle(c).getPropertyValue(o.kind === "door" ? "--color-success" : "--color-primary");
+      ctx.strokeStyle = theme.getPropertyValue(o.kind === "door" ? "--color-success" : "--color-primary");
       ctx.lineWidth = openingId === o.id ? 5 : 3;
       ctx.beginPath();
       points.forEach(([u, h], k) => { const q = proj(V, wall.x + wall.dx * (u ?? 0), wall.y + wall.dy * (u ?? 0), z + (h ?? 0)); if (k) ctx.lineTo(...q); else ctx.moveTo(...q); });
@@ -275,12 +275,11 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         const a = st.pts[k - 1], b = st.pts[k];
         if (!a || !b) continue;
         const q = proj(V, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z);
-        ctx.fillStyle = getComputedStyle(c).getPropertyValue(index === wallIndex ? "--color-primary" : "--color-foreground");
+        ctx.fillStyle = theme.getPropertyValue(index === wallIndex ? "--color-primary" : "--color-foreground");
         ctx.font = "11px system-ui"; ctx.textAlign = "center";
         ctx.fillText(`${Math.hypot(b[0] - a[0], b[1] - a[1]).toFixed(2)} m`, q[0], q[1] - 8);
       }
     }
-    const theme = getComputedStyle(c);
     for (const o of plot.objects ?? []) {
       if (!view3d && o.floor !== fl) continue;
       const z = floors[o.floor]?.z ?? 0;
@@ -326,32 +325,41 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const walls = segsOf(floorOf(it));
       const omega = Math.max(0.001, 2 * Math.PI * (1 - Math.cos((Math.min(half, 90) * Math.PI) / 180)));
       const z0 = fz(it);
+      const cell = Math.max(0.04, Math.max(SW, SH) / 500);
+      const key = `${it.x},${it.y},${h},${it.rot},${tilt},${watts},${beam},${lv.toFixed(4)},${r},${g},${b},${SW},${SH}|${geometryKey(floorOf(it))}`;
+      let entry = beamCache.get(f.uid);
+      if (!entry || entry.key !== key) {
+        const texture = entry?.canvas ?? document.createElement("canvas");
+        const tw = Math.ceil(SW / cell), th2 = Math.ceil(SH / cell);
+        if (texture.width !== tw || texture.height !== th2) { texture.width = tw; texture.height = th2; }
+        const tc = texture.getContext("2d");
+        if (!tc) continue;
+        const image = tc.createImageData(tw, th2);
+        const tiltRad = tilt * Math.PI / 180;
+        const axis = [Math.cos(a) * Math.cos(tiltRad), Math.sin(a) * Math.cos(tiltRad), -Math.sin(tiltRad)];
+        const halfRad = Math.min(90, half) * Math.PI / 180;
+        const openings = plot.openings ?? [];
+        for (let ix = Math.max(0, Math.floor((it.x - rFar) / cell)); ix < Math.min(tw, Math.ceil((it.x + rFar) / cell)); ix++) {
+          for (let iy = Math.max(0, Math.floor((it.y - rFar) / cell)); iy < Math.min(th2, Math.ceil((it.y + rFar) / cell)); iy++) {
+            const cx = (ix + .5) * cell, cy = (iy + .5) * cell;
+            const dx = cx - it.x, dy = cy - it.y, rr = Math.hypot(dx,dy), distance = Math.hypot(rr,h);
+            const angle = Math.acos(clampN((dx * (axis[0] ?? 0) + dy * (axis[1] ?? 0) - h * (axis[2] ?? 0)) / distance,-1,1));
+            if (angle > halfRad || rayBlocked([it.x,it.y,h],[cx,cy,0],walls,openings)) continue;
+            const edge = Math.pow(Math.max(0,1 - Math.pow(angle / Math.max(.001,halfRad),2)),2);
+            const lux = ((watts * lv) / omega) * h / Math.pow(distance,3) * edge;
+            const offset = (iy * tw + ix) * 4;
+            image.data[offset] = r; image.data[offset+1] = g; image.data[offset+2] = b;
+            image.data[offset+3] = Math.round(255 * .85 * (1 - Math.exp(-lux / LREF)));
+          }
+        }
+        tc.putImageData(image,0,0);
+        entry = { key, canvas: texture };
+        beamCache.set(f.uid, entry);
+      }
       ctx.save();
       ctx.setTransform(m[0] * dpr, m[1] * dpr, m[2] * dpr, m[3] * dpr, m[4] * dpr, (m[5] - z0 * zs) * dpr);
-      const cell = Math.max(0.04, Math.max(SW, SH) / 500);
-      const texture = document.createElement("canvas");
-      texture.width = Math.ceil(SW / cell); texture.height = Math.ceil(SH / cell);
-      const tc = texture.getContext("2d");
-      if (!tc) { ctx.restore(); continue; }
-      const image = tc.createImageData(texture.width, texture.height);
-      const tiltRad = tilt * Math.PI / 180;
-      const axis = [Math.cos(a) * Math.cos(tiltRad), Math.sin(a) * Math.cos(tiltRad), -Math.sin(tiltRad)];
-      const halfRad = Math.min(90, half) * Math.PI / 180;
-      for (let ix = Math.max(0, Math.floor((it.x - rFar) / cell)); ix < Math.min(texture.width, Math.ceil((it.x + rFar) / cell)); ix++) {
-        for (let iy = Math.max(0, Math.floor((it.y - rFar) / cell)); iy < Math.min(texture.height, Math.ceil((it.y + rFar) / cell)); iy++) {
-          const cx = (ix + .5) * cell, cy = (iy + .5) * cell;
-          const dx = cx - it.x, dy = cy - it.y, rr = Math.hypot(dx,dy), distance = Math.hypot(rr,h);
-          const angle = Math.acos(clampN((dx * (axis[0] ?? 0) + dy * (axis[1] ?? 0) - h * (axis[2] ?? 0)) / distance,-1,1));
-          if (angle > halfRad || rayBlocked([it.x,it.y,h],[cx,cy,0],walls,plot.openings ?? [])) continue;
-          const edge = Math.pow(Math.max(0,1 - Math.pow(angle / Math.max(.001,halfRad),2)),2);
-          const lux = ((watts * lv) / omega) * h / Math.pow(distance,3) * edge;
-          const offset = (iy * texture.width + ix) * 4;
-          image.data[offset] = r; image.data[offset+1] = g; image.data[offset+2] = b;
-          image.data[offset+3] = Math.round(255 * .85 * (1 - Math.exp(-lux / LREF)));
-        }
-      }
-      tc.putImageData(image,0,0); ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(texture,0,0,SW,SH);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(entry.canvas,0,0,SW,SH);
       ctx.restore();
     }
     ctx.globalCompositeOperation = "source-over";
