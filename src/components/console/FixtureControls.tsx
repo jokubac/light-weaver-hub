@@ -48,8 +48,9 @@ export function Control({
       <input
         type="range" min={min} max={max} step={(max - min) / 400} value={value}
         onChange={(e) => onChange(+e.target.value)}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full accent-[var(--color-primary)]"
-        style={{ background: gradient ?? "var(--color-surface-elevated)" }}
+        aria-label={`${label} slider`}
+        className="w-full"
+        style={gradient ? { "--fader-gradient": gradient } as React.CSSProperties : undefined}
       />
     </div>
   );

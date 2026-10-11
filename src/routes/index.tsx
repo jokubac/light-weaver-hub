@@ -224,7 +224,7 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-xl font-bold tracking-tight">{title}</h1>
+        <h1 className={`truncate font-display font-bold ${title === "KROMA" ? "kroma-wordmark text-3xl text-primary" : "text-xl"}`}>{title}</h1>
         {subtitle && <p className="truncate text-xs text-primary">{subtitle}</p>}
       </div>
       {right}
@@ -356,7 +356,7 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "pixels" | "groups";
+type Panel = "patch" | "control" | "pixels";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
@@ -599,7 +599,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
     lastPick.current = id;
-    if (panel !== "groups") { setPanel("control"); setPanelOpen(true); }
+    { setPanel("control"); setPanelOpen(true); }
   };
   // shift-click or press-and-hold selects every light between the last tapped one and this one
   const selectRange = (id: string) => {
@@ -609,7 +609,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
     const ids = fixtures.slice(Math.min(from, to), Math.max(from, to) + 1).map((f) => f.uid);
     setSelected((s) => [...new Set([...s, ...ids])]);
     lastPick.current = id;
-    if (panel !== "groups") { setPanel("control"); setPanelOpen(true); }
+    { setPanel("control"); setPanelOpen(true); }
   };
   const holdStart = (id: string) => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
@@ -662,7 +662,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
     <Button variant="secondary" onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
       className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</Button>
   );
-  const boActive = bo.target === 1 || boLevel > 0;
+  const outputEnabled = bo.target === 0;
 
   return (
     <div className="flex h-screen flex-col">
@@ -675,13 +675,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         <div className="flex-1" />
         <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title="Blackout — 2 second fade" onClick={toggleBlackout} className={`relative overflow-hidden ${bo.target ? "bg-destructive text-destructive-foreground" : ""}`}>
-            {boActive ? <LightbulbOff /> : <Lightbulb />}
-            {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
-          </Button>
           <span className="text-xs font-semibold text-amber-glow">MASTER</span>
           <input aria-label="Master" type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
           <span className="w-9 text-right font-mono text-xs">{Math.round(master * 100)}%</span>
+          <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
+            {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
+            {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
+          </Button>
         </div>
         <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
         <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
@@ -696,9 +696,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         {tab("patch", "PATCH")}
         {tab("control", "CONTROL")}
         {tab("pixels", "PIXELS")}
-        {tab("groups", "GROUPS")}
         <Button variant="secondary" onClick={() => setPlotOpen(true)} className="text-xs font-bold"><MapIcon />PLOT</Button>
-        {(groups.length > 0 || (project.looks ?? []).length > 0) && <Button variant="ghost" size="icon" className="ml-auto" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+        {<Button variant="ghost" size="icon" className="ml-auto" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
@@ -738,18 +737,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                    onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
                    className={swapping ? "bg-primary text-primary-foreground" : ""}><ArrowLeftRight className="h-4 w-4" /></Button>
                 <span>{selected.length} selected</span>
-                {groups.map((g) => (
-                  <span key={g} className="flex items-center overflow-hidden rounded-md bg-primary/15 text-foreground">
-                    <button onClick={() => { setSelected(fixtures.filter((f) => f.group === g).map((f) => f.uid)); setPanel("control"); setPanelOpen(true); }} className="px-3 py-1.5 font-semibold">{g} ({fixtures.filter((f) => f.group === g).length})</button>
-                    <button onClick={() => { const n = prompt("Rename group", g)?.trim(); if (n && n !== g) renameGroup(g, n); }} className="px-1.5 py-1.5 text-muted-foreground hover:text-foreground" aria-label={`Rename ${g}`}><Pencil className="h-3 w-3" /></button>
-                    <button onClick={() => ungroup(g)} className="px-1.5 py-1.5 text-muted-foreground hover:text-destructive" aria-label={`Ungroup ${g}`}><X className="h-3 w-3" /></button>
-                  </span>
-                ))}
               </div>
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
                 onPointerDown={(e) => { if (!sweep) return; e.preventDefault(); swept.current = new Set(); sweepAt(e.clientX, e.clientY); }}
                 onPointerMove={(e) => { if (sweep && swept.current && (e.buttons || e.pointerType === "touch")) sweepAt(e.clientX, e.clientY); }}
-                onPointerUp={() => { if (swept.current) { swept.current = null; if (panel !== "groups") { setPanel("control"); setPanelOpen(true); } } }}
+                onPointerUp={() => { if (swept.current) { swept.current = null; { setPanel("control"); setPanelOpen(true); } } }}
                 onPointerCancel={() => { swept.current = null; }}>
                 {fixtures.map((f) => {
                   const def = getDef(f.defId);
@@ -793,16 +785,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
-          ) : panel === "groups" ? (
-            <GroupsPanel fixtures={fixtures} selected={selected} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
-              onSelect={(g) => setSelected(fixtures.filter((f) => f.group === g).map((f) => f.uid))} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
-              onCopy={(from, to) => setFixtures((fs) => {
-                const src = fs.find((x) => x.group === from);
-                if (!src) return fs;
-                const exists = fs.some((x) => x.group === to);
-                const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
-                return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
-              })} />
           ) : panel === "pixels" ? (
             <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} setLayers={(next) => {
               const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
@@ -817,22 +799,17 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
               remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
         </aside>}
-        {(groups.length > 0 || (project.looks ?? []).length > 0) && groupsOpen && (
-          <aside aria-label="Groups and looks" className="flex max-h-[45vh] w-full shrink-0 flex-wrap gap-1.5 overflow-auto border-t border-border bg-surface p-2 lg:max-h-none lg:w-44 lg:flex-col lg:flex-nowrap lg:border-l lg:border-t-0">
-            {groups.length > 0 && <p className="hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:block">Groups</p>}
-            {groups.map((g) => {
-              const ids = fixtures.filter((f) => f.group === g).map((f) => f.uid);
-              const all = ids.every((id) => selected.includes(id));
-              const some = !all && ids.some((id) => selected.includes(id));
-              return (
-                <button key={g} aria-pressed={all}
-                  onClick={() => { setSelected((s) => (all ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])])); if (panel !== "pixels") { setPanel("control"); setPanelOpen(true); } }}
-                  className={`shrink-0 rounded-lg px-3 py-2.5 text-left text-xs font-semibold active:scale-95 ${all ? "bg-primary text-primary-foreground" : some ? "bg-primary/30" : "bg-surface-elevated"}`}>
-                  <span className="block truncate">{g}</span>
-                  <span className="block text-[10px] font-normal opacity-80">{ids.length} lights{all ? " · selected" : ""}</span>
-                </button>
-              );
-            })}
+        {groupsOpen && (
+          <aside aria-label="Groups and looks" className="max-h-[45vh] w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
+            <GroupsPanelfixtures={fixtures} selected={selected} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
+              onSelect={(g) => { const ids = fixtures.filter((f) => f.group === g).map((f) => f.uid); setSelected((s) => ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])]); }} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
+              onCopy={(from, to) => setFixtures((fs) => {
+                const src = fs.find((x) => x.group === from);
+                if (!src) return fs;
+                const exists = fs.some((x) => x.group === to);
+                const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
+                return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
+              })} />
             <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
           </aside>
         )}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Plus, Pencil, X, Power, Check, Copy, Play, Square } from "lucide-react";
 import type { PatchedFixture } from "@/lib/dmx";
 
@@ -20,10 +21,10 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
   return (
     <div className="space-y-4">
       <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Groups</h2>
-      <form onSubmit={(e) => { e.preventDefault(); if (name.trim() && selected.length) { onCreate(name.trim()); setName(""); } }} className="space-y-1.5">
+      <form onSubmit={(e) => { e.preventDefault(); if (name.trim() && selected.length) { onCreate(name.trim()); setName(""); } }} className="space-y-1.5" aria-label="Create group">
         <div className="flex gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New group name, e.g. Key lights" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
-          <button type="submit" disabled={!name.trim() || !selected.length} className="flex items-center gap-1 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-40"><Plus className="h-3.5 w-3.5" />Group</button>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" aria-label="Group name" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
+          <Button variant="ghost" type="submit" disabled={!name.trim() || !selected.length} className="flex items-center gap-1 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-40"><Plus className="h-3.5 w-3.5" />Group</Button>
         </div>
         <p className="text-[10px] text-muted-foreground">{selected.length ? `${selected.length} selected lights will be grouped.` : "Select lights first, then name the group."}</p>
       </form>
@@ -41,22 +42,22 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
               {editing?.g === g ? (
                 <form className="flex min-w-0 flex-1 gap-1" onSubmit={(e) => { e.preventDefault(); if (editing.v.trim()) onRename(g, editing.v.trim()); setEditing(null); }}>
                   <input autoFocus value={editing.v} onChange={(e) => setEditing({ g, v: e.target.value })} className="min-w-0 flex-1 rounded border border-input bg-surface px-2 py-1 text-sm" />
-                  <button type="submit" aria-label="Save name"><Check className="h-4 w-4 text-success" /></button>
+                  <Button variant="ghost" type="submit" aria-label="Save name"><Check className="h-4 w-4 text-success" /></Button>
                 </form>
               ) : (
-                <button onClick={() => onSelect(g)} className="min-w-0 flex-1 truncate text-left text-sm font-semibold">{g} <span className="text-muted-foreground">({members.length})</span></button>
+                <Button variant="ghost" aria-pressed={members.every((f) => selected.includes(f.uid))} onClick={() => onSelect(g)} className={`min-w-0 flex-1 justify-start truncate px-1 text-left text-sm font-semibold ${members.every((f) => selected.includes(f.uid)) ? "text-primary" : ""}`}>{g} <span className="text-muted-foreground">({members.length})</span></Button>
               )}
-              <button onClick={() => onUpdate(g, { on: !anyOn })} className={`rounded p-1.5 ${anyOn ? "text-success" : "text-muted-foreground"}`} aria-label="Group on/off"><Power className="h-4 w-4" /></button>
-              {hasFx && <button onClick={() => onUpdate(g, { fxPlaying: !fxOn })} className={`rounded p-1.5 ${fxOn ? "text-destructive" : "text-amber-glow"}`} aria-label="Group effect play/stop">{fxOn ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</button>}
-              <button onClick={() => setEditing({ g, v: g })} className="p-1.5 text-muted-foreground" aria-label="Rename group"><Pencil className="h-3.5 w-3.5" /></button>
-              <button onClick={() => onUngroup(g)} className="p-1.5 text-muted-foreground hover:text-destructive" aria-label="Ungroup"><X className="h-4 w-4" /></button>
+              <Button variant="ghost" onClick={() => onUpdate(g, { on: !anyOn })} className={`rounded p-1.5 ${anyOn ? "text-success" : "text-muted-foreground"}`} aria-label="Group on/off"><Power className="h-4 w-4" /></Button>
+              {hasFx && <Button variant="ghost" onClick={() => onUpdate(g, { fxPlaying: !fxOn })} className={`rounded p-1.5 ${fxOn ? "text-destructive" : "text-amber-glow"}`} aria-label="Group effect play/stop">{fxOn ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>}
+              <Button variant="ghost" onClick={() => setEditing({ g, v: g })} className="p-1.5 text-muted-foreground" aria-label="Rename group"><Pencil className="h-3.5 w-3.5" /></Button>
+              <Button variant="ghost" onClick={() => onUngroup(g)} className="p-1.5 text-muted-foreground hover:text-destructive" aria-label="Ungroup"><X className="h-4 w-4" /></Button>
             </div>
             <div className="flex items-center gap-2">
               <input type="range" min={0} max={1} step={0.001} value={lvl} onChange={(e) => onUpdate(g, { intensity: +e.target.value })} className="flex-1 accent-[var(--color-primary)]" aria-label={`${g} intensity`} />
               <span className="w-12 text-right font-mono text-xs">{+(lvl * 100).toFixed(1)}%</span>
             </div>
             <div className="flex gap-1.5">
-              <button disabled={!selected.length} onClick={() => onCopy(g, `${g} copy`)} title="Selected lights become a new group with the same settings" className="flex flex-1 items-center justify-center gap-1 rounded bg-surface py-1.5 text-[11px] font-semibold disabled:opacity-40"><Copy className="h-3 w-3" />Duplicate to selected</button>
+              <Button variant="ghost" disabled={!selected.length} onClick={() => onCopy(g, `${g} copy`)} title="Selected lights become a new group with the same settings" className="flex flex-1 items-center justify-center gap-1 rounded bg-surface py-1.5 text-[11px] font-semibold disabled:opacity-40"><Copy className="h-3 w-3" />Duplicate to selected</Button>
               {groups.length > 1 && (
                 <select value="" onChange={(e) => e.target.value && onCopy(g, e.target.value)} className="flex-1 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Copy settings to group">
                   <option value="">Sync to group…</option>
