@@ -80,7 +80,7 @@ export function PlotPanel({ plot, setPlot, fixtures, selected, setSelected, colo
     const ctx = c.getContext("2d")!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const css = getComputedStyle(c);
-    ctx.fillStyle = css.getPropertyValue("--background") ? `color-mix(in oklab, ${css.getPropertyValue("--background")} 100%, black 0%)` : "#0b0d10";
+    ctx.fillStyle = css.getPropertyValue("--background").trim() || "#0b0d10";
     ctx.fillRect(0, 0, dims.w, dims.h);
     const m = floor();
 

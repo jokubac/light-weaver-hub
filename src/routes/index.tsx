@@ -17,7 +17,8 @@ import {
   Unlock,
   X,
 } from "lucide-react";
-import { fixtureColor, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
+import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel";
+import { fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
@@ -364,6 +365,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
   const [panelOpen, setPanelOpen] = useState(true);
   const [layers, setLayers] = useState<PixelLayer[]>(() => migrateLayers(scene));
   const [locked, setLocked] = useState(true);
+  const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
+  const [plotOpen, setPlotOpen] = useState(false);
   const [lastLook, setLastLook] = useState<string | null>(null);
   const [conn, setConnState] = useState<Connection>(() => loadConnection());
   const [connOpen, setConnOpen] = useState(false);
@@ -384,11 +387,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const latest = useRef({ fixtures, master, layers });
-  latest.current = { fixtures, master, layers };
+  const latest = useRef({ fixtures, master, layers, plot });
+  latest.current = { fixtures, master, layers, plot };
   const save = () => {
     const { pixelMap: _legacy, ...rest } = scene;
-    onSave({ ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers });
+    onSave({ ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot });
   };
 
   // Blackout fades smoothly out / in over FADE seconds
@@ -598,12 +601,19 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
         {tab("pixels", "PIXELS")}
         {tab("groups", "GROUPS")}
         {tab("looks", "LOOKS")}
+        <button onClick={() => setPlotOpen(true)} className="flex items-center gap-1 rounded-lg bg-surface-elevated px-3 py-2.5 text-xs font-bold active:scale-95"><MapIcon className="h-4 w-4" />PLOT</button>
         <button onClick={() => setSettingsOpen(true)} className="rounded-lg bg-surface-elevated p-2.5 active:scale-95" aria-label="Settings"><SettingsIcon className="h-4 w-4" /></button>
         <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? (bridge === "error" ? "bg-destructive text-destructive-foreground" : "bg-success text-primary-foreground") : "bg-surface-elevated"}`}>
           <Radio className="h-4 w-4" />{conn.node ? (bridge === "error" ? "NO BRIDGE" : conn.node.ip) : "CONNECT"}
         </button>
       </div>
 
+      {plotOpen && (
+        <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
+          colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
+          levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
+          onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
+      )}
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
