@@ -20,6 +20,8 @@ import {
   type TriggerKind,
 } from "@/lib/dmx";
 import { ColorSource } from "./ColorSource";
+import { SavedEffects } from "./SavedEffects";
+import { useFxLibrary } from "@/lib/fxlib";
 import { SpeedControl } from "./SpeedControl";
 import { hexToHs } from "@/lib/gels";
 import { IntensityMacros, CctMacros, GmMacros, ColorWheel, FanControl, GelPicker } from "./AdvancedControls";
@@ -87,6 +89,7 @@ export function FixtureControls({
   );
   const fx = first.fx;
   const setFx = (p: Partial<FxParams>) => update({ fx: { ...fx, ...p } });
+  const fxLib = useFxLibrary();
   const conflicts = sel.length === 1 ? overlaps(fixtures, first.universe, first.address, mode.channels, first.uid) : [];
   const showHsi = anyCaps.color && !first.cctOnly;
 
@@ -211,6 +214,8 @@ export function FixtureControls({
           ))}
         </div>
         {fx.kind !== "none" && <EffectEditor fx={fx} setFx={setFx} />}
+        <SavedEffects label="My effects" items={fxLib.lib.fx} onSave={(n) => fxLib.saveFx(n, fx)} onDelete={(id) => fxLib.remove("fx", id)}
+          onLoad={(it) => update({ fx: structuredClone(it.fx), fxPlaying: true })} />
       </Section>
     </div>
   );
