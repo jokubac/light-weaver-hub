@@ -81,7 +81,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
           {conn.node && (
             <div className="flex items-center justify-between rounded-lg border border-success/50 px-3 py-2 text-sm">
               <span><Check className="mr-1 inline h-4 w-4 text-success" />{conn.node.name} <span className="font-mono text-xs text-muted-foreground">{conn.node.ip}</span></span>
-              <span className={`text-[11px] ${status === "error" ? "text-destructive" : "text-success"}`}>{status === "error" ? "bridge not answering" : status === "ok" ? "sending" : ""}</span>
+              <span className={`text-[11px] ${status === "ok" ? "text-success" : status === "slow" ? "text-warning" : "text-destructive"}`}>{status === "error" ? "bridge not answering" : status === "slow" ? "slow bridge response" : status === "ok" ? "sending to bridge" : "disconnected"}</span>
               <button onClick={() => setConn({ ...conn, node: null })} className="text-xs text-destructive">Disconnect</button>
             </div>
           )}
