@@ -8,6 +8,8 @@ export interface FixtureMode {
   name: string;
   channels: number;
   kind: ModeKind;
+  profile?: "astera-hsi" | "astera-hsi-strobe" | "nanlux-evoke-cct" | "nanlux-dyno-cct" | "nanlux-dyno-hsi" | "nanlux-dyno-rgbw";
+  source?: string;
 }
 
 export interface FixtureDef {
@@ -144,8 +146,14 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Nanlite", ["PavoTube II 30C", "PavoTube II 30X"], pxModes(16, NANLITE_PAVO)),
   ...fam("Nanlite", ["PavoTube T8-7X"], pxModes(8, NANLITE_PAVO)),
   ...fam("Nanlite", ["PavoSlim 60C", "PavoSlim 120C", "PavoSlim 240C", "Forza 60C", "Forza 300C", "PavoBulb 10C", "PavoLink"], NANLITE_PAVO),
-  ...fam("Nanlux", ["Evoke 900C", "Evoke 1200", "Evoke 1200B", "Evoke 2400B", "Evoke 150C"], [...NANLITE_BI, m("Dimmer 16-bit", 2, "dim")]),
-  ...fam("Nanlux", ["Dyno 650C", "Dyno 1200C", "TK-140B", "TK-280B", "TK-450B"], NANLUX_DYNO),
+  ...fam("Nanlux", ["Evoke 900C", "Evoke 1200", "Evoke 2400B", "Evoke 150C"], [...NANLITE_BI, m("Dimmer 16-bit", 2, "dim")]),
+  ...fam("Nanlux", ["Evoke 1200B"], [...NANLITE_BI, m("Dimmer 16-bit", 2, "dim"), { name: "Ultimate DMX 8-bit — CCT", channels: 11, kind: "cct", profile: "nanlux-evoke-cct", source: "https://impact-even.com/wp-content/uploads/2023/05/nanlux_evoke1200b_tabledmx.pdf" }]),
+  ...fam("Nanlux", ["Dyno 650C", "Dyno 1200C"], [...NANLUX_DYNO,
+    { name: "Ultimate DMX 8-bit — CCT", channels: 15, kind: "cctgm", profile: "nanlux-dyno-cct" },
+    { name: "Ultimate DMX 8-bit — HSI", channels: 15, kind: "hsi", profile: "nanlux-dyno-hsi" },
+    { name: "Ultimate DMX 8-bit — RGBW", channels: 15, kind: "rgbw", profile: "nanlux-dyno-rgbw" },
+  ]),
+  ...fam("Nanlux", ["TK-140B", "TK-280B", "TK-450B"], NANLUX_DYNO),
   ...fam("Godox", ["Knowled M600D", "VL300", "VL150", "SL300 III", "M1200D"], DIM_STROBE),
   ...fam("Godox", ["Knowled MG1200Bi", "Knowled M600Bi", "Knowled F600Bi", "Knowled P600Bi", "LF308Bi", "LiteFlow"], BI),
   ...fam("Godox", ["Knowled M200R", "LC500R", "F200R", "F400R", "MS300R"], GODOX_RGB),
