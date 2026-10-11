@@ -319,11 +319,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const h = Math.max(0.2, it.h);
       const half = beam / 2;
       const th = 90 - tilt; // centre ray, degrees from straight down
-      const farDeg = Math.min(87, th + half), nearDeg = th - half;
+      const farDeg = Math.min(87, th + half);
       const rFar = Math.min(30, h * Math.tan((farDeg * Math.PI) / 180));
-      const all = nearDeg <= 0;
-      const rNear = all ? 0 : h * Math.tan((nearDeg * Math.PI) / 180);
-      const hs = all ? 180 : Math.min(180, half / Math.max(0.35, Math.sin(((th || 1) * Math.PI) / 180)) );
       const a = (it.rot * Math.PI) / 180;
       const walls = segsOf(floorOf(it));
       const omega = Math.max(0.001, 2 * Math.PI * (1 - Math.cos((Math.min(half, 90) * Math.PI) / 180)));
@@ -452,7 +449,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const addObjectAt = (x: number,y: number) => {
     const spec = SET_OBJECTS.find((o) => o.kind === objectKind); if (!spec) return;
     const o: SetObject = { ...spec, id: crypto.randomUUID(), name: spec.label, x,y,rot:0,floor:fl };
-    setPlot({ ...plot, objects:[...(plot.objects ?? []),o] }); setObjectId(o.id); setSelected([]); setTool("move");
+    setPlot({ ...plot, objects:[...(plot.objects ?? []),o] }); setObjectId(o.id); setWallIndex(null); setOpeningId(null); setSelected([]); setTool("move");
   };
   const down = (e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture(e.pointerId);
@@ -650,6 +647,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const place = (uid: string) => {
     setPlot({ ...plot, items: { ...plot.items, [uid]: newItem(Object.keys(plot.items).length) } });
     setSelected([uid]);
+    setWallIndex(null); setObjectId(null); setOpeningId(null);
     setTool("move");
   };
   const placeAll = () => {
@@ -832,7 +830,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               )}
               <div className="flex gap-2">
                 <button onClick={onOpenControls} className="flex-1 rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground">Colour & effects…</button>
-                <button onClick={() => { const items = { ...plot.items }; selItems.forEach((u) => delete items[u]); setPlot({ ...plot, items }); }} className="rounded-md bg-surface-elevated px-3 text-muted-foreground hover:text-destructive" aria-label="Remove from plot"><Trash2 className="h-4 w-4" /></button>
+                 <Button variant="secondary" size="icon" onClick={() => { if (!confirm("Remove selected lights from the plot?")) return; const items = { ...plot.items }; selItems.forEach((u) => delete items[u]); setPlot({ ...plot, items }); }} aria-label="Remove from plot"><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ) : (
