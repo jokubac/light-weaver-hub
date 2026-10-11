@@ -5,7 +5,7 @@
 import { getMode, hexToRgb, hsvToRgb, type PatchedFixture } from "./dmx";
 
 export type PixelFx =
-  | "chase" | "meteor" | "bounce" | "rainbow" | "wave" | "gradient" | "plasma"
+  | "runner" | "chase" | "meteor" | "bounce" | "rainbow" | "wave" | "gradient" | "plasma"
   | "fire" | "sparkle" | "twinkle" | "strobe" | "police" | "solid" | "text";
 
 /** line = fixtures end-to-end in one long row; stack = horizontal fixtures stacked; upright = tubes standing side by side */
@@ -23,7 +23,15 @@ export interface PixelLayer {
   layout: PixelLayout;
   order: string[]; // fixture uids in layout order
   reverse: boolean;
+  /** police: flashes per side (1 single, 2 double, 3 triple, 4 quad) */
+  flashes?: number;
+  /** police: alternate sides, both together, or slow wig-wag */
+  policeMode?: "alternate" | "together" | "wigwag";
+  /** runner: number of moving segments spread over the whole map */
+  runners?: number;
 }
+
+export const POLICE_FLASHES = [{ n: 1, l: "Single" }, { n: 2, l: "Double" }, { n: 3, l: "Triple" }, { n: 4, l: "Quad" }];
 
 /** @deprecated single-layer format from older saves */
 export interface PixelMap {
@@ -32,6 +40,7 @@ export interface PixelMap {
 }
 
 export const PIXEL_FX: { id: PixelFx; label: string }[] = [
+  { id: "runner", label: "Runner" },
   { id: "chase", label: "Chase" },
   { id: "meteor", label: "Meteor" },
   { id: "bounce", label: "Bounce" },
@@ -204,10 +213,30 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
         return scale(col(Math.floor(hash(x * 5 + y) * 100)), k);
       }
       case "strobe": return Math.floor(tt * 16) % 2 === 0 ? col(Math.floor(tt * 8)) : BLACK;
+      case "runner": {
+        // N-pixel segments travelling across every light in the layer, one after another
+        const n = Math.max(1, layer.runners ?? 1);
+        const span = W / n;
+        const pos = ((tt * 10) % W + W) % W;
+        const d = (((xd - pos) % span) + span) % span;
+        const lap = Math.floor(tt * 10 / W);
+        const k = Math.floor((xd - pos + W) / span);
+        return d < size ? col(lap + k) : (cols.length > 1 && layer.colors.length > 2 ? scale(cols[cols.length - 1]!, 0.08) : BLACK);
+      }
       case "police": {
         const half = x < W / 2 ? 0 : 1;
-        const on = Math.floor(tt * 8) % 4 < 2 ? 0 : 1;
-        return half === on ? (half ? cols[1] ?? [0, 60, 255] : cols[0]!) : BLACK;
+        const fl = Math.max(1, layer.flashes ?? 2);
+        const mode = layer.policeMode ?? "alternate";
+        const cA = cols[0]!, cB = cols[1] ?? [0, 60, 255];
+        if (mode === "wigwag") return Math.floor(tt * 2) % 2 === half ? (half ? cB : cA) : BLACK;
+        // one side: fl flashes (on/off pairs) then a short pause
+        const slots = fl * 2 + 2;
+        const step = Math.floor(tt * 14);
+        const inSide = step % slots;
+        const flashOn = inSide < fl * 2 && inSide % 2 === 0;
+        if (mode === "together") return flashOn ? (half ? cB : cA) : BLACK;
+        const side = Math.floor(step / slots) % 2;
+        return side === half && flashOn ? (half ? cB : cA) : BLACK;
       }
       case "text": {
         if (!mask) return BLACK;
