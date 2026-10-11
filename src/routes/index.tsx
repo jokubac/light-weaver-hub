@@ -53,12 +53,12 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CRMX Console — DMX lighting control for film sets" },
+      { title: "KROMA — DMX lighting control for film sets" },
       {
         name: "description",
         content: "Control ARRI, Aputure, Nanlite and Astera lights with scenes, effects and auto-save.",
       },
-      { property: "og:title", content: "CRMX Console — DMX lighting control" },
+      { property: "og:title", content: "KROMA — DMX lighting control" },
       {
         property: "og:description",
         content: "A tablet-friendly lighting console with scenes, effects and a film-industry fixture library.",
@@ -223,7 +223,7 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="truncate font-display text-xl font-bold tracking-tight">{title}</h1>
         {subtitle && <p className="truncate text-xs text-primary">{subtitle}</p>}
       </div>
       {right}
@@ -281,7 +281,7 @@ function ProjectsScreen({ projects, account, onOpen, onCreate, onDelete, onUpdat
   const [color, setColor] = useState(PROJECT_COLORS[0]!);
   return (
     <div className="min-h-screen">
-      <Header title="CRMX Console" subtitle="Projects" right={account} />
+      <Header title="KROMA" subtitle="Projects" right={account} />
       <main className="mx-auto max-w-5xl space-y-6 p-5">
         <div className="space-y-3">
           <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={(n) => onCreate(n, color)} />
@@ -731,7 +731,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                       {f.group && <div className="shrink-0 truncate text-[9px] text-primary">{f.group}</div>}
                       {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
                         <div title={`${fmtHours(b.hours)} left`} className={`flex shrink-0 items-center gap-1 text-[9px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
-                          <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}%
+                          <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)}
                         </div>); })()}
                       {f.fx.kind !== "none" && <div className={`shrink-0 truncate text-[9px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
                     </div>
