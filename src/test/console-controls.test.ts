@@ -88,4 +88,12 @@ describe("Effect palettes and settings transfer", () => {
       expect(values.every(([r,g,b]) => r === 0 && g > 0 && b === 0)).toBe(true);
     }
   });
+  it("encodes effect palette colours into HSI DMX channels", () => {
+    const def = getDef("astera-titan-tube");
+    const index = def.modes.findIndex((m) => m.profile === "astera-hsi-strobe");
+    const f = { ...createFixture(def, index, 1, 1, "Titan"), intensity: 1, fx: { ...defaultFx(), kind: "fire" as const, colors: ["#00ff00"] } };
+    const data = buildUniverses([f], .2, 1, new Map()).get(1);
+    expect(data?.[3]).toBe(85);
+    expect(data?.[4]).toBe(255);
+  });
 });
