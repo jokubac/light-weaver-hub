@@ -1,6 +1,6 @@
 # Tasks
-- [ ] Individually collapsible named groups and lock between Sweep and swap
-- [ ] Persistent editable fixture icons in patch; verify reload and DMX independence
+- [x] Individually collapsible named groups and lock between Sweep and swap
+- [x] Persistent editable fixture icons in patch; verify reload and DMX independence
 - [x] Blackout right of master with lit output indicator; full group controls in right rail
 - [x] Select, place, move, edit and delete live-plot cameras
 - [x] Slightly larger subtle neon KROMA and contrasting effect faders; verify flows
