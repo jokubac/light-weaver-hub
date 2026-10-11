@@ -124,9 +124,6 @@ export function FixtureControls({
             </div>
           )}
           {anyCaps.cct && <CctMacros value={first.cct} update={update} />}
-          {false && (
-            <div />
-          )}
           {anyCaps.gm && (
             <div onTouchEnd={tapReset(() => update({ gm: 0 }))}>
               <Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm === 0 ? "0" : `${first.gm > 0 ? "+G" : "−M"} ${Math.abs(first.gm).toFixed(2)}`}
@@ -135,9 +132,6 @@ export function FixtureControls({
             </div>
           )}
           {anyCaps.gm && <GmMacros value={first.gm} update={update} />}
-          {false && (
-            <div />
-          )}
           {showHsi && (
             <>
               <div onTouchEnd={tapReset(() => update({ crossfade: 0 }))}>
