@@ -102,6 +102,45 @@ export function PatchPanel({ fixtures, onAdd, onRemove }: { fixtures: PatchedFix
       ) : (
         <PatchConfig fixtures={fixtures} def={def} modeIdx={modeIdx} onAdd={(fs) => { onAdd(fs); setModeIdx(null); }} />
       )}
+
+      {fixtures.length > 0 && (
+        <div className="space-y-2 rounded-lg bg-surface-elevated/50 p-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Patched ({fixtures.length})</span>
+            <button
+              onClick={() => {
+                if (unpick.length === 0) return;
+                const names = fixtures.filter((f) => unpick.includes(f.uid)).map((f) => f.name);
+                if (window.confirm(`Unpatch ${names.length === 1 ? `"${names[0]}"` : `${names.length} fixtures`}? This cannot be undone.`)) {
+                  onRemove(unpick);
+                  setUnpick([]);
+                }
+              }}
+              disabled={unpick.length === 0}
+              className="flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-[11px] font-semibold text-destructive-foreground disabled:opacity-40"
+            >
+              <Unplug className="h-3.5 w-3.5" />Unpatch{unpick.length > 0 ? ` (${unpick.length})` : ""}
+            </button>
+          </div>
+          <div className="max-h-48 space-y-1 overflow-y-auto">
+            {fixtures.map((f) => {
+              const on = unpick.includes(f.uid);
+              return (
+                <button
+                  key={f.uid}
+                  onClick={() => setUnpick((u) => (on ? u.filter((x) => x !== f.uid) : [...u, f.uid]))}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${on ? "bg-destructive/20 ring-1 ring-destructive" : "bg-surface-elevated"}`}
+                >
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${on ? "border-destructive bg-destructive text-destructive-foreground" : "border-input"}`}>{on ? "✓" : ""}</span>
+                  {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
+                  <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
+                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">U{f.universe}.{f.address} · {f.mode.channels}ch</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
