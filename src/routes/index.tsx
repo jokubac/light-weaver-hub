@@ -10,6 +10,9 @@ import {
   Clapperboard,
   Radio,
   Power,
+  Lock,
+  Unlock,
+  X,
 } from "lucide-react";
 import { fixtureColor, getDef, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
@@ -17,7 +20,9 @@ import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
 import { PixelPanel } from "@/components/console/PixelPanel";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
-import { defaultPixelMap, gridHeight, renderPixels, textMask, type PixelMap } from "@/lib/pixels";
+import { FixtureMenu } from "@/components/console/FixtureMenu";
+import { LooksPanel, applyLook } from "@/components/console/LooksPanel";
+import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
   loadProjects,
@@ -28,6 +33,7 @@ import {
   uid,
   type Project,
   type Scene,
+  type Look,
 } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
@@ -159,6 +165,7 @@ function App() {
         }))
       }
       onExit={() => setView({ name: "scenes", projectId: project.id })}
+      onLooks={(looks) => updateProject(project.id, (p) => ({ ...p, looks }))}
     />
   );
 }
@@ -292,159 +299,3 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "pixels";
-
-function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void }) {
-  const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
-  const [master, setMaster] = useState(scene.master);
-  const [blackout, setBlackout] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [panel, setPanel] = useState<Panel>("patch");
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [pm, setPm] = useState<PixelMap>(() => ({ ...defaultPixelMap(), ...(scene.pixelMap ?? {}), playing: false }));
-  const [conn, setConnState] = useState<Connection>(() => loadConnection());
-  const [connOpen, setConnOpen] = useState(false);
-  const setConn = (c: Connection) => { setConnState(c); saveConnection(c); };
-  const [savedFlash, setSavedFlash] = useState(false);
-  const [t, setT] = useState(0);
-  const clock = useRef(0);
-
-  useEffect(() => {
-    let raf = 0;
-    const start = performance.now();
-    const loop = () => {
-      clock.current = (performance.now() - start) / 1000;
-      setT(clock.current);
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  const latest = useRef({ fixtures, master, pm });
-  latest.current = { fixtures, master, pm };
-  const save = () => onSave({ ...scene, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelMap: latest.current.pm });
-
-  const textH = gridHeight(pm, fixtures);
-  const mask = useMemo(() => (pm.kind === "text" ? textMask(pm.text.toUpperCase(), textH) : null), [pm.kind, pm.text, textH]);
-  const frame = pm.playing ? renderPixels(pm, fixtures, t, mask) : new Map<string, [number, number, number][]>();
-  useEffect(() => {
-    const id = setInterval(() => {
-      save();
-      setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 1500);
-    }, 10000);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const exit = () => { save(); onExit(); };
-
-  const updateSelected = (patch: Partial<PatchedFixture>) =>
-    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
-
-  const fire = (kind: TriggerKind) => {
-    const targets = selected.length ? selected : fixtures.map((f) => f.uid);
-    const now = clock.current;
-    setFixtures((fs) => fs.map((f) => (targets.includes(f.uid) ? { ...f, trigger: { kind, at: now + (kind === "lightning" ? Math.random() * 0.25 : 0) } } : f)));
-  };
-
-  const sel = fixtures.filter((f) => selected.includes(f.uid));
-  const toggleSelect = (id: string) => {
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-    setPanel("control");
-    setPanelOpen(true);
-  };
-  // tapping the active tab again collapses / expands the side panel
-  const tab = (p: Panel, label: string) => (
-    <button onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
-      className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</button>
-  );
-
-  return (
-    <div className="flex h-screen flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
-        <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
-        <div className="min-w-0">
-          <div className="truncate font-display text-lg font-semibold">{scene.name}</div>
-          <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
-        </div>
-        <div className="flex-1" />
-        <div className={`flex items-center gap-1.5 text-xs text-success transition-opacity ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" /> Auto-saved</div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-amber-glow">MASTER</span>
-          <input type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 accent-[var(--color-amber-glow)] sm:w-40" />
-          <span className="w-9 text-right font-mono text-xs">{Math.round(master * 100)}%</span>
-        </div>
-        <button onClick={() => setBlackout((b) => !b)} className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${blackout ? "bg-destructive text-destructive-foreground" : "bg-surface-elevated"}`}>
-          {blackout ? <LightbulbOff className="inline h-4 w-4" /> : <Lightbulb className="inline h-4 w-4" />} BLACKOUT
-        </button>
-        {tab("patch", "PATCH")}
-        {tab("control", "CONTROL")}
-        {tab("pixels", "PIXELS")}
-        <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}>
-          <Radio className="h-4 w-4" />{conn.node ? conn.node.ip : "CONNECT"}
-        </button>
-      </div>
-
-      <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} />
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="min-h-0 flex-1 overflow-auto p-4">
-          {fixtures.length === 0 ? (
-            <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
-          ) : (
-            <>
-              <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
-                <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
-                <span>{selected.length} selected</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                {fixtures.map((f) => {
-                  const def = getDef(f.defId);
-                  const color = fixtureColor(f, t, blackout ? 0 : master);
-                  const isSel = selected.includes(f.uid);
-                  const pix = frame.get(f.uid);
-                  const pv = f.on === false || blackout ? 0 : f.intensity * master;
-                  return (
-                    <button key={f.uid} onClick={() => toggleSelect(f.uid)} className={`rounded-xl border-2 bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary" : "border-transparent"}`}>
-                      {pix ? (
-                        <div className="mb-3 flex h-16 gap-px overflow-hidden rounded-lg bg-background">
-                          {pix.map((c, i) => <div key={i} className="flex-1" style={{ background: `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})` }} />)}
-                        </div>
-                      ) : (
-                        <div className="mb-3 h-16 rounded-lg" style={{ background: color, boxShadow: `0 0 24px ${color}` }} />
-                      )}
-                      <div className="flex items-center gap-1 truncate text-sm font-semibold">{f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}</div>
-                      <div className="flex justify-between text-[11px] text-muted-foreground">
-                        <span className="truncate">{def.brand} · U{f.universe}.{f.address}</span>
-                        <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
-                      </div>
-                      {f.fx.kind !== "none" && <div className={`mt-1 text-[10px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
-
-        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
-          {panel === "patch" ? (
-            <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} />
-          ) : panel === "pixels" ? (
-            <PixelPanel fixtures={fixtures} pm={pm} frame={frame} setPm={(next) => {
-              if (next.playing && !pm.playing) setFixtures((fs) => fs.map((f) => (next.order.includes(f.uid) && f.intensity === 0 ? { ...f, intensity: 1, on: true } : f)));
-              setPm(next);
-            }} />
-          ) : sel.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
-          ) : (
-            <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} fire={fire}
-              remove={() => { setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
-          )}
-        </aside>}
-      </div>
-    </div>
-  );
-}
