@@ -1,4 +1,8 @@
 # Tasks
+- [ ] Live Plot top remove with confirmation and undo
+- [ ] Organise intensity, colour and effects; copy settings between lights
+- [ ] Editable colour palettes for every fixture and pixel effect
+- [ ] Model-shaped fixture icons; tests and browser verification
 - [x] Fix Live Plot erase and smooth beam rendering
 - [x] Add fixture placement toolbar, furniture and person, editable walls and metre dimensions
 - [x] Confirm before layout editing/moving, keep light selection/control available
