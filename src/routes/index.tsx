@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon, Save, FolderOpen } from "lucide-react";
+import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -382,6 +382,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   const setConn = (c: Connection) => { setConnState(c); saveConnection(c); };
   const [savedFlash, setSavedFlash] = useState(false);
   const [setupsOpen, setSetupsOpen] = useState(false);
+  const [groupsOpen, setGroupsOpen] = useState(true);
   const [t, setT] = useState(0);
   const clock = useRef(0);
 
@@ -436,7 +437,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   const [bridge, setBridge] = useState<BridgeStatus>("off");
   const sender = useMemo(() => createSender(setBridge), []);
   useEffect(() => {
-    if (conn.node) void sender(conn, buildUniverses(fixtures, t, outLevel, frame, conn));
+    void sender(conn, buildUniverses(fixtures, t, outLevel, frame, conn));
   });
 
   // Battery drain: integrate each light's draw every 5 s
@@ -638,8 +639,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   };
   // tapping the active tab again collapses / expands the side panel
   const tab = (p: Panel, label: string) => (
-    <button onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
-      className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</button>
+    <Button variant="secondary" onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
+      className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</Button>
   );
   const boActive = bo.target === 1 || boLevel > 0;
 
@@ -652,32 +653,33 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
           <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
         </div>
         <div className="flex-1" />
-        <Button variant="secondary" size="icon" aria-label="Save scene" title="Save scene" onClick={() => { save(); setSavedFlash(true); }}><Save /></Button>
-        <Button variant="secondary" size="sm" onClick={() => setSetupsOpen(true)}><FolderOpen />SETUPS</Button>
-        <div className={`flex items-center gap-1.5 text-xs text-success transition-opacity ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" /> Auto-saved</div>
+        <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-amber-glow">MASTER</span>
-          <input type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 accent-[var(--color-amber-glow)] sm:w-40" />
+          <input aria-label="Master" type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
           <span className="w-9 text-right font-mono text-xs">{Math.round(master * 100)}%</span>
         </div>
-        <button onClick={toggleBlackout} className={`relative overflow-hidden rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${bo.target ? "bg-destructive text-destructive-foreground" : "bg-surface-elevated"}`}>
-          {boActive ? <LightbulbOff className="inline h-4 w-4" /> : <Lightbulb className="inline h-4 w-4" />} BLACKOUT
+        <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
+        <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
+          className={`text-xs font-bold ${conn.node && bridge === "ok" ? "bg-success text-primary-foreground" : conn.node && bridge === "slow" ? "bg-warning text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+          <Radio />CONNECT
+        </Button>
+      </div>
+      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
+        <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title="Blackout — 2 second fade" onClick={toggleBlackout} className={`relative overflow-hidden ${bo.target ? "bg-destructive text-destructive-foreground" : ""}`}>
+          {boActive ? <LightbulbOff /> : <Lightbulb />}
           {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
-        </button>
-        <button onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"}
-          className={`flex items-center gap-1 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${locked ? "bg-surface-elevated" : "bg-amber-glow text-primary-foreground"}`}>
-          {locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}{locked ? "LOCKED" : "UNLOCKED"}
-        </button>
+        </Button>
+        <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={locked ? "" : "bg-amber-glow text-primary-foreground"}>
+          {locked ? <Lock /> : <Unlock />}
+        </Button>
         {tab("patch", "PATCH")}
         {tab("control", "CONTROL")}
         {tab("pixels", "PIXELS")}
         {tab("groups", "GROUPS")}
         {tab("looks", "LOOKS")}
-        <button onClick={() => setPlotOpen(true)} className="flex items-center gap-1 rounded-lg bg-surface-elevated px-3 py-2.5 text-xs font-bold active:scale-95"><MapIcon className="h-4 w-4" />PLOT</button>
-        <button onClick={() => setSettingsOpen(true)} className="rounded-lg bg-surface-elevated p-2.5 active:scale-95" aria-label="Settings"><SettingsIcon className="h-4 w-4" /></button>
-        <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? (bridge === "error" ? "bg-destructive text-destructive-foreground" : "bg-success text-primary-foreground") : "bg-surface-elevated"}`}>
-          <Radio className="h-4 w-4" />{conn.node ? (bridge === "error" ? "NO BRIDGE" : conn.node.ip) : "CONNECT"}
-        </button>
+        <Button variant="secondary" onClick={() => setPlotOpen(true)} className="text-xs font-bold"><MapIcon />PLOT</Button>
+        {groups.length > 0 && <Button variant="ghost" size="icon" className="ml-auto" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups sidebar" : "Show groups sidebar"} title={groupsOpen ? "Hide groups sidebar" : "Show groups sidebar"}>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
@@ -691,7 +693,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
       )}
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
+      <SettingsDialog onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
         targets={[
           { id: "master", label: "Master fader" }, { id: "blackout", label: "Blackout" },
@@ -795,7 +797,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
               remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
         </aside>}
-        {groups.length > 0 && (
+        {groups.length > 0 && groupsOpen && (
           <aside aria-label="Groups" className="flex w-full shrink-0 gap-1.5 overflow-auto border-t border-border bg-surface p-2 lg:w-44 lg:flex-col lg:border-l lg:border-t-0">
             <p className="hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:block">Groups</p>
             {groups.map((g) => {
