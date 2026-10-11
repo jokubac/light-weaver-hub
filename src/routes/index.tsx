@@ -34,7 +34,7 @@ import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
-import { Settings as SettingsIcon, BatteryMedium } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { LooksPanel, applyLook } from "@/components/console/LooksPanel";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
@@ -617,14 +617,20 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   const holdEnd = () => { if (holdTimer.current) clearTimeout(holdTimer.current); holdTimer.current = null; };
   // Sweep: drag across tiles to add every light you pass over
   const [sweep, setSweep] = useState(false);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
   const swept = useRef<Set<string> | null>(null);
+  const sweepMode = useRef<"add" | "remove">("add");
   const sweepAt = (x: number, y: number) => {
     const id = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>("[data-fixture]")?.dataset["fixture"];
     if (!id || !swept.current || swept.current.has(id)) return;
+    // first light touched decides: starting on a selected light deselects while sweeping
+    if (swept.current.size === 0) sweepMode.current = selectedRef.current.includes(id) ? "remove" : "add";
     swept.current.add(id);
     lastPick.current = id;
     navigator.vibrate?.(8);
-    setSelected((s) => (s.includes(id) ? s : [...s, id]));
+    if (sweepMode.current === "remove") setSelected((s) => s.filter((x) => x !== id));
+    else setSelected((s) => (s.includes(id) ? s : [...s, id]));
   };
   const tileClick = (e: React.MouseEvent, id: string) => {
     if (held.current) { held.current = false; return; }
@@ -702,7 +708,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
             <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
           ) : (
             <>
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div className="sticky -top-4 z-10 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-2 text-xs text-muted-foreground backdrop-blur">
                 <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
                 <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
                 <button onClick={() => setSweep((s) => !s)} aria-pressed={sweep} title="Drag a finger across lights to select them"
@@ -711,6 +717,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                 {groups.map((g) => (
                   <span key={g} className="flex items-center overflow-hidden rounded-md bg-primary/15 text-foreground">
                     <button onClick={() => { setSelected(fixtures.filter((f) => f.group === g).map((f) => f.uid)); setPanel("control"); setPanelOpen(true); }} className="px-3 py-1.5 font-semibold">{g} ({fixtures.filter((f) => f.group === g).length})</button>
+                    <button onClick={() => { const n = prompt("Rename group", g)?.trim(); if (n && n !== g) renameGroup(g, n); }} className="px-1.5 py-1.5 text-muted-foreground hover:text-foreground" aria-label={`Rename ${g}`}><Pencil className="h-3 w-3" /></button>
                     <button onClick={() => ungroup(g)} className="px-1.5 py-1.5 text-muted-foreground hover:text-destructive" aria-label={`Ungroup ${g}`}><X className="h-3 w-3" /></button>
                   </span>
                 ))}

@@ -48,7 +48,8 @@ type Drag =
   | { kind: "box"; sx: number; sy: number; add: boolean }
   | { kind: "pan"; sx: number; sy: number; pan0: [number, number] }
   | { kind: "orbit"; sx: number; sy: number; yaw0: number; pitch0: number }
-  | { kind: "pinch"; d0: number; z0: number; mid0: [number, number]; pan0: [number, number] };
+  | { kind: "pinch"; d0: number; z0: number; mid0: [number, number]; pan0: [number, number]; a0: number; yaw0: number; objRot0?: number; itemRot0?: Record<string, number> }
+  | { kind: "tilt3"; my0: number; pitch0: number };
 
 const DEFAULT_TILT = 24;
 const clampN = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -87,6 +88,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const [tool, setTool] = useState<Tool>("move");
   const [ink, setInk] = useState("#e5e7eb");
   const [active, setActive] = useState(plot.view?.active ?? 0);
+  const [beamsOn, setBeamsOn] = useState(true);
   const [box, setBox] = useState<[number, number, number, number] | null>(null);
   const drag = useRef<Drag | null>(null);
   const pointers = useRef(new Map<number, [number, number]>());
@@ -162,9 +164,9 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   }, []);
 
   const [SW, SH] = plot.size;
-  const viewOf = (z = zoom, p = pan): View => {
+  const viewOf = (z = zoom, p = pan, yw = yaw): View => {
     const s = Math.min(dims.w / (SW * (view3d ? 1.25 : 1.08)), dims.h / (SH * (view3d ? 1.1 : 1.08))) * z;
-    const a = (yaw * Math.PI) / 180, pr = (pitch * Math.PI) / 180;
+    const a = (yw * Math.PI) / 180, pr = (pitch * Math.PI) / 180;
     const k = view3d ? Math.sin(pr) : 1;
     const ca = Math.cos(a), sa = Math.sin(a);
     const m: Mat = [s * ca, s * sa * k, -s * sa, s * ca * k, 0, 0];
@@ -250,8 +252,18 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       }
       ctx.strokeStyle = isActive ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)";
       ctx.lineWidth = 0.02;
-      for (let x = 0; x <= SW; x++) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, SH); ctx.stroke(); }
-      for (let y = 0; y <= SH; y++) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(SW, y); ctx.stroke(); }
+      {
+        // infinite grid: cover whatever part of the floor plane is on screen
+        const cs = [[0, 0], [dims.w, 0], [0, dims.h], [dims.w, dims.h]].map(([a, b]) => unproj(V, a!, b!, z));
+        const xs = cs.map((q) => q[0]), ys = cs.map((q) => q[1]);
+        const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const span = Math.max(x1 - x0, y1 - y0);
+        const step = span > 2000 ? 100 : span > 400 ? 10 : span > 150 ? 5 : 1;
+        ctx.beginPath();
+        for (let x = Math.floor(x0 / step) * step; x <= x1; x += step) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
+        for (let y = Math.floor(y0 / step) * step; y <= y1; y += step) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
+        ctx.stroke();
+      }
       ctx.strokeStyle = isActive ? "rgba(34,211,238,0.5)" : "rgba(255,255,255,0.2)";
       ctx.lineWidth = 0.05;
       ctx.strokeRect(0, 0, SW, SH);
@@ -380,7 +392,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
 
     // beams: light pool on the floor with inverse-square falloff, blocked by walls
     ctx.globalCompositeOperation = "lighter";
-    for (const f of sorted) {
+    for (const f of beamsOn ? sorted : []) {
       const it = plot.items[f.uid]!;
       const lv = levelOf(f);
       if (lv <= 0.002) continue;
@@ -537,10 +549,21 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     pointers.current.set(e.pointerId, [sx, sy]);
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()] as [[number, number], [number, number]];
-      drag.current = { kind: "pinch", d0: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z0: zoom, mid0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], pan0: pan };
+      const obj = layoutUnlocked && objectId ? plot.objects?.find((o) => o.id === objectId) : undefined;
+      const selIt = layoutUnlocked && !obj ? selected.filter((u) => plot.items[u]) : [];
+      drag.current = { kind: "pinch", d0: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z0: zoom, mid0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], pan0: pan,
+        a0: Math.atan2(b[1] - a[1], b[0] - a[0]), yaw0: yaw,
+        ...(obj ? { objRot0: obj.rot } : {}), ...(selIt.length ? { itemRot0: Object.fromEntries(selIt.map((u) => [u, plot.items[u]!.rot])) } : {}) };
       setBox(null);
       return;
     }
+    if (pointers.current.size === 3) {
+      const pts = [...pointers.current.values()];
+      drag.current = { kind: "tilt3", my0: pts.reduce((s, q) => s + q[1], 0) / 3, pitch0: pitch };
+      if (!view3d) { setView3d(true); }
+      return;
+    }
+    if (pointers.current.size > 3) return;
     if (e.button === 2 || (tool === "pan" && e.shiftKey)) { drag.current = { kind: "orbit", sx, sy, yaw0: yaw, pitch0: pitch }; return; }
     if (e.button === 1 || tool === "pan") { drag.current = { kind: "pan", sx, sy, pan0: pan }; return; }
     const fp = clampFloor(unproj(viewOf(), sx, sy, floorZ));
@@ -623,10 +646,30 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const [a, b] = pts as [[number, number], [number, number]];
       const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
       const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      let dAng = ((Math.atan2(b[1] - a[1], b[0] - a[0]) - d.a0) * 180) / Math.PI;
+      dAng = ((dAng + 540) % 360) - 180;
+      const wrap = (r: number) => Math.round(((r + 540) % 360) - 180);
+      if (d.objRot0 !== undefined) {
+        // two-finger twist rotates the selected set object
+        setPlot({ ...p, objects: (p.objects ?? []).map((o) => o.id === objectId ? { ...o, rot: wrap(d.objRot0! + dAng) } : o) });
+        return;
+      }
+      if (d.itemRot0) {
+        const r0 = d.itemRot0;
+        setPlot({ ...p, items: Object.fromEntries(Object.entries(p.items).map(([k, v]) => [k, r0[k] !== undefined ? { ...v, rot: wrap(r0[k]! + dAng) } : v])) });
+        return;
+      }
+      // free view: pinch zooms, two-finger drag pans, twist turns the view
+      const ny = wrap(d.yaw0 + dAng);
       const nz = clampN(d.z0 * (dist / d.d0), 0.2, 12);
-      const fp = unproj(viewOf(d.z0, d.pan0), d.mid0[0], d.mid0[1]);
-      const q = proj(viewOf(nz, d.pan0), fp[0], fp[1]);
-      setZoom(nz); setPan([d.pan0[0] + mid[0] - q[0], d.pan0[1] + mid[1] - q[1]]);
+      const fp = unproj(viewOf(d.z0, d.pan0, d.yaw0), d.mid0[0], d.mid0[1]);
+      const q = proj(viewOf(nz, d.pan0, ny), fp[0], fp[1]);
+      setYaw(ny); setZoom(nz); setPan([d.pan0[0] + mid[0] - q[0], d.pan0[1] + mid[1] - q[1]]);
+    } else if (d.kind === "tilt3") {
+      const pts = [...pointers.current.values()];
+      if (pts.length < 3) return;
+      const my = pts.reduce((s, q) => s + q[1], 0) / pts.length;
+      setPitch(Math.round(clampN(d.pitch0 - (my - d.my0) * 0.3, 15, 89)));
     } else if (d.kind === "pan") {
       setPan([d.pan0[0] + sx - d.sx, d.pan0[1] + sy - d.sy]);
     } else if (d.kind === "orbit") {
@@ -693,7 +736,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       setBox(null);
     }
     drag.current = pointers.current.size ? drag.current : null;
-    if (d?.kind === "pinch") drag.current = null;
+    if (d?.kind === "pinch" || d?.kind === "tilt3") drag.current = null;
   };
   const dbl = (e: React.MouseEvent) => {
     if (tool !== "move") return;
@@ -890,8 +933,11 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               <button onClick={() => zoomAt(zoom * 1.25, dims.w / 2, dims.h / 2)} className="rounded-md bg-surface-elevated p-1.5" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
               <button onClick={() => { setZoom(1); setPan([0, 0]); setYaw(view3d ? -30 : 0); }} className="rounded-md bg-surface-elevated p-1.5" aria-label="Reset view"><Maximize className="h-3.5 w-3.5" /></button>
             </div>
+            <button onClick={() => setBeamsOn((b) => !b)} title="Only hides the light pools on this plot — the real lights keep running"
+              className={`rounded-md px-2 py-1.5 font-semibold ${beamsOn ? "bg-surface-elevated" : "bg-amber-glow text-primary-foreground"}`}>{beamsOn ? "Light preview on" : "Light preview off"}</button>
+            <span className="hidden xl:inline">2 fingers: move · pinch · twist · 3 fingers: tilt</span>
           </div>
-          <div className="absolute right-3 top-3 rounded-md bg-surface/80 px-2 py-1 font-mono text-[10px] text-muted-foreground">{SW} × {SH} m · grid 1 m</div>
+          <div className="absolute right-3 top-3 rounded-md bg-surface/80 px-2 py-1 font-mono text-[10px] text-muted-foreground">{SW} × {SH} m · infinite grid</div>
         </div>
 
         <aside className="max-h-[45vh] lg:max-h-none w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-4 lg:w-80 lg:border-l lg:border-t-0">

@@ -56,24 +56,39 @@ export function CameraView({ cam, size, strokes, openings, objects, floorZ, ligh
     };
     const tone = (x: number) => Math.round(255 * Math.pow(1 - Math.exp(-x * 2.2), 1 / 2.2));
     const drawn: { pts: [number, number][]; z: number; fill: string }[] = [];
+    // camera-space near-plane clipping, so faces crossing behind the lens don't explode into spikes
+    const NEAR = 0.1;
+    const toCam = (p: V3): V3 => { const d = sub(p, eye); return [dot(d, right), dot(d, up), dot(d, fwd)]; };
+    const clipNear = (pts: V3[]): V3[] => {
+      const out: V3[] = [];
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i]!, b = pts[(i + 1) % pts.length]!;
+        const ain = a[2] >= NEAR, bin = b[2] >= NEAR;
+        if (ain) out.push(a);
+        if (ain !== bin) { const t = (NEAR - a[2]) / (b[2] - a[2]); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, NEAR]); }
+      }
+      return out;
+    };
     for (const poly of polys) {
-      const pr = poly.pts.map(project);
-      if (pr.some((x) => !x)) continue;
+      const cp = clipNear(poly.pts.map(toCam));
+      if (cp.length < 3) continue;
+      const pr = cp.map((q) => [W / 2 + q[0] / q[2] * f, H / 2 - q[1] / q[2] * f, q[2]] as [number, number, number]);
+      if (pr.every((q) => q[0] < 0) || pr.every((q) => q[0] > W) || pr.every((q) => q[1] < 0) || pr.every((q) => q[1] > H)) continue;
       const centre = poly.pts.reduce<V3>((s, p) => [s[0] + p[0] / poly.pts.length, s[1] + p[1] / poly.pts.length, s[2] + p[2] / poly.pts.length], [0, 0, 0]);
       let n = poly.n; if (dot(n, sub(eye, centre)) < 0) n = [-n[0], -n[1], -n[2]];
       const E = lightAt(centre, n);
       const col = poly.albedo.map((al, k) => tone(E[k]! * al * gain + (poly.emissive?.[k] ?? 0)));
-      const z = (pr as [number, number, number][]).reduce((s, q) => s + q[2], 0) / pr.length;
+      const z = Math.hypot(...sub(centre, eye));
       drawn.push({ pts: (pr as [number, number, number][]).map((q) => [q[0], q[1]]), z, fill: `rgba(${col[0]},${col[1]},${col[2]},${poly.glass ? 0.35 : 1})` });
     }
     ctx.fillStyle = "#050507"; ctx.fillRect(0, 0, W, H);
     drawn.sort((a, b) => b.z - a.z);
-    for (const d of drawn) { ctx.beginPath(); d.pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fillStyle = d.fill; ctx.fill(); ctx.strokeStyle = d.fill; ctx.lineWidth = 1; ctx.stroke(); }
+    for (const d of drawn) { ctx.beginPath(); d.pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fillStyle = d.fill; ctx.fill(); ctx.strokeStyle = d.fill; ctx.lineWidth = 0.5; ctx.stroke(); }
     // light sources visible in frame
     ctx.globalCompositeOperation = "lighter";
     for (const L of lights) {
       const q = project([L.x, L.y, L.z - floorZ]); if (!q || L.level <= 0.002) continue;
-      const r = Math.max(4, 40 / q[2]) * Math.min(3, 0.6 + gain * L.watts * L.level * 4);
+      const r = Math.min(W * 0.08, Math.max(4, 40 / q[2]) * Math.min(3, 0.6 + gain * L.watts * L.level * 4));
       const g = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
       g.addColorStop(0, `rgba(${L.rgb.join(",")},0.95)`); g.addColorStop(1, `rgba(${L.rgb.join(",")},0)`);
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, Math.PI * 2); ctx.fill();
