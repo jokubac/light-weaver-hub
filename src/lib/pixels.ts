@@ -1,44 +1,85 @@
-// Pixel mapping engine: lays pixel fixtures out in a grid and renders chase / rainbow / text effects.
+// Pixel mapping engine: lays pixel fixtures out on one shared grid so effects flow
+// from one fixture into the next, supports 2D fixtures (e.g. SkyPanel S360 4×3) and
+// several independent layers playing at once.
 
 import { getMode, hexToRgb, hsvToRgb, type PatchedFixture } from "./dmx";
 
-export type PixelFx = "chase" | "rainbow" | "wave" | "sparkle" | "solid" | "text";
+export type PixelFx =
+  | "chase" | "meteor" | "bounce" | "rainbow" | "wave" | "gradient" | "plasma"
+  | "fire" | "sparkle" | "twinkle" | "strobe" | "police" | "solid" | "text";
 
-export interface PixelMap {
+/** line = fixtures end-to-end in one long row; stack = horizontal fixtures stacked; upright = tubes standing side by side */
+export type PixelLayout = "line" | "stack" | "upright";
+
+export interface PixelLayer {
+  id: string;
+  name: string;
   playing: boolean;
   kind: PixelFx;
   colors: string[];
   speed: number; // 0.05 - 4
   size: number; // band width in pixels
   text: string;
-  vertical: boolean; // true = fixtures standing upright side by side
+  layout: PixelLayout;
   order: string[]; // fixture uids in layout order
   reverse: boolean;
 }
 
+/** @deprecated single-layer format from older saves */
+export interface PixelMap {
+  playing: boolean; kind: PixelFx; colors: string[]; speed: number; size: number; text: string;
+  vertical: boolean; order: string[]; reverse: boolean;
+}
+
 export const PIXEL_FX: { id: PixelFx; label: string }[] = [
   { id: "chase", label: "Chase" },
+  { id: "meteor", label: "Meteor" },
+  { id: "bounce", label: "Bounce" },
   { id: "rainbow", label: "Rainbow" },
   { id: "wave", label: "Wave" },
+  { id: "gradient", label: "Gradient" },
+  { id: "plasma", label: "Plasma" },
+  { id: "fire", label: "Fire" },
   { id: "sparkle", label: "Sparkle" },
+  { id: "twinkle", label: "Twinkle" },
+  { id: "strobe", label: "Strobe" },
+  { id: "police", label: "Police" },
   { id: "solid", label: "Colour" },
   { id: "text", label: "Text" },
 ];
 
-export const defaultPixelMap = (): PixelMap => ({
+const newId = () => Math.random().toString(36).slice(2, 10);
+
+export const defaultLayer = (name = "Layer 1", order: string[] = []): PixelLayer => ({
+  id: newId(),
+  name,
   playing: false,
   kind: "chase",
   colors: ["#ff0040", "#00e5ff", "#ffea00"],
   speed: 1,
   size: 3,
   text: "HELLO",
-  vertical: true,
-  order: [],
+  layout: "line",
+  order,
   reverse: false,
 });
 
-export const pixelCount = (f: PatchedFixture) => getMode(f).pixels ?? 0;
+export function migrateLayers(s: { pixelLayers?: PixelLayer[]; pixelMap?: PixelMap }): PixelLayer[] {
+  if (s.pixelLayers?.length) return s.pixelLayers.map((l) => ({ ...defaultLayer(), ...l, playing: false }));
+  if (s.pixelMap) {
+    const { vertical, ...rest } = s.pixelMap;
+    return [{ ...defaultLayer(), ...rest, layout: vertical ? "upright" : "stack", playing: false }];
+  }
+  return [defaultLayer()];
+}
+
+export const pixelCount = (f: PatchedFixture) => (f.split ? 0 : getMode(f).pixels ?? 0);
 export const isPixelFixture = (f: PatchedFixture) => pixelCount(f) > 0;
+/** Physical pixel grid of one fixture [cols, rows]; pixels are numbered row by row from top-left. */
+export const pixelGrid = (f: PatchedFixture): [number, number] => {
+  const mo = getMode(f);
+  return mo.grid ?? [mo.pixels ?? 0, 1];
+};
 
 type RGB = [number, number, number];
 
@@ -50,7 +91,7 @@ export function textMask(text: string, height: number): { w: number; h: number; 
   const ctx = c.getContext("2d")!;
   const font = `bold ${h}px monospace`;
   ctx.font = font;
-  const w = Math.max(1, Math.ceil(ctx.measureText(text).width) + h); // trailing gap
+  const w = Math.max(1, Math.ceil(ctx.measureText(text).width) + h);
   c.width = w;
   c.height = h;
   ctx.font = font;
@@ -62,67 +103,129 @@ export function textMask(text: string, height: number): { w: number; h: number; 
 }
 
 const hash = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const smooth = (x: number) => { const i = Math.floor(x); const f = x - i; const u = f * f * (3 - 2 * f); return hash(i) * (1 - u) + hash(i + 1) * u; };
+const mix = (a: RGB, b: RGB, k: number): RGB => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+const scale = (a: RGB, k: number): RGB => [a[0] * k, a[1] * k, a[2] * k];
+const BLACK: RGB = [0, 0, 0];
 
-/**
- * Returns colours (0-255) per fixture uid, one entry per pixel.
- * Grid: horizontal → rows = fixtures, cols = pixels. Vertical → cols = fixtures, rows = pixels.
- */
-export function renderPixels(pm: PixelMap, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null): Map<string, RGB[]> {
-  const out = new Map<string, RGB[]>();
-  const list = pm.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
-  if (!list.length) return out;
-  const maxPx = Math.max(...list.map(pixelCount));
-  const W = pm.vertical ? list.length : maxPx;
-  const H = pm.vertical ? maxPx : list.length;
-  const cols = pm.colors.length ? pm.colors.map(hexToRgb) : [[255, 255, 255] as RGB];
-  const dir = pm.reverse ? -1 : 1;
-  const tt = t * pm.speed;
+function fireColor(h: number): RGB {
+  const x = Math.max(0, Math.min(1, h));
+  if (x < 0.35) return [x / 0.35 * 200, 0, 0];
+  if (x < 0.7) return [200 + (x - 0.35) / 0.35 * 55, (x - 0.35) / 0.35 * 120, 0];
+  return [255, 120 + (x - 0.7) / 0.3 * 120, (x - 0.7) / 0.3 * 90];
+}
+
+interface Placed { f: PatchedFixture; cells: { x: number; y: number }[] }
+
+/** Positions of every pixel of every fixture in the layer on one shared grid. */
+export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number } {
+  const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
+  const placed: Placed[] = [];
+  let ox = 0, oy = 0, W = 0, H = 0;
+  for (const f of list) {
+    let [c, r] = pixelGrid(f);
+    const tube = r === 1;
+    const rotate = layer.layout === "upright" && tube;
+    if (rotate) [c, r] = [1, c];
+    const cells: { x: number; y: number }[] = [];
+    const n = pixelCount(f);
+    for (let i = 0; i < n; i++) {
+      const [lc, lr] = pixelGrid(f);
+      const px = i % lc, py = Math.floor(i / lc);
+      // upright tubes: pixel 0 at the top
+      const lx = rotate ? 0 : px, ly = rotate ? i : (lr > 1 ? py : 0);
+      cells.push({ x: ox + lx, y: oy + ly });
+    }
+    placed.push({ f, cells });
+    if (layer.layout === "stack") { oy += r; W = Math.max(W, c); H = oy; }
+    else { ox += c; W = ox; H = Math.max(H, r); }
+  }
+  return { placed, W: Math.max(1, W), H: Math.max(1, H) };
+}
+
+export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
+  return layoutLayer(layer, fixtures).H;
+}
+
+/** Colours (0-255) per fixture uid, one entry per pixel. */
+export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null, out = new Map<string, RGB[]>()) {
+  const { placed, W, H } = layoutLayer(layer, fixtures);
+  if (!placed.length) return out;
+  const cols: RGB[] = layer.colors.length ? layer.colors.map(hexToRgb) : [[255, 255, 255]];
+  const col = (i: number) => cols[((i % cols.length) + cols.length) % cols.length]!;
+  const dir = layer.reverse ? -1 : 1;
+  const tt = t * layer.speed;
+  const size = Math.max(1, layer.size);
 
   const at = (x: number, y: number): RGB => {
-    switch (pm.kind) {
+    const xd = layer.reverse ? W - 1 - x : x;
+    switch (layer.kind) {
       case "solid": return cols[0]!;
-      case "chase": {
-        const p = x * dir - tt * 8;
-        const band = Math.floor(p / Math.max(1, pm.size));
-        const c = cols[((band % cols.length) + cols.length) % cols.length]!;
-        return c;
+      case "chase": return col(Math.floor((x * dir - tt * 8) / size));
+      case "meteor": {
+        const span = W + size * 2;
+        const head = (tt * 10) % span;
+        const d = head - xd;
+        return d >= 0 && d < size * 2 ? scale(col(Math.floor(tt * 10 / span)), Math.pow(1 - d / (size * 2), 2)) : BLACK;
+      }
+      case "bounce": {
+        const p = (Math.sin(tt * 2) + 1) / 2 * (W - 1);
+        const d = Math.abs(x - p);
+        return d < size ? scale(cols[0]!, 1 - d / size) : (cols[1] ? scale(cols[1], 0.15) : BLACK);
       }
       case "rainbow": return hsvToRgb((((x / W + y / (H * 4)) * dir - tt * 0.3) * 360 % 360 + 360) % 360, 1, 1);
       case "wave": {
-        const k = (Math.sin((x / Math.max(1, pm.size)) * dir - tt * 4) + 1) / 2;
-        const a = cols[0]!, b = cols[1] ?? [0, 0, 0];
-        return [a[0] * k + b[0] * (1 - k), a[1] * k + b[1] * (1 - k), a[2] * k + b[2] * (1 - k)];
+        const k = (Math.sin((x / size) * dir - tt * 4) + 1) / 2;
+        return mix(cols[1] ?? BLACK, cols[0]!, k);
+      }
+      case "gradient": {
+        const p = (((x / W) * dir - tt * 0.2) % 1 + 1) % 1 * cols.length;
+        const i = Math.floor(p);
+        return mix(col(i), col(i + 1), p - i);
+      }
+      case "plasma": {
+        const v = Math.sin(x * 0.4 + tt * 2) + Math.sin(y * 0.6 - tt * 1.5) + Math.sin((x + y) * 0.3 + tt);
+        return hsvToRgb((((v + 3) / 6) * 360 + tt * 40) % 360, 1, 1);
+      }
+      case "fire": {
+        // 2D: hottest at the bottom row. 1D: flickering embers along the length.
+        const base = H > 1 ? (y + 1) / H : 0.75;
+        const n = smooth(x * 0.9 + tt * 6 + y * 3.1) * 0.6 + smooth(x * 2.3 - tt * 11) * 0.4;
+        const flick = smooth(tt * 9 + x * 0.5);
+        return fireColor(base * (0.55 + n * 0.6) * (0.75 + flick * 0.35));
       }
       case "sparkle": {
-        const frame = Math.floor(tt * 12);
-        const r = hash(x * 13.1 + y * 71.7 + frame * 3.3);
-        return r > 0.85 ? cols[Math.floor(r * 1000) % cols.length]! : [0, 0, 0];
+        const r = hash(x * 13.1 + y * 71.7 + Math.floor(tt * 12) * 3.3);
+        return r > 0.85 ? col(Math.floor(r * 1000)) : BLACK;
+      }
+      case "twinkle": {
+        const ph = hash(x * 7.7 + y * 3.3) * 6.28;
+        const k = Math.pow((Math.sin(tt * (1 + hash(x + y * 9)) * 2 + ph) + 1) / 2, 3);
+        return scale(col(Math.floor(hash(x * 5 + y) * 100)), k);
+      }
+      case "strobe": return Math.floor(tt * 16) % 2 === 0 ? col(Math.floor(tt * 8)) : BLACK;
+      case "police": {
+        const half = x < W / 2 ? 0 : 1;
+        const on = Math.floor(tt * 8) % 4 < 2 ? 0 : 1;
+        return half === on ? (half ? cols[1] ?? [0, 60, 255] : cols[0]!) : BLACK;
       }
       case "text": {
-        if (!mask) return [0, 0, 0];
+        if (!mask) return BLACK;
         const off = Math.floor(tt * 10);
         const mx = ((((x + off * dir) % mask.w) + mask.w) % mask.w);
         const my = Math.floor((y / H) * mask.h);
-        return mask.on(mx, my) ? cols[0]! : [0, 0, 0];
+        return mask.on(mx, my) ? cols[0]! : BLACK;
       }
     }
   };
 
-  list.forEach((f, fi) => {
-    const n = pixelCount(f);
-    const px: RGB[] = [];
-    for (let i = 0; i < n; i++) {
-      // vertical: pixel 0 at the top
-      px.push(pm.vertical ? at(fi, i) : at(i, fi));
-    }
-    out.set(f.uid, px);
-  });
+  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => at(c.x, c.y)));
   return out;
 }
 
-/** Grid height used for text masks. */
-export function gridHeight(pm: PixelMap, fixtures: PatchedFixture[]) {
-  const list = pm.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
-  if (!list.length) return 0;
-  return pm.vertical ? Math.max(...list.map(pixelCount)) : list.length;
+/** Renders all playing layers; later layers override earlier ones on shared fixtures. */
+export function renderLayers(layers: PixelLayer[], fixtures: PatchedFixture[], t: number, masks: Map<string, ReturnType<typeof textMask>>) {
+  const out = new Map<string, RGB[]>();
+  for (const l of layers) if (l.playing) renderLayer(l, fixtures, t, masks.get(l.id) ?? null, out);
+  return out;
 }

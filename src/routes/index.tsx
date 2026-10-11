@@ -10,14 +10,19 @@ import {
   Clapperboard,
   Radio,
   Power,
+  Lock,
+  Unlock,
+  X,
 } from "lucide-react";
-import { fixtureColor, getDef, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
+import { fixtureColor, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
 import { PixelPanel } from "@/components/console/PixelPanel";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
-import { defaultPixelMap, gridHeight, renderPixels, textMask, type PixelMap } from "@/lib/pixels";
+import { FixtureMenu } from "@/components/console/FixtureMenu";
+import { LooksPanel, applyLook } from "@/components/console/LooksPanel";
+import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
   loadProjects,
@@ -28,6 +33,7 @@ import {
   uid,
   type Project,
   type Scene,
+  type Look,
 } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
@@ -159,6 +165,7 @@ function App() {
         }))
       }
       onExit={() => setView({ name: "scenes", projectId: project.id })}
+      onLooks={(looks) => updateProject(project.id, (p) => ({ ...p, looks }))}
     />
   );
 }
@@ -292,16 +299,22 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "pixels";
+type Panel = "patch" | "control" | "pixels" | "looks";
+type RGB = [number, number, number];
+const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void }) {
+function ConsoleScreen({ project, scene, onSave, onExit, onLooks }: {
+  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void;
+}) {
   const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
-  const [blackout, setBlackout] = useState(false);
+  const [bo, setBo] = useState<{ target: 0 | 1; at: number; from: number }>({ target: 0, at: -10, from: 0 });
   const [selected, setSelected] = useState<string[]>([]);
   const [panel, setPanel] = useState<Panel>("patch");
   const [panelOpen, setPanelOpen] = useState(true);
-  const [pm, setPm] = useState<PixelMap>(() => ({ ...defaultPixelMap(), ...(scene.pixelMap ?? {}), playing: false }));
+  const [layers, setLayers] = useState<PixelLayer[]>(() => migrateLayers(scene));
+  const [locked, setLocked] = useState(true);
+  const [lastLook, setLastLook] = useState<string | null>(null);
   const [conn, setConnState] = useState<Connection>(() => loadConnection());
   const [connOpen, setConnOpen] = useState(false);
   const setConn = (c: Connection) => { setConnState(c); saveConnection(c); };
@@ -321,13 +334,28 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const latest = useRef({ fixtures, master, pm });
-  latest.current = { fixtures, master, pm };
-  const save = () => onSave({ ...scene, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelMap: latest.current.pm });
+  const latest = useRef({ fixtures, master, layers });
+  latest.current = { fixtures, master, layers };
+  const save = () => {
+    const { pixelMap: _legacy, ...rest } = scene;
+    onSave({ ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers });
+  };
 
-  const textH = gridHeight(pm, fixtures);
-  const mask = useMemo(() => (pm.kind === "text" ? textMask(pm.text.toUpperCase(), textH) : null), [pm.kind, pm.text, textH]);
-  const frame = pm.playing ? renderPixels(pm, fixtures, t, mask) : new Map<string, [number, number, number][]>();
+  // Blackout fades smoothly out / in over FADE seconds
+  const boK = Math.min(1, Math.max(0, (t - bo.at) / FADE));
+  const boLevel = bo.from + (bo.target - bo.from) * boK;
+  const toggleBlackout = () => setBo({ target: bo.target ? 0 : 1, at: clock.current, from: boLevel });
+  const outLevel = master * (1 - boLevel);
+
+  const maskKey = layers.map((l) => (l.kind === "text" ? `${l.id}:${l.text}:${layerHeight(l, fixtures)}` : "")).join("|");
+  const masks = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof textMask>>();
+    for (const l of layers) if (l.kind === "text") m.set(l.id, textMask(l.text.toUpperCase(), layerHeight(l, fixtures)));
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maskKey]);
+  const frame = layers.some((l) => l.playing) ? renderLayers(layers, fixtures, t, masks) : new Map<string, RGB[]>();
+
   useEffect(() => {
     const id = setInterval(() => {
       save();
@@ -342,6 +370,9 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
 
   const updateSelected = (patch: Partial<PatchedFixture>) =>
     setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
+  const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) =>
+    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
+  const updateOne = (id: string, patch: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
 
   const fire = (kind: TriggerKind) => {
     const targets = selected.length ? selected : fixtures.map((f) => f.uid);
@@ -349,17 +380,63 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
     setFixtures((fs) => fs.map((f) => (targets.includes(f.uid) ? { ...f, trigger: { kind, at: now + (kind === "lightning" ? Math.random() * 0.25 : 0) } } : f)));
   };
 
+  const splitPixels = (f: PatchedFixture) => {
+    const n = pixelCount(f);
+    const cpp = Math.max(1, Math.floor(getMode(f).channels / n));
+    const cells: PatchedFixture[] = Array.from({ length: n }, (_, i) => ({
+      ...structuredClone(f), uid: uid(), name: `${f.name} px${i + 1}`, address: f.address + i * cpp, group: f.name,
+      split: { from: f.uid, name: f.name, index: i, of: n, cpp },
+    }));
+    setFixtures((fs) => fs.flatMap((x) => (x.uid === f.uid ? cells : [x])));
+    setLayers((ls) => ls.map((l) => ({ ...l, order: l.order.filter((u) => u !== f.uid) })));
+    setSelected(cells.map((c) => c.uid));
+  };
+  const joinPixels = (cell: PatchedFixture) => {
+    const sp = cell.split!;
+    setFixtures((fs) => {
+      const cells = fs.filter((x) => x.split?.from === sp.from).sort((a, b) => a.split!.index - b.split!.index);
+      const first = cells[0]!;
+      const { split: _s, ...base } = first;
+      const joined: PatchedFixture = { ...base, uid: sp.from, name: sp.name, address: first.address };
+      let placed = false;
+      return fs.flatMap((x) => {
+        if (x.split?.from !== sp.from) return [x];
+        if (placed) return [];
+        placed = true;
+        return [joined];
+      });
+    });
+    setSelected([]);
+  };
+
+  const groups = Array.from(new Set(fixtures.map((f) => f.group).filter((g): g is string => !!g)));
+  const setGroup = (f: PatchedFixture, g: string | null) => {
+    const targets = selected.includes(f.uid) ? selected : [f.uid];
+    setFixtures((fs) => fs.map((x) => {
+      if (!targets.includes(x.uid)) return x;
+      if (g) return { ...x, group: g };
+      const { group: _g, ...rest } = x;
+      return rest;
+    }));
+  };
+  const ungroup = (g: string) => setFixtures((fs) => fs.map((x) => { if (x.group !== g) return x; const { group: _g, ...rest } = x; return rest; }));
+
+  const recallLook = (l: Look) => {
+    setFixtures((fs) => applyLook(l, fs));
+    setLastLook(l.id);
+  };
+
   const sel = fixtures.filter((f) => selected.includes(f.uid));
   const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-    setPanel("control");
-    setPanelOpen(true);
+    if (panel !== "looks") { setPanel("control"); setPanelOpen(true); }
   };
   // tapping the active tab again collapses / expands the side panel
   const tab = (p: Panel, label: string) => (
     <button onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
       className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</button>
   );
+  const boActive = bo.target === 1 || boLevel > 0;
 
   return (
     <div className="flex h-screen flex-col">
@@ -376,12 +453,18 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
           <input type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 accent-[var(--color-amber-glow)] sm:w-40" />
           <span className="w-9 text-right font-mono text-xs">{Math.round(master * 100)}%</span>
         </div>
-        <button onClick={() => setBlackout((b) => !b)} className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${blackout ? "bg-destructive text-destructive-foreground" : "bg-surface-elevated"}`}>
-          {blackout ? <LightbulbOff className="inline h-4 w-4" /> : <Lightbulb className="inline h-4 w-4" />} BLACKOUT
+        <button onClick={toggleBlackout} className={`relative overflow-hidden rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${bo.target ? "bg-destructive text-destructive-foreground" : "bg-surface-elevated"}`}>
+          {boActive ? <LightbulbOff className="inline h-4 w-4" /> : <Lightbulb className="inline h-4 w-4" />} BLACKOUT
+          {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
+        </button>
+        <button onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"}
+          className={`flex items-center gap-1 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${locked ? "bg-surface-elevated" : "bg-amber-glow text-primary-foreground"}`}>
+          {locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}{locked ? "LOCKED" : "UNLOCKED"}
         </button>
         {tab("patch", "PATCH")}
         {tab("control", "CONTROL")}
         {tab("pixels", "PIXELS")}
+        {tab("looks", "LOOKS")}
         <button onClick={() => setConnOpen(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${conn.node ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}>
           <Radio className="h-4 w-4" />{conn.node ? conn.node.ip : "CONNECT"}
         </button>
@@ -394,34 +477,51 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
             <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
           ) : (
             <>
-              <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
                 <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
                 <span>{selected.length} selected</span>
+                {groups.map((g) => (
+                  <span key={g} className="flex items-center overflow-hidden rounded-md bg-primary/15 text-foreground">
+                    <button onClick={() => { setSelected(fixtures.filter((f) => f.group === g).map((f) => f.uid)); setPanel("control"); setPanelOpen(true); }} className="px-3 py-1.5 font-semibold">{g} ({fixtures.filter((f) => f.group === g).length})</button>
+                    <button onClick={() => ungroup(g)} className="px-1.5 py-1.5 text-muted-foreground hover:text-destructive" aria-label={`Ungroup ${g}`}><X className="h-3 w-3" /></button>
+                  </span>
+                ))}
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                 {fixtures.map((f) => {
                   const def = getDef(f.defId);
-                  const color = fixtureColor(f, t, blackout ? 0 : master);
+                  const color = fixtureColor(f, t, outLevel);
                   const isSel = selected.includes(f.uid);
                   const pix = frame.get(f.uid);
-                  const pv = f.on === false || blackout ? 0 : f.intensity * master;
+                  const pv = f.on === false ? 0 : f.intensity * outLevel;
+                  const [gc, gr] = pixelGrid(f);
                   return (
-                    <button key={f.uid} onClick={() => toggleSelect(f.uid)} className={`rounded-xl border-2 bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary" : "border-transparent"}`}>
+                    <div key={f.uid} role="button" tabIndex={0} onClick={() => toggleSelect(f.uid)} onKeyDown={(e) => e.key === "Enter" && toggleSelect(f.uid)}
+                      className={`relative cursor-pointer overflow-hidden rounded-xl border-2 bg-card p-3 text-left transition active:scale-95 ${isSel ? "border-primary" : "border-transparent"}`}>
+                      {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
                       {pix ? (
-                        <div className="mb-3 flex h-16 gap-px overflow-hidden rounded-lg bg-background">
-                          {pix.map((c, i) => <div key={i} className="flex-1" style={{ background: `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})` }} />)}
+                        <div className="mb-3 grid h-16 gap-px overflow-hidden rounded-lg bg-background" style={{ gridTemplateColumns: `repeat(${gc}, 1fr)`, gridTemplateRows: `repeat(${gr}, 1fr)` }}>
+                          {pix.map((c, i) => <div key={i} style={{ background: `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})` }} />)}
                         </div>
                       ) : (
                         <div className="mb-3 h-16 rounded-lg" style={{ background: color, boxShadow: `0 0 24px ${color}` }} />
                       )}
-                      <div className="flex items-center gap-1 truncate text-sm font-semibold">{f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}</div>
+                      <div className="flex items-center gap-1">
+                        <div className="flex min-w-0 flex-1 items-center gap-1 truncate text-sm font-semibold">
+                          {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
+                          {f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}
+                        </div>
+                        <FixtureMenu f={f} fixtures={fixtures} locked={locked} groups={groups}
+                          onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g) => setGroup(f, g)} />
+                      </div>
                       <div className="flex justify-between text-[11px] text-muted-foreground">
                         <span className="truncate">{def.brand} · U{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
+                      {f.group && <div className="truncate text-[10px] text-primary">{f.group}</div>}
                       {f.fx.kind !== "none" && <div className={`mt-1 text-[10px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -432,15 +532,18 @@ function ConsoleScreen({ project, scene, onSave, onExit }: { project: Project; s
         {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} />
+          ) : panel === "looks" ? (
+            <LooksPanel fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
           ) : panel === "pixels" ? (
-            <PixelPanel fixtures={fixtures} pm={pm} frame={frame} setPm={(next) => {
-              if (next.playing && !pm.playing) setFixtures((fs) => fs.map((f) => (next.order.includes(f.uid) && f.intensity === 0 ? { ...f, intensity: 1, on: true } : f)));
-              setPm(next);
+            <PixelPanel fixtures={fixtures} layers={layers} frame={frame} setLayers={(next) => {
+              const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
+              if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
+              setLayers(next);
             }} />
           ) : sel.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
           ) : (
-            <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} fire={fire}
+            <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
               remove={() => { setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
         </aside>}
