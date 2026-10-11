@@ -130,7 +130,8 @@ export function FixtureControls({
 
       {anyCaps.color && (
         <Section title="Colour">
-          <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={(p) => update({ ...p, cctOnly: false, crossfade: Math.max(first.crossfade, 1) })} />
+          <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={update} />
+          <div className="grid grid-cols-8 gap-1.5">{["#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#8000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => { const { h, s } = hexToHs(c); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }} className="h-8 rounded-md border border-input" style={{ background: c }} />)}</div>
           <ColorSource onPick={(hex, lbl) => {
             if (lbl.endsWith("K")) update({ cct: Math.min(1, Math.max(0, cctFromKelvin(parseInt(lbl, 10)))), crossfade: 0 });
             else { const { h, s } = hexToHs(hex); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false }); }
@@ -181,7 +182,6 @@ export function FixtureControls({
       )}
 
       <Section title="Advanced">
-        {anyCaps.color && <ColorWheel hue={first.hue} sat={first.saturation} crossfade={first.crossfade} update={update} />}
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fan</div>
         <FanControl value={first.fan} update={update} />
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Gels (Rosco / LEE)</div>

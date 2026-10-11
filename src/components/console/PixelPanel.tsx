@@ -60,6 +60,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
             {l.playing && <span className="h-2 w-2 animate-pulse rounded-full bg-amber-glow" />}{l.name}
           </button>
         ))}
+        <button onClick={() => { const l = { ...layer, id: Math.random().toString(36).slice(2, 9), name: `${layer.name} copy`, order: [] }; setLayers([...layers, l]); setActiveId(l.id); }} className="rounded-md border border-dashed border-input px-2.5 py-1.5 text-xs">Duplicate</button>
         <button onClick={addLayer} className="flex items-center gap-1 rounded-md border border-dashed border-input px-2.5 py-1.5 text-xs"><Plus className="h-3.5 w-3.5" />Layer</button>
       </div>
 
@@ -132,7 +133,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
         </div>
       )}
 
-      <Slider label="Speed" value={layer.speed} min={0.05} max={4} display={`×${layer.speed.toFixed(2)}`} onChange={(v) => set({ speed: v })} />
+      <Slider label="Speed" value={Math.log(layer.speed / 0.05) / Math.log(600)} min={0} max={1} display={`×${layer.speed.toFixed(2)}`} onChange={(v) => set({ speed: +(0.05 * Math.pow(600, v)).toFixed(3) })} />
       {layer.kind === "runner" && <Slider label="Runners" value={layer.runners ?? 1} min={1} max={8} step={1} display={`${layer.runners ?? 1}`} onChange={(v) => set({ runners: v })} />}
       {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">A block of {layer.size} px travels through all {placed.length} lights ({W} px) one after another. Use "In a line".</p>}
       {["runner", "chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label="Size" value={layer.size} min={1} max={32} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
