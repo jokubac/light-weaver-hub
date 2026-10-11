@@ -110,6 +110,7 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
 
       {!["rainbow", "plasma", "fire"].includes(layer.kind) && (
         <div className="space-y-1.5">
+          <HexColourControls value={layer.colors[Math.min(activeColour, layer.colors.length - 1)] ?? "#ffffff"} onChange={(hex) => set({ colors: layer.colors.map((c, i) => i === Math.min(activeColour, layer.colors.length - 1) ? hex : c) })} />
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Colours</div>
           <div className="flex flex-wrap items-center gap-1.5">
             {layer.colors.map((c, i) => (
@@ -121,7 +122,6 @@ export function PixelPanel({ fixtures, layers, setLayers, frame }: {
             ))}
             {layer.colors.length < 8 && <button onClick={() => set({ colors: [...layer.colors, "#ffffff"] })} className="flex h-9 w-9 items-center justify-center rounded border border-dashed border-input"><Plus className="h-4 w-4" /></button>}
           </div>
-          <HexColourControls value={layer.colors[Math.min(activeColour, layer.colors.length - 1)] ?? "#ffffff"} onChange={(hex) => set({ colors: layer.colors.map((c, i) => i === Math.min(activeColour, layer.colors.length - 1) ? hex : c) })} />
           {layer.colors.length < 8 && <ColorSource onPick={(hex) => set({ colors: [...layer.colors, hex] })} />}
         </div>
       )}

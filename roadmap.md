@@ -1,4 +1,8 @@
 # Tasks
+- [x] Fix Live Plot erase and smooth beam rendering
+- [x] Add fixture placement toolbar, furniture and person, editable walls and metre dimensions
+- [x] Confirm before layout editing/moving, keep light selection/control available
+- [x] Add CCT/Color switches and pixel CCT-first controls; verify tests and browser flow
 - [x] Colour controls ordered CCT → Crossfade → Hue → wheel; effect colour controls
 - [x] Live plot CCT control
 - [x] Door/window openings with height-aware wall blocking
