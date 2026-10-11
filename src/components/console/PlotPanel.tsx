@@ -448,7 +448,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     const strokes = plot.strokes.filter((_,i) => i !== index);
     setPlot({ ...plot, strokes, openings: remapOpenings(strokes) }); setWallIndex(null);
   };
-  const removeObject = (id: string) => { if (confirm("Remove this object from the plot?")) { setPlot({ ...plot, objects: plot.objects?.filter((o) => o.id !== id) }); setObjectId(null); } };
+  const removeObject = (id: string) => { if (confirm("Remove this object from the plot?")) { setPlot({ ...plot, objects: (plot.objects ?? []).filter((o) => o.id !== id) }); setObjectId(null); } };
   const addObjectAt = (x: number,y: number) => {
     const spec = SET_OBJECTS.find((o) => o.kind === objectKind); if (!spec) return;
     const o: SetObject = { ...spec, id: crypto.randomUUID(), name: spec.label, x,y,rot:0,floor:fl };
@@ -480,7 +480,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const wh = wallHit(sx,sy);
       if (wh) {
         const opening = plot.openings?.find((o) => o.stroke === wh.index && o.segment === wh.segment && Math.abs(o.center-wh.t) <= o.width / (2 * Math.max(.01,Math.hypot((plot.strokes[o.stroke]?.pts[o.segment+1]?.[0] ?? 0)-(plot.strokes[o.stroke]?.pts[o.segment]?.[0] ?? 0),(plot.strokes[o.stroke]?.pts[o.segment+1]?.[1] ?? 0)-(plot.strokes[o.stroke]?.pts[o.segment]?.[1] ?? 0)))));
-        if (opening) { if (confirm(`Delete this ${opening.kind}?`)) setPlot({...plot,openings:plot.openings?.filter((o) => o.id !== opening.id)}); }
+        if (opening) { if (confirm(`Delete this ${opening.kind}?`)) setPlot({...plot,openings:(plot.openings ?? []).filter((o) => o.id !== opening.id)}); }
         else removeWall(wh.index);
       }
       return;
@@ -575,7 +575,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     } else if (d.kind === "layout") {
       const fp = clampFloor(unproj(viewOf(),sx,sy,floorZ)), dx = fp[0]-d.last[0], dy = fp[1]-d.last[1]; d.last=fp;
       if (d.target === "wall") setPlot({...p,strokes:p.strokes.map((st,i) => i === d.id ? {...st,pts:st.pts.map(([x,y]):[number,number] => [x+dx,y+dy])}:st)});
-      else setPlot({...p,objects:p.objects?.map((o) => o.id === d.id ? {...o,x:o.x+dx,y:o.y+dy}:o)});
+      else setPlot({...p,objects:(p.objects ?? []).map((o) => o.id === d.id ? {...o,x:o.x+dx,y:o.y+dy}:o)});
     } else if (d.kind === "item") {
       const fp = unproj(viewOf(), sx, sy, d.z);
       const dx = fp[0] - d.last[0], dy = fp[1] - d.last[1];
@@ -589,7 +589,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const [x0, y0] = d.start;
       strokes[strokes.length - 1] = tool === "rect"
         ? { ...last, pts: [[x0, y0], [fp[0], y0], fp, [x0, fp[1]], [x0, y0]] }
-        : { ...last, pts: [...last.pts, fp] };
+        : { ...last, pts: [d.start, fp] };
       setPlot({ ...p, strokes });
     }
   };
@@ -687,7 +687,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     const keptStrokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl);
     const openings = remapOpenings(keptStrokes);
     const strokes = keptStrokes.map((s) => ((s.floor ?? 0) > fl ? { ...s, floor: (s.floor ?? 0) - 1 } : s));
-    setPlot({ ...plot, items, strokes, openings, objects: plot.objects?.filter((o) => o.floor !== fl).map((o) => o.floor > fl ? {...o,floor:o.floor-1}:o), floors: floors.filter((_, j) => j !== fl) });
+    setPlot({ ...plot, items, strokes, openings, objects: (plot.objects ?? []).filter((o) => o.floor !== fl).map((o) => o.floor > fl ? {...o,floor:o.floor-1}:o), floors: floors.filter((_, j) => j !== fl) });
     setActive(fl - 1);
   };
 
@@ -793,7 +793,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           })()}
           {objectId && (() => {
             const o = plot.objects?.find((o) => o.id === objectId); if (!o) return null;
-            const edit = (patch: Partial<SetObject>) => setPlot({...plot,objects:plot.objects?.map((x) => x.id === o.id ? {...x,...patch}:x)});
+            const edit = (patch: Partial<SetObject>) => setPlot({...plot,objects:(plot.objects ?? []).map((x) => x.id === o.id ? {...x,...patch}:x)});
             return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded border border-input bg-surface-elevated p-2" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',10],['Object depth','d',10],['Object height','h',5],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} min={key === "rot" ? -180:0} max={max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
           })()}
           {first && firstItem ? (
