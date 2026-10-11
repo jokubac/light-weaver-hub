@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { PatchedFixture } from "@/lib/dmx";
-import { BATTERY_PRESETS, batteryStatus, fmtHours, type PowerKind, type PowerSource } from "@/lib/power";
+import { getDef, type PatchedFixture } from "@/lib/dmx";
+import { BATTERY_PRESETS, batteryStatus, fixtureWatts, fmtHours, type PowerKind, type PowerSource } from "@/lib/power";
 
 const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground";
 
@@ -9,7 +9,8 @@ export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
   f: PatchedFixture; open: boolean; onOpenChange: (o: boolean) => void; level: number;
   onChange: (p: PowerSource | null) => void;
 }) {
-  const [d, setD] = useState<PowerSource>(f.power ?? { kind: "instagrid", kwh: 2.1, charge: 1, watts: 300, usedWh: 0 });
+  const autoW = fixtureWatts(getDef(f.defId).model);
+  const [d, setD] = useState<PowerSource>(f.power ?? { kind: "instagrid", kwh: 2.1, charge: 1, watts: autoW, usedWh: 0 });
   const st = batteryStatus({ ...d, usedWh: 0 }, { ...f, intensity: 1, on: true }, 1);
   const kinds: { id: PowerKind; label: string }[] = [{ id: "vmount", label: "V-mount" }, { id: "instagrid", label: "Instagrid" }, { id: "other", label: "Other" }, { id: "mains", label: "Mains" }];
   return (
@@ -32,6 +33,7 @@ export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
                 <label>Charged %<input type="number" min={0} max={100} value={Math.round(d.charge * 100)} onChange={(e) => setD({ ...d, charge: Math.min(1, Math.max(0, +e.target.value / 100)) })} className={inputCls} /></label>
                 <label>Light W<input type="number" min={0} value={d.watts} onChange={(e) => setD({ ...d, watts: Math.max(0, +e.target.value) })} className={inputCls} /></label>
               </div>
+              <p className="normal-case tracking-normal">Light watts auto-set from {getDef(f.defId).model}: {autoW} W max. {d.watts !== autoW && <button onClick={() => setD({ ...d, watts: autoW })} className="text-primary underline">Use {autoW} W</button>}</p>
               <p className="normal-case tracking-normal text-foreground">At 100% output: about <b>{fmtHours(st.hours)}</b>. Lower intensity stretches it — the estimate updates live while you work.</p>
               {f.power && <p className="normal-case tracking-normal">Now: {Math.round(batteryStatus(f.power, f, level).pct * 100)}% left · {fmtHours(batteryStatus(f.power, f, level).hours)} at current level</p>}
             </>
