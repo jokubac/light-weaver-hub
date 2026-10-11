@@ -801,7 +801,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         </aside>}
         {groupsOpen && (
           <aside aria-label="Groups and looks" className="max-h-[45vh] w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
-            <GroupsPanelfixtures={fixtures} selected={selected} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
+            <GroupsPanel fixtures={fixtures} selected={selected} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
               onSelect={(g) => { const ids = fixtures.filter((f) => f.group === g).map((f) => f.uid); setSelected((s) => ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])]); }} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
               onCopy={(from, to) => setFixtures((fs) => {
                 const src = fs.find((x) => x.group === from);
