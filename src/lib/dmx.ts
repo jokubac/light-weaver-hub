@@ -1,459 +1,127 @@
-// DMX engine: fixture library, patch helpers, colour + effects math.
+// DMX engine: fixture library, universe state, effects math.
 
-export type ModeKind = "dim" | "cct" | "cctgm" | "hsi" | "rgb" | "rgbw" | "full";
-
-export interface FixtureMode {
-  name: string;
-  channels: number;
-  kind: ModeKind;
-}
+export type FixtureMode = "dimmer" | "cct" | "rgb" | "rgbw";
 
 export interface FixtureDef {
   id: string;
   brand: string;
   model: string;
-  modes: FixtureMode[];
+  mode: FixtureMode;
+  channels: number;
 }
 
-export function caps(kind: ModeKind) {
-  return {
-    cct: kind !== "dim" && kind !== "rgb",
-    gm: kind === "cctgm" || kind === "full",
-    color: kind === "hsi" || kind === "rgb" || kind === "rgbw" || kind === "full",
-  };
-}
-
-/* ---------------- Fixture library ---------------- */
-// Channel counts follow manufacturer DMX charts as closely as possible;
-// always double-check against the fixture's firmware manual on set.
-
-const m = (name: string, channels: number, kind: ModeKind): FixtureMode => ({ name, channels, kind });
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-const fam = (brand: string, models: string[], modes: FixtureMode[]): FixtureDef[] =>
-  models.map((model) => ({ id: slug(`${brand} ${model}`), brand, model, modes }));
-
-const DIM = [m("Dimmer 8-bit", 1, "dim"), m("Dimmer 16-bit", 2, "dim")];
-const DIM_STROBE = [...DIM, m("Dimmer + Strobe 8-bit", 2, "dim"), m("Dimmer + Effects 8-bit", 3, "dim")];
-const BI = [m("CCT 8-bit", 2, "cct"), m("CCT 16-bit", 4, "cct"), m("CCT & G/M 8-bit", 3, "cctgm"), m("CCT & G/M 16-bit", 6, "cctgm")];
-
-const ARRI_SKYPANEL = [
-  m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("CCT Fine", 8, "cctgm"),
-  m("RGBW 8-bit", 6, "rgbw"), m("RGBW 16-bit", 10, "rgbw"),
-  m("HSI 8-bit", 5, "hsi"), m("HSI 16-bit", 8, "hsi"),
-  m("Advanced 8-bit", 16, "full"), m("Advanced 16-bit", 28, "full"),
-  m("Lite 8-bit", 3, "cctgm"),
-];
-const ARRI_ORBITER = [
-  ...ARRI_SKYPANEL,
-  m("RGBACL 8-bit", 8, "rgbw"), m("RGBACL 16-bit", 14, "rgbw"), m("xy 16-bit", 7, "full"),
-];
-const ARRI_L = [m("8-bit Mode 1 (CCT)", 4, "cctgm"), m("16-bit Mode 1 (CCT)", 7, "cctgm"), m("8-bit Mode 2 (RGBW)", 6, "rgbw"), m("16-bit Mode 2 (RGBW)", 10, "rgbw"), m("8-bit Mode 3 (HSI)", 5, "hsi"), m("16-bit Mode 3 (HSI)", 8, "hsi")];
-
-const APUTURE_COLOR = [
-  m("CCT 8-bit", 3, "cctgm"), m("CCT 16-bit", 6, "cctgm"),
-  m("CCT & RGB 8-bit", 8, "full"), m("CCT & RGB 16-bit", 14, "full"),
-  m("HSI 8-bit", 4, "hsi"), m("HSI 16-bit", 7, "hsi"),
-  m("RGB 8-bit", 4, "rgb"), m("RGB 16-bit", 7, "rgb"),
-  m("RGBWW 8-bit", 6, "rgbw"), m("RGBWW 16-bit", 11, "rgbw"),
-  m("XY 8-bit", 4, "full"), m("Gel 8-bit", 4, "cctgm"),
-  m("Source Match 8-bit", 3, "cctgm"), m("Effect 8-bit", 6, "full"),
-  m("Fan + CCT&RGB 16-bit", 15, "full"),
-];
-const APUTURE_DAY = [...DIM_STROBE, m("Dimmer + Fan 8-bit", 3, "dim")];
-const APUTURE_BI = [...BI, m("CCT + Effects 8-bit", 5, "cctgm")];
-const APUTURE_MC = [m("CCT 8-bit", 3, "cctgm"), m("HSI 8-bit", 4, "hsi"), m("RGB 8-bit", 4, "rgb"), m("CCT & HSI 8-bit", 6, "full")];
-
-const NANLITE_DAY = [...DIM, m("Dimmer + Effects", 3, "dim")];
-const NANLITE_BI = [...BI, m("CCT + Effects 8-bit", 5, "cctgm")];
-const NANLITE_PAVO = [
-  m("CCT 8-bit", 2, "cct"), m("CCT & G/M 8-bit", 3, "cctgm"), m("CCT & G/M 16-bit", 6, "cctgm"),
-  m("HSI 8-bit", 4, "hsi"), m("HSI 16-bit", 7, "hsi"),
-  m("RGBW 8-bit", 5, "rgbw"), m("RGBW 16-bit", 9, "rgbw"),
-  m("XY 8-bit", 4, "full"), m("Gel 8-bit", 4, "cctgm"),
-  m("All-in-one 8-bit", 12, "full"), m("All-in-one 16-bit", 20, "full"),
-  m("Pixel RGBW 8-bit (8 px)", 32, "rgbw"),
-];
-const NANLUX_DYNO = [
-  m("CCT 8-bit", 3, "cctgm"), m("CCT 16-bit", 6, "cctgm"),
-  m("HSI 8-bit", 4, "hsi"), m("HSI 16-bit", 7, "hsi"),
-  m("RGBWW 8-bit", 6, "rgbw"), m("RGBWW 16-bit", 11, "rgbw"),
-  m("XY 16-bit", 6, "full"), m("Gel 8-bit", 4, "cctgm"),
-  m("Full 8-bit", 14, "full"), m("Full 16-bit", 24, "full"),
-];
-
-const GODOX_RGB = [m("CCT 8-bit", 3, "cctgm"), m("HSI 8-bit", 4, "hsi"), m("RGB 8-bit", 4, "rgb"), m("RGBWW 8-bit", 6, "rgbw"), m("Full 8-bit", 10, "full"), m("Full 16-bit", 18, "full")];
-
-const VORTEX = [
-  m("Basic 8-bit (CCT)", 4, "cctgm"), m("Basic 16-bit (CCT)", 7, "cctgm"),
-  m("HSI 8-bit", 5, "hsi"), m("HSI 16-bit", 8, "hsi"),
-  m("RGBW 8-bit", 6, "rgbw"), m("RGBW 16-bit", 10, "rgbw"),
-  m("Full 8-bit", 14, "full"), m("Full 16-bit", 24, "full"),
-  m("Pixel RGBW 8-bit (per tile)", 32, "rgbw"),
-];
-
-const ASTERA = [
-  m("1ch Dimmer", 1, "dim"), m("2ch Dim + CCT", 2, "cct"), m("3ch Dim CCT G/M", 3, "cctgm"),
-  m("3ch RGB", 3, "rgb"), m("4ch RGBW", 4, "rgbw"), m("5ch RGBAW", 5, "rgbw"),
-  m("4ch HSI", 4, "hsi"), m("6ch Dim RGBAW", 6, "rgbw"),
-  m("8ch Dim RGBAW Strobe Prog", 8, "full"), m("16ch Full 16-bit", 16, "full"),
-];
-
-const astera = (px: number) => [
-  ...ASTERA,
-  m(`Pixel RGB (${px} px)`, px * 3, "rgb"),
-  m(`Pixel RGBW (${px} px)`, px * 4, "rgbw"),
-  m(`Pixel Dim+RGBW (${px} px)`, px * 4 + 1, "rgbw"),
-];
-
-const KINO = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGB 8-bit", 5, "rgb"), m("RGBW 8-bit", 6, "rgbw"), m("Full 8-bit", 12, "full"), m("Full 16-bit", 20, "full")];
-const LITEPANELS = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBWW 8-bit", 6, "rgbw"), m("Gel 8-bit", 4, "cctgm"), m("Full 16-bit", 21, "full")];
-const CREAM_MICRO = [m("Basic 8-bit", 4, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBW 8-bit", 6, "rgbw"), m("Full 16-bit", 16, "full")];
-const DMG = [m("Simple 8-bit (CCT)", 4, "cctgm"), m("Simple 16-bit (CCT)", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGB 8-bit", 4, "rgb"), m("Full 8-bit", 12, "full"), m("Full 16-bit", 21, "full")];
-
+// Film-industry fixture library
 export const FIXTURE_LIBRARY: FixtureDef[] = [
-  ...fam("ARRI", ["SkyPanel S30-C", "SkyPanel S60-C", "SkyPanel S120-C", "SkyPanel S360-C", "SkyPanel X"], ARRI_SKYPANEL),
-  ...fam("ARRI", ["Orbiter"], ARRI_ORBITER),
-  ...fam("ARRI", ["L5-C", "L7-C", "L10-C"], ARRI_L),
-  ...fam("ARRI", ["M18 (EB Max ballast)", "M40 (EB Max ballast)", "M90 (EB Max ballast)", "Studio Fresnel (dimmer)"], DIM),
-  ...fam("Aputure", ["600c Pro", "300c", "Nova P300c", "Nova P600c", "Infinibar PB12", "STORM 1200x"], APUTURE_COLOR),
-  ...fam("Aputure", ["MC", "MC Pro", "Accent B7c"], APUTURE_MC),
-  ...fam("Aputure", ["LS 600d Pro", "LS 1200d Pro", "LS 300d II", "Electro Storm CS15"], APUTURE_DAY),
-  ...fam("Aputure", ["LS 600x Pro", "Electro Storm XT26", "Amaran 200x S", "Amaran 300c"], APUTURE_BI),
-  ...fam("Nanlite", ["Forza 60", "Forza 300 II", "Forza 500 II", "Forza 720"], NANLITE_DAY),
-  ...fam("Nanlite", ["Forza 60B", "Forza 300B II", "Forza 720B", "FS-300B"], NANLITE_BI),
-  ...fam("Nanlite", ["PavoTube II 6C", "PavoTube II 15C", "PavoTube II 30C", "PavoTube II 15X", "PavoTube II 30X", "PavoSlim 120C", "PavoSlim 240C", "Forza 60C", "Forza 300C"], NANLITE_PAVO),
-  ...fam("Nanlux", ["Evoke 900C", "Evoke 1200", "Evoke 2400B"], [...NANLITE_BI, m("Dimmer 16-bit", 2, "dim")]),
-  ...fam("Nanlux", ["Dyno 650C", "Dyno 1200C", "TK-280B", "TK-450B"], NANLUX_DYNO),
-  ...fam("Godox", ["Knowled M600D", "VL300", "VL150", "SL300 III"], DIM_STROBE),
-  ...fam("Godox", ["Knowled MG1200Bi", "Knowled M600Bi", "Knowled F600Bi", "Knowled P600Bi", "LF308Bi"], BI),
-  ...fam("Godox", ["Knowled M200R", "TL60", "TL120", "LC500R", "F200R"], GODOX_RGB),
-  ...fam("Creamsource", ["Vortex4", "Vortex8", "Vortex24"], VORTEX),
-  ...fam("Creamsource", ["Micro Colour", "SpaceX"], CREAM_MICRO),
-  ...fam("Astera", ["Titan Tube"], astera(16)),
-  ...fam("Astera", ["Helios Tube"], astera(8)),
-  ...fam("Astera", ["Hyperion Tube"], astera(16)),
-  ...fam("Astera", ["AX1 PixelTube"], astera(16)),
-  ...fam("Astera", ["PixelBrick"], astera(4)),
-  ...fam("Astera", ["AX3 LightDrop", "AX9 PowerPar", "NYX Bulb"], ASTERA),
-  ...fam("Kino Flo", ["FreeStyle 21", "FreeStyle 31", "Celeb 250", "Celeb 450", "MIMIK 120"], KINO),
-  ...fam("Litepanels", ["Gemini 2x1", "Gemini 1x1", "Astra 6X Bi", "Studio X"], LITEPANELS),
-  ...fam("DMG Lumière", ["SL1 MIX", "MAXI MIX", "MINI MIX"], DMG),
-  ...fam("Rotolight", ["AEOS 2 Pro", "Titan X2"], DMG),
-  ...fam("Generic", ["Dimmer"], DIM),
-  ...fam("Generic", ["Bi-colour LED"], BI),
-  ...fam("Generic", ["RGB Par"], [m("RGB 3ch", 3, "rgb"), m("Dim RGB 4ch", 4, "rgb")]),
-  ...fam("Generic", ["RGBW Par"], [m("RGBW 4ch", 4, "rgbw"), m("Dim RGBW 5ch", 5, "rgbw"), m("Dim RGBW Strobe 6ch", 6, "rgbw")]),
+  { id: "arri-skypanel-s60", brand: "ARRI", model: "SkyPanel S60-C", mode: "rgbw", channels: 16 },
+  { id: "arri-orbiter", brand: "ARRI", model: "Orbiter", mode: "rgbw", channels: 12 },
+  { id: "arri-m18", brand: "ARRI", model: "M18 (Dimmer)", mode: "dimmer", channels: 1 },
+  { id: "aputure-600d", brand: "Aputure", model: "600d Pro", mode: "dimmer", channels: 2 },
+  { id: "aputure-1200d", brand: "Aputure", model: "1200d Pro", mode: "dimmer", channels: 2 },
+  { id: "aputure-600c", brand: "Aputure", model: "600c Pro", mode: "rgbw", channels: 10 },
+  { id: "aputure-mc", brand: "Aputure", model: "MC", mode: "rgb", channels: 6 },
+  { id: "nanlite-forza-720", brand: "Nanlite", model: "Forza 720B", mode: "cct", channels: 4 },
+  { id: "nanlite-pavotube-30c", brand: "Nanlite", model: "PavoTube 30C", mode: "rgbw", channels: 8 },
+  { id: "nanlux-evoke-1200", brand: "Nanlux", model: "Evoke 1200", mode: "cct", channels: 4 },
+  { id: "nanlux-dyno-650", brand: "Nanlux", model: "Dyno 650C", mode: "rgbw", channels: 14 },
+  { id: "astera-titan", brand: "Astera", model: "Titan Tube", mode: "rgbw", channels: 8 },
+  { id: "astera-nyx", brand: "Astera", model: "NYX Bulb", mode: "rgbw", channels: 6 },
+  { id: "generic-dimmer", brand: "Generic", model: "Dimmer Channel", mode: "dimmer", channels: 1 },
+  { id: "generic-rgb", brand: "Generic", model: "RGB Par", mode: "rgb", channels: 4 },
 ];
-
-export const BRANDS = Array.from(new Set(FIXTURE_LIBRARY.map((d) => d.brand)));
-export const DEF_BY_ID: Record<string, FixtureDef> = Object.fromEntries(FIXTURE_LIBRARY.map((d) => [d.id, d]));
-const FALLBACK = DEF_BY_ID["generic-rgbw-par"]!;
-export const getDef = (id: string) => DEF_BY_ID[id] ?? FALLBACK;
-export const getMode = (f: { defId: string; modeIdx: number }) => {
-  const d = getDef(f.defId);
-  return d.modes[f.modeIdx] ?? d.modes[0]!;
-};
-
-/* ---------------- Effects ---------------- */
-
-export type EffectKind = "none" | "pulse" | "strobe" | "fire" | "candle" | "tv" | "lightning" | "steps";
-export type Curve = "linear" | "sine" | "parabolic" | "invparabolic" | "exp";
-export type TriggerKind = "lightning" | "flash" | "switch-on" | "switch-off";
-
-export const EFFECTS: { id: EffectKind; label: string }[] = [
-  { id: "none", label: "None" },
-  { id: "pulse", label: "Pulse" },
-  { id: "strobe", label: "Strobe" },
-  { id: "fire", label: "Fire" },
-  { id: "candle", label: "Candle" },
-  { id: "tv", label: "TV" },
-  { id: "lightning", label: "Lightning" },
-  { id: "steps", label: "Steps" },
-];
-export const CURVES: { id: Curve; label: string }[] = [
-  { id: "linear", label: "Linear" },
-  { id: "sine", label: "S-curve" },
-  { id: "parabolic", label: "Parabola" },
-  { id: "invparabolic", label: "Inv. parab." },
-  { id: "exp", label: "Exponent" },
-];
-export const TRIGGERS: { id: TriggerKind; label: string }[] = [
-  { id: "lightning", label: "Lightning" },
-  { id: "flash", label: "Flash" },
-  { id: "switch-on", label: "Switch ON" },
-  { id: "switch-off", label: "Switch OFF" },
-];
-
-export interface Step {
-  level: number; // 0-1
-  hold: number; // seconds
-  fade: number; // seconds into this step
-}
-
-export interface FxParams {
-  kind: EffectKind;
-  rate: number; // Hz (cycles / sec) or speed multiplier for steps
-  min: number; // 0-1 low level
-  max: number; // 0-1 high level
-  duty: number; // 0.05-1 on-portion of cycle
-  attack: number; // 0-1 fraction of on-portion
-  release: number; // 0-1 fraction of on-portion
-  curve: Curve;
-  random: number; // 0-1 irregularity
-  steps: Step[];
-}
-
-export const FX_PRESETS: Record<EffectKind, Partial<FxParams>> = {
-  none: {},
-  pulse: { rate: 0.5, min: 0.1, max: 1, duty: 1, attack: 0.5, release: 0.5, curve: "sine", random: 0 },
-  strobe: { rate: 8, min: 0, max: 1, duty: 0.25, attack: 0, release: 0, curve: "linear", random: 0 },
-  fire: { rate: 1.2, min: 0.35, max: 1, curve: "sine", random: 0.6 },
-  candle: { rate: 0.6, min: 0.6, max: 1, curve: "sine", random: 0.4 },
-  tv: { rate: 2, min: 0.2, max: 0.9, curve: "linear", random: 0.7 },
-  lightning: { rate: 0.25, min: 0.02, max: 1, curve: "exp", random: 0.6 },
-  steps: { rate: 1, min: 0, max: 1, curve: "sine" },
-};
-
-export const defaultFx = (): FxParams => ({
-  kind: "none",
-  rate: 1,
-  min: 0,
-  max: 1,
-  duty: 1,
-  attack: 0.5,
-  release: 0.5,
-  curve: "sine",
-  random: 0,
-  steps: [
-    { level: 1, hold: 0.5, fade: 0.2 },
-    { level: 0.3, hold: 0.3, fade: 0.5 },
-    { level: 0.7, hold: 0.2, fade: 0.1 },
-    { level: 0, hold: 0.8, fade: 0.3 },
-  ],
-});
-
-/* ---------------- Patched fixture ---------------- */
 
 export interface PatchedFixture {
   uid: string;
   defId: string;
-  modeIdx: number;
   name: string;
-  universe: number; // 1+
   address: number; // 1-512
-  intensity: number; // 0-1
-  cct: number; // 0-1 → 2000K-10000K
-  gm: number; // -1 (magenta) .. 0 .. +1 (green)
+  // live control state (0-1 unless noted)
+  intensity: number;
+  cct: number; // 0 = 2700K, 1 = 6500K
   hue: number; // 0-360
   saturation: number; // 0-1
-  crossfade: number; // 0 = CCT, 1 = HSI
-  cctOnly: boolean;
-  fx: FxParams;
-  trigger?: { kind: TriggerKind; at: number } | null;
+  effect: EffectKind;
+  effectSpeed: number; // 0-1
+  effectSize: number; // 0-1
 }
 
-export const kelvin = (cct: number) => Math.round((2000 + cct * 8000) / 50) * 50;
-export const cctFromKelvin = (k: number) => (k - 2000) / 8000;
-export const DEFAULT_CCT = cctFromKelvin(5600);
+export type EffectKind = "none" | "fire" | "pulse" | "strobe" | "lightning" | "tv";
 
-export function createFixture(def: FixtureDef, modeIdx: number, universe: number, address: number, name: string): PatchedFixture {
-  const kind = def.modes[modeIdx]?.kind ?? "dim";
+export const EFFECTS: { id: EffectKind; label: string }[] = [
+  { id: "none", label: "None" },
+  { id: "fire", label: "Fire" },
+  { id: "pulse", label: "Pulse" },
+  { id: "strobe", label: "Strobe" },
+  { id: "lightning", label: "Lightning" },
+  { id: "tv", label: "TV Flicker" },
+];
+
+export function createFixture(def: FixtureDef, address: number, index: number): PatchedFixture {
   return {
-    uid: Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+    uid: `${def.id}-${Date.now()}-${index}`,
     defId: def.id,
-    modeIdx,
-    name,
-    universe,
+    name: `${def.model} ${index}`,
     address,
     intensity: 0,
-    cct: DEFAULT_CCT,
-    gm: 0,
-    hue: 0,
-    saturation: 0,
-    crossfade: 0,
-    cctOnly: !caps(kind).color,
-    fx: defaultFx(),
-    trigger: null,
+    cct: 0.5,
+    hue: 200,
+    saturation: 1,
+    effect: "none",
+    effectSpeed: 0.5,
+    effectSize: 0.5,
   };
 }
 
-// Migrate fixtures saved by older versions.
-export function normalizeFixture(raw: Record<string, unknown>): PatchedFixture {
-  const r = raw as Partial<PatchedFixture> & { effect?: EffectKind; effectSpeed?: number; effectSize?: number };
-  const fx = { ...defaultFx(), ...(r.fx ?? {}) };
-  if (!r.fx && r.effect && r.effect !== "none") {
-    Object.assign(fx, FX_PRESETS[r.effect] ?? {}, { kind: r.effect });
-  }
-  return {
-    uid: r.uid ?? Math.random().toString(36).slice(2),
-    defId: r.defId ?? FALLBACK.id,
-    modeIdx: r.modeIdx ?? 0,
-    name: r.name ?? "Fixture",
-    universe: r.universe ?? 1,
-    address: r.address ?? 1,
-    intensity: r.intensity ?? 0,
-    cct: r.cct ?? DEFAULT_CCT,
-    gm: r.gm ?? 0,
-    hue: r.hue ?? 0,
-    saturation: r.saturation ?? 0,
-    crossfade: r.crossfade ?? 0,
-    cctOnly: r.cctOnly ?? false,
-    fx,
-    trigger: null,
-  };
-}
+// --- Effects math ---
 
-/* ---------------- Patch helpers ---------------- */
-
-export const footprint = (f: PatchedFixture) => getMode(f).channels;
-
-export function overlaps(fixtures: PatchedFixture[], universe: number, address: number, channels: number, ignoreUid?: string) {
-  const end = address + channels - 1;
-  return fixtures.filter(
-    (f) => f.uid !== ignoreUid && f.universe === universe && address <= f.address + footprint(f) - 1 && end >= f.address,
-  );
-}
-
-export function findFreeAddress(fixtures: PatchedFixture[], universe: number, channels: number, from = 1): number | null {
-  let a = Math.max(1, from);
-  while (a + channels - 1 <= 512) {
-    const hit = overlaps(fixtures, universe, a, channels);
-    if (hit.length === 0) return a;
-    a = Math.max(...hit.map((f) => f.address + footprint(f)));
-  }
-  return null;
-}
-
-/* ---------------- Math ---------------- */
-
-function hash(n: number): number {
-  const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
-  return s - Math.floor(s);
-}
+// Deterministic value noise (cheap Perlin substitute)
 function noise1(x: number): number {
   const i = Math.floor(x);
   const f = x - i;
   const u = f * f * (3 - 2 * f);
-  return hash(i) + (hash(i + 1) - hash(i)) * u;
+  const a = hash(i);
+  const b = hash(i + 1);
+  return a + (b - a) * u;
 }
-const frac = (x: number) => x - Math.floor(x);
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
-export const seedOf = (s: string) => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 9973;
-  return h / 9973;
-};
-
-export function shape(x: number, curve: Curve): number {
-  x = clamp01(x);
-  switch (curve) {
-    case "linear": return x;
-    case "sine": return (1 - Math.cos(Math.PI * x)) / 2;
-    case "parabolic": return x * x;
-    case "invparabolic": return 1 - (1 - x) * (1 - x);
-    case "exp": return (Math.pow(2, 8 * x) - 1) / 255;
-  }
+function hash(n: number): number {
+  const s = Math.sin(n * 127.1) * 43758.5453;
+  return s - Math.floor(s);
 }
 
-function cycle(p: number, fx: FxParams): number {
-  const duty = Math.max(0.02, fx.duty);
-  if (p >= duty) return 0;
-  const q = p / duty;
-  let a = fx.attack, r = fx.release;
-  if (a + r > 1) { const s = a + r; a /= s; r /= s; }
-  if (a > 0 && q < a) return shape(q / a, fx.curve);
-  if (r > 0 && q > 1 - r) return shape((1 - q) / r, fx.curve);
-  return 1;
-}
+let lightningUntil = 0;
+let nextBolt = 0;
 
-function stepsLevel(fx: FxParams, t: number): number {
-  const steps = fx.steps.length ? fx.steps : defaultFx().steps;
-  const total = steps.reduce((s, x) => s + x.hold + x.fade, 0) || 1;
-  let pos = (t * fx.rate) % total;
-  for (let i = 0; i < steps.length; i++) {
-    const st = steps[i]!;
-    const prev = steps[(i - 1 + steps.length) % steps.length]!.level;
-    if (pos < st.fade) return prev + (st.level - prev) * shape(pos / st.fade, fx.curve);
-    pos -= st.fade;
-    if (pos < st.hold) return st.level;
-    pos -= st.hold;
-  }
-  return steps[steps.length - 1]!.level;
-}
-
-/** Raw 0-1 effect value before min/max mapping. */
-function rawEffect(fx: FxParams, t: number, seed: number): number {
-  const rnd = fx.random;
-  switch (fx.kind) {
-    case "none": return 1;
+export function effectLevel(kind: EffectKind, t: number, speed: number, size: number): number {
+  const s = 0.5 + speed * 3;
+  switch (kind) {
+    case "none":
+      return 1;
     case "pulse":
-    case "strobe": {
-      const jitter = rnd * noise1(t * fx.rate * 0.5 + seed * 50) * 0.8;
-      return cycle(frac(t * fx.rate + seed * rnd + jitter), fx);
-    }
+      return 0.5 + 0.5 * Math.sin(t * s * Math.PI * 2);
+    case "strobe":
+      return Math.sin(t * (4 + speed * 20) * Math.PI * 2) > 0 ? 1 : 0;
     case "fire": {
-      const n = noise1(t * fx.rate * 4 + seed * 100) * (1 - rnd * 0.5) + noise1(t * fx.rate * 13 + seed * 40) * rnd * 0.5;
-      return shape(n, fx.curve);
-    }
-    case "candle": {
-      const n = noise1(t * fx.rate * 2 + seed * 70) * 0.8 + noise1(t * fx.rate * 9 + seed * 9) * 0.2;
-      const gust = noise1(t * 0.3 + seed) > 1 - rnd * 0.3 ? noise1(t * 20) : 1;
-      return shape(n * gust, fx.curve);
+      const n = noise1(t * s * 4) * 0.7 + noise1(t * s * 11) * 0.3;
+      return 1 - size * 0.7 + n * size * 0.7;
     }
     case "tv": {
-      const cut = Math.floor(t * fx.rate * (1 + rnd * noise1(t + seed * 10)) + seed * 10);
-      const base = hash(cut + seed * 31);
-      return shape(clamp01(base + (noise1(t * 25 + seed) - 0.5) * rnd * 0.3), fx.curve);
+      const n = noise1(t * s * 7);
+      return Math.max(0.15, 0.55 + (n - 0.5) * size * 1.4);
     }
     case "lightning": {
-      const slotLen = 1 / Math.max(0.02, fx.rate);
-      const slot = Math.floor(t / slotLen);
-      if (hash(slot * 3.1 + seed * 17) > 0.35 + (1 - rnd) * 0.6) return 0;
-      const start = hash(slot * 7.7 + seed) * slotLen * 0.6;
-      const len = 0.15 + hash(slot * 1.3 + seed) * 0.5;
-      const dt = t - slot * slotLen - start;
-      if (dt < 0 || dt > len) return 0;
-      return boltEnvelope(dt / len, slot + seed * 100, fx.curve);
+      if (t > nextBolt) {
+        nextBolt = t + 1 + Math.random() * (6 - speed * 5);
+        lightningUntil = t + 0.08 + Math.random() * 0.25;
+      }
+      if (t < lightningUntil) return Math.random() > 0.3 ? 1 : 0.2;
+      return 0.05;
     }
-    case "steps": return stepsLevel(fx, t);
   }
 }
-
-function boltEnvelope(q: number, seed: number, curve: Curve): number {
-  // 2-4 sub-flashes with decaying tails
-  const n = 2 + Math.floor(hash(seed) * 3);
-  const k = Math.floor(q * n);
-  const local = frac(q * n);
-  const amp = 1 - k * (0.25 * hash(seed + k));
-  return amp * shape(1 - local, curve);
-}
-
-/** Returns a level override for triggered events, or null when the trigger is not active. */
-export function triggerLevel(trig: PatchedFixture["trigger"], t: number, seed: number): number | null {
-  if (!trig) return null;
-  const dt = t - trig.at;
-  if (dt < 0) return trig.kind === "switch-on" ? 0 : null;
-  switch (trig.kind) {
-    case "flash":
-      return dt > 1.2 ? null : dt < 0.04 ? 1 : Math.exp(-(dt - 0.04) / 0.18);
-    case "lightning":
-      return dt > 0.9 ? null : boltEnvelope(dt / 0.9, trig.at * 10 + seed * 50, "exp");
-    case "switch-on":
-      if (dt > 1.1) return 1;
-      if (dt < 0.05) return 0;
-      return hash(Math.floor(dt * 18) + seed * 13) > 0.45 + dt * 0.4 ? 0.1 : 0.95;
-    case "switch-off":
-      if (dt > 0.35) return 0;
-      return hash(Math.floor(dt * 25) + seed * 7) > 0.5 ? 1 : 0.15;
-  }
-}
-
-/* ---------------- Colour ---------------- */
 
 export function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
   const c = v * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const mm = v - c;
+  const m = v - c;
   let r = 0, g = 0, b = 0;
   if (h < 60) [r, g, b] = [c, x, 0];
   else if (h < 120) [r, g, b] = [x, c, 0];
@@ -461,65 +129,25 @@ export function hsvToRgb(h: number, s: number, v: number): [number, number, numb
   else if (h < 240) [r, g, b] = [0, x, c];
   else if (h < 300) [r, g, b] = [x, 0, c];
   else [r, g, b] = [c, 0, x];
-  return [(r + mm) * 255, (g + mm) * 255, (b + mm) * 255];
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
 }
 
-export function kelvinToRgb(k: number): [number, number, number] {
-  const t = k / 100;
-  let r: number, g: number, b: number;
-  if (t <= 66) {
-    r = 255;
-    g = 99.47 * Math.log(t) - 161.12;
-    b = t <= 19 ? 0 : 138.52 * Math.log(t - 10) - 305.04;
-  } else {
-    r = 329.7 * Math.pow(t - 60, -0.1332);
-    g = 288.12 * Math.pow(t - 60, -0.0755);
-    b = 255;
-  }
-  const c = (x: number) => Math.min(255, Math.max(0, x));
-  return [c(r), c(g), c(b)];
+export function cctToRgb(cct: number): [number, number, number] {
+  // 2700K (warm) -> 6500K (cool) approximation
+  const warm: [number, number, number] = [255, 169, 87];
+  const cool: [number, number, number] = [200, 220, 255];
+  return [
+    Math.round(warm[0] + (cool[0] - warm[0]) * cct),
+    Math.round(warm[1] + (cool[1] - warm[1]) * cct),
+    Math.round(warm[2] + (cool[2] - warm[2]) * cct),
+  ];
 }
 
-/** Effect × trigger level multiplier (0-1+) for a fixture at time t. */
-export function fixtureLevel(f: PatchedFixture, t: number): number {
-  const seed = seedOf(f.uid);
-  let level = f.fx.kind === "none" ? 1 : f.fx.min + (f.fx.max - f.fx.min) * rawEffect(f.fx, t, seed);
-  const trig = triggerLevel(f.trigger, t, seed);
-  if (trig !== null) {
-    level = f.trigger?.kind === "switch-on" || f.trigger?.kind === "switch-off" ? level * trig : Math.max(level * 0.15, trig);
-  }
-  return level;
-}
-
-/** Full-intensity colour (0-255) of a fixture, before dimming. */
-export function fixtureBaseRgb(f: PatchedFixture): [number, number, number] {
-  const cp = caps(getMode(f).kind);
-  let [r, g, b] = kelvinToRgb(2000 + f.cct * 8000);
-  if (cp.gm) {
-    if (f.gm > 0) { r *= 1 - f.gm * 0.3; b *= 1 - f.gm * 0.3; }
-    else { g *= 1 + f.gm * 0.4; }
-  }
-  if (cp.color && !f.cctOnly && f.crossfade > 0) {
-    const [hr, hg, hb] = hsvToRgb(f.hue, f.saturation, 1);
-    const x = f.crossfade;
-    r = r + (hr - r) * x; g = g + (hg - g) * x; b = b + (hb - b) * x;
-  }
-  return [r, g, b];
-}
-
-export function fixtureColor(f: PatchedFixture, t: number, masterLevel = 1): string {
-  const v = clamp01(f.intensity * fixtureLevel(f, t) * masterLevel);
-  const [r, g, b] = fixtureBaseRgb(f);
-  return `rgb(${Math.round(r * v)}, ${Math.round(g * v)}, ${Math.round(b * v)})`;
-}
-
-/** Preview the normalised effect waveform (0-1) for drawing. */
-export function sampleEffect(fx: FxParams, t: number, seed = 0.3) {
-  return fx.kind === "none" ? 1 : fx.min + (fx.max - fx.min) * rawEffect(fx, t, seed);
-}
-
-/** Number of individually addressable pixels in the fixture's current mode (1 = not a pixel mode). */
-export function pixelCount(f: { defId: string; modeIdx: number }): number {
-  const mm = /\((\d+) px\)/.exec(getMode(f).name);
-  return mm ? Number(mm[1]) : 1;
+export function fixtureColor(f: PatchedFixture, def: FixtureDef | undefined, t: number): string {
+  const level = effectLevel(f.effect, t, f.effectSpeed, f.effectSize);
+  const v = f.intensity * level;
+  let rgb: [number, number, number];
+  if (def?.mode === "cct" || def?.mode === "dimmer") rgb = cctToRgb(f.cct);
+  else rgb = hsvToRgb(f.hue, f.saturation, 1);
+  return `rgb(${Math.round(rgb[0] * v)}, ${Math.round(rgb[1] * v)}, ${Math.round(rgb[2] * v)})`;
 }
