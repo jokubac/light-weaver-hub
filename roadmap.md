@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Auto-fit PIXELS visualization, remove view tilt/rotation and add collapsible effect choices; verify live editing
+- [x] Auto-fit PIXELS visualization, remove view tilt/rotation and add collapsible effect choices; verified live editing and line/upright framing
 - [ ] Remove duplicate colour controls and make console slider values typeable
 - [ ] Inverse FLASH with 0.5-second fades and restored settings
 - [ ] Move fixture and pixel effect saving/recall below Looks
