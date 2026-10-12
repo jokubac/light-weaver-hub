@@ -85,7 +85,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <Button variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Hide the fixture list to see the full patch sheet" : "Show the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Hide fixtures" : "Add fixtures"}</Button>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
         <main className="patch-print min-h-0 flex-1 overflow-auto p-4">
           <div className="mb-3 flex items-baseline justify-between">
             <h1 className="font-display text-xl font-semibold">{title} — Patch sheet</h1>
@@ -155,7 +155,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             <datalist id="patch-groups">{groupNames.map((g) => <option key={g} value={g} />)}</datalist>
           )}
         </main>
-        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden lg:max-h-none lg:w-1/2 lg:border-l lg:border-t-0">
+        {panelOpen && <aside className="max-h-[60vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden xl:max-h-none xl:w-1/2 xl:border-l xl:border-t-0">
           <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap showPatched={false} />
         </aside>}
       </div>

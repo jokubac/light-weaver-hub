@@ -1,4 +1,6 @@
 # Tasks
+- [x] DMX map fills the whole panel width as one 32×16 band on tablets (side panel docks only from xl up); browser measured 974×323 map, no horizontal scroll
+
 - [x] Fixture numbers stay under the sticky console toolbar while scrolling; browser verified covered at z-20
 
 - [x] Keypad fixture settings Undo/Redo with grouped drags; 5 tests passed and browser verified 25 → 80 → Undo 25 → Redo 80
