@@ -696,9 +696,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
     if (!hl || !selected.length) return out;
     // Highlight: selected lights at full open white, everything else out (output only)
-    return out.map((f) => (selected.includes(f.uid)
-      ? { ...f, on: true, intensity: 1, fxPlaying: false, cct: 5600, gm: 0, saturation: 0, crossfade: 0, gel: undefined }
-      : { ...f, intensity: 0 }));
+    return out.map((f) => {
+      if (!selected.includes(f.uid)) return { ...f, intensity: 0 };
+      const { gel: _gel, ...rest } = f;
+      return { ...rest, on: true, intensity: 1, fxPlaying: false, cct: 5600, gm: 0, saturation: 0, crossfade: 0 };
+    });
   }, [fixtures, bank, project.looks, flash, solo, hl, selected]);
   const runCommand = (select: number[] | undefined, level: number | undefined) => {
     const ids = select ? select.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x) : selected;
