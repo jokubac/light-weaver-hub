@@ -76,8 +76,8 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
               <span className="text-muted-foreground">{picked.length} selected</span>
               {picked.length > 0 && <>
                 <span className="ml-2 flex gap-1">{LABEL_COLORS.map((c) => <button key={c} onClick={() => each({ label: c })} aria-label={`Colour ${c}`} className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />)}
-                  <button onClick={() => each({ label: undefined })} className="px-1 text-muted-foreground" aria-label="Remove colour">×</button></span>
-                <button onClick={() => { const g = prompt(`Group name${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove`); if (g !== null) each({ group: g.trim() || undefined }); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Group…</button>
+                  <button onClick={() => each({ label: undefined } as never)} className="px-1 text-muted-foreground" aria-label="Remove colour">×</button></span>
+                <button onClick={() => { const g = prompt(`Group name${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove`); if (g !== null) each({ group: g.trim() || undefined } as never); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Group…</button>
               </>}
               <button onClick={unpatch} disabled={!picked.length} className="ml-auto flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1.5 font-semibold text-destructive-foreground disabled:opacity-40"><Unplug className="h-3.5 w-3.5" />Unpatch{picked.length ? ` (${picked.length})` : ""}</button>
             </div>
@@ -118,7 +118,7 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
                           <div className="text-[10px] font-semibold uppercase text-muted-foreground">Colour</div>
                           <div className="flex flex-wrap gap-1.5">{LABEL_COLORS.map((c) => <button key={c} onClick={() => onUpdate(f.uid, { label: c })} aria-label={`Colour ${c}`} className={`h-7 w-7 rounded-full border-2 ${f.label === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
                           <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Group
-                            <input list="patch-groups" value={f.group ?? ""} onChange={(e) => onUpdate(f.uid, { group: e.target.value || undefined })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm normal-case text-foreground" /></label>
+                            <input list="patch-groups" value={f.group ?? ""} onChange={(e) => onUpdate(f.uid, { group: e.target.value || undefined } as never)} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm normal-case text-foreground" /></label>
                         </div>
                       </div>
                     </td></tr>}</Frag>
