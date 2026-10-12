@@ -1,9 +1,9 @@
 # Tasks
-- [ ] Keep PATCH fixture split vertically stacked at every screen size
+- [x] Keep PATCH fixture split vertically stacked at every screen size; browser verified full-width panels at 1280 px
 - [x] Refresh native iOS logo from SVG and show shared version at Sign in and Settings; browser verified, all 18 icon sizes/opaque corners checked
 - [x] Update IPA/TestFlight packaging with release checks and shared native version
 - [ ] Produce new IPA artifact — blocked until NOX 1.1.0 is published, then run GitHub iOS IPA workflow
-- [x] DMX map fills the whole panel width as one 32×16 band on tablets (side panel docks only from xl up); browser measured 974×323 map, no horizontal scroll
+- [x] DMX map fills the whole panel width as one 32×16 band; fixture panel now stacks below the patch sheet at every width
 
 - [x] Fixture numbers stay under the sticky console toolbar while scrolling; browser verified covered at z-20
 
