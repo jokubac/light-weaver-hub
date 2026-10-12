@@ -49,7 +49,7 @@ export const asteraSpec = (code: number) => ASTERA_SPECS.find((s) => s.code === 
 const STROBE_LABEL = ["", " S", " S", " SS"];
 export function asteraMode(s: AsteraSpec): FixtureMode {
   return {
-    name: `${s.code} — ${LABEL[s.cell]}${STROBE_LABEL[s.strobe]} (${s.px} px${s.strobe === 2 || s.strobe === 3 ? ", strobe per px" : ""})`,
+    name: `Profile ${s.code} — ${LABEL[s.cell]}${STROBE_LABEL[s.strobe]} (${s.px} px${s.strobe === 2 || s.strobe === 3 ? ", strobe per px" : ""})`,
     channels: asteraChannels(s), kind: KIND[s.cell],
     ...(s.px > 1 ? { pixels: s.px } : {}),
     astera: s,

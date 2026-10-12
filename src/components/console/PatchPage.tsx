@@ -151,7 +151,7 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
                         <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
                       </td>
                     </tr>
-                    {editing === f.uid && <tr className="print:hidden"><td colSpan={12} className="bg-surface p-3">
+                    {editing === f.uid && <tr className="print:hidden"><td colSpan={14} className="bg-surface p-3">
                       <div className="grid gap-3 md:grid-cols-2">
                         <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                         <div className="space-y-2">

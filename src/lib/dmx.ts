@@ -194,11 +194,11 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
     ...asteraPx(16).map((mode) => {
       const code = mode.name === "3ch RGB" ? 1 : mode.name === "4ch RGBW" ? 2 : mode.name === "5ch RGBAW" ? 3 : mode.name === "6ch Dim RGBAW" ? 6 : mode.name === "Pixel RGB (16 px)" ? 42 : mode.name === "Pixel RGBW (16 px)" ? 43 : mode.name === "Pixel RGBAW (16 px)" ? 44 : undefined;
       const spec = code ? asteraSpec(code) : undefined;
-      return code ? { ...mode, name: `${code} — ${mode.name}`, ...(spec ? { astera: spec } : {}) } : mode;
+      return code ? { ...mode, name: `Profile ${code} — ${mode.name}`, ...(spec ? { astera: spec } : {}) } : mode;
     }),
-    { name: "90 — D CCT GM HUE SAT", channels: 5, kind: "full", profile: "astera-hsi", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
-    { name: "95 — D CCT GM HUE SAT S", channels: 6, kind: "full", profile: "astera-hsi-strobe", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
-    { ...m("18 — Pixel RGB (4 px)", 12, "rgb", 4), astera: asteraSpec(18)! },
+    { name: "Profile 90 — D CCT GM HUE SAT", channels: 5, kind: "full", profile: "astera-hsi", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
+    { name: "Profile 95 — D CCT GM HUE SAT S", channels: 6, kind: "full", profile: "astera-hsi-strobe", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
+    { ...m("Profile 18 — Pixel RGB (4 px)", 12, "rgb", 4), astera: asteraSpec(18)! },
     // every other Titan profile, appended so saved mode numbers stay valid
     ...asteraModes([1, 4, 8, 16], [1, 2, 3, 6, 18, 42, 43, 44, 90, 95]),
   ]),
