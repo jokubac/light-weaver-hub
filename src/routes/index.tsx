@@ -241,7 +241,7 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
       )}
       <div className="min-w-0 flex-1">
         {title === "NOX" ? (
-          <NoxWordmark className="h-8" />
+          <h1 className="inline-flex"><NoxWordmark className="h-8" /></h1>
         ) : (
           <h1 className="truncate font-display font-bold text-xl">{title}</h1>
         )}
