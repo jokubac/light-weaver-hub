@@ -56,7 +56,6 @@ export function Keypad({ count, selectedNums, onRun, onStep, onClose }: Props) {
         <button onClick={() => press("CCT")} className={`${k} text-primary`}>CCT</button>
         </div>
         <button onClick={run} className="w-16 rounded-lg bg-primary text-base font-black text-primary-foreground active:scale-95">Please</button>
-        </div>
       </div>
     </div>
   );
