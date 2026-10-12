@@ -122,7 +122,6 @@ export function FixtureControls({
         className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.on === false ? "bg-surface-elevated text-muted-foreground" : "bg-success text-primary-foreground"}`}>
         <Power className="h-4 w-4" /> {first.on === false ? "OFF — tap to turn on" : "ON — tap to turn off"}
       </button>
-      <Button onClick={onFlash} title="Flash — invert output with 0.5 s fades" className="flex items-center justify-center gap-1.5 rounded-lg bg-amber-glow px-5 py-3 text-sm font-bold text-primary-foreground active:scale-95"><Zap className="h-4 w-4" />FLASH</Button>
       </div>
 
       <Control label="Intensity" value={first.intensity} display="" onChange={(v) => update({ intensity: v })}
@@ -141,11 +140,7 @@ export function FixtureControls({
         <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
       </Section>
 
-      <div className="grid grid-cols-2 gap-1 border-b border-border pb-3" role="tablist" aria-label="Light controls">
-        {([['effect','Effects'],['advanced','Advanced']] as const).map(([id,label]) => <Button key={id} size="sm" variant={tab === id ? "default" : "secondary"} role="tab" aria-selected={tab === id} onClick={() => setTab(tab === id ? null : id)}>{label}</Button>)}
-      </div>
-
-      {tab === "advanced" && <><Section title="Advanced">
+      {<><Section title="Advanced">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fan</div>
         <FanControl value={first.fan} update={update} />
       </Section>
@@ -160,7 +155,7 @@ export function FixtureControls({
         </div>
       </Section></>}
 
-      {tab === "effect" && <Section title="Effect">
+      {<Section title="Effect">
         {fx.kind !== "none" && (
           <button onClick={() => update({ fxPlaying: first.fxPlaying === false })}
             className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.fxPlaying === false ? "bg-amber-glow text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
@@ -169,7 +164,7 @@ export function FixtureControls({
         )}
         <div className="grid grid-cols-4 gap-2">
           {EFFECTS.map((e) => (
-            <button key={e.id} onClick={() => update({ fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id }, fxPlaying: false })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${fx.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
+            <button key={e.id} onClick={() => update(fx.kind === "none" ? { fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id }, fxPlaying: false } : { fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id } })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${fx.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
               {e.label}
             </button>
           ))}

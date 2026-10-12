@@ -917,10 +917,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 onPointerCancel={() => { swept.current = null; }}>
                 {fixtures.map((f, i) => {
                   const def = getDef(f.defId);
-                  const color = fixtureColor(f, t, outLevel);
+                  const of = pulses[f.uid] ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
+                  const color = fixtureColor(of, t, outLevel);
                   const isSel = selected.includes(f.uid);
                   const pix = frame.get(f.uid);
-                  const pv = f.on === false ? 0 : f.intensity * outLevel;
+                  const pv = of.on === false ? 0 : of.intensity * outLevel;
                   const [gc, gr] = pixelGrid(f);
                   return (
                      <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`${swapping ? "Swap" : "Select"} fixture ${i + 1}, ${f.name}`} aria-pressed={swapping ? swapSource === f.uid : isSel} tabIndex={0} onPointerDown={() => { if (!sweep && !swapping) holdStart(f.uid); }} onPointerUp={holdEnd} onPointerCancel={holdEnd} onClick={(e) => { if (swapping) swapTile(f.uid); else if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (swapping) swapTile(f.uid); else toggleSelect(f.uid); } if (e.key === "Escape") { setSwapSource(null); setSwapping(false); } }}
@@ -993,7 +994,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
         )}
       </div>
-      {keypadOpen && <Keypad count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onClose={() => setKeypadOpen(false)} />}
+      {keypadOpen && <Keypad count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />}

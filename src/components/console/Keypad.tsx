@@ -7,12 +7,13 @@ interface Props {
   selectedNums?: number[];
   onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number) => void;
   onStep: (dir: 1 | -1) => void;
+  onFlash: () => void;
   onClose: () => void;
 }
 
 const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "CLR", "0", "@", "FULL"];
 
-export function Keypad({ count, selectedNums = [], onRun, onStep, onClose }: Props) {
+export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onClose }: Props) {
   const [cmd, setCmd] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [pos, setPos] = useState({ x: 16, y: 16 });
@@ -56,7 +57,10 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onClose }: Pro
         <button onClick={() => press("OUT")} className={`${k} text-primary`}>OUT</button>
         <button onClick={() => press("CCT")} className={`${k} text-primary`}>CCT</button>
         </div>
-        <button onClick={run} className="w-16 rounded-lg bg-primary text-base font-black text-primary-foreground active:scale-95">Please</button>
+        <div className="flex w-16 flex-col gap-1.5">
+          <button onClick={onFlash} disabled={!selectedNums.length} title="Flash selected lights to check them" className="rounded-lg bg-amber-glow py-3 text-xs font-black text-primary-foreground active:scale-95 disabled:opacity-40">FLASH</button>
+          <button onClick={run} className="flex-1 rounded-lg bg-primary text-base font-black text-primary-foreground active:scale-95">Please</button>
+        </div>
       </div>
     </div>
   );
