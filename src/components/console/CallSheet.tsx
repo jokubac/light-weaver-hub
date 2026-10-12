@@ -42,15 +42,28 @@ export function CallSheet({ title, fixtures, onClose }: { title: string; fixture
   };
 
   const grouped = CATEGORY_ORDER.map((cat) => ({ cat, lines: equipment.filter((l) => l.category === cat) })).filter((g) => g.lines.length);
+  const [view, setView] = useState<"call" | "equipment">(initialView);
+  const [catOpen, setCatOpen] = useState(false);
+  const [catQ, setCatQ] = useState("");
+  const catHits = useMemo(() => { const q = catQ.trim().toLowerCase(); return ARCLIGHT_CATALOGUE.filter((it) => !q || `${it.name} ${it.section}`.toLowerCase().includes(q)).slice(0, 150); }, [catQ]);
+  const addCatalogue = (it: ArclightItem) => {
+    const id = `arc-${it.section}-${it.name}`;
+    const category: EquipmentLine["category"] = it.category === "fixture" ? "fixture" : it.category === "data" ? "data" : "power";
+    setCustom((c) => c.some((l) => l.id === id) ? c.map((l) => (l.id === id ? { ...l, qty: l.qty + 1 } : l)) : [...c, { id, label: it.name, category, qty: 1 }]);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3 print:hidden">
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Close call sheet"><ArrowLeft className="h-5 w-5" /></button>
-        <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">Call sheet</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
+        <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">{view === "call" ? "Call sheet" : "Equipment list"}</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
+        <div className="flex rounded-lg bg-surface-elevated p-1 text-xs font-semibold">
+          {(["call", "equipment"] as const).map((v) => <button key={v} onClick={() => setView(v)} aria-pressed={view === v} className={`rounded-md px-3 py-1.5 ${view === v ? "bg-primary text-primary-foreground" : ""}`}>{v === "call" ? "Call sheet" : "Equipment list"}</button>)}
+        </div>
         <Button variant="secondary" onClick={() => window.print()} title="Print, or choose “Save as PDF” in the print dialog"><Printer />Print / PDF</Button>
       </div>
       <div className="callsheet-print min-h-0 flex-1 overflow-auto p-4">
+        <h1 className="mb-4 hidden font-display text-2xl font-bold print:block">{view === "call" ? "Call sheet" : "Equipment list"} — {production}</h1>
         <div className="mx-auto max-w-4xl space-y-6">
           <section className="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-5 print:border-0 print:p-0">
             <Field label="Production"><input value={production} onChange={(e) => setProduction(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></Field>
@@ -60,7 +73,7 @@ export function CallSheet({ title, fixtures, onClose }: { title: string; fixture
             <Field label="Shift (hours)"><NumberField integer min={1} max={48} value={shiftHours} onChange={(v) => v !== undefined && setShiftHours(v)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring text-center" /></Field>
           </section>
 
-          <section className="rounded-xl border border-border bg-surface p-4">
+          {view === "call" && <section className="rounded-xl border border-border bg-surface p-4">
             <h2 className="mb-3 font-display text-base font-semibold">Power</h2>
             <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
               <table className="w-full border-collapse text-sm">
@@ -93,7 +106,7 @@ export function CallSheet({ title, fixtures, onClose }: { title: string; fixture
                 </div>
               </div>
             </div>
-          </section>
+          </section>}
 
           <section className="rounded-xl border border-border bg-surface p-4 print:border-0 print:p-0">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
