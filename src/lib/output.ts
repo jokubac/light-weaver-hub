@@ -133,6 +133,33 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
     if (f.split.cpp >= 4) w(Math.min(r, g, b) * v);
     return;
   }
+  if (mode.channelMap) {
+    // imported (GDTF / Fixture builder) layouts: one entry per DMX slot, "fine" = low byte of a 16-bit pair
+    const valueFor = (attr: string): number => {
+      switch (attr) {
+        case "Dimmer": return v;
+        case "CCT": return f.cct;
+        case "GM": return (f.gm + 1) / 2;
+        case "Hue": return hue;
+        case "Saturation": return saturation;
+        case "Red": return r * v;
+        case "Green": return g * v;
+        case "Blue": return b * v;
+        case "White": return Math.min(r, g, b) * v;
+        case "Crossfade": return paletteActive ? 1 : f.cctOnly ? 0 : f.crossfade;
+        default: return 0; // Amber, Strobe, Spare
+      }
+    };
+    const has16 = new Set(mode.channelMap.filter((e) => e.fine).map((e) => e.attr));
+    mode.channelMap.forEach((e, i) => {
+      const idx = f.address - 1 + i;
+      if (idx < 0 || idx >= 512) return;
+      const val = Math.max(0, Math.min(1, valueFor(e.attr)));
+      if (has16.has(e.attr)) { const n = Math.round(val * 65535); buf[idx] = e.fine ? n & 255 : n >> 8; }
+      else buf[idx] = to8(val);
+    });
+    return;
+  }
   if (mode.pixels && pixels) {
     const cpp = Math.max(3, Math.floor(mode.channels / mode.pixels));
     const pv = f.on === false ? 0 : f.intensity * level;
