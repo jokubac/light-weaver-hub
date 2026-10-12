@@ -39,7 +39,7 @@ import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
 import { RecRail, RecDialog, RecEditor } from "@/components/console/RecRail";
 import { PatchPage } from "@/components/console/PatchPage";
-import { statesAt } from "@/lib/recordings";
+import { statesAt, stepLength } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
 import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";

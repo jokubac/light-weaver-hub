@@ -116,7 +116,7 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
                     className={`relative flex h-full border-r border-background text-[9px] font-bold text-primary-foreground ${isPlay && progress?.step === i ? "brightness-125" : "opacity-80"}`}
                     style={{ width: `${(L / total) * 100}%`, background: STEP_HUES[i % STEP_HUES.length] }}>
                     <span className="h-full bg-background/40" style={{ width: `${(s.fadeIn / L) * 100}%`, clipPath: "polygon(0 100%,100% 0,100% 100%)" }} />
-                    <span className="flex-1 truncate px-0.5 leading-6">{i + 1}</span>
+                    <span className="flex-1 truncate px-0.5 leading-6">{s.manual && "✋"}{i + 1}</span>
                     <span className="h-full bg-background/40" style={{ width: `${(s.fadeOut / L) * 100}%`, clipPath: "polygon(0 0,100% 100%,0 100%)" }} />
                   </button>
                 );
