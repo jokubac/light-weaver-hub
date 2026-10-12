@@ -6,6 +6,8 @@ import { fixtureState, getMode, kelvin, type PatchedFixture } from "./dmx";
 import type { Connection } from "./store";
 import { asteraTokens, CELL_TOKENS } from "./astera";
 import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
+import { buildArtDmx, buildSacn, randomCid, sacnMulticastAddress, ARTNET_UDP_PORT, SACN_UDP_PORT } from "./artnet";
+import { isNativeApp, sendUdp } from "./native-udp";
 
 type RGB = [number, number, number];
 
@@ -174,8 +176,45 @@ export function buildUniverses(fixtures: PatchedFixture[], t: number, level: num
 
 export type BridgeStatus = "off" | "ok" | "slow" | "error";
 
+/** Sends ArtDmx/sACN packets straight from the device over UDP — no bridge computer. */
+function createDirectSender(onStatus: (s: BridgeStatus) => void) {
+  let busy = false, last = "", lastAt = 0, status: BridgeStatus = "off";
+  const sequence = new Map<number, number>();
+  const cid = randomCid();
+  const set = (s: BridgeStatus) => { if (s !== status) { status = s; onStatus(s); } };
+  return async (conn: Connection, universes: Map<number, Uint8Array>) => {
+    if (!conn.node || !universes.size) { set("off"); return; }
+    if (busy) return;
+    const body = JSON.stringify({ protocol: conn.protocol, ip: conn.node.ip, universes: Object.fromEntries([...universes].map(([u, b]) => [u, Array.from(b)])) });
+    const now = performance.now();
+    const changed = body !== last;
+    if (!changed && now - lastAt < 1000) return; // 1 s keepalive refresh
+    if (changed && now - lastAt < 33) return; // cap to ~30 fps
+    busy = true;
+    try {
+      for (const [u, data] of universes) {
+        const seq = ((sequence.get(u) ?? 0) % 255) + 1;
+        sequence.set(u, seq);
+        if (conn.protocol === "sacn") {
+          const packet = buildSacn(u, data, seq, cid);
+          await sendUdp(conn.node.ip || sacnMulticastAddress(u), SACN_UDP_PORT, packet);
+        } else {
+          const packet = buildArtDmx(u, data, seq);
+          await sendUdp(conn.node.ip || "255.255.255.255", ARTNET_UDP_PORT, packet);
+        }
+      }
+      set(now - lastAt > 500 && changed ? "slow" : "ok");
+      last = body; lastAt = now;
+    } catch {
+      set("error");
+    } finally {
+      busy = false;
+    }
+  };
+}
+
 /** Sends frames to the bridge at up to ~30 fps, skipping frames while one is in flight. */
-export function createSender(onStatus: (s: BridgeStatus) => void) {
+function createBridgeSender(onStatus: (s: BridgeStatus) => void) {
   let busy = false, last = "", lastAt = 0, status: BridgeStatus = "off";
   const set = (s: BridgeStatus) => { if (s !== status) { status = s; onStatus(s); } };
   return async (conn: Connection, universes: Map<number, Uint8Array>) => {
@@ -199,5 +238,15 @@ export function createSender(onStatus: (s: BridgeStatus) => void) {
       clearTimeout(timeout);
       busy = false;
     }
+  };
+}
+
+/** Picks the direct-UDP or bridge-HTTP transport per connection; direct only runs inside the installed app. */
+export function createSender(onStatus: (s: BridgeStatus) => void) {
+  const direct = createDirectSender(onStatus);
+  const bridge = createBridgeSender(onStatus);
+  return async (conn: Connection, universes: Map<number, Uint8Array>) => {
+    if (conn.transport === "direct" && isNativeApp()) return direct(conn, universes);
+    return bridge(conn, universes);
   };
 }

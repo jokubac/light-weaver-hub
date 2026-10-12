@@ -90,6 +90,16 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
   return { name: wide ? `${name} (16-bit)` : name, channels: totalChannels, kind: "full", source: "gdtf", channelMap } as FixtureMode;
 }
 
+/** Builds a FixtureMode from an ordered list of channel attributes (used by GDTF import and the manual Fixture Builder). */
+export function buildMode(name: string, entries: { attr: ChannelAttr; fine?: boolean }[]): FixtureMode {
+  const wide = entries.some((e) => e.fine);
+  const totalChannels = entries.length;
+  const bareSeq = entries.filter((e) => !e.fine).map((e) => e.attr);
+  const match = !wide && KIND_SEQUENCES.find((k) => k.seq.length === bareSeq.length && k.seq.every((a, i) => a === bareSeq[i]));
+  if (match) return { name, channels: totalChannels, kind: match.kind, source: "custom" };
+  return { name, channels: totalChannels, kind: "full", source: "custom", channelMap: entries.map((e) => ({ attr: e.attr, ...(e.fine ? { fine: true } : {}) })) };
+}
+
 /** Parses a description.xml string into a FixtureDef. Pure function — no zip/file I/O, for easy testing. */
 export function parseDescriptionXml(xml: string): FixtureDef | null {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
