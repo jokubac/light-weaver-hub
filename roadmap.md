@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Keep PATCH fixture split vertically stacked at every screen size
 - [x] Refresh native iOS logo from SVG and show shared version at Sign in and Settings; browser verified, all 18 icon sizes/opaque corners checked
 - [x] Update IPA/TestFlight packaging with release checks and shared native version
 - [ ] Produce new IPA artifact — blocked until NOX 1.1.0 is published, then run GitHub iOS IPA workflow
