@@ -377,7 +377,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const lastPick = useRef<string | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const held = useRef(false);
-  const [panel, setPanel] = useState<Panel>("patch");
+  const [panel, setPanel] = useState<Panel>("control");
   const [panelOpen, setPanelOpen] = useState(true);
   const [layers, setLayers] = useState<PixelLayer[]>(() => migrateLayers(scene));
   const [locked, setLocked] = useState(true);
