@@ -1,6 +1,8 @@
 import { Fragment as Frag, useRef, useState } from "react";
 import { ArrowLeft, Printer, Download, Upload, ArrowUp, ArrowDown, Pencil, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { NumberField } from "./NumberField";
 import { PatchPanel, LABEL_COLORS } from "./PatchPanel";
 import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
@@ -14,7 +16,12 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
 }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
-  const move = (i: number, d: number) => { const fs = [...fixtures]; const j = i + d; if (j < 0 || j >= fs.length) return; [fs[i], fs[j]] = [fs[j]!, fs[i]!]; onReorder(fs); };
+  const swapPosition = (i: number, j: number) => {
+    const fs = [...fixtures]; const source = fs[i], target = fs[j];
+    if (!source || !target || i === j) return;
+    fs[i] = target; fs[j] = source; onReorder(fs);
+  };
+  const move = (i: number, d: number) => swapPosition(i, i + d);
   const each = (p: Partial<PatchedFixture>) => picked.forEach((id) => onUpdate(id, p));
   const unpatch = () => {
     if (!picked.length) return;
@@ -92,9 +99,9 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
                   const d = getDef(f.defId); const m = d.modes[f.modeIdx]; const ch = m?.channels ?? 1;
                   const clash = overlaps(fixtures, f.universe, f.address, ch, f.uid).length > 0;
                   return (
-                    <Frag key={f.uid}><tr className={`border-b border-border/60 break-inside-avoid ${picked.includes(f.uid) ? "bg-primary/10" : ""}`}>
-                      <td className="pr-1 print:hidden"><input type="checkbox" checked={picked.includes(f.uid)} onChange={() => setPicked((p) => (p.includes(f.uid) ? p.filter((x) => x !== f.uid) : [...p, f.uid]))} aria-label={`Select ${f.name}`} className="h-4 w-4 accent-primary" /></td>
-                      <td className="py-1.5 pr-2 text-muted-foreground">{i + 1}</td>
+                    <Frag key={f.uid}><tr className={`border-b border-border/60 break-inside-avoid ${picked.includes(f.uid) ? "bg-muted/60" : ""}`}>
+                      <td className="pr-2 print:hidden"><Checkbox checked={picked.includes(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6 rounded-md border-input bg-surface-elevated shadow-none data-[state=checked]:border-muted-foreground data-[state=checked]:bg-muted data-[state=checked]:text-foreground" /></td>
+                      <td className="py-1.5 pr-2 text-muted-foreground"><NumberField integer min={1} max={fixtures.length} value={i + 1} onChange={(v) => { if (v !== undefined) swapPosition(i, v - 1); }} aria-label={`Fixture number for ${f.name}`} className="w-12 rounded-md border border-input bg-surface-elevated px-1.5 py-1.5 text-center font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring print:hidden" /><span className="hidden print:inline">{i + 1}</span></td>
                       <td className="pr-2"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
                         <input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} aria-label="Fixture name" className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" /></td>
