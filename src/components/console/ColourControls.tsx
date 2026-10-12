@@ -9,16 +9,16 @@ export function ColourControls({ value, update }: { value: ColourState; update: 
   return <div className="space-y-3" data-testid="colour-controls">
     <label className="block space-y-1 text-xs"><span className="flex items-center justify-between"><span>CCT</span><span className="flex items-center gap-1"><NumberField aria-label="CCT Kelvin" min={2000} max={10000} value={Math.round(kelvin(value.cct))} onChange={(v) => { if (v) update({ cct: cctFromKelvin(v), crossfade: 0 }); }} className="w-20 rounded border border-input bg-surface-elevated px-2 py-1 text-right font-mono" />K</span></span><input aria-label="CCT" type="range" min={0} max={1} step={0.001} value={value.cct} onChange={(e) => update({ cct: +e.target.value, crossfade: 0 })} className="w-full accent-primary" /></label>
     <CctMacros value={value.cct} update={(p) => update({ ...p, crossfade: 0 })} />
-    <label className="block space-y-1 text-xs"><span className="flex justify-between"><span>Crossfade CCT ↔ HSI</span><span>{Math.round(value.crossfade * 100)}%</span></span><input aria-label="Crossfade CCT ↔ HSI" type="range" min={0} max={1} step={0.001} value={value.crossfade} onDoubleClick={() => update({ crossfade: 0 })} onChange={(e) => update({ crossfade: +e.target.value, cctOnly: false })} className="w-full accent-primary" /></label>
+    <label className="block space-y-1 text-xs"><span className="flex justify-between"><span>Crossfade CCT ↔ HSI</span><Numeric value={value.crossfade * 100} label="Crossfade percent" max={100} suffix="%" onChange={(v) => update({ crossfade: v / 100, cctOnly: false })} /></span><input aria-label="Crossfade CCT ↔ HSI" type="range" min={0} max={1} step={0.001} value={value.crossfade} onDoubleClick={() => update({ crossfade: 0 })} onChange={(e) => update({ crossfade: +e.target.value, cctOnly: false })} className="w-full accent-primary" /></label>
     <HueControls hue={value.hue} sat={value.saturation} crossfade={value.crossfade} update={update} />
   </div>;
 }
 
 function HueControls({ hue, sat, crossfade, update }: { hue: number; sat: number; crossfade: number; update: (p: Partial<PatchedFixture>) => void }) {
   return <div className="space-y-3">
-    <label className="block space-y-1 text-xs"><span className="flex justify-between"><span>Hue</span><span>{Math.round(hue)}°</span></span><input aria-label="Hue" type="range" min={0} max={360} step={0.1} value={hue} onChange={(e) => update({ hue: +e.target.value, saturation: sat || 1, crossfade: 1, cctOnly: false })} className="w-full accent-primary" /></label>
+    <label className="block space-y-1 text-xs"><span className="flex justify-between"><span>Hue</span><Numeric value={hue} label="Hue degrees" max={360} suffix="°" onChange={(v) => update({ hue: v, saturation: sat || 1, crossfade: 1, cctOnly: false })} /></span><input aria-label="Hue" type="range" min={0} max={360} step={0.1} value={hue} onChange={(e) => update({ hue: +e.target.value, saturation: sat || 1, crossfade: 1, cctOnly: false })} className="w-full accent-primary" /></label>
     <ColorWheel hue={hue} sat={sat} crossfade={crossfade} update={update} />
-    <label className="block space-y-1 text-xs"><span className="flex justify-between"><span>Saturation</span><span>{Math.round(sat * 100)}%</span></span><input aria-label="Saturation" type="range" min={0} max={1} step={0.001} value={sat} onChange={(e) => update({ saturation: +e.target.value, crossfade: 1, cctOnly: false })} className="w-full accent-primary" /></label>
+    <label className="block space-y-1 text-xs"><span className="flex justify-between"><span>Saturation</span><Numeric value={sat * 100} label="Saturation percent" max={100} suffix="%" onChange={(v) => update({ saturation: v / 100, crossfade: 1, cctOnly: false })} /></span><input aria-label="Saturation" type="range" min={0} max={1} step={0.001} value={sat} onChange={(e) => update({ saturation: +e.target.value, crossfade: 1, cctOnly: false })} className="w-full accent-primary" /></label>
   </div>;
 }
 
@@ -36,4 +36,7 @@ export function HexColourControls({ value, onChange }: { value: string; onChange
     const rgb = hsvToRgb(p.hue ?? h, p.saturation ?? s, 1);
     onChange("#" + rgb.map((c) => Math.round(c).toString(16).padStart(2, "0")).join(""));
   }} /></div>;
+}
+function Numeric({ value, label, max, suffix, onChange }: { value: number; label: string; max: number; suffix: string; onChange: (n: number) => void }) {
+  return <span className="flex items-center gap-1 font-mono"><NumberField aria-label={label} min={0} max={max} value={+value.toFixed(2)} onChange={(n) => { if (n !== undefined) onChange(n); }} className="w-16 rounded border border-input bg-surface-elevated px-1 py-0.5 text-right" />{suffix}</span>;
 }
