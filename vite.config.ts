@@ -6,15 +6,10 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// NOX_OFFLINE=1 builds a static single-page shell that the Android/iOS apps bundle,
-// so the installed app opens without internet.
-const offline = process.env.NOX_OFFLINE === "1";
-
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
-    ...(offline ? { spa: { enabled: true } } : {}),
   },
 });
