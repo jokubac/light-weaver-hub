@@ -1,4 +1,6 @@
 # Tasks
+- [ ] Grey Patch selection and editable fixture position numbers; verify persistence without repatching
+- [ ] Mixed Live Plot selection for fixtures, objects and cameras; verify move, removal and undo
 - [x] Individually collapsible named groups and lock between Sweep and swap
 - [x] Persistent editable fixture icons in patch; verify reload and DMX independence
 - [x] Blackout right of master with lit output indicator; full group controls in right rail
