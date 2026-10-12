@@ -1,7 +1,7 @@
 // Perspective render of the live plot from a virtual camera, exposed by lens / iris / ISO.
 import { useEffect, useRef } from "react";
 import { rayBlocked, wallPanels, wallSegments, type Opening, type WallStroke } from "@/lib/plot-geometry";
-import { cameraBasis, exposureGain, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
+import { cameraBasis, exposureGain, horizontalFov, projectCameraSpace, type PlotCamera } from "@/lib/plot-camera";
 import type { SetObject } from "@/lib/plot-objects";
 
 export interface CamLight { x: number; y: number; z: number; rot: number; tilt: number; beam: number; watts: number; level: number; rgb: [number, number, number] }
@@ -28,7 +28,7 @@ export function CameraView({ cam, size, strokes, openings, objects, floorZ, ligh
     const project = (p: V3): [number, number, number] | null => {
       const d = sub(p, eye); const z = dot(d, fwd);
       if (z < 0.05) return null;
-      return [W / 2 + dot(d, right) / z * f, H / 2 - dot(d, up) / z * f, z];
+      return projectCameraSpace([dot(d, right), dot(d, up), z], W, H, f);
     };
     const lightAt = (p: V3, n: V3): V3 => {
       const out: V3 = [0.02, 0.02, 0.025]; // faint ambient bounce
@@ -69,7 +69,7 @@ export function CameraView({ cam, size, strokes, openings, objects, floorZ, ligh
     for (const poly of polys) {
       const cp = clipNear(poly.pts.map(toCam));
       if (cp.length < 3) continue;
-      const pr = cp.map((q) => [W / 2 + q[0] / q[2] * f, H / 2 - q[1] / q[2] * f, q[2]] as [number, number, number]);
+      const pr = cp.map((q) => projectCameraSpace(q, W, H, f));
       if (pr.every((q) => q[0] < 0) || pr.every((q) => q[0] > W) || pr.every((q) => q[1] < 0) || pr.every((q) => q[1] > H)) continue;
       const centre = poly.pts.reduce<V3>((s, p) => [s[0] + p[0] / poly.pts.length, s[1] + p[1] / poly.pts.length, s[2] + p[2] / poly.pts.length], [0, 0, 0]);
       let n = poly.n; if (dot(n, sub(eye, centre)) < 0) n = [-n[0], -n[1], -n[2]];

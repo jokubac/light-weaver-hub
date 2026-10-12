@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { wallSegments, openingBounds, wallPanels, rayBlocked, segmentDistance, type Opening } from "@/lib/plot-geometry";
 import { editHistory } from "@/lib/edit-history";
 import { CameraView } from "./CameraView";
-import { FSTOPS, ISOS, LENSES, SENSORS, FPS_OPTIONS, SHUTTER_ANGLES, defaultCamera, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
+import { FSTOPS, ISOS, LENSES, SENSORS, FPS_OPTIONS, SHUTTER_ANGLES, defaultCamera, horizontalFov, cameraViewEdges, type PlotCamera } from "@/lib/plot-camera";
 import { Video, Gauge } from "lucide-react";
 import { SET_OBJECTS, objectContains, type SetObject, type SetObjectKind } from "@/lib/plot-objects";
 import { hexToHs } from "@/lib/gels";
@@ -425,10 +425,10 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     for (const cam of plot.cameras ?? []) {
       if (!view3d && cam.floor !== fl) continue;
       const z = floors[cam.floor]?.z ?? 0;
-      const half = horizontalFov(cam) * Math.PI / 360, a = cam.rot * Math.PI / 180, reach = Math.max(SW, SH) * 0.35;
+      const edges = cameraViewEdges(cam, Math.max(SW, SH) * 0.35);
       const o = proj(V, cam.x, cam.y, z + cam.h);
-      const l = proj(V, cam.x + Math.cos(a - half) * reach, cam.y + Math.sin(a - half) * reach, z + cam.h);
-      const r = proj(V, cam.x + Math.cos(a + half) * reach, cam.y + Math.sin(a + half) * reach, z + cam.h);
+      const l = proj(V, edges.left[0], edges.left[1], z + edges.left[2]);
+      const r = proj(V, edges.right[0], edges.right[1], z + edges.right[2]);
       ctx.save();
       ctx.fillStyle = cameraIds.includes(cam.id) ? "rgba(255,90,90,0.16)" : "rgba(255,90,90,0.08)"; ctx.strokeStyle = "rgba(255,90,90,0.8)"; ctx.lineWidth = cameraIds.includes(cam.id) ? 2 : 1;
       ctx.beginPath(); ctx.moveTo(...o); ctx.lineTo(...l); ctx.lineTo(...r); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1054,9 +1054,10 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "object" ? "default" : "secondary"}><Armchair />Props<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
           {SET_OBJECTS.map((o) => <DropdownMenuItem key={o.kind} onSelect={() => { setObjectKind(o.kind); setTool("object"); }}>{o.label}</DropdownMenuItem>)}
         </DropdownMenuContent></DropdownMenu>
-        <Button variant={tool === "camera" ? "default" : "secondary"} aria-label="Add camera" title="Place camera" onClick={() => { setTool("camera"); clearSelection(); }}><Video className="h-4 w-4" /><span className="hidden md:inline">Camera</span></Button>
-        <Button variant={tool === "meter" ? "default" : "secondary"} aria-label="Add light meter" title="Place light meter" onClick={() => { setTool("meter"); clearSelection(); }}><Gauge className="h-4 w-4" /><span className="hidden md:inline">Meter</span></Button>
-        <Button variant={layoutUnlocked ? "default" : "secondary"} aria-label={layoutUnlocked ? "Layout unlocked" : "Unlock layout editing"} title={layoutUnlocked ? "Unlocked for this app session" : "Unlock layout editing"} onClick={ensureUnlocked}>{layoutUnlocked ? <Unlock /> : <LockKeyhole />}</Button>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "camera" || tool === "meter" ? "default" : "secondary"}><Gauge />Test<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+          <DropdownMenuItem onSelect={() => { setTool("camera"); clearSelection(); }}><Video />Camera</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => { setTool("meter"); clearSelection(); }}><Gauge />Meter</DropdownMenuItem>
+        </DropdownMenuContent></DropdownMenu>
         <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
         <Button variant="destructive" size="sm" aria-label="Remove selected from plot" title="Remove selected item" disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />Remove</Button>
