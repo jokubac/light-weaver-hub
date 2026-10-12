@@ -82,7 +82,7 @@ export function FixtureControls({
   onFlash: () => void;
 }) {
   const first = sel[0];
-  const [tab, setTab] = useState<"colour" | "effect" | "advanced">("colour");
+  const [tab, setTab] = useState<"effect" | "advanced" | null>(null);
   if (!first) return null;
   const mode = getMode(first);
   const anyCaps = sel.reduce(
@@ -141,8 +141,8 @@ export function FixtureControls({
         <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
       </Section>
 
-      <div className="grid grid-cols-3 gap-1 border-b border-border pb-3" role="tablist" aria-label="Light controls">
-        {([['colour','Colour'],['effect','Effects'],['advanced','Advanced']] as const).map(([id,label]) => <Button key={id} size="sm" variant={tab === id ? "default" : "secondary"} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{label}</Button>)}
+      <div className="grid grid-cols-2 gap-1 border-b border-border pb-3" role="tablist" aria-label="Light controls">
+        {([['effect','Effects'],['advanced','Advanced']] as const).map(([id,label]) => <Button key={id} size="sm" variant={tab === id ? "default" : "secondary"} role="tab" aria-selected={tab === id} onClick={() => setTab(tab === id ? null : id)}>{label}</Button>)}
       </div>
 
       {tab === "advanced" && <><Section title="Advanced">

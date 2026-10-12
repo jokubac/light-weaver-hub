@@ -32,7 +32,7 @@ export function parseCommand(cmd: string, count: number): CommandResult {
       if (k < 2000 || k > 10000) return { error: "CCT range: 2000–10000 K" };
       cct = Math.round(k);
     }
-    if (!t.length) return cctDelta != null ? { cctDelta } : { cct };
+    if (!t.length) return cctDelta != null ? { cctDelta } : cct != null ? { cct } : {};
   }
   if (!t.length) return { error: "Empty command" };
   const at = t.indexOf("@");

@@ -32,7 +32,7 @@ export function PaletteEditor({ colours, onChange, native, onReset }: {
       {colours.length < 8 && <Button size="icon" variant="outline" className="h-9 w-9 border-dashed" title="Add colour" aria-label="Add palette colour" onClick={() => { onChange([...colours, "#ffffff"]); setActive(colours.length); }}><Plus /></Button>}
     </div>
     <div className="flex flex-wrap gap-1">{PALETTES.map((p) => <Button key={p.name} size="sm" variant="secondary" className="h-7 px-2 text-[10px]" onClick={() => { onChange([...p.colours]); setActive(0); }}>{p.colours.map((c) => <span key={c} className="h-2 w-2 rounded-full" style={{ background: c }} />)}{p.name}</Button>)}</div>
-    <HexColourControls value={colours[index] ?? "#ffffff"} onChange={updateColour} />
+    {colours.length > 0 && <HexColourControls value={colours[index] ?? "#ffffff"} onChange={updateColour} />}
     <ColorSource noCct compact onPick={updateColour} />
   </div>;
 }
