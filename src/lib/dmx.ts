@@ -232,8 +232,7 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
 const customDefs = (): FixtureDef[] => {
   try { return loadCustomFixtures(); } catch { return []; }
 };
-export const CUSTOM_FIXTURE_LIBRARY: FixtureDef[] = [...customDefs()];
-const ALL_FIXTURES: FixtureDef[] = [...FIXTURE_LIBRARY, ...CUSTOM_FIXTURE_LIBRARY];
+FIXTURE_LIBRARY.push(...customDefs());
 
 /** Which local rental house stocks a fixture (search by "arclight" / "cinevera"). */
 export const RENTAL_STOCK: Record<string, string[]> = (() => {
@@ -243,19 +242,25 @@ export const RENTAL_STOCK: Record<string, string[]> = (() => {
   return out;
 })();
 
-export let BRANDS = Array.from(new Set(ALL_FIXTURES.map((d) => d.brand)));
-export let DEF_BY_ID: Record<string, FixtureDef> = Object.fromEntries(ALL_FIXTURES.map((d) => [d.id, d]));
+export let BRANDS = Array.from(new Set(FIXTURE_LIBRARY.map((d) => d.brand)));
+export let DEF_BY_ID: Record<string, FixtureDef> = Object.fromEntries(FIXTURE_LIBRARY.map((d) => [d.id, d]));
 const FALLBACK = DEF_BY_ID["generic-rgbw-par"]!;
 export const getDef = (id: string) => DEF_BY_ID[id] ?? FALLBACK;
 
-/** Rebuilds the merged library + lookups so newly imported/removed custom fixtures show up without a reload. */
+/** Rebuilds the merged library + lookups so newly imported/removed custom fixtures show up without a reload.
+ *  Built-in entries keep their original order and position — only the custom tail is replaced. */
 function refreshCustomFixtures() {
-  const all = [...FIXTURE_LIBRARY, ...customDefs()];
-  FIXTURE_LIBRARY.length = FIXTURE_LIBRARY.length; // no-op, keeps built-ins untouched/un-reordered
-  CUSTOM_FIXTURE_LIBRARY.splice(0, CUSTOM_FIXTURE_LIBRARY.length, ...customDefs());
-  BRANDS = Array.from(new Set(all.map((d) => d.brand)));
-  DEF_BY_ID = Object.fromEntries(all.map((d) => [d.id, d]));
+  const builtInCount = FIXTURE_LIBRARY.findIndex((d) => d.id.startsWith("__custom-boundary__"));
+  const boundary = builtInCount === -1 ? FIXTURE_LIBRARY.length : builtInCount;
+  void boundary;
+  const builtIns = FIXTURE_LIBRARY.filter((d) => !customIds.has(d.id));
+  const next = customDefs();
+  customIds = new Set(next.map((d) => d.id));
+  FIXTURE_LIBRARY.splice(0, FIXTURE_LIBRARY.length, ...builtIns, ...next);
+  BRANDS = Array.from(new Set(FIXTURE_LIBRARY.map((d) => d.brand)));
+  DEF_BY_ID = Object.fromEntries(FIXTURE_LIBRARY.map((d) => [d.id, d]));
 }
+let customIds = new Set(customDefs().map((d) => d.id));
 if (typeof window !== "undefined") {
   window.addEventListener("kroma-custom-fixtures", refreshCustomFixtures);
   window.addEventListener("storage", refreshCustomFixtures);
