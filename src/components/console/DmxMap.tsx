@@ -37,7 +37,7 @@ export function DmxMap({ fixtures, universe, planned = [], onPick, highlight }: 
                 : "var(--color-surface-elevated)";
           return (
             <div key={ch} onClick={onPick ? () => onPick(ch) : undefined} title={`${ch}${f ? ` · ${o.map((i) => inU[i]?.name ?? "").join(" + ")}` : isPlan ? " · new" : ""}`}
-              className={`flex min-h-0 items-center justify-center overflow-hidden font-mono text-[clamp(9px,1.5vw,16px)] ${onPick ? "cursor-pointer hover:outline hover:outline-2 hover:outline-primary " : ""}${f && highlight === f.uid ? "outline outline-2 outline-foreground " : ""}${f || clash || isPlan ? "font-bold text-background" : "text-muted-foreground"}`} style={{ background: bg }}>{ch}</div>
+              className={`flex min-h-0 items-center justify-center overflow-hidden font-mono text-[clamp(6px,0.9vw,11px)] leading-none tracking-tighter ${onPick ? "cursor-pointer hover:outline hover:outline-2 hover:outline-primary " : ""}${f && highlight === f.uid ? "outline outline-2 outline-foreground " : ""}${f || clash || isPlan ? "font-bold text-background" : "text-muted-foreground"}`} style={{ background: bg }}>{ch}</div>
           );
         })}
       </div>
