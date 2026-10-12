@@ -29,7 +29,7 @@
 - Patch page is a console overlay, not a route, so it edits live fixture state.
 - Playback bank and cues live in Project.bank/Project.cues; applyBank (src/lib/playback.ts) changes output only, never live fixture state, so faders can't overwrite programming.
 - Imported fixtures (GDTF/builder/RDM) are stored in localStorage custom-fixtures and use FixtureMode.channelMap, so new lights need no code changes.
-- Direct DMX from the installed app uses src/lib/artnet.ts packets via a Capacitor UDP plugin; the browser keeps the bridge because web pages cannot send UDP.- Installed Android/iOS apps bundle a crawl of the published site (scripts/offline-bundle.mjs → offline-app/) instead of loading a remote URL, so they open offline; rebuild APK/IPA after publishing to update them.
+- Installed Android/iOS apps bundle a crawl of the published site (scripts/offline-bundle.mjs → offline-app/) instead of loading a remote URL, so they open offline; rebuild APK/IPA after publishing to update them.
 - Fixture FLASH and fader banks are output-only overlays in outFixtures, never mutating live fixture state; keypad numbers are console positions.
 - console-command.ts applies per-fixture relative command values and inverse FLASH envelopes; keeping these pure makes normalized CCT and restored output testable.
 - EffectsRail owns fixture/pixel effect saving and recall; ConsoleScreen shares the active pixel-layer ID with PixelPanel so the rail saves the layer being edited.
@@ -40,3 +40,4 @@
 - Camera lens rendering and plotted view edges share the Z-up camera basis and tested screen projection helpers so camera tilt and orientation stay consistent.
 
 - Fixture setting history uses the transfer whitelist and groups pointer gestures; playback/battery updates bypass history so Undo never repatches fixtures or records output frames.
+- The console toolbar layer (sticky Select all/Sweep/REC bar) sits above the fixture number badges, so scrolled numbers slide under it instead of painting over it.
