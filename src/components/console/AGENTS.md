@@ -13,7 +13,7 @@
 - Emergency blackout sits to the right of the master fader with an output-enabled bulb indicator; full group management and saved looks share the collapsible right rail so neither needs a view tab.
 - Plot cameras use height-aware canvas placement and hit-testing; a selector keeps editing and confirmed removal reachable.
 - Plot fixture/object/camera selection IDs stay separate; mixed moves and removals commit one snapshot for atomic undo.
-- The DMX map fills its panel's full width as one fixed 32×16 band (DmxMap); the patch side panel docks beside the sheet only from xl up so tablets get a full-width map.
+- The DMX map fills its panel's full width as one fixed 32×16 band (DmxMap); the fixture library/map stays stacked below the patch sheet at every width so neither panel is squeezed.
 - Patch page is a console overlay, not a route, so it edits live fixture state.
 - Number inputs use the shared NumberField (commit on blur/Enter) so fields can be cleared while typing without snapping to a value.
 - Pixel preview framing stays local to PixelPanel and derives from the logical grid and measured viewport, keeping display changes independent of saved effects and output.
