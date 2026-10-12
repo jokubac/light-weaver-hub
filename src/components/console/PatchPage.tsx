@@ -23,7 +23,7 @@ export function describeDef(d: FixtureDef): { type: string; cct: string } {
 
 /** Full-screen patch sheet: printable table in the middle, every fixture + patch editing on the right. */
 export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder }: {
-  title: string; callSheet?: CallSheetData; onCallSheet?: (c: CallSheetData) => void; fixtures: PatchedFixture[]; onClose: () => void;
+  title: string; callSheet?: CallSheetData | undefined; onCallSheet?: (c: CallSheetData) => void; fixtures: PatchedFixture[]; onClose: () => void;
   onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
   onReplace: (fs: PatchedFixture[]) => void; onReorder: (fs: PatchedFixture[]) => void;
 }) {
