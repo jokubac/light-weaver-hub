@@ -4,6 +4,7 @@ import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
 import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
+import { NoxLogo, NoxWordmark } from "@/components/NoxLogo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -239,7 +240,11 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className={`truncate font-display font-bold ${title === "NOX" ? "kroma-wordmark text-3xl text-primary" : "text-xl"}`}>{title}</h1>
+        {title === "NOX" ? (
+          <NoxWordmark className="h-8" />
+        ) : (
+          <h1 className="truncate font-display font-bold text-xl">{title}</h1>
+        )}
         {subtitle && <p className="truncate text-xs text-primary">{subtitle}</p>}
       </div>
       {right}

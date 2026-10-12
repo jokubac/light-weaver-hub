@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { NoxLogo, NoxWordmark } from "@/components/NoxLogo";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -46,8 +47,11 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center p-5">
       <div className="w-full max-w-sm space-y-5 rounded-xl border border-border bg-card p-6">
         <div>
-          <h1 className="font-display kroma-wordmark text-5xl font-extrabold text-primary">NOX</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to open your projects, favourites and saved effects on any device.</p>
+          <div className="flex items-center gap-3">
+            <NoxLogo className="h-16 w-16 shrink-0" title="NOX" />
+            <NoxWordmark className="h-9" />
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to open your projects, favourites and saved effects on any device.</p>
         </div>
         <button onClick={google} className="w-full rounded-lg bg-surface-elevated py-3 text-sm font-semibold active:scale-95">Continue with Google</button>
         <div className="text-center text-xs text-muted-foreground">or</div>
