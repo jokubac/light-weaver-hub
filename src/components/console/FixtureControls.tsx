@@ -78,7 +78,7 @@ const tapReset = (fn: () => void) => () => {
 };
 
 export function FixtureControls({
-  fixtures, sel, update, updateEach, remove, fire, locked, copiedSource, onCopy, onPaste,
+  fixtures, sel, update, updateEach, remove, fire, locked, copiedSource, onCopy, onPaste, onFlash,
 }: {
   fixtures: PatchedFixture[];
   sel: PatchedFixture[];
@@ -90,6 +90,7 @@ export function FixtureControls({
   copiedSource?: string | undefined;
   onCopy: () => void;
   onPaste: () => void;
+  onFlash: () => void;
 }) {
   const first = sel[0];
   const fxLib = useFxLibrary();
@@ -128,10 +129,13 @@ export function FixtureControls({
         </div>
       )}
 
+      <div className="flex gap-2">
       <button onClick={() => update({ on: first.on === false })}
-        className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.on === false ? "bg-surface-elevated text-muted-foreground" : "bg-success text-primary-foreground"}`}>
+        className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.on === false ? "bg-surface-elevated text-muted-foreground" : "bg-success text-primary-foreground"}`}>
         <Power className="h-4 w-4" /> {first.on === false ? "OFF — tap to turn on" : "ON — tap to turn off"}
       </button>
+      <button onClick={onFlash} title="Flash — 0.5 s fade up to full, 0.5 s fade back" className="flex items-center justify-center gap-1.5 rounded-lg bg-amber-glow px-5 py-3 text-sm font-bold text-primary-foreground active:scale-95"><Zap className="h-4 w-4" />FLASH</button>
+      </div>
 
       <Control label="Intensity" value={first.intensity} display="" onChange={(v) => update({ intensity: v })}
         entry={{ text: String(+(first.intensity * 100).toFixed(2)), suffix: "%", parse: (n) => Math.min(1, Math.max(0, n / 100)) }} />
