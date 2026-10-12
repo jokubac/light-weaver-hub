@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox";
 // Gaffer call sheet / rental order: power load balancing, generator sizing,
 // an editable equipment list and a battery charging plan — opened from the Patch page.
 import { Fragment as Frag, useMemo, useState } from "react";
@@ -167,7 +168,7 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
               </div>
             )}
             {grouped.length > 0 && <div className="flex flex-wrap items-center gap-2 print:hidden">
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" aria-label="Select all items" checked={picked.length > 0 && picked.length === equipment.length} onChange={(e) => setPicked(e.target.checked ? equipment.map((l) => l.id) : [])} />Select all</label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox aria-label="Select all items" checked={picked.length > 0 && picked.length === equipment.length} onCheckedChange={(c) => setPicked(c === true ? equipment.map((l) => l.id) : [])} />Select all</label>
               {picked.length > 0 && <Button size="sm" variant="destructive" onClick={removePicked}><Trash2 className="h-3.5 w-3.5" />Delete {picked.length}</Button>}
             </div>}
             {grouped.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nothing on the list yet — patch lights or add from the catalogue.</p> : (
@@ -178,10 +179,10 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
                 <tbody>
                   {(() => { let n = 0; return grouped.map(({ cat, lines }) => (
                     <Frag key={cat}>
-                      <tr className="bg-surface-elevated print:bg-transparent"><td className="print:hidden"><input type="checkbox" className="h-4 w-4" aria-label={`Select all ${cat}`} checked={lines.every((l) => picked.includes(l.id))} onChange={(e) => setPicked((p) => e.target.checked ? [...new Set([...p, ...lines.map((l) => l.id)])] : p.filter((id) => !lines.some((l) => l.id === id)))} /></td><td colSpan={6} className="px-1 py-1.5 text-[11px] font-bold uppercase tracking-wider">{cat}</td></tr>
+                      <tr className="bg-surface-elevated print:bg-transparent"><td className="print:hidden"><Checkbox aria-label={`Select all ${cat}`} checked={lines.every((l) => picked.includes(l.id))} onCheckedChange={(c) => setPicked((p) => c === true ? [...new Set([...p, ...lines.map((l) => l.id)])] : p.filter((id) => !lines.some((l) => l.id === id)))} /></td><td colSpan={6} className="px-1 py-1.5 text-[11px] font-bold uppercase tracking-wider">{cat}</td></tr>
                       {lines.map((l) => { const packed = d.packed?.[l.id] ?? 0, ret = d.returned?.[l.id] ?? 0; return (
                         <tr key={l.id} className="border-b border-border/60 break-inside-avoid">
-                          <td className="print:hidden"><input type="checkbox" className="h-4 w-4" aria-label={`Select ${l.label}`} checked={picked.includes(l.id)} onChange={(e) => setPicked((p) => e.target.checked ? [...p, l.id] : p.filter((id) => id !== l.id))} /></td>
+                          <td className="print:hidden"><Checkbox aria-label={`Select ${l.label}`} checked={picked.includes(l.id)} onCheckedChange={(c) => setPicked((p) => c === true ? [...p, l.id] : p.filter((id) => id !== l.id))} /></td>
                           <td className="py-1 pr-2 font-mono text-xs text-muted-foreground">{++n}</td>
                           <td className="py-1 pr-2">{l.label}{l.sub && <span className="ml-1.5 text-[10px] text-muted-foreground">{l.sub}</span>}</td>
                           <td className="py-1 pr-2 text-right">

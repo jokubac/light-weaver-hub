@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
 import { Wifi, Cable, Radar, Loader2, Check, Plus, Download, Smartphone, Router } from "lucide-react";
 import type { BridgeStatus } from "@/lib/output";
@@ -129,7 +130,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
             {tx && <p className="text-muted-foreground">{tx.universes} universe{tx.universes > 1 ? "s" : ""} · {tx.radio.join(", ")} · {tx.protocols.map((p) => (p === "artnet" ? "Art-Net" : "sACN")).join(" / ")} · starts at Art-Net {tx.artnetStart} / sACN {tx.sacnStart} · colour order {tx.order}</p>}
             <label className="flex items-center justify-between rounded-md bg-surface-elevated px-3 py-2 font-semibold">
               Auto-set universes & channel order
-              <input type="checkbox" checked={conn.autoMap} onChange={(e) => setConn({ ...conn, autoMap: e.target.checked })} className="h-4 w-4 accent-[var(--color-primary)]" />
+              <Checkbox checked={conn.autoMap} onCheckedChange={(c) => setConn({ ...conn, autoMap: c === true })} />
             </label>
             <p className="text-muted-foreground">{conn.autoMap ? "Universe 1 in the app goes to the transmitter's first input, colours are sent in its order, extra universes it can't carry are skipped." : "Off: universes and RGB order are sent exactly as patched."}</p>
           </div>
