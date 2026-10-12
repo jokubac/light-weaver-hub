@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Play, Square, Trash2, RefreshCw, ArrowUp, ArrowDown, Repeat } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Pause, Square, Trash2, RefreshCw, ArrowUp, ArrowDown, Repeat } from "lucide-react";
 import { ItemMenu } from "./ItemMenu";
 import { NumberField } from "./NumberField";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,25 +19,28 @@ export function RecDialog({ open, onOpenChange, src, recordings, setRecordings }
   open: boolean; onOpenChange: (o: boolean) => void; src: PatchedFixture[]; recordings: Recording[]; setRecordings: (r: Recording[]) => void;
 }) {
   const [name, setName] = useState("");
+  const [naming, setNaming] = useState(false);
   const create = () => {
     const n = name.trim() || `REC ${recordings.length + 1}`;
     setRecordings([{ id: uid(), name: n, createdAt: Date.now(), steps: [makeStep(src, 1)] }, ...recordings]);
-    setName(""); onOpenChange(false);
+    setName(""); setNaming(false); onOpenChange(false);
   };
   const append = (id: string) => {
     setRecordings(recordings.map((r) => (r.id === id ? { ...r, steps: [...r.steps, makeStep(src, r.steps.length + 1)] } : r)));
     onOpenChange(false);
   };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) setNaming(false); onOpenChange(o); }}>
+      <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader><DialogTitle>REC — {src.length} light{src.length === 1 ? "" : "s"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="flex gap-2">
+          {!naming ? (
+            <button onClick={() => setNaming(true)} className="w-full rounded-lg bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground">+ Create new REC</button>
+          ) : <div className="flex gap-2">
             <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} placeholder={`REC ${recordings.length + 1}`}
               className="min-w-0 flex-1 rounded-lg border border-input bg-surface-elevated px-3 py-2 text-sm outline-none focus:border-primary" aria-label="Recording name" />
-            <button onClick={create} className="rounded-lg bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground">New REC</button>
-          </div>
+            <button onClick={create} className="rounded-lg bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground">Save</button>
+          </div>}
           {recordings.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Add as next step to</p>}
           <div className="max-h-60 space-y-1 overflow-auto">
             {recordings.map((r) => (
@@ -55,19 +58,33 @@ export function RecDialog({ open, onOpenChange, src, recordings, setRecordings }
 const STEP_HUES = ["var(--color-primary)", "var(--color-amber-glow)", "var(--color-success)", "var(--color-warning)"];
 
 /** Editing-timeline style list of recordings in the side rail. */
-export function RecRail({ recordings, setRecordings, selectedFixtures, playing, progress, onPlay, onStop }: {
+type RailProps = {
   recordings: Recording[]; setRecordings: (r: Recording[]) => void; selectedFixtures: PatchedFixture[];
-  playing: string | null; progress: { t: number; step: number } | null; onPlay: (id: string) => void; onStop: () => void;
-}) {
+  playing: string | null; paused?: boolean; progress: { t: number; step: number } | null; onPlay: (id: string) => void; onPause: () => void; onStop: () => void;
+};
+
+/** Larger REC editing window, opened by pressing and holding the REC button. */
+export function RecEditor({ open, onOpenChange, ...rail }: RailProps & { open: boolean; onOpenChange: (o: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader><DialogTitle>REC editor</DialogTitle></DialogHeader>
+        <div className="space-y-2"><RecRail {...rail} large /></div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function RecRail({ recordings, setRecordings, selectedFixtures, playing, paused, progress, onPlay, onPause, onStop, large }: RailProps & { large?: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
   const [stepOpen, setStepOpen] = useState<string | null>(null);
   const upd = (id: string, fn: (r: Recording) => Recording) => setRecordings(recordings.map((r) => (r.id === id ? fn(r) : r)));
   const updStep = (rid: string, sid: string, p: Partial<RecStep>) => upd(rid, (r) => ({ ...r, steps: r.steps.map((s) => (s.id === sid ? { ...s, ...p } : s)) }));
-  const num = "w-14 rounded border border-input bg-surface px-1 py-1 text-[11px]";
+  const num = large ? "w-20 rounded border border-input bg-surface px-2 py-1.5 text-sm" : "w-14 rounded border border-input bg-surface px-1 py-1 text-[11px]";
 
   return (
     <>
-      <p className="w-full shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:mt-3 lg:border-t lg:border-border lg:pt-3">REC</p>
+      {!large && <p className="w-full shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:mt-3 lg:border-t lg:border-border lg:pt-3">REC</p>}
       {recordings.length === 0 && <p className="text-[11px] text-muted-foreground">Select lights and press REC to record.</p>}
       {recordings.map((r) => {
         const total = recLength(r) || 1;
@@ -81,15 +98,16 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
                 <div className="text-[10px] text-muted-foreground">{r.steps.length} steps · {recLength(r).toFixed(1)} s</div>
               </div>
               <button onClick={() => upd(r.id, (x) => ({ ...x, loop: !x.loop }))} aria-pressed={!!r.loop} title="Loop" className={`rounded p-1.5 ${r.loop ? "text-primary" : "text-muted-foreground"}`}><Repeat className="h-3.5 w-3.5" /></button>
-              <button onClick={() => (isPlay ? onStop() : onPlay(r.id))} aria-label={isPlay ? `Stop ${r.name}` : `Play ${r.name}`} className={`rounded-md p-1.5 ${isPlay ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>
-                {isPlay ? <Square className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              <button onClick={() => (isPlay && !paused ? onPause() : onPlay(r.id))} aria-label={isPlay && !paused ? `Pause ${r.name}` : `Play ${r.name}`} className="rounded-md bg-primary p-1.5 text-primary-foreground">
+                {isPlay && !paused ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
               </button>
+              <button onClick={onStop} disabled={!isPlay} aria-label={`Stop ${r.name}`} className="rounded-md bg-destructive p-1.5 text-destructive-foreground disabled:opacity-30"><Square className="h-3.5 w-3.5" /></button>
               <ItemMenu name={r.name} onRename={(n) => upd(r.id, (x) => ({ ...x, name: n }))}
                 onDuplicate={() => setRecordings([{ ...structuredClone(r), id: uid(), name: `${r.name} copy`, createdAt: Date.now() }, ...recordings])}
                 onDelete={() => setRecordings(recordings.filter((x) => x.id !== r.id))} />
             </div>
             {/* timeline: block width = step length; striped parts = fades */}
-            <div className="relative flex h-6 overflow-hidden rounded bg-background">
+            <div className={`relative flex overflow-hidden rounded bg-background ${large ? "h-12" : "h-6"}`}>
               {r.steps.map((s, i) => {
                 const L = stepLength(s) || 0.0001;
                 return (
