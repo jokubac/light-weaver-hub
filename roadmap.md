@@ -1,4 +1,8 @@
 # Tasks
+- [ ] Remove duplicate colour controls and make console slider values typeable
+- [ ] Inverse FLASH with 0.5-second fades and restored settings
+- [ ] Move fixture and pixel effect saving/recall below Looks
+- [ ] Relative keypad percentage/Kelvin commands; tests and browser checks
 - [x] Grey Patch selection and editable fixture position numbers; verify persistence without repatching
 - [x] Mixed Live Plot selection for fixtures, objects and cameras; verify move, removal and undo
 - [x] Individually collapsible named groups and lock between Sweep and swap
