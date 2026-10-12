@@ -637,8 +637,15 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       return;
     }
     if (tool === "object") { setCameraId(null); addObjectAt(...fp); return; }
+    if (tool === "meter") {
+      const m = { id: crypto.randomUUID(), x: fp[0], y: fp[1], z: 1.6, floor: fl };
+      clearSelection(); setPlot({ ...plot, meters: [...(plot.meters ?? []), m] }); setMeterId(m.id); setTool("move");
+      return;
+    }
     if (tool === "erase") {
       const cam = hitCamera(sx, sy); if (cam) { removeCamera(cam.id); return; }
+      const met = (plot.meters ?? []).find((m) => (m.floor ?? 0) === fl && Math.hypot(...(unproj(viewOf(), sx, sy, (floors[m.floor ?? 0]?.z ?? 0) + m.z) as [number, number]).map((v, i) => v - [m.x, m.y][i]!) as [number, number]) < 0.5);
+      if (met) { setPlot({ ...plot, meters: (plot.meters ?? []).filter((x) => x.id !== met.id) }); setMeterId(null); return; }
       const u = hit(sx,sy);
       if (u) { if (confirm("Remove this light from the plot?")) { const items = {...plot.items}; delete items[u]; setPlot({...plot,items}); } return; }
       const o = [...(plot.objects ?? [])].reverse().find((o) => o.floor === fl && objectContains(o,...fp));
