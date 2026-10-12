@@ -22,7 +22,6 @@ export function IntensityMacros({ updateEach }: { updateEach: UpdEach }) {
 
 const KELVINS = [2700, 3200, 4000, 5600, 6000, 10000];
 export function CctMacros({ value, update }: { value: number; update: Upd }) {
-  const [k, setK] = useState("");
   const apply = (n: number) => update({ cct: clamp(cctFromKelvin(clamp(n, 2000, 10000)), 0, 1) });
   return (
     <div className="space-y-2">
@@ -31,10 +30,7 @@ export function CctMacros({ value, update }: { value: number; update: Upd }) {
           <button key={n} onClick={() => apply(n)} className={`rounded-md py-2 font-mono text-[11px] font-semibold active:scale-95 ${kelvin(value) === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{n >= 10000 ? "10K" : `${n / 1000}K`.replace(".", ",")}</button>
         ))}
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); const n = parseInt(k, 10); if (n) apply(n); setK(""); }} className="flex gap-2">
-        <input inputMode="numeric" value={k} onChange={(e) => setK(e.target.value.replace(/\D/g, ""))} placeholder="Type Kelvin (2000–10000)" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 font-mono text-sm" />
-        <button type="submit" className="rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground">Set</button>
-      </form>
+
     </div>
   );
 }

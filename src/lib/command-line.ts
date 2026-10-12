@@ -8,6 +8,8 @@ export interface CommandResult {
   level?: number;
   /** colour temperature in kelvin */
   cct?: number;
+  levelDelta?: number;
+  cctDelta?: number;
   error?: string;
 }
 
@@ -20,23 +22,30 @@ export function parseCommand(cmd: string, count: number): CommandResult {
   const ci = all.indexOf("CCT");
   const t = ci < 0 ? all : all.slice(0, ci);
   let cct: number | undefined;
+  let cctDelta: number | undefined;
   if (ci >= 0) {
-    const k = Number(all.slice(ci + 1).join("").replace(/K$/, ""));
-    if (!Number.isFinite(k) || k < 1000 || k > 20000) return { error: "CCT needs kelvin, e.g. CCT 3200" };
-    cct = Math.round(k);
-    if (!t.length) return { cct };
+    const raw = all.slice(ci + 1).join("").replace(/K$/, "");
+    if (!/^[+-]?\d+(\.\d+)?$/.test(raw)) return { error: "CCT needs kelvin, e.g. CCT 3200 or CCT +200" };
+    const k = Number(raw);
+    if (/^[+-]/.test(raw)) cctDelta = Math.round(k);
+    else {
+      if (k < 2000 || k > 10000) return { error: "CCT range: 2000–10000 K" };
+      cct = Math.round(k);
+    }
+    if (!t.length) return cctDelta != null ? { cctDelta } : { cct };
   }
   if (!t.length) return { error: "Empty command" };
   const at = t.indexOf("@");
   const selTokens = at < 0 ? t : t.slice(0, at);
   const lvlTokens = at < 0 ? [] : t.slice(at + 1);
-  const res: CommandResult = cct != null ? { cct } : {};
+  const res: CommandResult = cctDelta != null ? { cctDelta } : cct != null ? { cct } : {};
 
   if (selTokens.length) {
     const set = new Set<number>();
     let mode: "+" | "-" = "+";
     for (let i = 0; i < selTokens.length; i++) {
-      const tok = selTokens[i]!;
+      const tok = selTokens[i];
+      if (!tok) continue;
       if (tok === "+" || tok === "-") { mode = tok; continue; }
       const a = Number(tok);
       if (!Number.isInteger(a)) return { error: `Unknown "${tok}"` };
@@ -55,13 +64,14 @@ export function parseCommand(cmd: string, count: number): CommandResult {
   }
 
   if (at >= 0) {
-    const v = lvlTokens.join("");
+    const v = lvlTokens.join("").replace(/%$/, "");
     if (v === "FULL") res.level = 1;
     else if (v === "OUT") res.level = 0;
     else {
       const n = Number(v);
-      if (!v || !Number.isFinite(n)) return { error: "Level needs a number, FULL or OUT" };
-      res.level = Math.max(0, Math.min(100, n)) / 100;
+      if (!/^[+-]?\d+(\.\d+)?$/.test(v) || !Number.isFinite(n)) return { error: "Level needs a number, FULL or OUT" };
+      if (/^[+-]/.test(v)) res.levelDelta = n / 100;
+      else res.level = Math.max(0, Math.min(100, n)) / 100;
     }
   }
   return res;

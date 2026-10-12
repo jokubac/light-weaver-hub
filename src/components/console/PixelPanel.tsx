@@ -1,5 +1,4 @@
-import { SavedEffects } from "./SavedEffects";
-import { useFxLibrary } from "@/lib/fxlib";
+import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
 import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, RotateCcw } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
@@ -16,17 +15,17 @@ const LAYOUTS: { id: PixelLayout; label: string; hint: string }[] = [
   { id: "stack", label: "Stacked", hint: "Horizontal lights stacked on top of each other" },
 ];
 
-export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame }: {
-  fixtures: PatchedFixture[]; selected?: string[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>;
+export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, activeId, onActiveChange }: {
+  fixtures: PatchedFixture[]; selected?: string[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>; activeId: string; onActiveChange: (id: string) => void;
 }) {
-  const [activeId, setActiveId] = useState(layers[0]?.id ?? "");
+  const setActiveId = onActiveChange;
   const allPx = fixtures.filter(isPixelFixture);
   const selPx = allPx.filter((f) => selected.includes(f.uid));
   // programming works on the lights selected in the console; with nothing selected every pixel light is listed
   const px = selPx.length ? selPx : allPx;
-  const layer = layers.find((l) => l.id === activeId) ?? layers[0]!;
-  const fxLib = useFxLibrary();
+  const layer = layers.find((l) => l.id === activeId) ?? layers[0];
   const now = useClock();
+  if (!layer) return null;
   const set = (p: Partial<PixelLayer>) => setLayers(layers.map((l) => (l.id === layer.id ? { ...l, ...p } : l)));
   const setLayerRaw = (next: PixelLayer) => setLayers(layers.map((l) => (l.id === layer.id ? next : l)));
   const inMap = layer.order.filter((u) => allPx.some((f) => f.uid === u));
@@ -137,8 +136,6 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame }
         </div>
       )}
 
-      <SavedEffects label="My pixel effects" items={fxLib.lib.pixel} onSave={(n) => fxLib.savePixel(n, layer)} onDelete={(id) => fxLib.remove("pixel", id)}
-        onLoad={(it) => set({ ...structuredClone(it.layer), id: layer.id, order: selPx.length ? selPx.map((f) => f.uid) : layer.order, name: it.name, playing: false })} />
       {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size, phase: layer.phase ?? 0 })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
       <SpeedControl label="Pixel speed" value={layer.speed} unit="×" onChange={(speed) => set({ speed })} />
       {["runner", "meteor", "text"].includes(layer.kind) && <div className="font-mono text-[10px] text-muted-foreground">{+(layer.speed * 10).toFixed(3)} px/s · {+(W / (layer.speed * 10)).toFixed(3)} s / map</div>}
@@ -193,7 +190,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame }
 function Slider({ label, value, min, max, step, display, onChange }: { label: string; value: number; min: number; max: number; step?: number; display: string; onChange: (v: number) => void }) {
   return (
     <label className="block">
-      <div className="mb-1 flex justify-between text-xs"><span className="font-semibold uppercase tracking-wider text-muted-foreground">{label}</span><span className="font-mono">{display}</span></div>
+      <div className="mb-1 flex justify-between text-xs"><span className="font-semibold uppercase tracking-wider text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} min={display.endsWith("%") ? min * 100 : min} max={display.endsWith("%") ? max * 100 : max} integer={step === 1} value={+(value * (display.endsWith("%") ? 100 : 1)).toFixed(2)} onChange={(n) => { if (n !== undefined) onChange(n / (display.endsWith("%") ? 100 : 1)); }} className="w-16 rounded border border-input bg-surface-elevated px-1 py-0.5 text-right" />{display.endsWith("%") ? "%" : display.endsWith("°") ? "°" : display.endsWith(" px") ? "px" : ""}</span></div>
       <input type="range" min={min} max={max} step={step ?? (max - min) / 200} value={value} onChange={(e) => onChange(+e.target.value)} className="w-full accent-[var(--color-primary)]" />
     </label>
   );

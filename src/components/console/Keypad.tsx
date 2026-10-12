@@ -5,7 +5,7 @@ import { parseCommand } from "@/lib/command-line";
 interface Props {
   count: number;
   selectedNums?: number[];
-  onRun: (select: number[] | undefined, level: number | undefined, cct?: number) => void;
+  onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number) => void;
   onStep: (dir: 1 | -1) => void;
   onClose: () => void;
 }
@@ -28,7 +28,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onClose }: Pro
   const run = () => {
     const r = parseCommand(cmd, count);
     if (r.error) { setMsg(r.error); return; }
-    onRun(r.select, r.level, r.cct);
+    onRun(r.select, r.level, r.cct, r.levelDelta, r.cctDelta);
     setMsg(`✓ ${cmd.trim()}`);
     setCmd("");
   };
