@@ -193,6 +193,12 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       </>}
 
       {tab === "fixtures" && <>
+      {(() => { const gs = [...new Set(allPx.map((f) => f.group).filter(Boolean))] as string[]; return gs.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Groups</div>
+          <div className="flex flex-wrap gap-1.5">{gs.map((g) => { const ids = allPx.filter((f) => f.group === g).map((f) => f.uid); const all = ids.every((u) => inMap.includes(u)); return (
+            <button key={g} aria-pressed={all} onClick={() => set({ order: all ? inMap.filter((u) => !ids.includes(u)) : [...inMap, ...ids.filter((u) => !inMap.includes(u))] })} className={`rounded-md px-2.5 py-1.5 text-xs font-semibold ${all ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{g}</button>); })}</div>
+        </div>); })()}
       <div className="space-y-1.5">
         <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           <span>Lights in this layer (order = position)</span>
