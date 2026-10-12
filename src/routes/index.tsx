@@ -395,7 +395,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const setConn = (c: Connection) => { setConnState(c); saveConnection(c); };
   const [savedFlash, setSavedFlash] = useState(false);
   const [setupsOpen, setSetupsOpen] = useState(false);
-  const [groupsOpen, setGroupsOpen] = useState(true);
+  const [groupsOpen, setGroupsOpen] = useState(false);
   const [fadersOpen, setFadersOpen] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
   const [pulses, setPulses] = useState<Record<string, number>>({});
@@ -614,7 +614,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   recRef.current = recordings;
   const [recOpen, setRecOpen] = useState(false);
   const [patchOpen, setPatchOpen] = useState(false);
-  const [play, setPlay] = useState<{ id: string; start: number; origin: Map<string, LookState>; pausedAt?: number | undefined } | null>(null);
+  const [play, setPlay] = useState<{ id: string; start: number; origin: Map<string, LookState>; pausedAt?: number | undefined; released?: number; waiting?: number | undefined } | null>(null);
   const [recEditor, setRecEditor] = useState(false);
   const recHold = useRef<{ timer: ReturnType<typeof setTimeout> | null; fired: boolean }>({ timer: null, fired: false });
   const [recProg, setRecProg] = useState<{ t: number; step: number } | null>(null);
@@ -624,7 +624,20 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     if (!play || play.pausedAt != null) return;
     const id = setInterval(() => {
       const rec = recRef.current.find((r) => r.id === play.id);
-      const t = (performance.now() - play.start) / 1000;
+      let t = (performance.now() - play.start) / 1000;
+      if (rec) {
+        // manual cues hold the sequence at their start until GO
+        let acc = 0;
+        for (let i = 0; i < rec.steps.length; i++) {
+          const st = rec.steps[i]!;
+          if (i > 0 && st.manual && i > (play.released ?? 0) && t >= acc) {
+            t = Math.max(0, acc - 0.001);
+            setPlay({ ...play, pausedAt: t, waiting: i });
+            break;
+          }
+          acc += stepLength(st);
+        }
+      }
       const res = rec ? statesAt(rec, fixturesRef.current, play.origin, t) : null;
       if (!res) { setPlay(null); setRecProg(null); return; }
       setRecProg({ t, step: res.step });
@@ -637,6 +650,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     if (play?.id === id && play.pausedAt != null) { setPlay({ ...play, start: performance.now() - play.pausedAt * 1000, pausedAt: undefined }); return; }
     setPlay({ id, start: performance.now(), origin: new Map(fixtures.map((f) => [f.uid, snapshot(f)])) });
   };
+  const goRec = () => { if (play?.waiting != null && play.pausedAt != null) setPlay({ ...play, start: performance.now() - (play.pausedAt + 0.002) * 1000, pausedAt: undefined, released: play.waiting, waiting: undefined }); };
   const pauseRec = () => { if (play && play.pausedAt == null) setPlay({ ...play, pausedAt: (performance.now() - play.start) / 1000 }); };
   const stopRec = () => { setPlay(null); setRecProg(null); };
 
@@ -735,7 +749,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const toggleSelect = (id: string) => {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
     lastPick.current = id;
-    { setPanel("control"); setPanelOpen(true); }
   };
   // shift-click or press-and-hold selects every light between the last tapped one and this one
   const selectRange = (id: string) => {
@@ -745,7 +758,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const ids = fixtures.slice(Math.min(from, to), Math.max(from, to) + 1).map((f) => f.uid);
     setSelected((s) => [...new Set([...s, ...ids])]);
     lastPick.current = id;
-    { setPanel("control"); setPanelOpen(true); }
   };
   const holdStart = (id: string) => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
@@ -851,7 +863,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
       )}
       <RecEditor open={recEditor} onOpenChange={setRecEditor} recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel}
-        playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
+        playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} src={sel.length ? sel : fixtures} recordings={recordings} setRecordings={onRecordings} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
       <SettingsDialog onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
@@ -899,7 +911,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
                 onPointerDown={(e) => { if (!sweep) return; e.preventDefault(); swept.current = new Set(); sweepAt(e.clientX, e.clientY); }}
                 onPointerMove={(e) => { if (sweep && swept.current && (e.buttons || e.pointerType === "touch")) sweepAt(e.clientX, e.clientY); }}
-                onPointerUp={() => { if (swept.current) { swept.current = null; { setPanel("control"); setPanelOpen(true); } } }}
+                onPointerUp={() => { swept.current = null; }}
                 onPointerCancel={() => { swept.current = null; }}>
                 {fixtures.map((f, i) => {
                   const def = getDef(f.defId);
@@ -970,11 +982,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
             <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
-            <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
+            <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
           </aside>
         )}
       </div>
-      {keypadOpen && <div className="fixed bottom-4 left-4 z-40"><Keypad count={fixtures.length} onRun={runCommand} onStep={stepLight} onClose={() => setKeypadOpen(false)} /></div>}
+      {keypadOpen && <Keypad count={fixtures.length} onRun={runCommand} onStep={stepLight} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />}
