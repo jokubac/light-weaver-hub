@@ -15,7 +15,7 @@ const html = await (await fetch(SITE + "/")).text();
 if (!html.includes("<html")) throw new Error("Published site did not return HTML");
 const refs = (text, base) => {
   const out = [];
-  for (const m of text.matchAll(/["'(]((?:\/|\.\/|\.\.\/)?assets\/[^"'()\s?#]+)/g)) out.push(new URL(m[1], SITE + base).pathname);
+  for (const m of text.matchAll(/["'(]((?:\/|\.\/|\.\.\/)?assets\/[^"'()\s?#]+)/g)) out.push(new URL(m[1].startsWith("assets/") ? "/" + m[1] : m[1], SITE + base).pathname);
   for (const m of text.matchAll(/["'(](\.\/[\w.-]+\.(?:js|css|woff2?|png|jpg|svg))/g)) out.push(new URL(m[1], SITE + base).pathname);
   return out;
 };
