@@ -95,37 +95,60 @@ export function CallSheet({ title, fixtures, onClose }: { title: string; fixture
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-surface p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold">Equipment list</h2>
-              <Button variant="secondary" size="sm" onClick={addCustom} className="print:hidden"><Plus className="h-3.5 w-3.5" />Add item</Button>
+          <section className="rounded-xl border border-border bg-surface p-4 print:border-0 print:p-0">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-base font-semibold">Equipment list <span className="text-xs font-normal text-muted-foreground">({equipment.reduce((a, l) => a + l.qty, 0)} items)</span></h2>
+              <div className="flex gap-2 print:hidden">
+                <Button variant="secondary" size="sm" onClick={() => setCatOpen((o) => !o)}><Plus className="h-3.5 w-3.5" />Arclight catalogue</Button>
+                <Button variant="secondary" size="sm" onClick={addCustom}><Plus className="h-3.5 w-3.5" />Custom item</Button>
+              </div>
             </div>
+            {catOpen && (
+              <div className="mb-4 space-y-2 rounded-lg bg-surface-elevated p-3 print:hidden">
+                <input value={catQ} onChange={(e) => setCatQ(e.target.value)} placeholder="Search Arclight: generator, 63A, Kino, DMX…" className="w-full rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                <div className="max-h-64 space-y-0.5 overflow-auto">
+                  {catHits.map((it, k) => (
+                    <button key={`${it.section}-${it.name}-${k}`} onClick={() => addCatalogue(it)} className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-surface">
+                      <span className="truncate">{it.name}</span><span className="shrink-0 text-[10px] text-muted-foreground">{it.section} +</span>
+                    </button>
+                  ))}
+                  {catHits.length === 0 && <p className="py-3 text-center text-xs text-muted-foreground">Nothing found</p>}
+                </div>
+              </div>
+            )}
             {grouped.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">No fixtures patched yet.</p> : (
-              <div className="space-y-4">
-                {grouped.map(({ cat, lines }) => (
-                  <div key={cat}>
-                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{CATEGORY_LABEL[cat]}</div>
-                    <table className="w-full border-collapse text-sm">
-                      <tbody>
-                        {lines.map((l) => (
-                          <tr key={l.id} className="border-b border-border/60">
-                            <td className="py-1 pr-2">{l.label}</td>
-                            <td className="w-20 py-1 pr-2 text-right">
-                              <NumberField integer min={0} max={999} value={l.qty} onChange={(v) => v !== undefined && setQty(l.id, v)} className="w-16 rounded-md border border-input bg-surface-elevated px-2 py-1 text-right font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring print:border-0 print:bg-transparent" />
-                            </td>
-                            <td className="w-8 py-1 print:hidden">
-                              {custom.some((c) => c.id === l.id) ? (
-                                <button onClick={() => removeCustom(l.id)} className="text-muted-foreground" aria-label={`Remove ${l.label}`}><Trash2 className="h-3.5 w-3.5" /></button>
-                              ) : (
-                                <button onClick={() => setRemoved((r) => [...r, l.id])} className="text-muted-foreground" aria-label={`Remove ${l.label}`}><Trash2 className="h-3.5 w-3.5" /></button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
+              <table className="equip-table w-full border-collapse text-sm">
+                <thead><tr className="border-b-2 border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <th className="w-8 py-1.5 pr-2">#</th><th className="pr-2">Item</th><th className="w-20 pr-2 text-right">Qty</th><th className="w-16 pr-2 text-center">Packed</th><th className="w-16 pr-2 text-center">Returned</th><th className="w-8 print:hidden"></th>
+                </tr></thead>
+                <tbody>
+                  {(() => { let n = 0; return grouped.map(({ cat, lines }) => (
+                    <Frag key={cat}>
+                      <tr className="bg-surface-elevated print:bg-transparent"><td colSpan={6} className="px-1 py-1.5 text-[11px] font-bold uppercase tracking-wider">{CATEGORY_LABEL[cat]}</td></tr>
+                      {lines.map((l) => (
+                        <tr key={l.id} className="border-b border-border/60 break-inside-avoid">
+                          <td className="py-1 pr-2 font-mono text-xs text-muted-foreground">{++n}</td>
+                          <td className="py-1 pr-2">{l.label}</td>
+                          <td className="py-1 pr-2 text-right">
+                            <NumberField integer min={0} max={999} value={l.qty} onChange={(v) => v !== undefined && setQty(l.id, v)} className="w-16 rounded-md border border-input bg-surface-elevated px-2 py-1 text-right font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring print:hidden" />
+                            <span className="hidden font-mono print:inline">{l.qty}</span>
+                          </td>
+                          <td className="text-center"><span className="inline-block h-4 w-4 rounded-sm border border-muted-foreground" /></td>
+                          <td className="text-center"><span className="inline-block h-4 w-4 rounded-sm border border-muted-foreground" /></td>
+                          <td className="py-1 print:hidden">
+                            <button onClick={() => (custom.some((c) => c.id === l.id) ? removeCustom(l.id) : setRemoved((r) => [...r, l.id]))} className="text-muted-foreground" aria-label={`Remove ${l.label}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </Frag>
+                  )); })()}
+                </tbody>
+              </table>
+            )}
+            {view === "equipment" && (
+              <div className="mt-8 hidden grid-cols-2 gap-8 text-xs print:grid">
+                <div className="border-t border-muted-foreground pt-1">Issued by (rental house)</div>
+                <div className="border-t border-muted-foreground pt-1">Received by (gaffer)</div>
               </div>
             )}
           </section>
