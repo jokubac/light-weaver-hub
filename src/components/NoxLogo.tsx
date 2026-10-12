@@ -36,7 +36,7 @@ export function NoxLogo({
       <path
         d="M 76 336 V 164 L 144 336 V 164"
         stroke="#ffffff"
-        strokeWidth="17"
+        strokeWidth="14"
         strokeLinecap="butt"
         strokeLinejoin="miter"
         fill="none"
@@ -46,17 +46,17 @@ export function NoxLogo({
       <path
         d="M 240 182 A 70 70 0 1 0 272 182"
         stroke="#ff5a00"
-        strokeWidth="17"
+        strokeWidth="14"
         strokeLinecap="butt"
         fill="none"
       />
-      <line x1="256" y1="164" x2="256" y2="230" stroke="#ff5a00" strokeWidth="17" strokeLinecap="butt" />
+      <line x1="256" y1="164" x2="256" y2="230" stroke="#ff5a00" strokeWidth="14" strokeLinecap="butt" />
 
       {/* „X" — griežtos, simetriškos linijos */}
       <path
         d="M 368 164 L 436 336 M 436 164 L 368 336"
         stroke="#ffffff"
-        strokeWidth="17"
+        strokeWidth="14"
         strokeLinecap="butt"
         fill="none"
       />
