@@ -1,18 +1,19 @@
 // Gaffer call sheet / rental order: power load balancing, generator sizing,
 // an editable equipment list and a battery charging plan — opened from the Patch page.
-import { useMemo, useState } from "react";
+import { Fragment as Frag, useMemo, useState } from "react";
 import { ArrowLeft, Plus, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "./NumberField";
 import type { PatchedFixture } from "@/lib/dmx";
 import { buildCallSheet, fmtHours, type EquipmentLine } from "@/lib/callsheet";
+import { ARCLIGHT_CATALOGUE, type ArclightItem } from "@/lib/arclight-catalogue";
 
 const CATEGORY_LABEL: Record<EquipmentLine["category"], string> = {
-  fixture: "Fixtures", power: "Power & cabling", data: "DMX / wireless", stand: "Stands & rigging", grip: "Grip", modifier: "Modifiers", custom: "Other",
+  fixture: "Fixtures", power: "Power, distribution & cables", data: "DMX / wireless", stand: "Stands & rigging", grip: "Grip", modifier: "Modifiers", custom: "Other",
 };
 const CATEGORY_ORDER: EquipmentLine["category"][] = ["fixture", "power", "data", "stand", "modifier", "grip", "custom"];
 
-export function CallSheet({ title, fixtures, onClose }: { title: string; fixtures: PatchedFixture[]; onClose: () => void }) {
+export function CallSheet({ title, fixtures, onClose, initialView = "equipment" }: { title: string; fixtures: PatchedFixture[]; onClose: () => void; initialView?: "call" | "equipment" }) {
   const [production, setProduction] = useState(title);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState("");
@@ -166,7 +167,7 @@ export function CallSheet({ title, fixtures, onClose }: { title: string; fixture
             )}
           </section>
 
-          <section className="rounded-xl border border-border bg-surface p-4">
+          {view === "call" && <section className="rounded-xl border border-border bg-surface p-4">
             <h2 className="mb-3 font-display text-base font-semibold">Battery charging plan <span className="text-xs font-normal text-muted-foreground">(shift: {shiftHours}h)</span></h2>
             {base.battery.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">No battery-powered fixtures on batteries in this patch.</p> : (
               <table className="w-full border-collapse text-sm">
@@ -186,15 +187,22 @@ export function CallSheet({ title, fixtures, onClose }: { title: string; fixture
                 </tbody>
               </table>
             )}
-          </section>
+          </section>}
         </div>
       </div>
       <style>{`
         @media print {
+          @page { size: A4; margin: 14mm; }
           .callsheet-print { overflow: visible !important; }
           body * { visibility: hidden; }
-          .callsheet-print, .callsheet-print * { visibility: visible; }
-          .callsheet-print { position: absolute; inset: 0; padding: 0; }
+          .callsheet-print, .callsheet-print * { visibility: visible; color: #000 !important; }
+          .callsheet-print { position: absolute; inset: 0; padding: 0; background: #fff; }
+          .callsheet-print section { border: 0 !important; background: transparent !important; break-inside: auto; }
+          .callsheet-print table { font-size: 10pt; }
+          .callsheet-print th, .callsheet-print td { border-bottom: 0.5pt solid #999 !important; padding: 3pt 4pt !important; }
+          .callsheet-print thead th { border-bottom: 1.2pt solid #000 !important; }
+          .callsheet-print tr { break-inside: avoid; }
+          .callsheet-print span.rounded-sm { border-color: #000 !important; }
         }
       `}</style>
     </div>
