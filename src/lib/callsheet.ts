@@ -15,10 +15,11 @@ import { fixtureWatts } from "./power";
  * falls back to 300 W for anything unrecognised.
  */
 export function fixtureWattage(f: PatchedFixture): number {
-  const def = getDef(f.defId) as { watts?: number };
-  if (typeof def.watts === "number") return def.watts;
+  const def = getDef(f.defId);
+  const withWatts = def as typeof def & { watts?: number };
+  if (typeof withWatts.watts === "number") return withWatts.watts;
   if (f.power?.watts) return f.power.watts;
-  return fixtureWatts(def.model ? `${getDef(f.defId).brand} ${getDef(f.defId).model}` : f.name);
+  return fixtureWatts(`${def.brand} ${def.model}`);
 }
 
 /* ---------------- Phase balancing ---------------- */

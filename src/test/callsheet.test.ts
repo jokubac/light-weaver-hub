@@ -58,7 +58,7 @@ describe("generator sizing", () => {
   });
 
   it("never returns a generator smaller than required apparent power with headroom", () => {
-    const fixtures = [mk("arri-m40", "a")]; // 4000W
+    const fixtures = [mk("arri-m40-eb-max-ballast", "a")]; // 4000W
     const { power } = buildCallSheet(fixtures);
     const requiredKva = (power.totalKw / 0.9) / 0.8;
     expect(power.generatorKva).toBeGreaterThanOrEqual(requiredKva);

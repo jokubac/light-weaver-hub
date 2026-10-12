@@ -40,6 +40,26 @@ export interface Recording {
   steps: RecStep[];
 }
 
+/** A playback / submaster fader. Group & fixture faders scale intensity (default 1); look faders crossfade into the look (default 0). */
+export interface BankFader {
+  id: string;
+  name: string;
+  kind: "group" | "look" | "fixtures";
+  ref?: string; // group name or look id
+  uids?: string[]; // for kind "fixtures"
+  level: number;
+}
+
+/** A theatre-style cue: full fixture states plus fade time, fired with GO. */
+export interface Cue {
+  id: string;
+  number: number;
+  name: string;
+  note?: string;
+  fade: number;
+  states: { uid: string; name: string; state: LookState }[];
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -49,6 +69,8 @@ export interface Project {
   looks?: Look[];
   setups?: Scene[]; // named, complete scene snapshots shared within this project
   recordings?: Recording[];
+  bank?: BankFader[];
+  cues?: Cue[];
 }
 
 export const PROJECT_COLORS = ["#00E5FF", "#00E676", "#FFEA00", "#FF9100", "#FF3D00", "#F50057", "#D500F9", "#651FFF", "#2979FF", "#BDBDBD"];
