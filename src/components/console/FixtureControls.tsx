@@ -78,7 +78,7 @@ const tapReset = (fn: () => void) => () => {
 };
 
 export function FixtureControls({
-  fixtures, sel, update, updateEach, remove, fire, locked, copiedSource, onCopy, onPaste,
+  fixtures, sel, update, updateEach, remove, fire, locked, copiedSource, onCopy, onPaste, onFlash,
 }: {
   fixtures: PatchedFixture[];
   sel: PatchedFixture[];
