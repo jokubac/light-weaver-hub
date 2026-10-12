@@ -603,7 +603,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   recRef.current = recordings;
   const [recOpen, setRecOpen] = useState(false);
   const [patchOpen, setPatchOpen] = useState(false);
-  const [play, setPlay] = useState<{ id: string; start: number; origin: Map<string, LookState>; pausedAt?: number } | null>(null);
+  const [play, setPlay] = useState<{ id: string; start: number; origin: Map<string, LookState>; pausedAt?: number | undefined } | null>(null);
   const [recEditor, setRecEditor] = useState(false);
   const recHold = useRef<{ timer: ReturnType<typeof setTimeout> | null; fired: boolean }>({ timer: null, fired: false });
   const [recProg, setRecProg] = useState<{ t: number; step: number } | null>(null);
