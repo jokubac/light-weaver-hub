@@ -21,6 +21,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
   const setActiveId = onActiveChange;
   const [coloursOpen, setColoursOpen] = useState(true);
   const [effectsOpen, setEffectsOpen] = useState(true);
+  const [tab, setTab] = useState<"effects" | "colours" | "fixtures">("effects");
   const allPx = fixtures.filter(isPixelFixture);
   const selPx = allPx.filter((f) => selected.includes(f.uid));
   // programming works on the lights selected in the console; with nothing selected every pixel light is listed
@@ -105,6 +106,12 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </InfiniteGrid>
       )}
 
+      <div role="tablist" aria-label="Pixel sections" className="grid grid-cols-3 gap-1 rounded-lg bg-surface-elevated p-1">
+        {(["effects", "colours", "fixtures"] as const).map((k) => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`rounded-md py-2 text-xs font-bold capitalize ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{k}</button>
+        ))}
+      </div>
+      {tab === "effects" && <>
       <section className="space-y-2" aria-label="Pixel effects">
         <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={effectsOpen} aria-controls="pixel-effect-choices" onClick={() => setEffectsOpen((open) => !open)}>
           {effectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -127,6 +134,8 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </div>
       )}
 
+      </>}
+      {tab === "colours" && <>
       <section className="space-y-2" aria-label="Pixel colours">
         <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={coloursOpen} aria-controls="pixel-colour-editor" onClick={() => setColoursOpen((open) => !open)}>
           {coloursOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -139,7 +148,9 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
             onReset={() => set({ customPalette: false, tint: "" })} />
         </div>
       </section>
+      </>}
 
+      {tab === "effects" && <>
       {layer.kind === "police" && (
         <div className="space-y-1.5">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Flash pattern</div>
@@ -179,7 +190,15 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         <p className="text-[10px] text-muted-foreground">{LAYOUTS.find((l) => l.id === layer.layout)!.hint}</p>
         <button onClick={() => set({ reverse: !layer.reverse })} className={`flex w-full items-center justify-center gap-1 rounded-md py-2 text-xs font-semibold ${layer.reverse ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><ArrowLeftRight className="h-3.5 w-3.5" />Reverse direction</button>
       </div>
+      </>}
 
+      {tab === "fixtures" && <>
+      {(() => { const gs = [...new Set(allPx.map((f) => f.group).filter(Boolean))] as string[]; return gs.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Groups</div>
+          <div className="flex flex-wrap gap-1.5">{gs.map((g) => { const ids = allPx.filter((f) => f.group === g).map((f) => f.uid); const all = ids.every((u) => inMap.includes(u)); return (
+            <button key={g} aria-pressed={all} onClick={() => set({ order: all ? inMap.filter((u) => !ids.includes(u)) : [...inMap, ...ids.filter((u) => !inMap.includes(u))] })} className={`rounded-md px-2.5 py-1.5 text-xs font-semibold ${all ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{g}</button>); })}</div>
+        </div>); })()}
       <div className="space-y-1.5">
         <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           <span>Lights in this layer (order = position)</span>
@@ -203,6 +222,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         })}
         <p className="text-[10px] text-muted-foreground">If a light is in several playing layers, the lower layer in the list wins.</p>
       </div>
+      </>}
     </div>
   );
 }

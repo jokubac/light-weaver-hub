@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
+import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { NoxLogo } from "@/components/NoxLogo";
@@ -49,6 +49,7 @@ import { EffectsRail } from "@/components/console/EffectsRail";
 import { NumberField } from "@/components/console/NumberField";
 import { commandPatch, inverseFlash } from "@/lib/console-command";
 import { Keypad } from "@/components/console/Keypad";
+import { CallSheet } from "@/components/console/CallSheet";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
@@ -241,9 +242,9 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
       )}
       <div className="min-w-0 flex-1">
         {title === "NOX" ? (
-          <div className="flex items-center gap-3">
-            <NoxLogo className="h-9 w-9 shrink-0" title="NOX" />
-            <h1 className="truncate font-display text-xl font-bold text-primary">{subtitle ?? "NOX"}</h1>
+          <div className="flex flex-col items-start gap-1">
+            <NoxLogo className="h-16 w-16 shrink-0" title="NOX" />
+            <h1 className="truncate font-display text-lg font-bold text-primary">{subtitle ?? "NOX"}</h1>
           </div>
         ) : (
           <>
@@ -411,6 +412,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [fadersOpen, setFadersOpen] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
+  const [railTab, setRailTab] = useState<"looks" | "effects" | "rec">("looks");
+  const [gearOpen, setGearOpen] = useState(false);
   const [pulses, setPulses] = useState<Record<string, { at: number; base: number; target: number }>>({});
   const [activePixelId, setActivePixelId] = useState(scene.pixelLayers?.[0]?.id ?? "");
   const activePixel = layers.find((l) => l.id === activePixelId) ?? layers[0];
@@ -820,7 +823,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   // tapping the active tab again collapses / expands the side panel
   const tab = (p: Panel, label: string) => (
     <Button variant="secondary" onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
-      className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</Button>
+      className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</Button>
   );
   const outputEnabled = bo.target === 0;
 
@@ -843,6 +846,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
             {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
           </Button>
         </div>
+        <Button variant="secondary" onClick={() => setGearOpen(true)} title="Equipment list & call sheet" className="text-xs font-bold"><ClipboardList />GEAR</Button>
         <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
         <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
           className={`text-xs font-bold ${conn.node && bridge === "ok" ? "bg-success text-primary-foreground" : conn.node && bridge === "slow" ? "bg-warning text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
@@ -850,13 +854,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         </Button>
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
-        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="text-xs font-bold">PATCH</Button>
+        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">PATCH</Button>
         {tab("control", "CONTROL")}
         {tab("pixels", "PIXELS")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
-          className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
-        <Button variant="secondary" onClick={() => setPlotOpen(true)} className="text-xs font-bold"><MapIcon />PLOT</Button>
-        {<Button variant="ghost" size="icon" className="ml-auto" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+          className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
+        <Button variant="secondary" onClick={() => setPlotOpen(true)} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
+        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
@@ -874,6 +878,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
           onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
       )}
+      {gearOpen && <CallSheet title={`${project.name} · ${scene.name}`} data={project.callSheet} onData={onCallSheet} fixtures={fixtures} onClose={() => setGearOpen(false)} />}
       <RecEditor open={recEditor} onOpenChange={setRecEditor} recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel}
         playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} src={sel.length ? sel : fixtures} recordings={recordings} setRecordings={onRecordings} />
@@ -994,17 +999,22 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
-            <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
-            <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+            <div role="tablist" aria-label="Side bar" className="grid grid-cols-3 gap-1 rounded-lg bg-surface-elevated p-1">
+              {(["looks", "effects", "rec"] as const).map((k) => (
+                <button key={k} role="tab" aria-selected={railTab === k} onClick={() => setRailTab(k)} className={`rounded-md py-2 text-xs font-bold uppercase ${railTab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{k === "rec" ? "REC" : k}</button>
+              ))}
+            </div>
+            {railTab === "looks" && <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />}
+            {railTab === "effects" && <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
               if (!activePixel) return;
               const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
               setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
-            }} />
-            <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
+            }} />}
+            {railTab === "rec" && <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />}
           </aside>
         )}
       </div>
-      {keypadOpen && <Keypad count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onClose={() => setKeypadOpen(false)} />}
+      {keypadOpen && <Keypad count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />}

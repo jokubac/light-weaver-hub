@@ -67,3 +67,9 @@
 - [x] Highlight button (selected full white, others out)
 - [x] Fader banks B1–B4 (24 faders)
 - [x] Installed apps bundle the published app for offline use
+- [x] Logo stroke 17, bigger logo with Projects below, bigger sign-in logo
+- [x] Pixels tabs: Effects (with layout/direction) / Colours / Fixtures (lights + groups)
+- [x] Keypad COPY/PASTE, big CLEAR beside Please, live selection while typing
+- [x] Side bar tabs Looks / Effects / REC with labelled toggle
+- [x] Patch: fixtures hidden by default, Print/Export/Import/Add order, split screen with full DMX map; Equipment list moved to console GEAR button
+- [x] Bigger PATCH/CONTROL/PIXELS/FADERS/PLOT buttons; smaller name/universe/address in Control
