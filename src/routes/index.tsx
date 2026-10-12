@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel";
-import { fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
+import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
@@ -733,7 +733,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const ids = select ? select.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x) : selected;
     if (select) { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }
     if (level != null) setFixtures((fs) => fs.map((f) => (ids.includes(f.uid) ? { ...f, intensity: level, on: true } : f)));
-    if (cct != null) setFixtures((fs) => fs.map((f) => (ids.includes(f.uid) ? { ...f, cct, saturation: 0, crossfade: 0 } : f)));
+    if (cct != null) setFixtures((fs) => fs.map((f) => (ids.includes(f.uid) ? { ...f, cct: Math.min(1, Math.max(0, cctFromKelvin(cct))), saturation: 0, crossfade: 0 } : f)));
   };
   const stepLight = (dir: 1 | -1) => {
     if (!fixtures.length) return;
@@ -986,7 +986,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
         )}
       </div>
-      {keypadOpen && <Keypad count={fixtures.length} onRun={runCommand} onStep={stepLight} onClose={() => setKeypadOpen(false)} />}
+      {keypadOpen && <Keypad count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />}
