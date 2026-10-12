@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight } from "lucide-react";
+import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -44,6 +44,7 @@ import { snapshot } from "@/components/console/LooksPanel";
 import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
+import { Keypad } from "@/components/console/Keypad";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
@@ -61,12 +62,12 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "KROMA — DMX lighting control for film sets" },
+      { title: "NOX — DMX lighting control for film sets" },
       {
         name: "description",
         content: "Control ARRI, Aputure, Nanlite and Astera lights with scenes, effects and auto-save.",
       },
-      { property: "og:title", content: "KROMA — DMX lighting control" },
+      { property: "og:title", content: "NOX — DMX lighting control" },
       {
         property: "og:description",
         content: "A tablet-friendly lighting console with scenes, effects and a film-industry fixture library.",
@@ -235,7 +236,7 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className={`truncate font-display font-bold ${title === "KROMA" ? "kroma-wordmark text-3xl text-primary" : "text-xl"}`}>{title}</h1>
+        <h1 className={`truncate font-display font-bold ${title === "NOX" ? "kroma-wordmark text-3xl text-primary" : "text-xl"}`}>{title}</h1>
         {subtitle && <p className="truncate text-xs text-primary">{subtitle}</p>}
       </div>
       {right}
@@ -293,7 +294,7 @@ function ProjectsScreen({ projects, account, onOpen, onCreate, onDelete, onUpdat
   const [color, setColor] = useState(PROJECT_COLORS[0]!);
   return (
     <div className="min-h-screen">
-      <Header title="KROMA" subtitle="Projects" right={account} />
+      <Header title="NOX" subtitle="Projects" right={account} />
       <main className="mx-auto max-w-5xl space-y-6 p-5">
         <div className="space-y-3">
           <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={(n) => onCreate(n, color)} />
@@ -396,6 +397,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [setupsOpen, setSetupsOpen] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(true);
   const [fadersOpen, setFadersOpen] = useState(false);
+  const [keypadOpen, setKeypadOpen] = useState(false);
+  const [hl, setHl] = useState(false);
   const [t, setT] = useState(0);
   const clock = useRef(0);
 
@@ -689,7 +692,27 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
-  const outFixtures = useMemo(() => applyBank(fixtures, bank, project.looks ?? [], flash, solo), [fixtures, bank, project.looks, flash, solo]);
+  const outFixtures = useMemo(() => {
+    const out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
+    if (!hl || !selected.length) return out;
+    // Highlight: selected lights at full open white, everything else out (output only)
+    return out.map((f) => {
+      if (!selected.includes(f.uid)) return { ...f, intensity: 0 };
+      const { gel: _gel, ...rest } = f;
+      return { ...rest, on: true, intensity: 1, fxPlaying: false, cct: 5600, gm: 0, saturation: 0, crossfade: 0 };
+    });
+  }, [fixtures, bank, project.looks, flash, solo, hl, selected]);
+  const runCommand = (select: number[] | undefined, level: number | undefined) => {
+    const ids = select ? select.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x) : selected;
+    if (select) { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }
+    if (level != null) setFixtures((fs) => fs.map((f) => (ids.includes(f.uid) ? { ...f, intensity: level, on: true } : f)));
+  };
+  const stepLight = (dir: 1 | -1) => {
+    if (!fixtures.length) return;
+    const cur = lastPick.current ? fixtures.findIndex((f) => f.uid === lastPick.current) : -1;
+    const next = fixtures[(cur + dir + fixtures.length) % fixtures.length]!;
+    setSelected([next.uid]); lastPick.current = next.uid;
+  };
   const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
   const pasteSettings = () => {
     if (!copied) return;
@@ -842,6 +865,10 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
                  <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
                   className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
+                 <Button variant="secondary" size="icon" aria-label="Highlight" aria-pressed={hl} title="Highlight — selected lights full white, all others out. NEXT/LAST steps through lights."
+                   onClick={() => setHl((h) => !h)} className={hl ? "bg-primary text-primary-foreground" : ""}><Crosshair className="h-4 w-4" /></Button>
+                 <Button variant="secondary" size="icon" aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
+                   onClick={() => setKeypadOpen((o) => !o)} className={keypadOpen ? "bg-primary text-primary-foreground" : ""}><Keyboard className="h-4 w-4" /></Button>
                  <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
                    onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
                    onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
@@ -934,6 +961,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
         )}
       </div>
+      {keypadOpen && <div className="fixed bottom-4 left-4 z-40"><Keypad count={fixtures.length} onRun={runCommand} onStep={stepLight} onClose={() => setKeypadOpen(false)} /></div>}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />}

@@ -56,3 +56,8 @@
 - [x] Browse all fixtures with modes in Patch
 - [x] Patch dimmer (1-channel) button
 - [x] GDTF import reads power, CCT range and light type into Patch sheet
+- [x] Rename app to NOX
+- [x] Keypad command line (1 + 3 @ 80, THRU, FULL/OUT, NEXT/LAST)
+- [x] Highlight button (selected full white, others out)
+- [x] Fader banks B1–B4 (24 faders)
+- [x] Installed apps bundle the published app for offline use

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["capacitor.config.ts", "ios-shell/**", ".github/workflows/android-apk.yml"]
+    paths: ["capacitor.config.ts", "scripts/**", ".github/workflows/android-apk.yml"]
 
 jobs:
   build:
@@ -17,6 +17,8 @@ jobs:
           distribution: temurin
           java-version: "21"
       - run: bun install
+      - name: Bundle app for offline use
+        run: node scripts/offline-bundle.mjs https://light-weaver-hub.lovable.app offline-app
       - name: Create Android project
         run: |
           [ -d android ] || bunx cap add android
@@ -28,5 +30,5 @@ jobs:
           ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: KROMA-apk
+          name: NOX-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk

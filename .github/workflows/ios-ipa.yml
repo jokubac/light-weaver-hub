@@ -13,6 +13,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install
+      - name: Bundle app for offline use
+        run: node scripts/offline-bundle.mjs https://light-weaver-hub.lovable.app offline-app
       - name: Add iOS platform
         run: |
           [ -d ios ] || bunx cap add ios
@@ -36,8 +38,8 @@ jobs:
           APP=$(find $RUNNER_TEMP/dd/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
           mkdir -p $RUNNER_TEMP/pkg/Payload
           cp -R "$APP" $RUNNER_TEMP/pkg/Payload/
-          cd $RUNNER_TEMP/pkg && zip -qry $RUNNER_TEMP/KROMA.ipa Payload
+          cd $RUNNER_TEMP/pkg && zip -qry $RUNNER_TEMP/NOX.ipa Payload
       - uses: actions/upload-artifact@v4
         with:
-          name: KROMA-ipa
-          path: ${{ runner.temp }}/KROMA.ipa
+          name: NOX-ipa
+          path: ${{ runner.temp }}/NOX.ipa

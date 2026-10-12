@@ -4,6 +4,8 @@ import type { BankFader, Cue, Look, LookState } from "./store";
 import { blend } from "./recordings";
 
 export const BANK_SIZE = 6;
+/** fader pages: Bank 1 = faders 1–6, Bank 2 = 7–12 … */
+export const BANK_PAGES = 4;
 
 export const lookStateOf = (f: PatchedFixture): LookState => {
   const { intensity, cct, gm, hue, saturation, crossfade, cctOnly, fx, on, fxPlaying, fan, gel } = f;

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NumberField } from "@/components/console/NumberField";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { BankFader, Cue, Look } from "@/lib/store";
-import { BANK_SIZE, sortCues } from "@/lib/playback";
+import { BANK_SIZE, BANK_PAGES, sortCues } from "@/lib/playback";
 
 export interface PlaybackProps {
   fixtures: PatchedFixture[]; selected: string[]; groups: string[]; looks: Look[];
@@ -23,14 +23,16 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 export function PlaybackBar(p: PlaybackProps) {
   const [edit, setEdit] = useState<number | null>(null);
   const [cuesOpen, setCuesOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const base = page * BANK_SIZE;
   const sorted = sortCues(p.cues);
   const idx = sorted.findIndex((c) => c.id === p.activeCue);
   const cur = sorted[idx];
   const next = sorted[idx + 1];
-  const slots = Array.from({ length: BANK_SIZE }, (_, i) => p.bank[i]);
+  const slots = Array.from({ length: BANK_SIZE }, (_, i) => p.bank[base + i]);
 
   const setSlot = (i: number, fd: BankFader | null) => {
-    const arr = Array.from({ length: BANK_SIZE }, (_, k) => p.bank[k]);
+    const arr = Array.from({ length: BANK_SIZE * BANK_PAGES }, (_, k) => p.bank[k]);
     arr[i] = fd ?? undefined;
     // keep the array dense up to the last used slot
     let last = arr.length - 1; while (last >= 0 && !arr[last]) last--;
@@ -54,7 +56,17 @@ export function PlaybackBar(p: PlaybackProps) {
         <Button variant="ghost" size="icon" aria-label="Cue list" onClick={() => setCuesOpen(true)}><ListOrdered /></Button>
       </div>
       <div className="w-px shrink-0 bg-border" />
-      {slots.map((fd, i) => {
+      <div aria-label="Fader banks" className="grid shrink-0 grid-cols-2 gap-1">
+        {Array.from({ length: BANK_PAGES }, (_, b) => {
+          const used = p.bank.slice(b * BANK_SIZE, (b + 1) * BANK_SIZE).some((x) => x && x.name);
+          return (
+            <button key={b} onClick={() => setPage(b)} aria-pressed={page === b} title={`Bank ${b + 1}: faders ${b * BANK_SIZE + 1}–${(b + 1) * BANK_SIZE}`}
+              className={`w-9 rounded-md text-[10px] font-bold ${page === b ? "bg-primary text-primary-foreground" : used ? "bg-primary/25" : "bg-surface-elevated text-muted-foreground"}`}>B{b + 1}</button>
+          );
+        })}
+      </div>
+      {slots.map((fd, j) => {
+        const i = base + j;
         const empty = !fd || (!fd.name && fd.kind === "fixtures" && !fd.uids?.length);
         return (
           <div key={i} className="flex w-32 shrink-0 flex-col gap-1 rounded-lg bg-surface-elevated px-2 py-1">
@@ -80,7 +92,7 @@ export function PlaybackBar(p: PlaybackProps) {
           </div>
         );
       })}
-      {edit != null && <FaderSetup i={edit} fd={slots[edit]} {...p} onClose={() => setEdit(null)} onSave={(fd) => { setSlot(edit, fd); setEdit(null); }} />}
+      {edit != null && <FaderSetup i={edit} fd={p.bank[edit]} {...p} onClose={() => setEdit(null)} onSave={(fd) => { setSlot(edit, fd); setEdit(null); }} />}
       <CueDialog open={cuesOpen} onOpenChange={setCuesOpen} {...p} />
     </div>
   );
