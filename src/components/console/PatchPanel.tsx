@@ -22,8 +22,8 @@ export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d
 
 const modeKey = (defId: string, i: number) => `${defId}:${i}`;
 
-export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = true }: {
-  defaultMap?: boolean; fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
+export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = true, showPatched = true }: {
+  defaultMap?: boolean; showPatched?: boolean; fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
 }) {
   const [query, setQuery] = useState("");
   const [modeQuery, setModeQuery] = useState("");
@@ -129,7 +129,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         <PatchConfig fixtures={fixtures} def={def} modeIdx={modeIdx} onAdd={(fs) => { onAdd(fs); setModeIdx(null); }} />
       )}
 
-      {fixtures.length > 0 && (
+      {showPatched && fixtures.length > 0 && (
         <div className={`space-y-2 rounded-lg bg-surface-elevated/50 p-2 ${defaultMap ? "" : "order-first"}`}>
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="mr-auto text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Patched ({fixtures.length})</span>
