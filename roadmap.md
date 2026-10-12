@@ -1,5 +1,6 @@
 # Tasks
 - [ ] Compact logo header; Live Plot Test menu for camera/meter; verify upright camera and tilted field of view
+- [ ] Remove standalone Live Plot unlock button, retaining first-edit approval
 - [x] Projects beside logo; vertical PIXELS sections with nested layout/direction and speed; browser verified while playing
 - [x] Keypad CLEAR single clears text, double deselects lights; browser verified
 - [x] Live Plot Build/fixture/props menus, no Erase, Select/Pan toggle and session unlock confirmation; browser verified across reopening

@@ -1058,7 +1058,6 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           <DropdownMenuItem onSelect={() => { setTool("camera"); clearSelection(); }}><Video />Camera</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => { setTool("meter"); clearSelection(); }}><Gauge />Meter</DropdownMenuItem>
         </DropdownMenuContent></DropdownMenu>
-        <Button variant={layoutUnlocked ? "default" : "secondary"} aria-label={layoutUnlocked ? "Layout unlocked" : "Unlock layout editing"} title={layoutUnlocked ? "Unlocked for this app session" : "Unlock layout editing"} onClick={ensureUnlocked}>{layoutUnlocked ? <Unlock /> : <LockKeyhole />}</Button>
         <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
         <Button variant="destructive" size="sm" aria-label="Remove selected from plot" title="Remove selected item" disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />Remove</Button>
