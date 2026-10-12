@@ -6,7 +6,7 @@ import type { Connection } from "@/lib/store";
 import { TRANSMITTERS, getTransmitter } from "@/lib/transmitters";
 import { isNativeApp, scanArtNet } from "@/lib/native-udp";
 
-interface Node { name: string; ip: string; universes?: number }
+interface Node { name: string; ip: string; universes?: number | undefined }
 
 /**
  * Browsers cannot send Art-Net / sACN UDP directly, so scanning goes through a small

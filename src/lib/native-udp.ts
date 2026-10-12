@@ -54,7 +54,7 @@ export async function sendUdp(host: string, port: number, bytes: Uint8Array): Pr
   await Udp.send({ socketId: id, address: host, port, buffer: toBase64(bytes) });
 }
 
-export interface ScannedNode { name: string; ip: string; universes?: number }
+export interface ScannedNode { name: string; ip: string; universes?: number | undefined }
 
 /** Broadcasts an ArtPoll and listens ~2s for ArtPollReply packets. */
 export async function scanArtNet(): Promise<ScannedNode[]> {
