@@ -13,9 +13,9 @@ const CATEGORY_LABEL: Record<EquipmentLine["category"], string> = {
   fixture: "Fixtures", power: "Cables & power", data: "DMX & data", stand: "Stands", grip: "Grip", modifier: "Modifiers", custom: "Other",
 };
 const GROUP_ORDER = ["Fixtures", ...EQUIPMENT_CATALOGUE.map((c) => c.name), "Other"];
-type Line = { id: string; label: string; group: string; sub?: string; qty: number; custom?: boolean };
+type Line = { id: string; label: string; group: string; sub?: string | undefined; qty: number; custom?: boolean };
 
-export function CallSheet({ title, fixtures, onClose, data = {}, onData, initialView = "call" }: { title: string; fixtures: PatchedFixture[]; onClose: () => void; data?: CallSheetData; onData?: (d: CallSheetData) => void; initialView?: "call" | "equipment" }) {
+export function CallSheet({ title, fixtures, onClose, data = {}, onData, initialView = "call" }: { title: string; fixtures: PatchedFixture[]; onClose: () => void; data?: CallSheetData | undefined; onData?: ((d: CallSheetData) => void) | undefined; initialView?: "call" | "equipment" }) {
   const [d, setD] = useState<CallSheetData>(data);
   const upd = (patch: Partial<CallSheetData>) => setD((prev) => { const next = { ...prev, ...patch }; onData?.(next); return next; });
   const production = d.production ?? title, date = d.date ?? new Date().toISOString().slice(0, 10), location = d.location ?? "", gaffer = d.gaffer ?? "", shiftHours = d.shiftHours ?? 12;
