@@ -219,17 +219,15 @@ function createDirectSender(onStatus: (s: BridgeStatus) => void) {
     if (changed && now - lastAt < 33) return; // cap to ~30 fps
     busy = true;
     try {
-      for (const [u, data] of universes) {
+      const ip = conn.node.ip;
+      // send every universe at once so U1 and U32 leave in the same instant
+      await Promise.all([...universes].map(([u, data]) => {
         const seq = ((sequence.get(u) ?? 0) % 255) + 1;
         sequence.set(u, seq);
-        if (conn.protocol === "sacn") {
-          const packet = buildSacn(u, data, seq, cid);
-          await sendUdp(conn.node.ip || sacnMulticastAddress(u), SACN_UDP_PORT, packet);
-        } else {
-          const packet = buildArtDmx(u, data, seq);
-          await sendUdp(conn.node.ip || "255.255.255.255", ARTNET_UDP_PORT, packet);
-        }
-      }
+        return conn.protocol === "sacn"
+          ? sendUdp(ip || sacnMulticastAddress(u), SACN_UDP_PORT, buildSacn(u, data, seq, cid))
+          : sendUdp(ip || "255.255.255.255", ARTNET_UDP_PORT, buildArtDmx(u, data, seq));
+      }));
       set(now - lastAt > 500 && changed ? "slow" : "ok");
       last = body; lastAt = now;
     } catch {
