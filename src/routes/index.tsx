@@ -61,12 +61,12 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "KROMA — DMX lighting control for film sets" },
+      { title: "NOX — DMX lighting control for film sets" },
       {
         name: "description",
         content: "Control ARRI, Aputure, Nanlite and Astera lights with scenes, effects and auto-save.",
       },
-      { property: "og:title", content: "KROMA — DMX lighting control" },
+      { property: "og:title", content: "NOX — DMX lighting control" },
       {
         property: "og:description",
         content: "A tablet-friendly lighting console with scenes, effects and a film-industry fixture library.",
@@ -235,7 +235,7 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className={`truncate font-display font-bold ${title === "KROMA" ? "kroma-wordmark text-3xl text-primary" : "text-xl"}`}>{title}</h1>
+        <h1 className={`truncate font-display font-bold ${title === "NOX" ? "kroma-wordmark text-3xl text-primary" : "text-xl"}`}>{title}</h1>
         {subtitle && <p className="truncate text-xs text-primary">{subtitle}</p>}
       </div>
       {right}
@@ -293,7 +293,7 @@ function ProjectsScreen({ projects, account, onOpen, onCreate, onDelete, onUpdat
   const [color, setColor] = useState(PROJECT_COLORS[0]!);
   return (
     <div className="min-h-screen">
-      <Header title="KROMA" subtitle="Projects" right={account} />
+      <Header title="NOX" subtitle="Projects" right={account} />
       <main className="mx-auto max-w-5xl space-y-6 p-5">
         <div className="space-y-3">
           <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={(n) => onCreate(n, color)} />

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// KROMA bridge — receives DMX from the KROMA app and sends it as
+// NOX bridge — receives DMX from the NOX app and sends it as
 // Art-Net or sACN (E1.31) to your CRMX transmitter (LumenRadio, Astera ART7, Ratpac, DMXking…).
 //
 // Run on a laptop / Raspberry Pi on the same network as the transmitter:

@@ -53,7 +53,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     const picker = (window as Window & { showSaveFilePicker?: (o: object) => Promise<any> }).showSaveFilePicker;
     if (picker) {
       try {
-        const h = await picker({ suggestedName: name, types: [{ description: "KROMA patch", accept: { "application/json": [".json"] } }] });
+        const h = await picker({ suggestedName: name, types: [{ description: "NOX patch", accept: { "application/json": [".json"] } }] });
         const w = await h.createWritable(); await w.write(data); await w.close(); return;
       } catch (e) { if ((e as Error).name === "AbortError") return; }
     }
@@ -71,7 +71,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
       const replace = confirm(`Import ${list.length} fixtures.\n\nOK = replace the current patch\nCancel = add them to the current patch`);
       if (replace) onReplace(list);
       else { const ids = new Set(fixtures.map((f) => f.uid)); onAdd(list.map((f) => (ids.has(f.uid) ? { ...f, uid: crypto.randomUUID() } : f))); }
-    } catch { alert("This file is not a valid KROMA patch."); }
+    } catch { alert("This file is not a valid NOX patch."); }
   };
 
   return (

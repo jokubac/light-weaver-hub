@@ -77,7 +77,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
               <Router className="h-4 w-4" />Via bridge computer
             </button>
           </div>
-          {!native && <p className="text-xs text-muted-foreground">Direct sending needs the installed KROMA app — the browser can't send Art-Net/sACN UDP by itself.</p>}
+          {!native && <p className="text-xs text-muted-foreground">Direct sending needs the installed NOX app — the browser can't send Art-Net/sACN UDP by itself.</p>}
           {!direct && (
             <div className="space-y-1.5 rounded-lg border border-border p-3 text-xs">
               <div className="font-semibold">1. Run the bridge on a laptop on the transmitter's network</div>
