@@ -20,7 +20,7 @@ const refs = (text, base) => {
   return out;
 };
 refs(html, "/").forEach(add);
-["/favicon.png", "/icon-512.png", "/manifest.webmanifest", "/crmx-bridge.mjs"].forEach(add);
+["/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest", "/nox-logo.svg", "/crmx-bridge.mjs"].forEach(add);
 
 while (queue.length) {
   const p = queue.shift();
