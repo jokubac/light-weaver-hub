@@ -37,6 +37,12 @@ export interface FixtureDef {
   brand: string;
   model: string;
   modes: FixtureMode[];
+  /** full-power draw in watts (read from GDTF PowerConsumption when imported) */
+  watts?: number;
+  /** white-point range in kelvin, e.g. [2700, 10000] */
+  cctRange?: [number, number];
+  /** light source description, e.g. "LED RGBW", "Bi-colour LED", "Tungsten", "HMI" */
+  lightType?: string;
 }
 
 export function caps(kind: ModeKind) {
