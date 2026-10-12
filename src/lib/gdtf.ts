@@ -111,7 +111,34 @@ export function parseDescriptionXml(xml: string): FixtureDef | null {
   const modeEls = Array.from(doc.querySelectorAll("DMXModes > DMXMode"));
   const modes = modeEls.map((el) => parseMode(el, doc)).filter((x): x is FixtureMode => !!x);
   if (modes.length === 0) return null;
-  return { id: `gdtf-${slug(`${manufacturer} ${model}`)}`, brand: manufacturer, model, modes };
+  return { id: `gdtf-${slug(`${manufacturer} ${model}`)}`, brand: manufacturer, model, modes, ...readPhysical(doc, modes) };
+}
+
+/** Power draw, CCT range and light-source type from the GDTF physical description + channel functions. */
+export function readPhysical(doc: Document, modes: FixtureMode[]): Pick<FixtureDef, "watts" | "cctRange" | "lightType"> {
+  const out: Pick<FixtureDef, "watts" | "cctRange" | "lightType"> = {};
+  // Power: Properties/PowerConsumption Value (W), or Connector/PowerConsumption
+  const powers = Array.from(doc.querySelectorAll("PowerConsumption")).map((el) => parseFloat(attrAt(el, "Value", "PowerConsumption"))).filter((v) => v > 0);
+  const legacy = Array.from(doc.querySelectorAll("Properties > *, Geometry")).map((el) => parseFloat(attrAt(el, "PowerConsumption"))).filter((v) => v > 0);
+  const w = Math.max(0, ...powers, ...legacy);
+  if (w > 0) out.watts = Math.round(w);
+  // CCT: physical range of CTC / ColorTemperature channel functions
+  const ks: number[] = [];
+  for (const fn of Array.from(doc.querySelectorAll("ChannelFunction"))) {
+    if (!/^(CTC|ColorTemperature|CTO|CTB)$/i.test(attrAt(fn, "Attribute"))) continue;
+    for (const v of [attrAt(fn, "PhysicalFrom"), attrAt(fn, "PhysicalTo")].map(parseFloat)) if (v >= 1000 && v <= 20000) ks.push(v);
+  }
+  for (const em of Array.from(doc.querySelectorAll("Emitter"))) { const k = parseFloat(attrAt(em, "DominantWaveLength", "ColorTemperature")); if (k >= 1000 && k <= 20000) ks.push(k); }
+  if (ks.length) out.cctRange = [Math.round(Math.min(...ks)), Math.round(Math.max(...ks))];
+  // Type: Beam LampType + emitters / channel layout
+  const lamp = Array.from(doc.querySelectorAll("Beam")).map((b) => attrAt(b, "LampType")).find(Boolean) ?? "";
+  const colour = modes.some((m) => m.kind === "rgb" || m.kind === "rgbw" || m.kind === "hsi" || m.kind === "full");
+  const bi = !colour && modes.some((m) => m.kind === "cct" || m.kind === "cctgm") || (!colour && ks.length > 0);
+  if (/tungsten|halogen|incandescent/i.test(lamp)) out.lightType = "Tungsten";
+  else if (/discharge|hmi/i.test(lamp)) out.lightType = "HMI";
+  else if (/fluor/i.test(lamp)) out.lightType = "Fluorescent";
+  else out.lightType = colour ? "LED colour" : bi ? "Bi-colour LED" : "LED";
+  return out;
 }
 
 /** Finds and decodes description.xml inside an unzipped GDTF archive. */

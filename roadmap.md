@@ -50,3 +50,9 @@
 - [x] Live plot lux / T-stop meter
 - [x] GDTF import, fixture builder, RDM scan
 - [x] Direct Art-Net/sACN from installed app
+- [x] FADERS tab between PIXELS and PLOT (fader bank + cues + MIDI)
+- [x] Equipment list view with printable PDF table + Arclight catalogue
+- [x] Astera modes listed by official profile number
+- [x] Browse all fixtures with modes in Patch
+- [x] Patch dimmer (1-channel) button
+- [x] GDTF import reads power, CCT range and light type into Patch sheet

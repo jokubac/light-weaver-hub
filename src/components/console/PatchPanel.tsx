@@ -27,6 +27,8 @@ export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d
 
 const modeKey = (defId: string, i: number) => `${defId}:${i}`;
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+/** Official manufacturer profile number ("Profile 42 — …"), so modes list in the fixture's own numbering; unnumbered modes go last. */
+const profileNo = (name: string) => { const r = /^Profile (\d+)/.exec(name); return r ? +r[1]! : 10000; };
 
 export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = true, showPatched = true }: {
   defaultMap?: boolean; showPatched?: boolean; fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
@@ -40,6 +42,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [modeIdx, setModeIdx] = useState<number | null>(null);
   const [mapU, setMapU] = useState(1);
   const [showMap, setShowMap] = useState(defaultMap);
+  const [browseAll, setBrowseAll] = useState(false);
   const fav = useFavorites("fixtures");
   const favModes = useFavorites("modes");
   const star = (id: string) => ({ starred: fav.has(id), onStar: () => fav.toggle(id) });
@@ -93,7 +96,21 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       )}
 
       {!def && <MoreSources fixtures={fixtures} onAdd={onAdd} />}
-      {!def && q ? (
+      {!def && !q && !brand && (
+        <button onClick={() => setBrowseAll((v) => !v)} aria-pressed={browseAll} className={`rounded-lg px-3 py-2 text-left text-xs font-semibold ${browseAll ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
+          {browseAll ? "▾" : "▸"} All fixtures on the market with modes ({FIXTURE_LIBRARY.length})
+        </button>
+      )}
+      {!def && !q && !brand && browseAll ? (
+        <List>
+          {FIXTURE_LIBRARY.map((d) => (
+            <button key={d.id} onClick={() => { setBrand(d.brand); setDef(d); setBrowseAll(false); }} className="w-full rounded-md bg-surface-elevated px-3 py-2 text-left">
+              <div className="text-sm font-semibold">{d.brand} {d.model}</div>
+              <div className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{[...d.modes].sort((a, b) => profileNo(a.name) - profileNo(b.name)).map((mo) => `${mo.name} (${mo.channels}ch)`).join(" · ")}</div>
+            </button>
+          ))}
+        </List>
+      ) : !def && q ? (
         <List>
           {searchHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
           {searchHits.length > 0 && <p className="text-[10px] text-muted-foreground">{searchHits.length} results · {FIXTURE_LIBRARY.length} fixtures in library</p>}
@@ -128,7 +145,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
-          {def.modes.map((mo, i) => ({ mo, i })).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
+          {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).sort((a, b) => a.n - b.n || a.i - b.i).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
             <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={mo.name} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${mo.pixels ? ` · ${mo.pixels} px` : ""}`} />
           ))}
         </List>
