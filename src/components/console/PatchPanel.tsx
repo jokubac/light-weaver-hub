@@ -22,8 +22,8 @@ export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d
 
 const modeKey = (defId: string, i: number) => `${defId}:${i}`;
 
-export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate }: {
-  fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
+export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = true }: {
+  defaultMap?: boolean; fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
 }) {
   const [query, setQuery] = useState("");
   const [modeQuery, setModeQuery] = useState("");
@@ -33,7 +33,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate }: {
   const [def, setDef] = useState<FixtureDef | null>(null);
   const [modeIdx, setModeIdx] = useState<number | null>(null);
   const [mapU, setMapU] = useState(1);
-  const [showMap, setShowMap] = useState(true);
+  const [showMap, setShowMap] = useState(defaultMap);
   const fav = useFavorites("fixtures");
   const favModes = useFavorites("modes");
   const star = (id: string) => ({ starred: fav.has(id), onStar: () => fav.toggle(id) });
