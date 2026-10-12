@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
@@ -8,6 +8,8 @@ import { FixtureGlyph } from "./FixtureGlyph";
 import type { FixtureIcon } from "@/lib/fixture-icons";
 import { planPatch } from "@/lib/patch-plan";
 import { importGdtfFile, buildMode } from "@/lib/gdtf";
+import { OFL_INDEX } from "@/lib/ofl-index";
+import { loadOflFixture } from "@/lib/ofl";
 import { addCustomFixture, useCustomFixtures } from "@/lib/custom-fixtures";
 import { scanRdm, type RdmDevice } from "@/lib/rdm";
 import { loadConnection } from "@/lib/store";
@@ -42,7 +44,6 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [modeIdx, setModeIdx] = useState<number | null>(null);
   const [mapU, setMapU] = useState(1);
   const [showMap, setShowMap] = useState(defaultMap);
-  const [browseAll, setBrowseAll] = useState(false);
   const fav = useFavorites("fixtures");
   const favModes = useFavorites("modes");
   const star = (id: string) => ({ starred: fav.has(id), onStar: () => fav.toggle(id) });
@@ -53,6 +54,19 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
     () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""} ${(RENTAL_STOCK[d.id] ?? []).join(" ")}`.toLowerCase().includes(q)).slice(0, 120) : []),
     [q],
   );
+  const oflHits = useMemo(() => {
+    if (!q) return [];
+    const have = new Set(FIXTURE_LIBRARY.map((d) => `${d.brand} ${d.model}`.toLowerCase()));
+    return OFL_INDEX.filter(([, b, m]) => `${b} ${m}`.toLowerCase().includes(q) && !have.has(`${b} ${m}`.toLowerCase())).slice(0, 80);
+  }, [q]);
+  const [oflBusy, setOflBusy] = useState(false);
+  const [oflError, setOflError] = useState<string | null>(null);
+  const pickOfl = async (key: string, b: string) => {
+    setOflBusy(true); setOflError(null);
+    try { const d = await loadOflFixture(key, b); addCustomFixture(d); setBrand(d.brand); setDef(d); setQuery(""); }
+    catch (e) { setOflError(e instanceof Error ? e.message : "Download failed — check your internet connection."); }
+    finally { setOflBusy(false); }
+  };
   const favPairs = favModes.list.map((k) => {
     const [id, i] = [k.slice(0, k.lastIndexOf(":")), +k.slice(k.lastIndexOf(":") + 1)];
     const d = FIXTURE_LIBRARY.find((x) => x.id === id);
@@ -95,27 +109,18 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         </div>
       )}
 
-      {!def && <MoreSources fixtures={fixtures} onAdd={onAdd} />}
-      {!def && !q && !brand && (
-        <button onClick={() => setBrowseAll((v) => !v)} aria-pressed={browseAll} className={`rounded-lg px-3 py-2 text-left text-xs font-semibold ${browseAll ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
-          {browseAll ? "▾" : "▸"} All fixtures on the market with modes ({FIXTURE_LIBRARY.length})
-        </button>
-      )}
-      {!def && !q && !brand && browseAll ? (
+      {!def && <MoreSources fixtures={fixtures} onAdd={onAdd} onPick={(d) => { setBrand(d.brand); setDef(d); setModeIdx(0); }} />}
+      {!def && q ? (
         <List>
-          {FIXTURE_LIBRARY.map((d) => (
-            <button key={d.id} onClick={() => { setBrand(d.brand); setDef(d); setBrowseAll(false); }} className="w-full rounded-md bg-surface-elevated px-3 py-2 text-left">
-              <div className="text-sm font-semibold">{d.brand} {d.model}</div>
-              <div className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{[...d.modes].sort((a, b) => profileNo(a.name) - profileNo(b.name)).map((mo) => `${mo.name} (${mo.channels}ch)`).join(" · ")}</div>
-            </button>
-          ))}
-        </List>
-      ) : !def && q ? (
-        <List>
-          {searchHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
-          {searchHits.length > 0 && <p className="text-[10px] text-muted-foreground">{searchHits.length} results · {FIXTURE_LIBRARY.length} fixtures in library</p>}
+          {searchHits.length === 0 && oflHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
+          {searchHits.length > 0 && <p className="text-[10px] text-muted-foreground">{searchHits.length} results · {FIXTURE_LIBRARY.length + OFL_INDEX.length} fixtures in library</p>}
           {searchHits.map((d) => (
             <Row key={d.id} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); setQuery(""); }} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
+          ))}
+          {oflHits.length > 0 && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Open Fixture Library{oflBusy ? " · loading…" : ""}</p>}
+          {oflError && <p className="text-[11px] text-destructive">{oflError}</p>}
+          {oflHits.map(([key, b, model, n]) => (
+            <Row key={key} onClick={() => void pickOfl(key, b)} title={model} sub={`${b} · ${n} modes · downloads profile`} />
           ))}
         </List>
       ) : !brand ? (
@@ -302,7 +307,7 @@ function List({ children }: { children: React.ReactNode }) {
   return <div className="space-y-1.5">{children}</div>;
 }
 
-function MoreSources({ fixtures, onAdd }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void }) {
+function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onPick: (d: FixtureDef) => void }) {
   const [open, setOpen] = useState(false);
   const [builder, setBuilder] = useState(false);
   const [gdtfMsg, setGdtfMsg] = useState<string | null>(null);
@@ -371,6 +376,7 @@ function MoreSources({ fixtures, onAdd }: { fixtures: PatchedFixture[]; onAdd: (
             <input ref={fileRef} type="file" accept=".gdtf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleGdtfFile(f); e.target.value = ""; }} />
             <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><FileUp className="h-3.5 w-3.5" />Import GDTF</button>
             <button onClick={() => setBuilder(true)} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Wrench className="h-3.5 w-3.5" />Fixture builder</button>
+            <button onClick={() => onPick(getDef("generic-dimmer"))} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Zap className="h-3.5 w-3.5" />Patch dimmer</button>
           </div>
           {gdtfMsg && <p className="text-[11px] text-muted-foreground">{gdtfMsg}</p>}
 
