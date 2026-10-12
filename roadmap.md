@@ -1,4 +1,7 @@
 # Tasks
+- [x] Projects beside logo; vertical PIXELS sections with nested layout/direction and speed; browser verified while playing
+- [x] Keypad CLEAR single clears text, double deselects lights; browser verified
+- [x] Live Plot Build/fixture/props menus, no Erase, Select/Pan toggle and session unlock confirmation; browser verified across reopening
 - [x] Auto-fit PIXELS visualization, remove view tilt/rotation and add collapsible effect choices; verified live editing and line/upright framing
 - [x] NOX logo: header and sign-in mark, favicon and Android/iOS app icons from the brand SVG
 - [x] Remove duplicate colour controls and make console slider values typeable

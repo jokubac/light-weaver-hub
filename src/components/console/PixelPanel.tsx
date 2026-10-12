@@ -21,7 +21,8 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
   const setActiveId = onActiveChange;
   const [coloursOpen, setColoursOpen] = useState(true);
   const [effectsOpen, setEffectsOpen] = useState(true);
-  const [tab, setTab] = useState<"effects" | "colours" | "fixtures">("effects");
+  const [fixturesOpen, setFixturesOpen] = useState(false);
+  const [speedOpen, setSpeedOpen] = useState(true);
   const allPx = fixtures.filter(isPixelFixture);
   const selPx = allPx.filter((f) => selected.includes(f.uid));
   // programming works on the lights selected in the console; with nothing selected every pixel light is listed
@@ -106,26 +107,18 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </InfiniteGrid>
       )}
 
-      <div role="tablist" aria-label="Pixel sections" className="grid grid-cols-3 gap-1 rounded-lg bg-surface-elevated p-1">
-        {(["effects", "colours", "fixtures"] as const).map((k) => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`rounded-md py-2 text-xs font-bold capitalize ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{k}</button>
-        ))}
-      </div>
-      {tab === "effects" && <>
       <section className="space-y-2" aria-label="Pixel effects">
         <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={effectsOpen} aria-controls="pixel-effect-choices" onClick={() => setEffectsOpen((open) => !open)}>
           {effectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           Effects
           <span className="ml-auto text-xs text-muted-foreground">{PIXEL_FX.find((effect) => effect.id === layer.kind)?.label}</span>
         </Button>
-        <div id="pixel-effect-choices" hidden={!effectsOpen}>
+        <div id="pixel-effect-choices" hidden={!effectsOpen} className="space-y-3">
           <div className="grid grid-cols-3 gap-1.5">
             {PIXEL_FX.map((e) => (
               <Button key={e.id} variant={layer.kind === e.id ? "default" : "secondary"} aria-pressed={layer.kind === e.id} onClick={() => set({ kind: e.id })} className="h-auto py-2.5 text-xs font-semibold">{e.label}</Button>
             ))}
           </div>
-        </div>
-      </section>
 
       {layer.kind === "text" && (
         <div className="space-y-1">
@@ -134,23 +127,6 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </div>
       )}
 
-      </>}
-      {tab === "colours" && <>
-      <section className="space-y-2" aria-label="Pixel colours">
-        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={coloursOpen} aria-controls="pixel-colour-editor" onClick={() => setColoursOpen((open) => !open)}>
-          {coloursOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          Colours
-          {!coloursOpen && <span className="ml-auto flex gap-1" aria-hidden="true">{layer.colors.map((colour, i) => <span key={i} className="h-3 w-3 rounded-sm" style={{ background: colour }} />)}</span>}
-        </Button>
-        <div id="pixel-colour-editor" hidden={!coloursOpen}>
-          <PaletteEditor colours={layer.colors} native={["rainbow", "plasma", "fire"].includes(layer.kind) && !layer.customPalette}
-            onChange={(colors) => set({ colors, customPalette: true, tint: "" })}
-            onReset={() => set({ customPalette: false, tint: "" })} />
-        </div>
-      </section>
-      </>}
-
-      {tab === "effects" && <>
       {layer.kind === "police" && (
         <div className="space-y-1.5">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Flash pattern</div>
@@ -167,6 +143,21 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </div>
       )}
 
+      <div className="space-y-1.5">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Layout</div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {LAYOUTS.map((l) => (
+            <button key={l.id} title={l.hint} onClick={() => set({ layout: l.id })} className={`rounded-md py-2 text-xs font-semibold ${layer.layout === l.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{l.label}</button>
+          ))}
+        </div>
+        <p className="text-[10px] text-muted-foreground">{LAYOUTS.find((l) => l.id === layer.layout)?.hint}</p>
+        <button onClick={() => set({ reverse: !layer.reverse })} className={`flex w-full items-center justify-center gap-1 rounded-md py-2 text-xs font-semibold ${layer.reverse ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><ArrowLeftRight className="h-3.5 w-3.5" />Reverse direction</button>
+      </div>
+        </div>
+      </section>
+      <section className="space-y-2" aria-label="Pixel speed settings">
+        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={speedOpen} aria-controls="pixel-speed-settings" onClick={() => setSpeedOpen((open) => !open)}>{speedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}Pixel speed</Button>
+        <div id="pixel-speed-settings" hidden={!speedOpen} className="space-y-3">
       {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size, phase: layer.phase ?? 0 })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
       <SpeedControl label="Pixel speed" value={layer.speed} unit="×" onChange={(speed) => set({ speed })} />
       {["runner", "meteor", "text"].includes(layer.kind) && <div className="font-mono text-[10px] text-muted-foreground">{+(layer.speed * 10).toFixed(3)} px/s · {+(W / (layer.speed * 10)).toFixed(3)} s / map</div>}
@@ -180,19 +171,23 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">A block of {layer.size} px travels through all {placed.length} lights ({W} px) one after another. Use "In a line".</p>}
       {["runner", "chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label="Size" value={layer.size} min={1} max={Math.max(32, W)} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
 
-      <div className="space-y-1.5">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Layout</div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {LAYOUTS.map((l) => (
-            <button key={l.id} title={l.hint} onClick={() => set({ layout: l.id })} className={`rounded-md py-2 text-xs font-semibold ${layer.layout === l.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{l.label}</button>
-          ))}
         </div>
-        <p className="text-[10px] text-muted-foreground">{LAYOUTS.find((l) => l.id === layer.layout)!.hint}</p>
-        <button onClick={() => set({ reverse: !layer.reverse })} className={`flex w-full items-center justify-center gap-1 rounded-md py-2 text-xs font-semibold ${layer.reverse ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><ArrowLeftRight className="h-3.5 w-3.5" />Reverse direction</button>
-      </div>
-      </>}
-
-      {tab === "fixtures" && <>
+      </section>
+      <section className="space-y-2" aria-label="Pixel colours">
+        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={coloursOpen} aria-controls="pixel-colour-editor" onClick={() => setColoursOpen((open) => !open)}>
+          {coloursOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          Colours
+          {!coloursOpen && <span className="ml-auto flex gap-1" aria-hidden="true">{layer.colors.map((colour, i) => <span key={i} className="h-3 w-3 rounded-sm" style={{ background: colour }} />)}</span>}
+        </Button>
+        <div id="pixel-colour-editor" hidden={!coloursOpen}>
+          <PaletteEditor colours={layer.colors} native={["rainbow", "plasma", "fire"].includes(layer.kind) && !layer.customPalette}
+            onChange={(colors) => set({ colors, customPalette: true, tint: "" })}
+            onReset={() => set({ customPalette: false, tint: "" })} />
+        </div>
+      </section>
+      <section className="space-y-2" aria-label="Pixel fixtures">
+        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={fixturesOpen} aria-controls="pixel-fixture-choices" onClick={() => setFixturesOpen((open) => !open)}>{fixturesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}Fixtures<span className="ml-auto text-xs text-muted-foreground">{inMap.length}</span></Button>
+        <div id="pixel-fixture-choices" hidden={!fixturesOpen} className="space-y-3">
       {(() => { const gs = [...new Set(allPx.map((f) => f.group).filter(Boolean))] as string[]; return gs.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Groups</div>
@@ -222,7 +217,8 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         })}
         <p className="text-[10px] text-muted-foreground">If a light is in several playing layers, the lower layer in the list wins.</p>
       </div>
-      </>}
+        </div>
+      </section>
     </div>
   );
 }

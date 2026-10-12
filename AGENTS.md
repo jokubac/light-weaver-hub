@@ -35,3 +35,5 @@
 - EffectsRail owns fixture/pixel effect saving and recall; ConsoleScreen shares the active pixel-layer ID with PixelPanel so the rail saves the layer being edited.
 - Pixel preview framing stays local to PixelPanel and derives from the logical grid and measured viewport, keeping display changes independent of saved effects and output.
 - The NOX brand mark has one source: src/components/NoxLogo.tsx draws it on screen and public/nox-logo.svg is rasterised into favicon/app icons with rsvg-convert; edit both together so the console header and the installed app icon stay identical.
+
+- Plot geometry edits share a browser-session unlock gate in plot-edit-session.ts, keeping approval across plot mounts without storing it in scene data.

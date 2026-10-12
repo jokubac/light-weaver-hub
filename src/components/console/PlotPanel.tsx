@@ -3,7 +3,7 @@ import { NumberField } from "./NumberField";
 // see their beams live in 2D or tilted 3D, and control them straight from the plot.
 // View: wheel / pinch zoom, hand or middle-drag pan, right-drag (or shift+hand) rotates / tilts.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Eraser, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X, DoorOpen, PanelsTopLeft, Undo2, Redo2, Armchair, UserRound, LampDesk, LockKeyhole, Unlock, ListChecks } from "lucide-react";
+import { Box, ChevronDown, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X, DoorOpen, PanelsTopLeft, Undo2, Redo2, Armchair, UserRound, LampDesk, LockKeyhole, Unlock, ListChecks } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { illuminanceAt, lux3m as lux3mOf, footcandles, shutterSeconds, tStopFor, roundToThirdStop, stopsDifference, type MeterLight } from "@/lib/photometry";
 import { fixtureWatts } from "@/lib/power";
@@ -18,6 +18,8 @@ import { Video, Gauge } from "lucide-react";
 import { SET_OBJECTS, objectContains, type SetObject, type SetObjectKind } from "@/lib/plot-objects";
 import { hexToHs } from "@/lib/gels";
 import { SettingsTransfer } from "./SettingsTransfer";
+import { plotEditSession } from "@/lib/plot-edit-session";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 const WALL_H = 2.6; // drawn lines and boxes are treated as walls this tall
 const LREF = 8; // illuminance that reads as ~60% glow on the plot
@@ -39,7 +41,7 @@ export interface Plot {
 }
 export const emptyPlot = (): Plot => ({ strokes: [], items: {}, size: [20, 14] });
 
-type Tool = "move" | "pan" | "draw" | "rect" | "erase" | "door" | "window" | "fixture" | "object" | "camera" | "meter";
+type Tool = "move" | "pan" | "draw" | "rect" | "door" | "window" | "fixture" | "object" | "camera" | "meter";
 type Mat = [number, number, number, number, number, number];
 interface View { m: Mat; zs: number }
 type Drag =
@@ -108,6 +110,13 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const imgs = useRef(new Map<string, HTMLImageElement>());
   const [, force] = useState(0);
   const [layoutUnlocked, setLayoutUnlocked] = useState(false);
+  useEffect(() => { setLayoutUnlocked(plotEditSession.isUnlocked()); }, []);
+  const ensureUnlocked = () => {
+    const allowed = plotEditSession.request(() => confirm("Unlock layout editing? You can move and edit everything for this app session."));
+    if (allowed) setLayoutUnlocked(true);
+    return allowed;
+  };
+  const dragStart = useRef<[number, number]>([0, 0]);
   const [wallIndex, setWallIndex] = useState<number | null>(null);
   const [objectId, focusObject] = useState<string | null>(null);
   const [cameraId, focusCamera] = useState<string | null>(null);
@@ -134,7 +143,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     gesture.current.recorded = true;
     force((n) => n + 1);
   };
-  const setPlot = (p: Plot) => { record(); plotRef.current = p; commitPlot(p); };
+  const setPlot = (p: Plot) => { if (!ensureUnlocked()) return; record(); plotRef.current = p; commitPlot(p); };
   const update = (uid: string, p: Partial<PatchedFixture>) => { record(); commitFixture(uid, p); };
   const restore = (s: Snapshot | undefined) => {
     if (!s) return;
@@ -591,6 +600,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     setCameraId(cam.id); setSelected([]); setObjectId(null); setWallIndex(null); setOpeningId(null); setActive(cam.floor);
   };
   const removeCamera = (id: string) => {
+    if (!ensureUnlocked()) return;
     const cam = plot.cameras?.find((c) => c.id === id);
     if (!cam || !confirm(`Remove ${cam.name}?`)) return;
     setPlot({ ...plot, cameras: (plot.cameras ?? []).filter((c) => c.id !== id) });
@@ -606,6 +616,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     });
   };
   const removeMeter = (id: string) => {
+    if (!ensureUnlocked()) return;
     if (!confirm("Remove this light meter?")) return;
     setPlot({ ...plot, meters: (plot.meters ?? []).filter((m) => m.id !== id) });
     setMeterId(null);
@@ -636,11 +647,12 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     return best;
   };
   const removeWall = (index: number) => {
+    if (!ensureUnlocked()) return;
     if (!confirm("Delete this wall and its doors/windows?")) return;
     const strokes = plot.strokes.filter((_,i) => i !== index);
     setPlot({ ...plot, strokes, openings: remapOpenings(strokes) }); setWallIndex(null);
   };
-  const removeObject = (id: string) => { if (confirm("Remove this object from the plot?")) { setPlot({ ...plot, objects: (plot.objects ?? []).filter((o) => o.id !== id) }); setObjectId(null); } };
+  const removeObject = (id: string) => { if (!ensureUnlocked()) return; if (confirm("Remove this object from the plot?")) { setPlot({ ...plot, objects: (plot.objects ?? []).filter((o) => o.id !== id) }); setObjectId(null); } };
   const addObjectAt = (x: number,y: number) => {
     const spec = SET_OBJECTS.find((o) => o.kind === objectKind); if (!spec) return;
     const o: SetObject = { ...spec, id: crypto.randomUUID(), name: spec.label, x,y,rot:0,floor:fl };
@@ -649,6 +661,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const down = (e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture(e.pointerId);
     const [sx, sy] = pos(e);
+    dragStart.current = [sx, sy];
     pointers.current.set(e.pointerId, [sx, sy]);
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()] as [[number, number], [number, number]];
@@ -686,22 +699,6 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       clearSelection(); setPlot({ ...plot, meters: [...(plot.meters ?? []), m] }); setMeterId(m.id); setTool("move");
       return;
     }
-    if (tool === "erase") {
-      const cam = hitCamera(sx, sy); if (cam) { removeCamera(cam.id); return; }
-      const met = hitMeter(sx, sy);
-      if (met) { removeMeter(met.id); return; }
-      const u = hit(sx,sy);
-      if (u) { if (confirm("Remove this light from the plot?")) { const items = {...plot.items}; delete items[u]; setPlot({...plot,items}); } return; }
-      const o = [...(plot.objects ?? [])].reverse().find((o) => o.floor === fl && objectContains(o,...fp));
-      if (o) { removeObject(o.id); return; }
-      const wh = wallHit(sx,sy);
-      if (wh) {
-        const opening = plot.openings?.find((o) => o.stroke === wh.index && o.segment === wh.segment && Math.abs(o.center-wh.t) <= o.width / (2 * Math.max(.01,Math.hypot((plot.strokes[o.stroke]?.pts[o.segment+1]?.[0] ?? 0)-(plot.strokes[o.stroke]?.pts[o.segment]?.[0] ?? 0),(plot.strokes[o.stroke]?.pts[o.segment+1]?.[1] ?? 0)-(plot.strokes[o.stroke]?.pts[o.segment]?.[1] ?? 0)))));
-        if (opening) { if (confirm(`Delete this ${opening.kind}?`)) setPlot({...plot,openings:(plot.openings ?? []).filter((o) => o.id !== opening.id)}); }
-        else removeWall(wh.index);
-      }
-      return;
-    }
     if (tool === "door" || tool === "window") {
       let nearest: { wall: ReturnType<typeof segsOf>[number]; u: number; distance: number } | undefined;
       for (const wall of segsOf(fl)) {
@@ -731,7 +728,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         else if (!already) { clearSelection(); setCameraId(cam.id); }
         setWallIndex(null); setOpeningId(null);
         const z = (floors[cam.floor]?.z ?? 0) + cam.h;
-        if (layoutUnlocked && !add) drag.current = { kind: "item", last: unproj(viewOf(), sx, sy, z), z };
+        if (!add) drag.current = { kind: "item", last: unproj(viewOf(), sx, sy, z), z };
         return;
       }
       const met = hitMeter(sx, sy);
@@ -742,7 +739,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         drag.current = { kind: "meter", id: met.id, last: unproj(viewOf(), sx, sy, z), z };
         return;
       }
-      const h = layoutUnlocked && !add ? hitHandle(sx, sy) : null;
+      const h = !add ? hitHandle(sx, sy) : null;
       const handleItem = h ? plot.items[h] : undefined;
       if (h && handleItem) { drag.current = { kind: "rot", uid: h, sy, tilt0: handleItem.tilt ?? DEFAULT_TILT, alt: e.altKey }; return; }
       const u = hit(sx, sy);
@@ -751,7 +748,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         else if (!selected.includes(u)) { clearSelection(); setSelected([u]); }
         const it = plot.items[u];
         setWallIndex(null); setOpeningId(null);
-        if (layoutUnlocked && !add && it) drag.current = { kind: "item", last: unproj(viewOf(), sx, sy, fz(it)), z: fz(it) };
+        if (!add && it) drag.current = { kind: "item", last: unproj(viewOf(), sx, sy, fz(it)), z: fz(it) };
         return;
       }
       const object = [...(plot.objects ?? [])].reverse().find((o) => {
@@ -765,14 +762,14 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         else if (!already) { clearSelection(); setObjectId(object.id); }
         setWallIndex(null); setOpeningId(null);
         const z = (floors[object.floor]?.z ?? 0) + (view3d ? object.h : 0);
-        if (layoutUnlocked && !add) drag.current = { kind: "item", last: unproj(viewOf(), sx, sy, z), z };
+        if (!add) drag.current = { kind: "item", last: unproj(viewOf(), sx, sy, z), z };
         return;
       }
       const wh = wallHit(sx, sy);
       if (wh && !add) {
         clearSelection(); setWallIndex(wh.index);
         setOpeningId(plot.openings?.find((o) => o.stroke === wh.index && o.segment === wh.segment && Math.abs(o.center - wh.t) < .1)?.id ?? null);
-        if (layoutUnlocked) drag.current = { kind: "layout", target: "wall", id: wh.index, segment: wh.segment, last: fp };
+        drag.current = { kind: "layout", target: "wall", id: wh.index, segment: wh.segment, last: fp };
         return;
       }
       setWallIndex(null); setOpeningId(null);
@@ -788,6 +785,11 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, [sx, sy]);
     const d = drag.current;
     if (!d) return;
+    const editing = ["item", "rot", "layout", "camera", "meter", "stroke"].includes(d.kind);
+    if (editing && !plotEditSession.isUnlocked()) {
+      if (Math.hypot(sx - dragStart.current[0], sy - dragStart.current[1]) < 5) return;
+      if (!ensureUnlocked()) { drag.current = null; return; }
+    }
     const p = plotRef.current;
     if (d.kind === "pinch") {
       const pts = [...pointers.current.values()];
@@ -982,6 +984,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const nudge = (d: number) => selItems.forEach((u) => { const f = fixtures.find((x) => x.uid === u); if (f) update(u, { intensity: clampN(+(f.intensity + d).toFixed(3), 0, 1), on: true }); });
   const allOn = selItems.every((u) => fixtures.find((x) => x.uid === u)?.on !== false);
   const removeSelection = () => {
+    if (!ensureUnlocked()) return;
     const count = selItems.length + objectIds.length + cameraIds.length;
     if (count) {
       if (!confirm(`Remove ${count} selected item(s) from the plot? Lights will stay patched.`)) return;
@@ -1007,6 +1010,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     return stroke < 0 ? [] : [{ ...o, stroke }];
   });
   const deleteFloor = () => {
+    if (!ensureUnlocked()) return;
     if (fl === 0 || !confirm(`Delete "${floors[fl]!.name}"? Its lights go back to the list.`)) return;
     const items: Record<string, PlotItem> = {};
     for (const [k, v] of Object.entries(plot.items)) {
@@ -1025,10 +1029,6 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const V = viewOf();
   const quick = firstItem && visible(firstItem) ? headOf(V, firstItem) : null;
 
-  const toolBtn = (t: Tool, icon: React.ReactNode, label: string) => (
-    <Button variant="secondary" title={label} onClick={() => setTool(t)} className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${tool === t ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`} aria-label={label}>{icon}<span className="hidden md:inline">{label}</span></Button>
-  );
-
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-background" onPointerDownCapture={() => { gesture.current = { active: true, recorded: false }; }} onPointerUp={() => { gesture.current.active = false; }} onPointerCancel={() => { gesture.current.active = false; }}>
 
@@ -1038,21 +1038,27 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           <button onClick={() => setView3d(false)} className={`px-3 py-2 text-xs font-bold ${!view3d ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>2D</button>
           <button onClick={() => { setView3d(true); if (yaw === 0) setYaw(-30); }} className={`flex items-center gap-1 px-3 py-2 text-xs font-bold ${view3d ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Box className="h-3.5 w-3.5" />3D</button>
         </div>
-        {toolBtn("move", <MousePointer2 className="h-4 w-4" />, "Select / move")}
+        <Button variant="secondary" aria-label={tool === "pan" ? "Pan" : "Select / move"} title="Toggle Select / Pan" onClick={() => setTool(tool === "move" ? "pan" : "move")}>{tool === "pan" ? <Hand /> : <MousePointer2 />}{tool === "pan" ? "Pan" : "Select"}</Button>
         <Button variant={multiSelect ? "default" : "secondary"} size="icon" aria-label="Multiselect" aria-pressed={multiSelect} title="Multiselect" onClick={() => { setMultiSelect(!multiSelect); setTool("move"); }}><ListChecks /></Button>
-        {toolBtn("pan", <Hand className="h-4 w-4" />, "Pan")}
-        {toolBtn("draw", <Pencil className="h-4 w-4" />, "Draw")}
-        {toolBtn("rect", <SquareIcon className="h-4 w-4" />, "Wall / box")}
-        {toolBtn("door", <DoorOpen className="h-4 w-4" />, "Door")}
-        {toolBtn("window", <PanelsTopLeft className="h-4 w-4" />, "Window")}
-        <Button variant={tool === "fixture" ? "default" : "secondary"} aria-label="Add fixture" title="Add fixture" onClick={() => { setTool("fixture"); setPlacementUid(unplaced[0]?.uid ?? ""); }}><LampDesk className="h-4 w-4" /><span className="hidden md:inline">Add fixture</span></Button>
-        <Button variant={tool === "object" ? "default" : "secondary"} aria-label="Add furniture / person" title="Add furniture / person" onClick={() => setTool("object")}><Armchair className="h-4 w-4" /><UserRound className="h-4 w-4" /></Button>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={["draw", "rect", "door", "window"].includes(tool) ? "default" : "secondary"}><Pencil />Build<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+          <DropdownMenuItem onSelect={() => setTool("draw")}><Pencil />Wall</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setTool("rect")}><SquareIcon />Box</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setTool("door")}><DoorOpen />Door</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setTool("window")}><PanelsTopLeft />Window</DropdownMenuItem>
+        </DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "fixture" ? "default" : "secondary"}><LampDesk />Add fixture<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+          {unplaced.length === 0 && <DropdownMenuItem disabled>No unplaced fixtures</DropdownMenuItem>}
+          {unplaced.map((f) => <DropdownMenuItem key={f.uid} onSelect={() => { setPlacementUid(f.uid); setTool("fixture"); }}>{f.name}</DropdownMenuItem>)}
+          {unplaced.length > 1 && <DropdownMenuItem onSelect={placeAll}>Place all</DropdownMenuItem>}
+        </DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "object" ? "default" : "secondary"}><Armchair />Props<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+          {SET_OBJECTS.map((o) => <DropdownMenuItem key={o.kind} onSelect={() => { setObjectKind(o.kind); setTool("object"); }}>{o.label}</DropdownMenuItem>)}
+        </DropdownMenuContent></DropdownMenu>
         <Button variant={tool === "camera" ? "default" : "secondary"} aria-label="Add camera" title="Place camera" onClick={() => { setTool("camera"); clearSelection(); }}><Video className="h-4 w-4" /><span className="hidden md:inline">Camera</span></Button>
         <Button variant={tool === "meter" ? "default" : "secondary"} aria-label="Add light meter" title="Place light meter" onClick={() => { setTool("meter"); clearSelection(); }}><Gauge className="h-4 w-4" /><span className="hidden md:inline">Meter</span></Button>
-        <Button variant={layoutUnlocked ? "default" : "secondary"} aria-label={layoutUnlocked ? "Lock layout" : "Unlock layout editing"} title={layoutUnlocked ? "Lock layout" : "Unlock layout editing"} onClick={() => setLayoutUnlocked(!layoutUnlocked)}>{layoutUnlocked ? <Unlock /> : <LockKeyhole />}</Button>
+        <Button variant={layoutUnlocked ? "default" : "secondary"} aria-label={layoutUnlocked ? "Layout unlocked" : "Unlock layout editing"} title={layoutUnlocked ? "Unlocked for this app session" : "Unlock layout editing"} onClick={ensureUnlocked}>{layoutUnlocked ? <Unlock /> : <LockKeyhole />}</Button>
         <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
-        {toolBtn("erase", <Eraser className="h-4 w-4" />, "Erase")}
         <Button variant="destructive" size="sm" aria-label="Remove selected from plot" title="Remove selected item" disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />Remove</Button>
         {(tool === "draw" || tool === "rect") && (
           <input type="color" value={ink} onChange={(e) => setInk(e.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" aria-label="Drawing colour" />
@@ -1062,7 +1068,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
         </label>
         {bgOf(fl) && <button onClick={removeImage} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">Remove image</button>}
-        {plot.strokes.some((s) => (s.floor ?? 0) === fl) && <button onClick={() => { if (confirm("Clear the drawing on this floor?"))  { const strokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl); setPlot({ ...plot, strokes, openings: remapOpenings(strokes) }); } }} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">Clear drawing</button>}
+        {plot.strokes.some((s) => (s.floor ?? 0) === fl) && <button onClick={() => { if (ensureUnlocked() && confirm("Clear the drawing on this floor?"))  { const strokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl); setPlot({ ...plot, strokes, openings: remapOpenings(strokes) }); } }} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">Clear drawing</button>}
         <div className="flex-1" />
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-2.5" aria-label="Close plot"><X className="h-4 w-4" /></button>
       </div>
@@ -1214,7 +1220,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
             const st = plot.strokes[wallIndex]; if (!st) return null;
             const edit = (next: Plot["strokes"][number]) => setPlot({...plot,strokes:plot.strokes.map((s,i) => i === wallIndex ? next:s)});
             const origin = st.pts[0] ?? [0,0];
-            return <div className="space-y-2"><h3 className="text-sm font-semibold">Wall {wallIndex+1}</h3><fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50">
+            return <div className="space-y-2"><h3 className="text-sm font-semibold">Wall {wallIndex+1}</h3><fieldset className="space-y-2 disabled:opacity-50">
               <Slider label="Wall height" value={st.height ?? WALL_H} min={.2} max={12} step={.1} unit=" m" onChange={(height) => edit({...st,height})} />
               <Slider label="Wall X" value={origin[0] ?? 0} unbounded min={(origin[0] ?? 0) - 50} max={(origin[0] ?? 0) + 50} step={.1} unit=" m" onChange={(x) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a+x-(origin[0] ?? 0),b])})} />
               <Slider label="Wall Y" value={origin[1] ?? 0} unbounded min={(origin[1] ?? 0) - 50} max={(origin[1] ?? 0) + 50} step={.1} unit=" m" onChange={(y) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a,b+y-(origin[1] ?? 0)])})} />
@@ -1237,7 +1243,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           {objectId && (() => {
             const o = plot.objects?.find((o) => o.id === objectId); if (!o) return null;
             const edit = (patch: Partial<SetObject>) => setPlot({...plot,objects:(plot.objects ?? []).map((x) => x.id === o.id ? {...x,...patch}:x)});
-            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded border border-input bg-surface-elevated p-2" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} unbounded={key === "x" || key === "y"} min={key === "x" || key === "y" ? o[key] - 50 : key === "rot" ? -180:0} max={key === "x" || key === "y" ? o[key] + 50 : max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
+            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded border border-input bg-surface-elevated p-2" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} unbounded={key === "x" || key === "y"} min={key === "x" || key === "y" ? o[key] - 50 : key === "rot" ? -180:0} max={key === "x" || key === "y" ? o[key] + 50 : max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
           })()}
           {first && firstItem ? (
             <div className="space-y-3">
@@ -1247,7 +1253,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                 <button onClick={() => selItems.forEach((u) => update(u, { on: !allOn }))} className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-bold ${allOn ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}><Power className="h-3.5 w-3.5" />{allOn ? "ON" : "OFF"}</button>
               </div>
               <Slider label="Intensity" value={first.intensity * 100} min={0} max={100} unit="%" onChange={(v) => selItems.forEach((u) => update(u, { intensity: v / 100, on: true }))} />
-              <fieldset disabled={!layoutUnlocked} className="space-y-3 disabled:opacity-50"><Slider label="Direction (pan)" value={firstItem.rot} min={-180} max={180} unit="°" onChange={(v) => setItems({ rot: v })} />
+              <fieldset className="space-y-3 disabled:opacity-50"><Slider label="Direction (pan)" value={firstItem.rot} min={-180} max={180} unit="°" onChange={(v) => setItems({ rot: v })} />
               <Slider label="Tilt down" value={firstItem.tilt ?? DEFAULT_TILT} min={0} max={90} unit="°" onChange={(v) => setItems({ tilt: v })} />
               <Slider label="Height" value={firstItem.h} min={0.3} max={50} step={0.1} unit=" m" onChange={(v) => setItems({ h: v })} />
               {selItems.length > 1 && <div className="space-y-2 rounded-md border border-border p-2">
@@ -1293,7 +1299,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               )}
               <div className="flex gap-2">
                 <button onClick={onOpenControls} className="flex-1 rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground">Colour & effects…</button>
-                 <Button variant="secondary" size="icon" onClick={() => { if (!confirm("Remove selected lights from the plot?")) return; const items = { ...plot.items }; selItems.forEach((u) => delete items[u]); setPlot({ ...plot, items }); }} aria-label="Remove from plot"><Trash2 className="h-4 w-4" /></Button>
+                 <Button variant="secondary" size="icon" onClick={() => { if (!ensureUnlocked() || !confirm("Remove selected lights from the plot?")) return; const items = { ...plot.items }; selItems.forEach((u) => delete items[u]); setPlot({ ...plot, items }); }} aria-label="Remove from plot"><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ) : (
@@ -1304,8 +1310,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           <div className="space-y-2 border-t border-border pt-3">
             <p className="text-xs font-semibold">Doors / windows</p>
             {(plot.openings ?? []).filter((o) => (plot.strokes[o.stroke]?.floor ?? 0) === fl).map((o, i) => <div key={o.id} className="space-y-2">
-              <div className="flex items-center gap-2"><Button variant={openingId === o.id ? "default" : "secondary"} size="sm" onClick={() => setOpeningId(o.id)}>{o.kind === "door" ? <DoorOpen /> : <PanelsTopLeft />}{o.kind} {i + 1}</Button><Button variant="ghost" size="icon" aria-label={`Remove ${o.kind} ${i + 1}`} onClick={() => { if (confirm(`Delete this ${o.kind}?`)) setPlot({ ...plot, openings: plot.openings?.filter((x) => x.id !== o.id) ?? [] }); }}><Trash2 /></Button></div>
-              {openingId === o.id && <fieldset disabled={!layoutUnlocked} className="space-y-2 disabled:opacity-50">
+              <div className="flex items-center gap-2"><Button variant={openingId === o.id ? "default" : "secondary"} size="sm" onClick={() => setOpeningId(o.id)}>{o.kind === "door" ? <DoorOpen /> : <PanelsTopLeft />}{o.kind} {i + 1}</Button><Button variant="ghost" size="icon" aria-label={`Remove ${o.kind} ${i + 1}`} onClick={() => { if (ensureUnlocked() && confirm(`Delete this ${o.kind}?`)) setPlot({ ...plot, openings: plot.openings?.filter((x) => x.id !== o.id) ?? [] }); }}><Trash2 /></Button></div>
+              {openingId === o.id && <fieldset className="space-y-2 disabled:opacity-50">
                 <Slider label="Opening width" value={o.width} min={0.2} max={Math.hypot((plot.strokes[o.stroke]?.pts[o.segment + 1]?.[0] ?? 0) - (plot.strokes[o.stroke]?.pts[o.segment]?.[0] ?? 0), (plot.strokes[o.stroke]?.pts[o.segment + 1]?.[1] ?? 0) - (plot.strokes[o.stroke]?.pts[o.segment]?.[1] ?? 0))} step={0.1} unit=" m" onChange={(width) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, width } : x) ?? [] })} />
                 <Slider label="Opening position" value={o.center * 100} min={0} max={100} unit="%" onChange={(v) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, center: v / 100 } : x) ?? [] })} />
                 <Slider label="Sill height" value={o.bottom} min={0} max={(plot.strokes[o.stroke]?.height ?? WALL_H) - 0.1} step={0.1} unit=" m" onChange={(bottom) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, bottom, height: Math.min(x.height, (plot.strokes[o.stroke]?.height ?? WALL_H) - bottom) } : x) ?? [] })} />
