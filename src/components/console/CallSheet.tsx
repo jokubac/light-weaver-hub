@@ -35,7 +35,8 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
     if (!label?.trim()) return;
     upd({ custom: [...custom, { id: `custom-${Date.now()}`, label: label.trim(), group: "Other", qty: 1 }] });
   };
-  const removeLine = (l: Line) => (l.custom ? upd({ custom: custom.filter((c) => c.id !== l.id) }) : upd({ removed: [...removed, l.id] }));
+  const removeLine = (l: Line) => { if (!confirm(`Remove "${l.label}" from the equipment list?`)) return; doRemove(l); };
+  const doRemove = (l: Line) => (l.custom ? upd({ custom: custom.filter((c) => c.id !== l.id) }) : upd({ removed: [...removed, l.id] }));
   const setQty = (id: string, qty: number) => {
     if (custom.some((l) => l.id === id)) upd({ custom: custom.map((l) => (l.id === id ? { ...l, qty } : l)) });
     else upd({ qty: { ...d.qty, [id]: qty } });
@@ -71,7 +72,7 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
       </div>
       <div className="callsheet-print min-h-0 flex-1 overflow-auto p-4">
         <h1 className="mb-4 hidden font-display text-2xl font-bold print:block">{view === "call" ? "Call sheet" : "Equipment list"} — {production}</h1>
-        <div className="mx-auto max-w-4xl space-y-6">
+        <div className="mx-auto max-w-6xl space-y-6">
           <section className="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-5 print:border-0 print:p-0">
             <Field label="Production"><input value={production} onChange={(e) => setProduction(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></Field>
             <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></Field>
@@ -127,7 +128,7 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
               <div className="mb-4 space-y-2 rounded-lg bg-surface-elevated p-3 print:hidden">
                 <input value={catQ} onChange={(e) => setCatQ(e.target.value)} placeholder="Search catalogue: barrel clamp, 8x8, 32A, blackwrap…" className="w-full rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
                 {catQ.trim() ? (
-                  <div className="max-h-72 space-y-0.5 overflow-auto">
+                  <div className="max-h-[60vh] space-y-0.5 overflow-auto">
                     {searchHits.map((h) => (
                       <button key={`${h.group}-${h.sub}-${h.item}`} onClick={() => addCatalogue(h.group, h.sub, h.item)} className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-surface">
                         <span className="truncate">{h.item}</span><span className="shrink-0 text-[10px] text-muted-foreground">{h.group} › {h.sub} +</span>
@@ -141,14 +142,14 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
                       <button onClick={() => setPath([])} className={`rounded px-2 py-1 font-semibold ${path.length ? "text-primary" : ""}`}>All</button>
                       {path.map((p, i) => <Frag key={p}><span className="text-muted-foreground">›</span><button onClick={() => setPath(path.slice(0, i + 1))} className="rounded px-2 py-1 font-semibold text-primary">{p}</button></Frag>)}
                     </div>
-                    <div className="grid max-h-72 grid-cols-2 gap-1.5 overflow-auto sm:grid-cols-3">
+                    <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-auto sm:grid-cols-3 lg:grid-cols-4">
                       {(node ? node.children ?? [] : path.length ? [] : EQUIPMENT_CATALOGUE).map((c) => (
                         <button key={c.name} onClick={() => setPath([...path, c.name])} className="flex items-center justify-between rounded-md bg-surface px-3 py-2.5 text-left text-sm font-semibold active:scale-95">
                           <span className="truncate">{c.name}</span><span className="text-muted-foreground">›</span>
                         </button>
                       ))}
                       {node?.items?.map((it) => { const n = qtyOf(path[0]!, path[1]!, it); return (
-                        <button key={it} onClick={() => addCatalogue(path[0]!, path[1]!, it)} className={`flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-left text-xs active:scale-95 ${n ? "bg-primary/15 text-foreground" : "bg-surface"}`}>
+                        <button key={it} onClick={() => addCatalogue(path[0]!, path[1]!, it)} className={`flex items-center justify-between gap-2 rounded-md px-3 py-3 text-left text-sm active:scale-95 ${n ? "bg-primary/15 text-foreground" : "bg-surface"}`}>
                           <span className="truncate">{it}</span><span className="shrink-0 font-mono text-[10px] text-muted-foreground">{n ? `×${n}` : "+"}</span>
                         </button>
                       ); })}
@@ -158,7 +159,7 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
               </div>
             )}
             {grouped.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nothing on the list yet — patch lights or add from the catalogue.</p> : (
-              <table className="equip-table w-full border-collapse text-sm">
+              <table className="equip-table w-full border-collapse text-base">
                 <thead><tr className="border-b-2 border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
                   <th className="w-8 py-1.5 pr-2">#</th><th className="pr-2">Item</th><th className="w-20 pr-2 text-right">Qty</th><th className="w-24 pr-2 text-center">Packed</th><th className="w-24 pr-2 text-center">Returned</th><th className="w-8 print:hidden"></th>
                 </tr></thead>
@@ -174,8 +175,8 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
                             <NumberField integer min={0} max={999} value={l.qty} onChange={(v) => v !== undefined && setQty(l.id, v)} className="w-16 rounded-md border border-input bg-surface-elevated px-2 py-1 text-right font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring print:hidden" />
                             <span className="hidden font-mono print:inline">{l.qty}</span>
                           </td>
-                          <td className="text-center"><CountCell n={packed} qty={l.qty} label={`Packed ${l.label}`} onChange={(n) => setCount("packed", l.id, n)} /></td>
-                          <td className="text-center"><CountCell n={ret} qty={l.qty} label={`Returned ${l.label}`} onChange={(n) => setCount("returned", l.id, n)} /></td>
+                          <td className="text-center"><CountCell kind="packed" n={Math.max(0, packed - ret)} total={packed} returned={ret} qty={l.qty} label={`Packed ${l.label}`} onChange={(n) => setCount("packed", l.id, n + ret)} /></td>
+                          <td className="text-center"><CountCell kind="returned" n={ret} total={packed} returned={ret} qty={packed || l.qty} label={`Returned ${l.label}`} onChange={(n) => setCount("returned", l.id, Math.min(n, packed || n))} /></td>
                           <td className="py-1 print:hidden">
                             <button onClick={() => removeLine(l)} className="text-muted-foreground" aria-label={`Remove ${l.label}`}><Trash2 className="h-3.5 w-3.5" /></button>
                           </td>
@@ -240,14 +241,20 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}<div className="mt-1 normal-case">{children}</div></label>;
 }
 
-/** Tap the box to tick all / clear; edit the number for partial counts. */
-function CountCell({ n, qty, label, onChange }: { n: number; qty: number; label: string; onChange: (n: number) => void }) {
-  const done = qty > 0 && n >= qty;
+/** Packed shows what is still out (packed minus returned): red when all came back, amber when part came back.
+ *  Returned is green only when everything packed is back, amber when partial. */
+function CountCell({ kind, n, total, returned, qty, label, onChange }: { kind: "packed" | "returned"; n: number; total: number; returned: number; qty: number; label: string; onChange: (n: number) => void }) {
+  const tone = kind === "packed"
+    ? (returned > 0 ? (n === 0 ? "bad" : "part") : total >= qty && qty > 0 ? "ok" : total > 0 ? "part" : "none")
+    : (n === 0 ? "none" : n >= total ? "ok" : "part");
+  const box = { ok: "border-success bg-success text-primary-foreground", part: "border-warning bg-warning/20 text-warning", bad: "border-destructive bg-destructive/20 text-destructive", none: "border-muted-foreground" }[tone];
+  const txt = { ok: "text-success", part: "text-warning", bad: "text-destructive", none: "text-muted-foreground" }[tone];
+  const full = kind === "packed" ? n >= qty && qty > 0 : n >= total && total > 0;
   return (
     <div className="inline-flex items-center gap-1">
-      <button onClick={() => onChange(done ? 0 : qty)} aria-label={label} aria-pressed={done}
-        className={`flex h-5 w-5 items-center justify-center rounded-sm border text-[10px] font-bold ${done ? "border-success bg-success text-primary-foreground" : n > 0 ? "border-warning text-warning" : "border-muted-foreground"}`}>{done ? "✓" : ""}</button>
-      <NumberField integer min={0} max={999} value={n} onChange={(v) => v !== undefined && onChange(v)} className={`w-10 rounded border border-input bg-surface-elevated px-1 py-0.5 text-center font-mono text-xs focus:outline-none print:hidden ${done ? "text-success" : n > 0 ? "text-warning" : "text-muted-foreground"}`} />
+      <button onClick={() => onChange(full ? 0 : kind === "packed" ? qty : total)} aria-label={label} aria-pressed={full}
+        className={`flex h-6 w-6 items-center justify-center rounded-sm border text-[11px] font-bold ${box}`}>{tone === "ok" ? "✓" : tone === "bad" ? "0" : ""}</button>
+      <NumberField integer min={0} max={999} value={n} onChange={(v) => v !== undefined && onChange(v)} className={`w-12 rounded border border-input bg-surface-elevated px-1 py-1 text-center font-mono text-sm focus:outline-none print:hidden ${txt}`} />
       <span className="hidden font-mono text-xs print:inline">{n || ""}</span>
     </div>
   );
