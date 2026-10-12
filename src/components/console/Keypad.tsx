@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ClipboardPaste, Copy, Delete, GripVertical, X } from "lucide-react";
+import { ClipboardPaste, Copy, Delete, GripVertical, Undo2, Redo2, X } from "lucide-react";
 import { parseCommand } from "@/lib/command-line";
 import { Button } from "@/components/ui/button";
 
@@ -15,11 +15,15 @@ interface Props {
   canPaste?: boolean;
   onClose: () => void;
   onDeselect: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "OUT", "0", "@", "FULL"];
 
-export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPreview, onCopy, onPaste, canPaste, onClose, onDeselect }: Props) {
+export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPreview, onCopy, onPaste, canPaste, onClose, onDeselect, onUndo, onRedo, canUndo, canRedo }: Props) {
   const [cmd, setCmd] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [pos, setPos] = useState({ x: 16, y: 16 });
@@ -61,7 +65,11 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
         <button onClick={() => { setMsg(null); setCmd((c) => (c.endsWith(" ") ? c.trimEnd().replace(/\S+$/, "") : c.slice(0, -1)).replace(/^\s+/, "")); }} aria-label="Backspace" title="Delete last" className="rounded-md bg-surface-elevated p-2 text-foreground active:scale-95"><Delete className="h-4 w-4" /></button>
         <button onClick={onClose} aria-label="Close keypad" className="rounded-md p-2 text-muted-foreground"><X className="h-4 w-4" /></button>
       </div>
-      <p className={`truncate text-[11px] ${msg && !msg.startsWith("✓") ? "text-destructive" : "text-muted-foreground"}`}>{msg && !msg.startsWith("✓") ? msg : selectedNums.length ? `Selected: ${selectedNums.map((n) => `#${n}`).join(" + ")}` : "No fixtures selected"}</p>
+      <div className="flex items-center gap-2">
+      <p className={`min-w-0 flex-1 truncate text-[11px] ${msg && !msg.startsWith("✓") ? "text-destructive" : "text-muted-foreground"}`}>{msg && !msg.startsWith("✓") ? msg : selectedNums.length ? `Selected: ${selectedNums.map((n) => `#${n}`).join(" + ")}` : "No fixtures selected"}</p>
+        <Button size="icon" variant="secondary" aria-label="Undo fixture changes" title="Undo fixture changes" disabled={!canUndo} onClick={onUndo}><Undo2 /></Button>
+        <Button size="icon" variant="secondary" aria-label="Redo fixture changes" title="Redo fixture changes" disabled={!canRedo} onClick={onRedo}><Redo2 /></Button>
+      </div>
       <div className="flex gap-1.5"><div className="grid flex-1 grid-cols-4 gap-1.5">
         {KEYS.map((x) => (
           <button key={x} onClick={() => press(x)} className={`${k} ${/^\d$/.test(x) ? "" : "text-primary"}`}>{x}</button>

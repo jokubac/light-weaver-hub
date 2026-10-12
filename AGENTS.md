@@ -38,3 +38,5 @@
 
 - Plot geometry edits share a browser-session unlock gate in plot-edit-session.ts, keeping approval across plot mounts without storing it in scene data.
 - Camera lens rendering and plotted view edges share the Z-up camera basis and tested screen projection helpers so camera tilt and orientation stay consistent.
+
+- Fixture setting history uses the transfer whitelist and groups pointer gestures; playback/battery updates bypass history so Undo never repatches fixtures or records output frames.
