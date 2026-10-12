@@ -27,7 +27,7 @@
 - REC steps reuse LookState snapshots (Project.recordings); src/lib/recordings.ts blends them by fade/hold timing.
 - Playback bank and cues live in Project.bank/Project.cues; applyBank (src/lib/playback.ts) changes output only, never live fixture state, so faders can't overwrite programming.
 - Imported fixtures (GDTF/builder/RDM) are stored in localStorage custom-fixtures and use FixtureMode.channelMap, so new lights need no code changes.
-- Installed Android/iOS apps bundle a crawl of the published site (scripts/offline-bundle.mjs → offline-app/) instead of loading a remote URL, so they open offline; rebuild APK/IPA after publishing to update them.
+- Installed apps crawl the published site into offline-app and reject release mismatches; public/app-release.json is the shared UI/native version source. iOS icon catalogs are rendered from the brand SVG by scripts/ios-icons.mjs so stale PNGs cannot ship.
 - Fixture FLASH and fader banks are output-only overlays in outFixtures, never mutating live fixture state; keypad numbers are console positions.
 - console-command.ts applies per-fixture relative command values and inverse FLASH envelopes; keeping these pure makes normalized CCT and restored output testable.
 - EffectsRail owns fixture/pixel effect saving and recall; ConsoleScreen shares the active pixel-layer ID with PixelPanel so the rail saves the layer being edited.

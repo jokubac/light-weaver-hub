@@ -5,6 +5,7 @@ import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, 
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { NoxLogo } from "@/components/NoxLogo";
+import { APP_VERSION } from "@/lib/app-version";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -289,7 +290,7 @@ const fmtDate = (t: number) => new Date(t).toLocaleDateString(undefined, { month
 /* ---------------- Projects ---------------- */
 
 function AccountButton({ email, sync }: { email: string | null; sync: "off" | "syncing" | "ok" | "error" }) {
-  if (!email) return <Link to="/auth" className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground"><LogIn className="h-4 w-4" />Sign in</Link>;
+  if (!email) return <div className="flex items-center gap-3"><span className="font-mono text-[10px] text-muted-foreground">v{APP_VERSION}</span><Button asChild size="sm"><Link to="/auth"><LogIn className="h-4 w-4" />Sign in</Link></Button></div>;
   return (
     <div className="flex items-center gap-2">
       <div className="hidden text-right sm:block">

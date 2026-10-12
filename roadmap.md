@@ -1,4 +1,6 @@
 # Tasks
+- [ ] Refresh native iOS logo from SVG and show shared version at Sign in and Settings; verify UI and icon output
+- [ ] Update IPA/TestFlight packaging with release checks; actual IPA needs published release and GitHub macOS runner
 - [x] DMX map fills the whole panel width as one 32×16 band on tablets (side panel docks only from xl up); browser measured 974×323 map, no horizontal scroll
 
 - [x] Fixture numbers stay under the sticky console toolbar while scrolling; browser verified covered at z-20
