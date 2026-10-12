@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { GripVertical, X } from "lucide-react";
+import { Delete, GripVertical, X } from "lucide-react";
 import { parseCommand } from "@/lib/command-line";
 
 interface Props {
@@ -43,6 +43,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onClose }: Pro
         <input aria-label="Command line" value={cmd} onChange={(e) => { setCmd(e.target.value); setMsg(null); }}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); run(); } }}
           placeholder="1 + 3 @ 80 CCT 3200" className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-2 font-mono text-sm" />
+        <button onClick={() => { setMsg(null); setCmd((c) => (/ $/.test(c) ? c.trimEnd().replace(/\S+$/, "").trimEnd() : c.slice(0, -1)).replace(/^\s+/, "") + (/ $/.test(c) && c.trimEnd().replace(/\S+$/, "").trim() ? " " : "")); }} aria-label="Backspace" title="Delete last" className="rounded-md bg-surface-elevated p-2 text-foreground active:scale-95"><Delete className="h-4 w-4" /></button>
         <button onClick={onClose} aria-label="Close keypad" className="rounded-md p-2 text-muted-foreground"><X className="h-4 w-4" /></button>
       </div>
       <p className={`truncate text-[11px] ${msg && !msg.startsWith("✓") ? "text-destructive" : "text-muted-foreground"}`}>{msg && !msg.startsWith("✓") ? msg : selectedNums.length ? `Selected: ${selectedNums.map((n) => `#${n}`).join(" + ")}` : "No fixtures selected"}</p>
