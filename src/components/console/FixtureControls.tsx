@@ -82,7 +82,6 @@ export function FixtureControls({
   onFlash: () => void;
 }) {
   const first = sel[0];
-  const [tab, setTab] = useState<"effect" | "advanced" | null>(null);
   if (!first) return null;
   const mode = getMode(first);
   const anyCaps = sel.reduce(
