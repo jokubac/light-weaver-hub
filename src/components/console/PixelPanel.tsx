@@ -200,7 +200,7 @@ function Slider({ label, value, min, max, step, display, onChange }: { label: st
 export function useClock() {
   const [t, setT] = useState(0);
   useEffect(() => {
-    let raf = 0; const start = performance.now();
+    let raf = 0; const start = 0;
     const loop = () => { setT((performance.now() - start) / 1000); raf = requestAnimationFrame(loop); };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
