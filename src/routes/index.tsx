@@ -409,7 +409,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
 
   useEffect(() => {
     let raf = 0;
-    const start = performance.now();
+    const start = 0; // shared absolute clock so effect previews match output
     const loop = () => {
       clock.current = (performance.now() - start) / 1000;
       setT(clock.current);

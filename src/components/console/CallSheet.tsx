@@ -37,6 +37,14 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
   };
   const removeLine = (l: Line) => { if (!confirm(`Remove "${l.label}" from the equipment list?`)) return; doRemove(l); };
   const doRemove = (l: Line) => (l.custom ? upd({ custom: custom.filter((c) => c.id !== l.id) }) : upd({ removed: [...removed, l.id] }));
+  const [picked, setPicked] = useState<string[]>([]);
+  const removePicked = () => {
+    const ids = picked.filter((id) => equipment.some((l) => l.id === id));
+    if (!ids.length || !confirm(`Delete ${ids.length} item${ids.length > 1 ? "s" : ""} from the equipment list?`)) return;
+    const customIds = new Set(custom.map((c) => c.id));
+    upd({ custom: custom.filter((c) => !ids.includes(c.id)), removed: [...removed, ...ids.filter((id) => !customIds.has(id))] });
+    setPicked([]);
+  };
   const setQty = (id: string, qty: number) => {
     if (custom.some((l) => l.id === id)) upd({ custom: custom.map((l) => (l.id === id ? { ...l, qty } : l)) });
     else upd({ qty: { ...d.qty, [id]: qty } });
@@ -158,17 +166,22 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
                 )}
               </div>
             )}
+            {grouped.length > 0 && <div className="flex flex-wrap items-center gap-2 print:hidden">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" aria-label="Select all items" checked={picked.length > 0 && picked.length === equipment.length} onChange={(e) => setPicked(e.target.checked ? equipment.map((l) => l.id) : [])} />Select all</label>
+              {picked.length > 0 && <Button size="sm" variant="destructive" onClick={removePicked}><Trash2 className="h-3.5 w-3.5" />Delete {picked.length}</Button>}
+            </div>}
             {grouped.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nothing on the list yet — patch lights or add from the catalogue.</p> : (
               <table className="equip-table w-full border-collapse text-base">
                 <thead><tr className="border-b-2 border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="w-8 py-1.5 pr-2">#</th><th className="pr-2">Item</th><th className="w-20 pr-2 text-right">Qty</th><th className="w-24 pr-2 text-center">Packed</th><th className="w-24 pr-2 text-center">Returned</th><th className="w-8 print:hidden"></th>
+                  <th className="w-8 print:hidden"></th><th className="w-8 py-1.5 pr-2">#</th><th className="pr-2">Item</th><th className="w-20 pr-2 text-right">Qty</th><th className="w-24 pr-2 text-center">Packed</th><th className="w-24 pr-2 text-center">Returned</th><th className="w-8 print:hidden"></th>
                 </tr></thead>
                 <tbody>
                   {(() => { let n = 0; return grouped.map(({ cat, lines }) => (
                     <Frag key={cat}>
-                      <tr className="bg-surface-elevated print:bg-transparent"><td colSpan={6} className="px-1 py-1.5 text-[11px] font-bold uppercase tracking-wider">{cat}</td></tr>
+                      <tr className="bg-surface-elevated print:bg-transparent"><td className="print:hidden"><input type="checkbox" className="h-4 w-4" aria-label={`Select all ${cat}`} checked={lines.every((l) => picked.includes(l.id))} onChange={(e) => setPicked((p) => e.target.checked ? [...new Set([...p, ...lines.map((l) => l.id)])] : p.filter((id) => !lines.some((l) => l.id === id)))} /></td><td colSpan={6} className="px-1 py-1.5 text-[11px] font-bold uppercase tracking-wider">{cat}</td></tr>
                       {lines.map((l) => { const packed = d.packed?.[l.id] ?? 0, ret = d.returned?.[l.id] ?? 0; return (
                         <tr key={l.id} className="border-b border-border/60 break-inside-avoid">
+                          <td className="print:hidden"><input type="checkbox" className="h-4 w-4" aria-label={`Select ${l.label}`} checked={picked.includes(l.id)} onChange={(e) => setPicked((p) => e.target.checked ? [...p, l.id] : p.filter((id) => id !== l.id))} /></td>
                           <td className="py-1 pr-2 font-mono text-xs text-muted-foreground">{++n}</td>
                           <td className="py-1 pr-2">{l.label}{l.sub && <span className="ml-1.5 text-[10px] text-muted-foreground">{l.sub}</span>}</td>
                           <td className="py-1 pr-2 text-right">
