@@ -36,8 +36,9 @@
 - Pixel preview framing stays local to PixelPanel and derives from the logical grid and measured viewport, keeping display changes independent of saved effects and output.
 - The NOX brand mark has one source: src/components/NoxLogo.tsx draws it on screen and public/nox-logo.svg is rasterised into favicon/app icons with rsvg-convert; edit both together so the console header and the installed app icon stay identical.
 
-- Plot geometry edits share a browser-session unlock gate in plot-edit-session.ts, keeping approval across plot mounts without storing it in scene data.
-- Camera lens rendering and plotted view edges share the Z-up camera basis and tested screen projection helpers so camera tilt and orientation stay consistent.
+- Plot edits share a browser-session unlock gate in plot-edit-session.ts; camera lens rendering and plotted view edges share the Z-up camera basis and tested projection helpers.
+- The DMX map always fills its panel's full width as one fixed 32×16 band (DmxMap), and the patch side panel docks beside the sheet only from xl up, so tablets get a full-width map.
+
 
 - Fixture setting history uses the transfer whitelist and groups pointer gestures; playback/battery updates bypass history so Undo never repatches fixtures or records output frames.
 - The console toolbar layer (sticky Select all/Sweep/REC bar) sits above the fixture number badges, so scrolled numbers slide under it instead of painting over it.
