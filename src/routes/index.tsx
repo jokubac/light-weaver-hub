@@ -234,7 +234,7 @@ function App() {
 
 function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: string; onBack?: () => void; right?: React.ReactNode }) {
   return (
-    <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-surface/95 px-5 py-4 backdrop-blur">
+    <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-surface/95 px-5 py-2 backdrop-blur">
       {onBack && (
         <button onClick={onBack} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back">
           <ArrowLeft className="h-5 w-5" />
@@ -243,7 +243,7 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
       <div className="min-w-0 flex-1">
         {title === "NOX" ? (
           <div className="flex items-center gap-4">
-            <NoxLogo className="h-16 w-16 shrink-0" title="NOX" />
+            <NoxLogo className="h-12 w-12 shrink-0" title="NOX" />
             <h1 className="truncate font-display text-lg font-bold text-primary">{subtitle ?? "NOX"}</h1>
           </div>
         ) : (

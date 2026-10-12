@@ -41,6 +41,23 @@ export function cameraBasis(c: Pick<PlotCamera, "rot" | "tilt">) {
   return { forward, right, up };
 }
 
+/** Field-of-view edges use the same Z-up basis as the lens view, including tilt. */
+export function cameraViewEdges(c: PlotCamera, reach: number) {
+  const { forward, right } = cameraBasis(c);
+  const spread = Math.tan(horizontalFov(c) * Math.PI / 360) * reach;
+  const edge = (side: number): [number, number, number] => [
+    c.x + forward[0] * reach + right[0] * spread * side,
+    c.y + forward[1] * reach + right[1] * spread * side,
+    c.h + forward[2] * reach,
+  ];
+  return { left: edge(-1), right: edge(1) };
+}
+
+/** Screen Y points down; camera up points up. Shared by faces and visible light sources. */
+export function projectCameraSpace(point: [number, number, number], width: number, height: number, focal: number): [number, number, number] {
+  return [width / 2 + point[0] / point[2] * focal, height / 2 - point[1] / point[2] * focal, point[2]];
+}
+
 /** Scene-referred exposure multiplier: 18% grey at ~400 lux, ISO 800, f/2.8. */
 export function exposureGain(c: PlotCamera) {
   return (c.iso / 800) * (2.8 * 2.8) / (c.fstop * c.fstop) / 400;

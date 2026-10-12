@@ -37,3 +37,4 @@
 - The NOX brand mark has one source: src/components/NoxLogo.tsx draws it on screen and public/nox-logo.svg is rasterised into favicon/app icons with rsvg-convert; edit both together so the console header and the installed app icon stay identical.
 
 - Plot geometry edits share a browser-session unlock gate in plot-edit-session.ts, keeping approval across plot mounts without storing it in scene data.
+- Camera lens rendering and plotted view edges share the Z-up camera basis and tested screen projection helpers so camera tilt and orientation stay consistent.
