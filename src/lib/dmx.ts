@@ -250,9 +250,6 @@ export const getDef = (id: string) => DEF_BY_ID[id] ?? FALLBACK;
 /** Rebuilds the merged library + lookups so newly imported/removed custom fixtures show up without a reload.
  *  Built-in entries keep their original order and position — only the custom tail is replaced. */
 function refreshCustomFixtures() {
-  const builtInCount = FIXTURE_LIBRARY.findIndex((d) => d.id.startsWith("__custom-boundary__"));
-  const boundary = builtInCount === -1 ? FIXTURE_LIBRARY.length : builtInCount;
-  void boundary;
   const builtIns = FIXTURE_LIBRARY.filter((d) => !customIds.has(d.id));
   const next = customDefs();
   customIds = new Set(next.map((d) => d.id));

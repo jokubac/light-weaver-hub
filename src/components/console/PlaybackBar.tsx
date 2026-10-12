@@ -141,13 +141,13 @@ function CueDialog({ open, onOpenChange, cues, setCues, activeCue, onGoto, onRec
         <div className="space-y-1.5">
           {sorted.map((c) => (
             <div key={c.id} className={`grid grid-cols-[4rem_1fr_4.5rem_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-xs ${c.id === activeCue ? "bg-primary/15 ring-1 ring-primary" : "bg-surface-elevated"}`}>
-              <NumberField aria-label="Cue number" value={c.number} min={0} step={0.1} onChange={(v) => upd(c.id, { number: v })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-mono" />
+              <NumberField aria-label="Cue number" value={c.number} min={0} step={0.1} onChange={(v) => v != null && upd(c.id, { number: v })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-mono" />
               <div className="min-w-0 space-y-1">
                 <input value={c.name} onChange={(e) => upd(c.id, { name: e.target.value })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-semibold" />
                 <input value={c.note ?? ""} onChange={(e) => upd(c.id, { note: e.target.value })} placeholder="Note — e.g. actor enters, lamp on" className="w-full rounded border border-input bg-background px-1.5 py-1 text-muted-foreground" />
               </div>
               <label className="text-[10px] text-muted-foreground">Fade s
-                <NumberField aria-label="Fade seconds" value={c.fade} min={0} step={0.5} onChange={(v) => upd(c.id, { fade: v })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-mono text-foreground" />
+                <NumberField aria-label="Fade seconds" value={c.fade} min={0} step={0.5} onChange={(v) => v != null && upd(c.id, { fade: v })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-mono text-foreground" />
               </label>
               <div className="flex gap-1">
                 <Button size="icon" variant="secondary" aria-label={`Go to cue ${c.number}`} title="Go to this cue" onClick={() => onGoto(c.id)}><Play /></Button>
