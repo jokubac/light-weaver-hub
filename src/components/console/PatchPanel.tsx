@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
@@ -307,7 +307,7 @@ function List({ children }: { children: React.ReactNode }) {
   return <div className="space-y-1.5">{children}</div>;
 }
 
-function MoreSources({ fixtures, onAdd }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void }) {
+function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onPick: (d: FixtureDef) => void }) {
   const [open, setOpen] = useState(false);
   const [builder, setBuilder] = useState(false);
   const [gdtfMsg, setGdtfMsg] = useState<string | null>(null);
@@ -376,6 +376,7 @@ function MoreSources({ fixtures, onAdd }: { fixtures: PatchedFixture[]; onAdd: (
             <input ref={fileRef} type="file" accept=".gdtf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleGdtfFile(f); e.target.value = ""; }} />
             <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><FileUp className="h-3.5 w-3.5" />Import GDTF</button>
             <button onClick={() => setBuilder(true)} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Wrench className="h-3.5 w-3.5" />Fixture builder</button>
+            <button onClick={() => onPick(getDef("generic-dimmer"))} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Zap className="h-3.5 w-3.5" />Patch dimmer</button>
           </div>
           {gdtfMsg && <p className="text-[11px] text-muted-foreground">{gdtfMsg}</p>}
 

@@ -1,13 +1,13 @@
 import type { CallSheetData } from "@/lib/store";
 import { Fragment as Frag, useRef, useState } from "react";
-import { ArrowLeft, Printer, Download, Upload, ArrowUp, ArrowDown, Pencil, Unplug, ClipboardList, Zap } from "lucide-react";
+import { ArrowLeft, Printer, Download, Upload, ArrowUp, ArrowDown, Pencil, Unplug, ClipboardList, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NumberField } from "./NumberField";
 import { PatchPanel, LABEL_COLORS } from "./PatchPanel";
 import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
-import { createFixture, findFreeAddress, getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixture } from "@/lib/dmx";
+import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixture } from "@/lib/dmx";
 import { fixtureWattage } from "@/lib/callsheet";
 import { CallSheet } from "./CallSheet";
 
@@ -30,6 +30,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const [picked, setPicked] = useState<string[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [showCallSheet, setShowCallSheet] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
   const swapPosition = (i: number, j: number) => {
     const fs = [...fixtures]; const source = fs[i], target = fs[j];
     if (!source || !target || i === j) return;
@@ -46,23 +47,6 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const fileRef = useRef<HTMLInputElement>(null);
   const rows = fixtures;
   const totalW = fixtures.reduce((a, f) => a + fixtureWattage(f), 0);
-  const patchDimmers = () => {
-    const raw = prompt("How many 1-channel dimmers?", "1");
-    const qty = Math.max(0, Math.min(512, parseInt(raw ?? "", 10) || 0));
-    if (!qty) return;
-    const def = getDef("generic-dimmer");
-    const uRaw = prompt("Universe", String(fixtures[fixtures.length - 1]?.universe ?? 1));
-    const universe = Math.max(1, Math.min(64, parseInt(uRaw ?? "", 10) || 1));
-    const existing = fixtures.filter((f) => f.defId === def.id).length;
-    const added: PatchedFixture[] = [];
-    for (let i = 0; i < qty; i++) {
-      const addr = findFreeAddress([...fixtures, ...added], universe, 1);
-      if (addr == null) { alert(`Universe ${universe} is full — patched ${added.length} dimmers.`); break; }
-      added.push({ ...createFixture(def, 0, universe, addr, `Dimmer ${existing + i + 1}`), icon: "bulb" });
-    }
-    if (added.length) onAdd(added);
-  };
-
   const exportPatch = async () => {
     const data = JSON.stringify({ kind: "kroma-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
     const name = `${title.replace(/[^\w-]+/g, "_") || "patch"}.kroma-patch.json`;
@@ -96,7 +80,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
         <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">Patch</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
         <Button variant="secondary" onClick={() => window.print()} title="Print, or choose “Save as PDF” in the print dialog"><Printer />Print / PDF</Button>
-        <Button variant="secondary" onClick={patchDimmers} title="Patch single-channel dimmers"><Zap />Patch dimmer</Button>
+        <Button variant="secondary" onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Hide the fixture list to see the full patch sheet" : "Show the fixture list"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Hide fixtures" : "Add fixtures"}</Button>
         <Button variant="secondary" onClick={() => setShowCallSheet(true)}><ClipboardList />Equipment list</Button>
         <Button variant="secondary" onClick={exportPatch}><Download />Export</Button>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
@@ -172,9 +156,9 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             <datalist id="patch-groups">{groupNames.map((g) => <option key={g} value={g} />)}</datalist>
           )}
         </main>
-        <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden lg:max-h-none lg:w-[26rem] lg:border-l lg:border-t-0">
+        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden lg:max-h-none lg:w-[26rem] lg:border-l lg:border-t-0">
           <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap={false} showPatched={false} />
-        </aside>
+        </aside>}
       </div>
       {showCallSheet && <CallSheet title={title} data={callSheet} onData={onCallSheet} fixtures={fixtures} onClose={() => setShowCallSheet(false)} />}
     </div>
