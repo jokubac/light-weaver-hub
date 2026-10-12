@@ -1,4 +1,6 @@
 # Tasks
+- [x] Fixture numbers stay under the sticky console toolbar while scrolling; browser verified covered at z-20
+
 - [x] Keypad fixture settings Undo/Redo with grouped drags; 5 tests passed and browser verified 25 → 80 → Undo 25 → Redo 80
 - [x] Compact logo header; Live Plot Test menu for camera/meter; tested upright screen projection and tilted field-of-view edges, browser verified
 - [x] Remove standalone Live Plot unlock button, retaining first-edit approval; browser and session tests verified

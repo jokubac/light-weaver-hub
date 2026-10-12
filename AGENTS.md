@@ -40,3 +40,4 @@
 - Camera lens rendering and plotted view edges share the Z-up camera basis and tested screen projection helpers so camera tilt and orientation stay consistent.
 
 - Fixture setting history uses the transfer whitelist and groups pointer gestures; playback/battery updates bypass history so Undo never repatches fixtures or records output frames.
+- The console toolbar layer (sticky Select all/Sweep/REC bar) sits above the fixture number badges, so scrolled numbers slide under it instead of painting over it.
