@@ -24,7 +24,7 @@
 - Live-plot edit history stores plot and light-control snapshots, grouping pointer gestures as single edits so undo does not step through every drag frame.
 - Fixture settings transfer uses an explicit whitelist in fixture-settings.ts, excluding identity, patch, grouping, position and power to prevent accidental repatching.
 - PaletteEditor shares CCT/HSI/gel editing across fixture and pixel effects; generated pixel effects opt into custom palettes to preserve older saved looks.
-- FixtureGlyph renders browser-safe SVG fixture bodies from optional validated PatchedFixture.icon overrides, preserved by normalization and edited through FixtureIconPicker; icon choices never alter DMX definitions or saved mode indices.
+- FixtureGlyph uses validated, normalized PatchedFixture.icon overrides edited through FixtureIconPicker; icons never change DMX modes.
 - Complete named setups are immutable Scene snapshots under Project.setups; restore replaces scene content but preserves scene identity so walls, fixture angles and all effects travel together.
 - Plot camera state is an optional Scene.plot.view field and persists outside geometry undo history, keeping older saved projects compatible.
 - Fixture grid columns use the available console container width rather than viewport width so the control panel cannot squeeze square tiles.
@@ -36,8 +36,9 @@
 - Stage size remains a legacy framing/image reference, never a placement boundary; beam textures cover bounded fixture-local extents to keep unrestricted plots affordable.
 - Pixel preview gestures affect viewport tilt/rotation only, preserving logical pixel addressing and DMX output.
 - Connection health measures bridge HTTP responsiveness with a slow threshold and timeout, not wireless fixture reception.
-- Console position swaps reorder whole fixture entries in the saved scene array without editing fixture identity, DMX patch, settings or pixel-layer order, so layout changes cannot repatch lights.
+- Console swaps and Patch number edits reorder whole fixture entries, never identity, DMX patch, settings or pixel layers.
 - Emergency blackout sits to the right of the master fader with an output-enabled bulb indicator; full group management and saved looks share the collapsible right rail so neither needs a view tab.
-- Plot cameras use the canvas placement and hit-testing flow with height-aware dragging and snapshot undo; a compact selector keeps camera editing and confirmed removal reachable regardless of camera count.
+- Plot cameras use height-aware canvas placement and hit-testing; a selector keeps editing and confirmed removal reachable.
 - REC steps reuse LookState snapshots (Project.recordings); src/lib/recordings.ts blends them by fade/hold timing.
 - Patch page is a console overlay, not a route, so it edits live fixture state.
+- Plot fixture/object/camera selection IDs stay separate; mixed moves and removals commit one snapshot for atomic undo.
