@@ -52,8 +52,8 @@ export function Keypad({ count, onRun, onStep, onClose }: Props) {
         <button onClick={() => onStep(-1)} className={k}>LAST</button>
         <button onClick={() => onStep(1)} className={k}>NEXT</button>
         <button onClick={() => press("OUT")} className={`${k} text-primary`}>OUT</button>
-        <button onClick={() => press("CCT")} className={`${k} col-span-4 text-primary`}>CCT (kelvin)</button>
-        <button onClick={run} className="rounded-lg bg-primary py-3 text-sm font-black text-primary-foreground active:scale-95">ENTER</button>
+        <button onClick={() => press("CCT")} className={`${k} col-span-4 text-primary`}>CCT</button>
+        <button onClick={run} className="rounded-lg bg-primary py-3 text-sm font-black text-primary-foreground active:scale-95">Please</button>
       </div>
     </div>
   );
