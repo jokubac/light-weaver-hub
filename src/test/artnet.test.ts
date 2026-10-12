@@ -13,12 +13,12 @@ describe("artnet packet builders", () => {
     const id = Array.from(pkt.slice(0, 7)).map((c) => String.fromCharCode(c)).join("");
     expect(id).toBe("Art-Net");
     expect(pkt[7]).toBe(0);
-    expect(pkt[8] | (pkt[9] << 8)).toBe(0x5000); // OpOutput
+    expect(pkt[8]! | (pkt[9]! << 8)).toBe(0x5000); // OpOutput
     expect(pkt[10]).toBe(0); expect(pkt[11]).toBe(14); // ProtVer BE = 14
     expect(pkt[12]).toBe(7); // sequence
     expect(pkt[13]).toBe(0); // physical
     expect(pkt[14]).toBe(0); expect(pkt[15]).toBe(0); // universe 1 -> port 0
-    expect((pkt[16] << 8) | pkt[17]).toBe(512); // length BE
+    expect((pkt[16]! << 8) | pkt[17]!).toBe(512); // length BE
     expect(pkt.slice(18)).toEqual(data);
   });
 
@@ -30,7 +30,7 @@ describe("artnet packet builders", () => {
   it("builds an ArtPoll packet", () => {
     const pkt = buildArtPoll();
     expect(pkt.length).toBe(14);
-    expect(pkt[8] | (pkt[9] << 8)).toBe(0x2000);
+    expect(pkt[8]! | (pkt[9]! << 8)).toBe(0x2000);
     expect(pkt[12]).toBe(0x06);
   });
 
@@ -60,10 +60,10 @@ describe("artnet packet builders", () => {
     const data = new Uint8Array(512).fill(99);
     const pkt = buildSacn(5, data, 3, cid);
     expect(pkt.length).toBe(126 + 512);
-    expect((pkt[0] << 8) | pkt[1]).toBe(0x0010); // preamble size
+    expect((pkt[0]! << 8) | pkt[1]!).toBe(0x0010); // preamble size
     expect(pkt.slice(22, 38)).toEqual(cid);
     expect(pkt[111]).toBe(3); // sequence
-    expect((pkt[113] << 8) | pkt[114]).toBe(5); // universe
+    expect((pkt[113]! << 8) | pkt[114]!).toBe(5); // universe
     expect(pkt.slice(126)).toEqual(data);
   });
 

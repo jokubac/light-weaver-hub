@@ -37,7 +37,7 @@ export function buildArtPoll(): Uint8Array {
   return out;
 }
 
-export interface ArtPollReplyInfo { ip: string; name: string; universes?: number }
+export interface ArtPollReplyInfo { ip: string; name: string; universes?: number | undefined }
 
 /** Parses an ArtPollReply; returns null if the buffer isn't one. */
 export function parseArtPollReply(msg: Uint8Array, fromIp: string): ArtPollReplyInfo | null {
