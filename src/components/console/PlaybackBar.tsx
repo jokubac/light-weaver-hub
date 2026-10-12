@@ -86,7 +86,7 @@ export function PlaybackBar(p: PlaybackProps) {
   );
 }
 
-function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave }: PlaybackProps & { i: number; fd?: BankFader; onClose: () => void; onSave: (fd: BankFader | null) => void }) {
+function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave }: PlaybackProps & { i: number; fd?: BankFader | undefined; onClose: () => void; onSave: (fd: BankFader | null) => void }) {
   const [kind, setKind] = useState<BankFader["kind"]>(fd?.kind ?? (groups.length ? "group" : "fixtures"));
   const [ref, setRef] = useState(fd?.ref ?? (kind === "group" ? groups[0] ?? "" : looks[0]?.id ?? ""));
   const [name, setName] = useState(fd?.name ?? "");

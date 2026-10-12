@@ -5,6 +5,7 @@ import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
 import { Box, Eraser, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X, DoorOpen, PanelsTopLeft, Undo2, Redo2, Armchair, UserRound, LampDesk, LockKeyhole, Unlock, ListChecks } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
+import { illuminanceAt, lux3m as lux3mOf, footcandles, shutterSeconds, tStopFor, roundToThirdStop, stopsDifference, type MeterLight } from "@/lib/photometry";
 import { fixtureWatts } from "@/lib/power";
 import { OPTICS, OPTIC_BY_ID, defaultOptic, type Optic } from "@/lib/optics";
 import { ColourControls } from "./ColourControls";
@@ -12,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { wallSegments, openingBounds, wallPanels, rayBlocked, segmentDistance, type Opening } from "@/lib/plot-geometry";
 import { editHistory } from "@/lib/edit-history";
 import { CameraView } from "./CameraView";
-import { FSTOPS, ISOS, LENSES, SENSORS, defaultCamera, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
-import { Video } from "lucide-react";
+import { FSTOPS, ISOS, LENSES, SENSORS, FPS_OPTIONS, SHUTTER_ANGLES, defaultCamera, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
+import { Video, Gauge } from "lucide-react";
 import { SET_OBJECTS, objectContains, type SetObject, type SetObjectKind } from "@/lib/plot-objects";
 import { hexToHs } from "@/lib/gels";
 import { SettingsTransfer } from "./SettingsTransfer";
@@ -33,11 +34,12 @@ export interface Plot {
   openings?: Opening[];
   objects?: SetObject[];
   cameras?: PlotCamera[];
+  meters?: { id: string; x: number; y: number; z: number; floor?: number }[];
   view?: { view3d: boolean; yaw: number; pitch: number; zoom: number; pan: [number, number]; active: number };
 }
 export const emptyPlot = (): Plot => ({ strokes: [], items: {}, size: [20, 14] });
 
-type Tool = "move" | "pan" | "draw" | "rect" | "erase" | "door" | "window" | "fixture" | "object" | "camera";
+type Tool = "move" | "pan" | "draw" | "rect" | "erase" | "door" | "window" | "fixture" | "object" | "camera" | "meter";
 type Mat = [number, number, number, number, number, number];
 interface View { m: Mat; zs: number }
 type Drag =

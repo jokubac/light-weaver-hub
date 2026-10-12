@@ -5,10 +5,10 @@ import { blend } from "./recordings";
 
 export const BANK_SIZE = 6;
 
-export const lookStateOf = (f: PatchedFixture): LookState => ({
-  intensity: f.intensity, cct: f.cct, gm: f.gm, hue: f.hue, saturation: f.saturation, crossfade: f.crossfade,
-  cctOnly: f.cctOnly, fx: f.fx, on: f.on, fxPlaying: f.fxPlaying, fan: f.fan, gel: f.gel,
-});
+export const lookStateOf = (f: PatchedFixture): LookState => {
+  const { intensity, cct, gm, hue, saturation, crossfade, cctOnly, fx, on, fxPlaying, fan, gel } = f;
+  return JSON.parse(JSON.stringify({ intensity, cct, gm, hue, saturation, crossfade, cctOnly, fx, on, fxPlaying, fan, gel })) as LookState;
+};
 
 export function faderMembers(fd: BankFader, fixtures: PatchedFixture[], looks: Look[]): Set<string> {
   if (fd.kind === "group") return new Set(fixtures.filter((f) => f.group === fd.ref).map((f) => f.uid));
