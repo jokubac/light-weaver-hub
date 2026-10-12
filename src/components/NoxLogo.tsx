@@ -63,15 +63,3 @@ export function NoxLogo({
     </svg>
   );
 }
-
-/** Logotipas + „NOX" užrašas, naudojamas viršutinėje juostoje. */
-export function NoxWordmark({ className = "h-8 w-8" }: { className?: string }) {
-  return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      <NoxLogo className="h-full w-full shrink-0" title="NOX" />
-      <span className="font-display kroma-wordmark text-2xl font-extrabold leading-none text-primary">
-        NOX
-      </span>
-    </span>
-  );
-}
