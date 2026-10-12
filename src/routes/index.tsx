@@ -44,6 +44,9 @@ import { snapshot } from "@/components/console/LooksPanel";
 import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
+import { EffectsRail } from "@/components/console/EffectsRail";
+import { NumberField } from "@/components/console/NumberField";
+import { commandPatch, inverseFlash } from "@/lib/console-command";
 import { Keypad } from "@/components/console/Keypad";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
@@ -398,7 +401,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [fadersOpen, setFadersOpen] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
-  const [pulses, setPulses] = useState<Record<string, number>>({});
+  const [pulses, setPulses] = useState<Record<string, { at: number; base: number; target: number }>>({});
+  const [activePixelId, setActivePixelId] = useState(scene.pixelLayers?.[0]?.id ?? "");
+  const activePixel = layers.find((l) => l.id === activePixelId) ?? layers[0];
   const [t, setT] = useState(0);
   const clock = useRef(0);
 
@@ -710,35 +715,32 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
     const ids = Object.keys(pulses);
     if (!ids.length) return out;
-    // Flash: 0.5 s fade up to full, 0.5 s fade back (output only)
     const now = performance.now();
     return out.map((f) => {
-      const st = pulses[f.uid];
-      if (st == null) return f;
-      const e = (now - st) / 1000;
-      if (e >= 1) return f;
-      const env = e < 0.5 ? e / 0.5 : 1 - (e - 0.5) / 0.5;
-      const base = f.on === false ? 0 : f.intensity;
-      return { ...f, on: true, intensity: base + (1 - base) * env };
+      const pulse = pulses[f.uid];
+      return pulse ? inverseFlash(f, (now - pulse.at) / 1000, pulse.base, pulse.target) : f;
     });
   }, [fixtures, bank, project.looks, flash, solo, pulses, t]);
   useEffect(() => {
-    const ids = Object.keys(pulses);
-    if (!ids.length) return;
-    const id = setTimeout(() => { const now = performance.now(); setPulses((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => now - v < 1000))); }, 1050);
+    if (!Object.keys(pulses).length) return;
+    const id = setTimeout(() => { const now = performance.now(); setPulses((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => now - v.at < 1000))); }, 1050);
     return () => clearTimeout(id);
   }, [pulses]);
-  const flashFixtures = (uids: string[]) => { const now = performance.now(); setPulses((p) => ({ ...p, ...Object.fromEntries(uids.map((u) => [u, now])) })); };
-  const runCommand = (select: number[] | undefined, level: number | undefined, cct?: number) => {
+  const flashFixtures = (uids: string[]) => {
+    const now = performance.now();
+    setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => uids.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target: f.on === false ? 1 : 0 }])) }));
+  };
+  const runCommand = (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number) => {
     const ids = select ? select.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x) : selected;
     if (select) { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }
-    if (level != null) setFixtures((fs) => fs.map((f) => (ids.includes(f.uid) ? { ...f, intensity: level, on: true } : f)));
-    if (cct != null) setFixtures((fs) => fs.map((f) => (ids.includes(f.uid) ? { ...f, cct: Math.min(1, Math.max(0, cctFromKelvin(cct))), saturation: 0, crossfade: 0 } : f)));
+    const command = { ...(level != null ? { level } : {}), ...(cct != null ? { cct } : {}), ...(levelDelta != null ? { levelDelta } : {}), ...(cctDelta != null ? { cctDelta } : {}) };
+    setFixtures((fs) => fs.map((f) => ids.includes(f.uid) ? { ...f, ...commandPatch(f, command) } : f));
   };
   const stepLight = (dir: 1 | -1) => {
     if (!fixtures.length) return;
     const cur = lastPick.current ? fixtures.findIndex((f) => f.uid === lastPick.current) : -1;
-    const next = fixtures[(cur + dir + fixtures.length) % fixtures.length]!;
+    const next = fixtures[(cur + dir + fixtures.length) % fixtures.length];
+    if (!next) return;
     setSelected([next.uid]); lastPick.current = next.uid;
   };
   const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
@@ -825,7 +827,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-amber-glow">MASTER</span>
           <input aria-label="Master" type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
-          <span className="w-9 text-right font-mono text-xs">{Math.round(master * 100)}%</span>
+          <NumberField aria-label="Master percent" min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
           <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
             {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
             {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
@@ -957,7 +959,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
           ) : panel === "pixels" ? (
-            <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} setLayers={(next) => {
+            <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
               const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
               if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
               setLayers(next);
@@ -982,6 +984,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
             <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
+            <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+              if (!activePixel) return;
+              const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
+              setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
+            }} />
             <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
           </aside>
         )}

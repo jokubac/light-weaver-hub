@@ -1098,8 +1098,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           </div>
           {/* view */}
           <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-3 rounded-lg bg-surface/90 p-2 text-[10px] text-muted-foreground">
-            <label className="flex items-center gap-2">Turn <input type="range" min={-180} max={180} value={yaw} onChange={(e) => setYaw(+e.target.value)} className="w-24" /></label>
-            {view3d && <label className="flex items-center gap-2">Tilt <input type="range" min={15} max={89} value={pitch} onChange={(e) => setPitch(+e.target.value)} className="w-20" /></label>}
+            <label className="flex items-center gap-2">Turn <input type="range" min={-180} max={180} value={yaw} onChange={(e) => setYaw(+e.target.value)} className="w-24" /><NumberField aria-label="Plot turn degrees" value={yaw} min={-180} max={180} onChange={(v) => { if (v !== undefined) setYaw(v); }} className="w-12 rounded border border-input bg-surface-elevated px-1" /></label>
+            {view3d && <label className="flex items-center gap-2">Tilt <input type="range" min={15} max={89} value={pitch} onChange={(e) => setPitch(+e.target.value)} className="w-20" /><NumberField aria-label="Plot tilt degrees" value={pitch} min={15} max={89} onChange={(v) => { if (v !== undefined) setPitch(v); }} className="w-12 rounded border border-input bg-surface-elevated px-1" /></label>}
             <div className="flex items-center gap-1">
               <button onClick={() => zoomAt(zoom / 1.25, dims.w / 2, dims.h / 2)} className="rounded-md bg-surface-elevated p-1.5" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
               <span className="w-10 text-center font-mono">{Math.round(zoom * 100)}%</span>
