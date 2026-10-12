@@ -10,6 +10,7 @@ import { FixtureGlyph } from "./FixtureGlyph";
 import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixture } from "@/lib/dmx";
 import { fixtureWattage } from "@/lib/callsheet";
 import { CallSheet } from "./CallSheet";
+import { NoxLogo } from "@/components/NoxLogo";
 
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
 export function describeDef(d: FixtureDef): { type: string; cct: string } {
@@ -85,10 +86,10 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <Button variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Hide the fixture list to see the full patch sheet" : "Show the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Hide fixtures" : "Add fixtures"}</Button>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <main className="patch-print min-h-0 flex-1 overflow-auto p-4">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h1 className="font-display text-xl font-semibold">{title} — Patch sheet</h1>
+          <div className="mb-3 flex items-center justify-between gap-3 print:mb-2 print:border-b print:pb-2">
+            <div className="flex min-w-0 items-center gap-2"><NoxLogo className="hidden h-8 w-8 shrink-0 print:block" /><h1 className="truncate font-display text-xl font-semibold print:text-base">{title} — Patch sheet</h1></div>
             <span className="text-xs text-muted-foreground">{fixtures.length} fixtures{totalW ? ` · ${totalW} W` : ""} · {new Date().toLocaleDateString()}</span>
           </div>
           {rows.length > 0 && (
@@ -105,9 +106,9 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             </div>
           )}
           {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet.</p> : (
-            <table className="w-full border-collapse text-xs">
+            <table className="w-full border-collapse text-xs print:text-[9px]">
               <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2"></th><th className="pr-2">Name</th><th className="pr-2">Fixture</th><th className="pr-2">Type</th><th className="pr-2">CCT</th><th className="pr-2">Mode</th><th className="pr-2">Univ</th><th className="pr-2">DMX</th><th className="pr-2">Ch</th><th className="pr-2">Group</th><th className="pr-2">W</th><th className="print:hidden"></th>
+                <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2 print:hidden"></th><th className="pr-2">Name</th><th className="pr-2">Fixture</th><th className="pr-2">Mode</th><th className="pr-2">Univ</th><th className="pr-2">DMX</th><th className="pr-2">Ch</th><th className="pr-2 print:hidden">Group</th><th className="pr-2 print:hidden">W</th><th className="print:hidden"></th>
               </tr></thead>
               <tbody>
                 {rows.map((f, i) => {
@@ -115,27 +116,25 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                   const clash = overlaps(fixtures, f.universe, f.address, ch, f.uid).length > 0;
                   return (
                     <Frag key={f.uid}><tr className={`border-b border-border/60 break-inside-avoid ${picked.includes(f.uid) ? "bg-muted/60" : ""}`}>
-                      <td className="pr-2 print:hidden"><Checkbox checked={picked.includes(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6 rounded-md border-input bg-surface-elevated shadow-none data-[state=checked]:border-muted-foreground data-[state=checked]:bg-muted data-[state=checked]:text-foreground" /></td>
-                      <td className="py-1.5 pr-2 text-muted-foreground"><NumberField integer min={1} max={fixtures.length} value={i + 1} onChange={(v) => { if (v !== undefined) swapPosition(i, v - 1); }} aria-label={`Fixture number for ${f.name}`} className="w-12 rounded-md border border-input bg-surface-elevated px-1.5 py-1.5 text-center font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring print:hidden" /><span className="hidden print:inline">{i + 1}</span></td>
-                      <td className="pr-2"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
+                      <td className="pr-2 print:hidden"><Checkbox checked={picked.includes(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6" /></td>
+                      <td className="py-1.5 pr-2 text-muted-foreground print:py-0.5"><NumberField integer min={1} max={fixtures.length} value={i + 1} onChange={(v) => { if (v !== undefined) swapPosition(i, v - 1); }} aria-label={`Fixture number for ${f.name}`} className="w-12 rounded-md border border-input bg-surface-elevated px-1.5 py-1.5 text-center font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring print:hidden" /><span className="hidden print:inline">{i + 1}</span></td>
+                      <td className="pr-2 print:hidden"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
                         <input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} aria-label="Fixture name" className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" /></td>
                       <td className="pr-2">{d.brand} {d.model}</td>
-                      <td className="pr-2 whitespace-nowrap text-muted-foreground">{describeDef(d).type}</td>
-                      <td className="pr-2 whitespace-nowrap font-mono">{describeDef(d).cct}</td>
                       <td className="pr-2 text-muted-foreground">{m?.name}</td>
                       <td className="pr-2 font-mono">{f.universe}</td>
                       <td className={`pr-2 font-mono ${clash ? "text-destructive" : ""}`}>{f.address}–{f.address + ch - 1}</td>
                       <td className="pr-2 font-mono">{ch}</td>
-                      <td className="pr-2">{f.group ?? ""}</td>
-                      <td className="pr-2 font-mono">{fixtureWattage(f)}</td>
+                      <td className="pr-2 print:hidden">{f.group ?? ""}</td>
+                      <td className="pr-2 font-mono print:hidden">{fixtureWattage(f)}</td>
                       <td className="whitespace-nowrap print:hidden">
                         <button disabled={i === 0} onClick={() => move(i, -1)} className="p-1 disabled:opacity-30" aria-label={`Move ${f.name} up`}><ArrowUp className="h-3.5 w-3.5" /></button>
                         <button disabled={i === rows.length - 1} onClick={() => move(i, 1)} className="p-1 disabled:opacity-30" aria-label={`Move ${f.name} down`}><ArrowDown className="h-3.5 w-3.5" /></button>
                         <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
                       </td>
                     </tr>
-                    {editing === f.uid && <tr className="print:hidden"><td colSpan={14} className="bg-surface p-3">
+                    {editing === f.uid && <tr className="print:hidden"><td colSpan={12} className="bg-surface p-3">
                       <div className="grid gap-3 md:grid-cols-2">
                         <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                         <div className="space-y-2">
@@ -155,7 +154,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             <datalist id="patch-groups">{groupNames.map((g) => <option key={g} value={g} />)}</datalist>
           )}
         </main>
-        {panelOpen && <aside className="max-h-[60vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden">
+        {panelOpen && <aside className="max-h-[60vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-3 print:hidden lg:max-h-none lg:w-[min(46vw,560px)] lg:border-l lg:border-t-0">
           <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap showPatched={false} />
         </aside>}
       </div>

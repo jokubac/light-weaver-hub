@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import { useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
@@ -188,8 +189,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
               return (
                 <div key={f.uid} className={`rounded-md ${on ? "bg-destructive/20 ring-1 ring-destructive" : "bg-surface-elevated"}`}>
                   <div className="flex items-center gap-2 px-2 py-1.5 text-xs">
-                    <button onClick={() => setUnpick((u) => (on ? u.filter((x) => x !== f.uid) : [...u, f.uid]))} aria-label={`Pick ${f.name}`}
-                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${on ? "border-destructive bg-destructive text-destructive-foreground" : "border-input"}`}>{on ? "✓" : ""}</button>
+                    <Checkbox checked={on} onCheckedChange={() => setUnpick((u) => (on ? u.filter((x) => x !== f.uid) : [...u, f.uid]))} aria-label={`Pick ${f.name}`} />
                     {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
                     <FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-7 w-9 shrink-0" />
                     <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
