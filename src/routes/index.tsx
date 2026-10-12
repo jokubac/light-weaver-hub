@@ -37,7 +37,7 @@ import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
-import { RecRail, RecDialog } from "@/components/console/RecRail";
+import { RecRail, RecDialog, RecEditor } from "@/components/console/RecRail";
 import { PatchPage } from "@/components/console/PatchPage";
 import { statesAt } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
@@ -603,12 +603,14 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   recRef.current = recordings;
   const [recOpen, setRecOpen] = useState(false);
   const [patchOpen, setPatchOpen] = useState(false);
-  const [play, setPlay] = useState<{ id: string; start: number; origin: Map<string, LookState> } | null>(null);
+  const [play, setPlay] = useState<{ id: string; start: number; origin: Map<string, LookState>; pausedAt?: number } | null>(null);
+  const [recEditor, setRecEditor] = useState(false);
+  const recHold = useRef<{ timer: ReturnType<typeof setTimeout> | null; fired: boolean }>({ timer: null, fired: false });
   const [recProg, setRecProg] = useState<{ t: number; step: number } | null>(null);
   const fixturesRef = useRef(fixtures);
   fixturesRef.current = fixtures;
   useEffect(() => {
-    if (!play) return;
+    if (!play || play.pausedAt != null) return;
     const id = setInterval(() => {
       const rec = recRef.current.find((r) => r.id === play.id);
       const t = (performance.now() - play.start) / 1000;
@@ -620,7 +622,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [play]);
-  const playRec = (id: string) => setPlay({ id, start: performance.now(), origin: new Map(fixtures.map((f) => [f.uid, snapshot(f)])) });
+  const playRec = (id: string) => {
+    if (play?.id === id && play.pausedAt != null) { setPlay({ ...play, start: performance.now() - play.pausedAt * 1000, pausedAt: undefined }); return; }
+    setPlay({ id, start: performance.now(), origin: new Map(fixtures.map((f) => [f.uid, snapshot(f)])) });
+  };
+  const pauseRec = () => { if (play && play.pausedAt == null) setPlay({ ...play, pausedAt: (performance.now() - play.start) / 1000 }); };
+  const stopRec = () => { setPlay(null); setRecProg(null); };
   const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
   const pasteSettings = () => {
     if (!copied) return;
@@ -738,10 +745,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
       )}
       {patchOpen && (
-        <PatchPage title={`${project.name} · ${scene.name}`} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne}
+        <PatchPage title={`${project.name} · ${scene.name}`} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}
           onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
           onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
       )}
+      <RecEditor open={recEditor} onOpenChange={setRecEditor} recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel}
+        playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} src={sel.length ? sel : fixtures} recordings={recordings} setRecordings={onRecordings} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
       <SettingsDialog onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
@@ -766,7 +775,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
                  <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
                   className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
-                 <Button variant="secondary" aria-label="Record selected lights" title="REC — record the selected lights (all lights when none selected)" onClick={() => setRecOpen(true)} className="gap-1.5 px-3 text-xs font-bold">
+                 <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
+                   onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
+                   onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
+                   onContextMenu={(e) => e.preventDefault()}
+                   onClick={() => { if (!recHold.current.fired) setRecOpen(true); }} className="gap-1.5 px-3 text-xs font-bold select-none">
                    <span className={`h-2.5 w-2.5 rounded-full bg-destructive ${play ? "animate-pulse" : ""}`} />REC
                  </Button>
                  <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={locked ? "" : "bg-amber-glow text-primary-foreground"}>
@@ -850,7 +863,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
             <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
-            <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} progress={recProg} onPlay={playRec} onStop={() => { setPlay(null); setRecProg(null); }} />
+            <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
           </aside>
         )}
       </div>
