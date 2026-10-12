@@ -394,6 +394,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [savedFlash, setSavedFlash] = useState(false);
   const [setupsOpen, setSetupsOpen] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(true);
+  const [fadersOpen, setFadersOpen] = useState(false);
   const [t, setT] = useState(0);
   const clock = useRef(0);
 
@@ -790,6 +791,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         <Button variant="secondary" onClick={() => setPatchOpen(true)} className="text-xs font-bold">PATCH</Button>
         {tab("control", "CONTROL")}
         {tab("pixels", "PIXELS")}
+        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
+          className={`rounded-lg px-3 py-2.5 text-xs font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => setPlotOpen(true)} className="text-xs font-bold"><MapIcon />PLOT</Button>
         {<Button variant="ghost" size="icon" className="ml-auto" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
@@ -930,9 +933,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
         )}
       </div>
-      <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
+      {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
-        onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />
+        onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />}
     </div>
   );
 }
