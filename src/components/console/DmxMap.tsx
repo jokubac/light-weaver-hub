@@ -18,8 +18,8 @@ export function DmxMap({ fixtures, universe, planned = [], onPick, highlight }: 
         <span>Universe {universe} · {used}/512 used{onPick ? " · tap a channel to set the address" : ""}</span>
         <span className={clashes ? "font-bold text-destructive" : "text-success"}>{clashes ? `${clashes} ch clash` : "No clashes"}</span>
       </div>
-      <div className="overflow-x-auto rounded-md border border-border">
-      <div className="grid min-w-[640px] grid-cols-[repeat(32,minmax(0,1fr))] gap-px bg-border p-px">
+      <div className="rounded-md border border-border">
+      <div className="grid w-full grid-cols-[repeat(32,minmax(0,1fr))] gap-px bg-border p-px">
         {Array.from({ length: 512 }, (_, k) => {
           const ch = k + 1;
           const o = owners[ch] ?? [];
@@ -37,7 +37,7 @@ export function DmxMap({ fixtures, universe, planned = [], onPick, highlight }: 
                 : "var(--color-surface-elevated)";
           return (
             <div key={ch} onClick={onPick ? () => onPick(ch) : undefined} title={`${ch}${f ? ` · ${o.map((i) => inU[i]?.name ?? "").join(" + ")}` : isPlan ? " · new" : ""}`}
-              className={`flex h-6 items-center justify-center font-mono text-[8px] ${onPick ? "cursor-pointer hover:outline hover:outline-2 hover:outline-primary " : ""}${f && highlight === f.uid ? "outline outline-2 outline-foreground " : ""}${f || clash || isPlan ? "font-bold text-background" : "text-muted-foreground"}`} style={{ background: bg }}>{ch}</div>
+              className={`flex aspect-[4/3] items-center justify-center font-mono text-[clamp(8px,1.1vw,12px)] ${onPick ? "cursor-pointer hover:outline hover:outline-2 hover:outline-primary " : ""}${f && highlight === f.uid ? "outline outline-2 outline-foreground " : ""}${f || clash || isPlan ? "font-bold text-background" : "text-muted-foreground"}`} style={{ background: bg }}>{ch}</div>
           );
         })}
       </div>
