@@ -90,7 +90,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             {universes.map((u) => (
               <button key={u} onClick={() => setMapU(u)} className={`rounded px-2 py-1 font-mono text-[11px] ${mapU === u ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>U{u}</button>
             ))}
-            <NumberField integer min={1} max={64} value={mapU} onChange={(v) => v && setMapU(v)} className="w-14 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Universe" />
+            <NumberField integer min={1} max={128} value={mapU} onChange={(v) => v && setMapU(v)} className="w-14 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Universe" />
           </div>
           <DmxMap fixtures={fixtures} universe={mapU} />
         </div>
@@ -206,7 +206,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
                         </select>
                       </Field>
                       <div className="grid grid-cols-2 gap-2">
-                        <Field label="Universe"><NumberField integer min={1} max={64} value={f.universe} onChange={(v) => v && onUpdate(f.uid, { universe: v })} className={inputCls} /></Field>
+                        <Field label="Universe"><NumberField integer min={1} max={128} value={f.universe} onChange={(v) => v && onUpdate(f.uid, { universe: v })} className={inputCls} /></Field>
                         <Field label="Address"><NumberField integer min={1} max={512} value={f.address} onChange={(v) => v && onUpdate(f.uid, { address: Math.min(v, 513 - ch) })} className={inputCls} /></Field>
                       </div>
                       {clash.length > 0 && <p className="flex gap-1.5 text-[11px] text-destructive"><AlertTriangle className="h-3.5 w-3.5" />Overlaps {clash.map((c) => c.name).join(", ")}</p>}
@@ -271,7 +271,7 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Universe"><NumberField integer min={1} max={64} value={universe} onChange={(v) => v && changeUniverse(v)} className={inputCls} /></Field>
+        <Field label="Universe"><NumberField integer min={1} max={128} value={universe} onChange={(v) => v && changeUniverse(v)} className={inputCls} /></Field>
         <Field label="Start address"><NumberField integer min={1} max={512} value={address} onChange={(v) => v && setAddress(v)} className={inputCls} /></Field>
         <Field label="Quantity"><NumberField integer min={1} max={256} value={qty} onChange={(v) => v && setQty(v)} className={inputCls} /></Field>
         <Field label="Offset (gap ch)"><NumberField integer min={0} max={100} value={offset} onChange={(v) => setOffset(v ?? 0)} className={inputCls} /></Field>
@@ -384,7 +384,7 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
             <div className="flex items-center gap-1.5">
               <Radar className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-[11px] font-semibold">RDM scan</span>
-              <NumberField integer min={1} max={64} value={rdmUniverse} onChange={(v) => v && setRdmUniverse(v)} className="ml-auto w-14 rounded border border-input bg-surface-elevated px-1 text-[11px]" aria-label="Universe" />
+              <NumberField integer min={1} max={128} value={rdmUniverse} onChange={(v) => v && setRdmUniverse(v)} className="ml-auto w-14 rounded border border-input bg-surface-elevated px-1 text-[11px]" aria-label="Universe" />
               <button onClick={() => void runScan()} disabled={scanning} className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-40">{scanning ? "Scanning…" : "Scan"}</button>
             </div>
             {rdmError && <p className="text-[11px] text-destructive">{rdmError}</p>}

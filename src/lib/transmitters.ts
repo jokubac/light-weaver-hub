@@ -23,7 +23,7 @@ const T = (brand: string, model: string, universes: number, radio: string[], o: 
 });
 
 export const TRANSMITTERS: Transmitter[] = [
-  T("LumenRadio", "CRMX Stardust", 1, ["CRMX Classic", "CRMX2"]),
+  T("LumenRadio", "CRMX Stardust", 8, ["CRMX Classic", "CRMX2"]),
   T("LumenRadio", "Aurora Multiverse", 4, ["CRMX2", "CRMX Classic"]),
   T("LumenRadio", "Moon Multiverse", 4, ["CRMX2"]),
   T("Astera", "ART7 AsteraBox", 1, ["CRMX", "Astera Wireless"], { artnetStart: 0 }),
