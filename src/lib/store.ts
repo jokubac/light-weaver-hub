@@ -23,6 +23,23 @@ export interface Look {
   states: { uid: string; name: string; state: LookState }[];
 }
 
+/** One step of a REC sequence: fixture states plus timing in seconds. */
+export interface RecStep {
+  id: string;
+  name: string;
+  states: { uid: string; name: string; state: LookState }[];
+  fadeIn: number;
+  hold: number;
+  fadeOut: number;
+}
+export interface Recording {
+  id: string;
+  name: string;
+  createdAt: number;
+  loop?: boolean;
+  steps: RecStep[];
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -31,6 +48,7 @@ export interface Project {
   scenes: Scene[];
   looks?: Look[];
   setups?: Scene[]; // named, complete scene snapshots shared within this project
+  recordings?: Recording[];
 }
 
 export const PROJECT_COLORS = ["#00E5FF", "#00E676", "#FFEA00", "#FF9100", "#FF3D00", "#F50057", "#D500F9", "#651FFF", "#2979FF", "#BDBDBD"];

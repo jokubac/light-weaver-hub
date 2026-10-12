@@ -123,3 +123,9 @@ input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius
 
 .kroma-wordmark { letter-spacing: 0; text-shadow: var(--wordmark-glow); }
 .bulb-lit { fill: color-mix(in oklab, var(--primary) 25%, transparent); filter: drop-shadow(var(--bulb-glow)); }
+
+@media print {
+  body * { visibility: hidden; }
+  .patch-print, .patch-print * { visibility: visible; color: #000 !important; }
+  .patch-print { position: absolute; inset: 0; overflow: visible !important; background: #fff; }
+}

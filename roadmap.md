@@ -40,3 +40,5 @@
 - [x] Plot: car with windows, tree
 - [x] Plot camera with lens/iris/ISO and camera view
 - [x] Blackout beside master fader; looks in the groups rail
+- [x] Patch as its own page with print/PDF, export and import
+- [x] REC sequences with steps, fades and hold in the side rail
