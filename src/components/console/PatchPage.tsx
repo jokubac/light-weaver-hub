@@ -1,13 +1,24 @@
 import { Fragment as Frag, useRef, useState } from "react";
-import { ArrowLeft, Printer, Download, Upload, ArrowUp, ArrowDown, Pencil, Unplug, ClipboardList } from "lucide-react";
+import { ArrowLeft, Printer, Download, Upload, ArrowUp, ArrowDown, Pencil, Unplug, ClipboardList, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NumberField } from "./NumberField";
 import { PatchPanel, LABEL_COLORS } from "./PatchPanel";
 import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
-import { getDef, normalizeFixture, overlaps, type PatchedFixture } from "@/lib/dmx";
+import { createFixture, findFreeAddress, getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixture } from "@/lib/dmx";
+import { fixtureWattage } from "@/lib/callsheet";
 import { CallSheet } from "./CallSheet";
+
+/** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
+export function describeDef(d: FixtureDef): { type: string; cct: string } {
+  const kinds = new Set(d.modes.map((m) => m.kind));
+  const colour = ["rgb", "rgbw", "hsi", "full"].some((k) => kinds.has(k as never));
+  const dimOnly = [...kinds].every((k) => k === "dim");
+  const type = d.lightType ?? (dimOnly ? (/hmi|arrisun|m18|m40|m90|arrimax|compact/i.test(d.model) ? "HMI" : /kino|flo|fluor|lithlight/i.test(`${d.brand} ${d.model}`) ? "Fluorescent" : /led|ribbon|ansso/i.test(`${d.brand} ${d.model}`) ? "LED (dimmer)" : "Tungsten / dimmer") : colour ? "LED colour" : "Bi-colour LED");
+  const cct = d.cctRange ? `${d.cctRange[0]}–${d.cctRange[1]} K` : type === "Tungsten / dimmer" ? "3200 K" : type === "HMI" ? "5600 K" : colour || type === "Bi-colour LED" ? "2700–6500 K" : "";
+  return { type, cct };
+}
 
 /** Full-screen patch sheet: printable table in the middle, every fixture + patch editing on the right. */
 export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder }: {
@@ -33,7 +44,23 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
   const groupNames = Array.from(new Set(fixtures.map((f) => f.group).filter(Boolean))) as string[];
   const fileRef = useRef<HTMLInputElement>(null);
   const rows = fixtures;
-  const totalW = fixtures.reduce((a, f) => a + (f.power?.watts ?? 0), 0);
+  const totalW = fixtures.reduce((a, f) => a + fixtureWattage(f), 0);
+  const patchDimmers = () => {
+    const raw = prompt("How many 1-channel dimmers?", "1");
+    const qty = Math.max(0, Math.min(512, parseInt(raw ?? "", 10) || 0));
+    if (!qty) return;
+    const def = getDef("generic-dimmer");
+    const uRaw = prompt("Universe", String(fixtures[fixtures.length - 1]?.universe ?? 1));
+    const universe = Math.max(1, Math.min(64, parseInt(uRaw ?? "", 10) || 1));
+    const existing = fixtures.filter((f) => f.defId === def.id).length;
+    const added: PatchedFixture[] = [];
+    for (let i = 0; i < qty; i++) {
+      const addr = findFreeAddress([...fixtures, ...added], universe, 1);
+      if (addr == null) { alert(`Universe ${universe} is full — patched ${added.length} dimmers.`); break; }
+      added.push({ ...createFixture(def, 0, universe, addr, `Dimmer ${existing + i + 1}`), icon: "bulb" });
+    }
+    if (added.length) onAdd(added);
+  };
 
   const exportPatch = async () => {
     const data = JSON.stringify({ kind: "kroma-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
@@ -68,7 +95,8 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
         <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">Patch</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
         <Button variant="secondary" onClick={() => window.print()} title="Print, or choose “Save as PDF” in the print dialog"><Printer />Print / PDF</Button>
-        <Button variant="secondary" onClick={() => setShowCallSheet(true)}><ClipboardList />Call sheet</Button>
+        <Button variant="secondary" onClick={patchDimmers} title="Patch single-channel dimmers"><Zap />Patch dimmer</Button>
+        <Button variant="secondary" onClick={() => setShowCallSheet(true)}><ClipboardList />Equipment list</Button>
         <Button variant="secondary" onClick={exportPatch}><Download />Export</Button>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
@@ -95,7 +123,7 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
           {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet. Add them from the list on the right.</p> : (
             <table className="w-full border-collapse text-xs">
               <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2"></th><th className="pr-2">Name</th><th className="pr-2">Fixture</th><th className="pr-2">Mode</th><th className="pr-2">Univ</th><th className="pr-2">DMX</th><th className="pr-2">Ch</th><th className="pr-2">Group</th><th className="pr-2">W</th><th className="print:hidden"></th>
+                <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2"></th><th className="pr-2">Name</th><th className="pr-2">Fixture</th><th className="pr-2">Type</th><th className="pr-2">CCT</th><th className="pr-2">Mode</th><th className="pr-2">Univ</th><th className="pr-2">DMX</th><th className="pr-2">Ch</th><th className="pr-2">Group</th><th className="pr-2">W</th><th className="print:hidden"></th>
               </tr></thead>
               <tbody>
                 {rows.map((f, i) => {
@@ -109,12 +137,14 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
                         <input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} aria-label="Fixture name" className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" /></td>
                       <td className="pr-2">{d.brand} {d.model}</td>
+                      <td className="pr-2 whitespace-nowrap text-muted-foreground">{describeDef(d).type}</td>
+                      <td className="pr-2 whitespace-nowrap font-mono">{describeDef(d).cct}</td>
                       <td className="pr-2 text-muted-foreground">{m?.name}</td>
                       <td className="pr-2 font-mono">{f.universe}</td>
                       <td className={`pr-2 font-mono ${clash ? "text-destructive" : ""}`}>{f.address}–{f.address + ch - 1}</td>
                       <td className="pr-2 font-mono">{ch}</td>
                       <td className="pr-2">{f.group ?? ""}</td>
-                      <td className="pr-2 font-mono">{f.power?.watts ?? ""}</td>
+                      <td className="pr-2 font-mono">{fixtureWattage(f)}</td>
                       <td className="whitespace-nowrap print:hidden">
                         <button disabled={i === 0} onClick={() => move(i, -1)} className="p-1 disabled:opacity-30" aria-label={`Move ${f.name} up`}><ArrowUp className="h-3.5 w-3.5" /></button>
                         <button disabled={i === rows.length - 1} onClick={() => move(i, 1)} className="p-1 disabled:opacity-30" aria-label={`Move ${f.name} down`}><ArrowDown className="h-3.5 w-3.5" /></button>
