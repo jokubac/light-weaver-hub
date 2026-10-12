@@ -1,3 +1,4 @@
+import type { CallSheetData } from "@/lib/store";
 import { Fragment as Frag, useRef, useState } from "react";
 import { ArrowLeft, Printer, Download, Upload, ArrowUp, ArrowDown, Pencil, Unplug, ClipboardList, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,8 @@ export function describeDef(d: FixtureDef): { type: string; cct: string } {
 }
 
 /** Full-screen patch sheet: printable table in the middle, every fixture + patch editing on the right. */
-export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder }: {
-  title: string; fixtures: PatchedFixture[]; onClose: () => void;
+export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder }: {
+  title: string; callSheet?: CallSheetData | undefined; onCallSheet?: (c: CallSheetData) => void; fixtures: PatchedFixture[]; onClose: () => void;
   onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
   onReplace: (fs: PatchedFixture[]) => void; onReorder: (fs: PatchedFixture[]) => void;
 }) {
@@ -175,7 +176,7 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
           <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap={false} showPatched={false} />
         </aside>
       </div>
-      {showCallSheet && <CallSheet title={title} fixtures={fixtures} onClose={() => setShowCallSheet(false)} />}
+      {showCallSheet && <CallSheet title={title} data={callSheet} onData={onCallSheet} fixtures={fixtures} onClose={() => setShowCallSheet(false)} />}
     </div>
   );
 }

@@ -41,7 +41,7 @@ import { RecRail, RecDialog, RecEditor } from "@/components/console/RecRail";
 import { PatchPage } from "@/components/console/PatchPage";
 import { statesAt } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
-import type { Recording, LookState, Cue, BankFader } from "@/lib/store";
+import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
@@ -219,6 +219,7 @@ function App() {
       onRecordings={(recordings) => updateProject(project.id, (p) => ({ ...p, recordings }))}
       onBank={(bank) => updateProject(project.id, (p) => ({ ...p, bank }))}
       onCues={(cues) => updateProject(project.id, (p) => ({ ...p, cues }))}
+      onCallSheet={(callSheet) => updateProject(project.id, (p) => ({ ...p, callSheet }))}
     />
   );
 }
@@ -370,8 +371,8 @@ type Panel = "patch" | "control" | "pixels";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRecordings, onBank, onCues }: {
-  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void;
+function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRecordings, onBank, onCues, onCallSheet }: {
+  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
 }) {
   const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
@@ -808,7 +809,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
       )}
       {patchOpen && (
-        <PatchPage title={`${project.name} · ${scene.name}`} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}
+        <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}
           onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
           onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
       )}
