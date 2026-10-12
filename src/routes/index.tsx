@@ -37,6 +37,11 @@ import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
+import { RecRail, RecDialog } from "@/components/console/RecRail";
+import { PatchPage } from "@/components/console/PatchPage";
+import { statesAt } from "@/lib/recordings";
+import { snapshot } from "@/components/console/LooksPanel";
+import type { Recording, LookState } from "@/lib/store";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
@@ -209,6 +214,7 @@ function App() {
       onExit={() => setView({ name: "scenes", projectId: project.id })}
       onLooks={(looks) => updateProject(project.id, (p) => ({ ...p, looks }))}
       onSetups={(setups) => updateProject(project.id, (p) => ({ ...p, setups }))}
+      onRecordings={(recordings) => updateProject(project.id, (p) => ({ ...p, recordings }))}
     />
   );
 }
@@ -360,8 +366,8 @@ type Panel = "patch" | "control" | "pixels";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
-  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void;
+function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRecordings }: {
+  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void;
 }) {
   const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
@@ -591,6 +597,30 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
   };
 
   const sel = fixtures.filter((f) => selected.includes(f.uid));
+  // REC sequences
+  const recordings = project.recordings ?? [];
+  const recRef = useRef(recordings);
+  recRef.current = recordings;
+  const [recOpen, setRecOpen] = useState(false);
+  const [patchOpen, setPatchOpen] = useState(false);
+  const [play, setPlay] = useState<{ id: string; start: number; origin: Map<string, LookState> } | null>(null);
+  const [recProg, setRecProg] = useState<{ t: number; step: number } | null>(null);
+  const fixturesRef = useRef(fixtures);
+  fixturesRef.current = fixtures;
+  useEffect(() => {
+    if (!play) return;
+    const id = setInterval(() => {
+      const rec = recRef.current.find((r) => r.id === play.id);
+      const t = (performance.now() - play.start) / 1000;
+      const res = rec ? statesAt(rec, fixturesRef.current, play.origin, t) : null;
+      if (!res) { setPlay(null); setRecProg(null); return; }
+      setRecProg({ t, step: res.step });
+      setFixtures((fs) => fs.map((f) => { const st = res.states.get(f.uid); return st ? { ...f, ...st, trigger: null } : f; }));
+    }, 40);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [play]);
+  const playRec = (id: string) => setPlay({ id, start: performance.now(), origin: new Map(fixtures.map((f) => [f.uid, snapshot(f)])) });
   const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
   const pasteSettings = () => {
     if (!copied) return;
@@ -690,7 +720,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
         </Button>
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
-        {tab("patch", "PATCH")}
+        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="text-xs font-bold">PATCH</Button>
         {tab("control", "CONTROL")}
         {tab("pixels", "PIXELS")}
         <Button variant="secondary" onClick={() => setPlotOpen(true)} className="text-xs font-bold"><MapIcon />PLOT</Button>
@@ -707,6 +737,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
           levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
       )}
+      {patchOpen && (
+        <PatchPage title={`${project.name} · ${scene.name}`} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne}
+          onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
+          onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
+      )}
+      <RecDialog open={recOpen} onOpenChange={setRecOpen} src={sel.length ? sel : fixtures} recordings={recordings} setRecordings={onRecordings} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
       <SettingsDialog onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
@@ -730,6 +766,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                 <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
                  <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
                   className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
+                 <Button variant="secondary" aria-label="Record selected lights" title="REC — record the selected lights (all lights when none selected)" onClick={() => setRecOpen(true)} className="gap-1.5 px-3 text-xs font-bold">
+                   <span className={`h-2.5 w-2.5 rounded-full bg-destructive ${play ? "animate-pulse" : ""}`} />REC
+                 </Button>
                  <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={locked ? "" : "bg-amber-glow text-primary-foreground"}>
                    {locked ? <Lock /> : <Unlock />}
                  </Button>
@@ -811,6 +850,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups }: {
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
             <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />
+            <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} progress={recProg} onPlay={playRec} onStop={() => { setPlay(null); setRecProg(null); }} />
           </aside>
         )}
       </div>
