@@ -3,8 +3,8 @@
   <circle cx="256" cy="250" r="90" fill="#ff5a00" opacity="0.15" />
   <circle cx="256" cy="250" r="130" fill="#ff5a00" opacity="0.05" />
   <circle cx="256" cy="250" r="170" fill="#ff5a00" opacity="0.025" />
-  <path d="M 76 336 V 164 L 144 336 V 164" stroke="#ffffff" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter" fill="none" />
-  <path d="M 240 182 A 70 70 0 1 0 272 182" stroke="#ff5a00" stroke-width="24" stroke-linecap="butt" fill="none" />
-  <line x1="256" y1="164" x2="256" y2="230" stroke="#ff5a00" stroke-width="24" stroke-linecap="butt" />
-  <path d="M 368 164 L 436 336 M 436 164 L 368 336" stroke="#ffffff" stroke-width="24" stroke-linecap="butt" fill="none" />
+  <path d="M 76 336 V 164 L 144 336 V 164" stroke="#ffffff" stroke-width="17" stroke-linecap="butt" stroke-linejoin="miter" fill="none" />
+  <path d="M 240 182 A 70 70 0 1 0 272 182" stroke="#ff5a00" stroke-width="17" stroke-linecap="butt" fill="none" />
+  <line x1="256" y1="164" x2="256" y2="230" stroke="#ff5a00" stroke-width="17" stroke-linecap="butt" />
+  <path d="M 368 164 L 436 336 M 436 164 L 368 336" stroke="#ffffff" stroke-width="17" stroke-linecap="butt" fill="none" />
 </svg>
