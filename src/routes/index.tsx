@@ -49,6 +49,7 @@ import { EffectsRail } from "@/components/console/EffectsRail";
 import { NumberField } from "@/components/console/NumberField";
 import { commandPatch, inverseFlash } from "@/lib/console-command";
 import { Keypad } from "@/components/console/Keypad";
+import { useFixtureHistory } from "@/hooks/use-fixture-history";
 import { CallSheet } from "@/components/console/CallSheet";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
@@ -389,7 +390,7 @@ const FADE = 2; // blackout fade time in seconds
 function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRecordings, onBank, onCues, onCallSheet }: {
   project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
 }) {
-  const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
+  const { fixtures, setFixtures, setUntrackedFixtures, begin: beginFixtureEdit, end: endFixtureEdit, undo, redo, canUndo, canRedo } = useFixtureHistory(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
   const [bo, setBo] = useState<{ target: 0 | 1; at: number; from: number }>({ target: 0, at: -10, from: 0 });
   const [selected, setSelected] = useState<string[]>([]);
@@ -479,7 +480,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   outRef.current = outLevel;
   useEffect(() => {
     const id = setInterval(() => {
-      setFixtures((fs) => fs.some((f) => f.power) ? fs.map((f) => (f.power ? { ...f, power: { ...f.power, usedWh: f.power.usedWh + (f.power.watts * drawFactor(f, outRef.current) * 5) / 3600 } } : f)) : fs);
+      setUntrackedFixtures((fs) => fs.some((f) => f.power) ? fs.map((f) => (f.power ? { ...f, power: { ...f.power, usedWh: f.power.usedWh + (f.power.watts * drawFactor(f, outRef.current) * 5) / 3600 } } : f)) : fs);
     }, 5000);
     return () => clearInterval(id);
   }, []);
@@ -659,7 +660,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       const res = rec ? statesAt(rec, fixturesRef.current, play.origin, t) : null;
       if (!res) { setPlay(null); setRecProg(null); return; }
       setRecProg({ t, step: res.step });
-      setFixtures((fs) => fs.map((f) => { const st = res.states.get(f.uid); return st ? { ...f, ...st, trigger: null } : f; }));
+      setUntrackedFixtures((fs) => fs.map((f) => { const st = res.states.get(f.uid); return st ? { ...f, ...st, trigger: null } : f; }));
     }, 40);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -690,7 +691,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       const k = cue.fade > 0 ? Math.min(1, (performance.now() - cueFade.start) / 1000 / cue.fade) : 1;
       setFadeK(k);
       const st = cueBlend(cue, fixturesRef.current, cueFade.from, k);
-      setFixtures((fs) => fs.map((f) => { const s = st.get(f.uid); return s ? { ...f, ...s, trigger: null } : f; }));
+      setUntrackedFixtures((fs) => fs.map((f) => { const s = st.get(f.uid); return s ? { ...f, ...s, trigger: null } : f; }));
       if (k >= 1) { setCueFade(null); setFadeK(null); }
     }, 40);
     return () => clearInterval(id);
@@ -828,7 +829,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const outputEnabled = bo.target === 0;
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
         <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
         <div className="min-w-0">
@@ -1014,7 +1015,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
         )}
       </div>
-      {keypadOpen && <Keypad onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
+      {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />}
