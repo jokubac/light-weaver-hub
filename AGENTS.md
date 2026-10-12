@@ -39,3 +39,5 @@
 - Console position swaps reorder whole fixture entries in the saved scene array without editing fixture identity, DMX patch, settings or pixel-layer order, so layout changes cannot repatch lights.
 - Emergency blackout sits to the right of the master fader with an output-enabled bulb indicator; full group management and saved looks share the collapsible right rail so neither needs a view tab.
 - Plot cameras use the canvas placement and hit-testing flow with height-aware dragging and snapshot undo; a compact selector keeps camera editing and confirmed removal reachable regardless of camera count.
+- REC sequences are Project.recordings of LookState steps; playback in src/lib/recordings.ts blends states over fade/hold timing so recordings reuse the look snapshot format.
+- The patch page is a full-screen console overlay (not a route) because patch edits share the live console fixture state.
