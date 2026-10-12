@@ -39,7 +39,7 @@ export function PlaybackBar(p: PlaybackProps) {
   const setLevel = (i: number, level: number) => { const fd = p.bank[i]; if (fd) p.setBank(p.bank.map((x, k) => (k === i ? { ...x, level } : x))); };
 
   return (
-    <div aria-label="Playback" className="flex shrink-0 items-stretch gap-2 overflow-x-auto border-t border-border bg-surface px-3 py-2">
+    <div aria-label="Faders" className="flex shrink-0 items-stretch gap-2 overflow-x-auto border-t border-border bg-surface px-3 py-2">
       <div className="flex shrink-0 items-center gap-1.5">
         <Button variant="secondary" size="icon" aria-label="Back one cue" title="Back (B)" onClick={p.onBack} disabled={!sorted.length}><ChevronLeft /></Button>
         <button onClick={p.onGo} disabled={!sorted.length} aria-label="GO" title="GO (Space)"
