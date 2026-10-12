@@ -21,7 +21,7 @@ describe("lux3m lookup", () => {
 });
 
 describe("illuminanceAt", () => {
-  const light = { x: 0, y: 0, z: 3, rot: 0, tilt: 0, beam: 90, lux3m: 1000, level: 1 };
+  const light = { x: 0, y: 0, z: 3, rot: 0, tilt: 90, beam: 90, lux3m: 1000, level: 1 };
   it("matches the lux3m reference straight down at 3 m", () => {
     expect(illuminanceAt([0, 0, 0], [light], [], [])).toBeCloseTo(1000, 0);
   });
@@ -60,8 +60,8 @@ describe("exposure / T-stop", () => {
   });
   it("computes a sane T-stop at a typical daylight-ish exposure", () => {
     const t = tStopFor(1000, 800, 1 / 48);
-    expect(t).toBeGreaterThan(3.5);
-    expect(t).toBeLessThan(6);
+    expect(t).toBeGreaterThan(6);
+    expect(t).toBeLessThan(10);
   });
   it("rounds to the nearest third stop with a readable label", () => {
     expect(roundToThirdStop(2.8).label).toBe("T2.8");

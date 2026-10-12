@@ -102,17 +102,19 @@ export function tStopFor(lux: number, iso: number, shutterSec: number, C = INCID
   return Math.sqrt(Math.max(0, lux) * Math.max(0, shutterSec) * Math.max(1, iso) / C);
 }
 
-/** Nearest third-stop T value, e.g. { value: 2.8, thirds: 1, label: "T2.8 +1/3" }. */
+/** Conventional marked third-stop values from T1 to T64 (full stops at indices 0,3,6,…). */
+const STOP_SCALE = [1, 1.1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3.2, 3.5, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36, 40, 45, 51, 57, 64];
+
+/** Nearest third-stop T value, labelled against its full stop, e.g. { value: 2.8, thirds: 1, label: "T2.8 +1/3" }. */
 export function roundToThirdStop(t: number): { value: number; thirds: 0 | 1 | 2; label: string } {
   if (!(t > 0)) return { value: 0, thirds: 0, label: "—" };
   // N = 2^(k/6): every 6 steps of k is one full stop, every 2 steps is a third-stop.
-  const k = Math.round(Math.log2(t) * 6);
-  const baseK = Math.floor(k / 3) * 3;
-  const thirds = (k - baseK) as 0 | 1 | 2;
-  const value = Math.pow(2, baseK / 6);
-  const rounded = value >= 10 ? Math.round(value * 10) / 10 : Math.round(value * 100) / 100;
+  const k = clamp(Math.round(Math.log2(t) * 6), 0, STOP_SCALE.length - 1);
+  const thirds = (k % 3) as 0 | 1 | 2;
+  const baseStop = STOP_SCALE[k - thirds] ?? STOP_SCALE[0]!;
+  const value = STOP_SCALE[k] ?? baseStop;
   const suffix = thirds === 1 ? " +1/3" : thirds === 2 ? " +2/3" : "";
-  return { value: rounded, thirds, label: `T${rounded}${suffix}` };
+  return { value, thirds, label: `T${baseStop}${suffix}` };
 }
 
 /** Stops a camera's current iris is over (+) or under (-) the metered T-stop. */
