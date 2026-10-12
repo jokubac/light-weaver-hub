@@ -19,7 +19,7 @@ export function DmxMap({ fixtures, universe, planned = [], onPick, highlight }: 
         <span className={clashes ? "font-bold text-destructive" : "text-success"}>{clashes ? `${clashes} ch clash` : "No clashes"}</span>
       </div>
       <div className="rounded-md border border-border">
-      <div className="grid h-[min(38vh,340px)] w-full grid-cols-[repeat(32,minmax(0,1fr))] grid-rows-[repeat(16,minmax(0,1fr))] gap-px bg-border p-px">
+      <div className="grid h-[min(42vh,360px)] w-full grid-cols-[repeat(32,minmax(0,1fr))] grid-rows-[repeat(16,minmax(0,1fr))] gap-px bg-border p-px">
         {Array.from({ length: 512 }, (_, k) => {
           const ch = k + 1;
           const o = owners[ch] ?? [];
