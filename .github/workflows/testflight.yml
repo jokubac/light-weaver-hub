@@ -10,14 +10,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install
+      - name: Bundle app for offline use
+        run: node scripts/offline-bundle.mjs https://light-weaver-hub.lovable.app offline-app
       - name: Add iOS platform
         run: |
           [ -d ios ] || bunx cap add ios
           bunx cap sync ios
       - name: App icon
         run: |
-          ICON=ios/App/App/Assets.xcassets/AppIcon.appiconset
-          sips -z 1024 1024 public/icon-512.png --out $ICON/AppIcon-512@2x.png
+          brew install librsvg
+          node scripts/ios-icons.mjs
+      - name: Release version
+        run: |
+          echo "APP_VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("public/app-release.json", "utf8")).version')" >> "$GITHUB_ENV"
       - name: Write API key
         run: |
           mkdir -p ~/private_keys
@@ -30,6 +35,7 @@ jobs:
             -archivePath $RUNNER_TEMP/App.xcarchive -destination generic/platform=iOS \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} CODE_SIGN_STYLE=Automatic \
             PRODUCT_BUNDLE_IDENTIFIER=com.kroma.console \
+            MARKETING_VERSION=$APP_VERSION CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             -allowProvisioningUpdates \
             -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
             -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \

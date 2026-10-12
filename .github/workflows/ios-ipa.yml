@@ -5,6 +5,10 @@ on:
   push:
     paths:
       - ".github/workflows/ios-ipa.yml"
+      - "scripts/ios-icons.mjs"
+      - "scripts/offline-bundle.mjs"
+      - "public/nox-logo.svg"
+      - "public/app-release.json"
 
 jobs:
   build:
@@ -21,8 +25,11 @@ jobs:
           bunx cap sync ios
       - name: App icon
         run: |
-          ICON=ios/App/App/Assets.xcassets/AppIcon.appiconset
-          sips -z 1024 1024 public/icon-512.png --out $ICON/AppIcon-512@2x.png
+          brew install librsvg
+          node scripts/ios-icons.mjs
+      - name: Release version
+        run: |
+          echo "APP_VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("public/app-release.json", "utf8")).version')" >> "$GITHUB_ENV"
       - name: Build unsigned app
         run: |
           cd ios/App
@@ -31,6 +38,7 @@ jobs:
             -sdk iphoneos -destination generic/platform=iOS \
             -derivedDataPath $RUNNER_TEMP/dd \
             PRODUCT_BUNDLE_IDENTIFIER=com.kroma.console \
+            MARKETING_VERSION=$APP_VERSION CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build
       - name: Package IPA
@@ -39,7 +47,13 @@ jobs:
           mkdir -p $RUNNER_TEMP/pkg/Payload
           cp -R "$APP" $RUNNER_TEMP/pkg/Payload/
           cd $RUNNER_TEMP/pkg && zip -qry $RUNNER_TEMP/NOX.ipa Payload
+      - name: Release information
+        run: |
+          echo "NOX $APP_VERSION · build ${{ github.run_number }} · ${{ github.sha }}" > "$RUNNER_TEMP/NOX-release.txt"
+          echo "### NOX $APP_VERSION — current SVG icon, offline app" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: NOX-ipa
-          path: ${{ runner.temp }}/NOX.ipa
+          path: |
+            ${{ runner.temp }}/NOX.ipa
+            ${{ runner.temp }}/NOX-release.txt

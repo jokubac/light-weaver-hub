@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { NoxLogo } from "@/components/NoxLogo";
+import { APP_VERSION } from "@/lib/app-version";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -65,6 +66,7 @@ function AuthPage() {
           <button onClick={() => setMode(mode === "in" ? "up" : "in")} className="text-primary">{mode === "in" ? "Create an account" : "I have an account"}</button>
           <button onClick={() => nav({ to: "/" })} className="text-muted-foreground">Continue without account</button>
         </div>
+        <p className="text-center font-mono text-xs text-muted-foreground">NOX v{APP_VERSION}</p>
       </div>
     </div>
   );

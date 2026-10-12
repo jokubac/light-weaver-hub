@@ -3,6 +3,7 @@ import { Bluetooth, BatteryMedium, Maximize, Music, Trash2, Tv, FolderOpen } fro
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { MidiMap } from "@/lib/midi";
+import { APP_VERSION } from "@/lib/app-version";
 
 export interface BtDevice { id: string; name: string; battery: number | null }
 export interface MidiTarget { id: string; label: string }
@@ -23,7 +24,7 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader><DialogTitle>Settings</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Settings</DialogTitle><p className="font-mono text-xs text-muted-foreground">NOX v{APP_VERSION}</p></DialogHeader>
         <div className="space-y-5 text-xs">
           <Button variant="secondary" className="w-full" onClick={() => { onOpenChange(false); onSetups(); }}><FolderOpen />Project setups</Button>
           <section className="space-y-2">

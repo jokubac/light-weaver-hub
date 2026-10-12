@@ -21,7 +21,7 @@ export function describeDef(d: FixtureDef): { type: string; cct: string } {
   return { type, cct };
 }
 
-/** Full-screen patch sheet: printable table in the middle, every fixture + patch editing on the right. */
+/** Full-screen patch sheet with the fixture library and map stacked below it. */
 export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder }: {
   title: string; callSheet?: CallSheetData | undefined; onCallSheet?: (c: CallSheetData) => void; fixtures: PatchedFixture[]; onClose: () => void;
   onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
@@ -85,7 +85,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <Button variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Hide the fixture list to see the full patch sheet" : "Show the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Hide fixtures" : "Add fixtures"}</Button>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
-      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col">
         <main className="patch-print min-h-0 flex-1 overflow-auto p-4">
           <div className="mb-3 flex items-baseline justify-between">
             <h1 className="font-display text-xl font-semibold">{title} — Patch sheet</h1>
@@ -104,7 +104,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
               <button onClick={unpatch} disabled={!picked.length} className="ml-auto flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1.5 font-semibold text-destructive-foreground disabled:opacity-40"><Unplug className="h-3.5 w-3.5" />Unpatch{picked.length ? ` (${picked.length})` : ""}</button>
             </div>
           )}
-          {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet. Add them from the list on the right.</p> : (
+          {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet.</p> : (
             <table className="w-full border-collapse text-xs">
               <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2"></th><th className="pr-2">Name</th><th className="pr-2">Fixture</th><th className="pr-2">Type</th><th className="pr-2">CCT</th><th className="pr-2">Mode</th><th className="pr-2">Univ</th><th className="pr-2">DMX</th><th className="pr-2">Ch</th><th className="pr-2">Group</th><th className="pr-2">W</th><th className="print:hidden"></th>
@@ -155,7 +155,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             <datalist id="patch-groups">{groupNames.map((g) => <option key={g} value={g} />)}</datalist>
           )}
         </main>
-        {panelOpen && <aside className="max-h-[60vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden xl:max-h-none xl:w-1/2 xl:border-l xl:border-t-0">
+        {panelOpen && <aside className="max-h-[60vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden">
           <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap showPatched={false} />
         </aside>}
       </div>
