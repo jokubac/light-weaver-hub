@@ -42,7 +42,7 @@ async function getSocket(): Promise<number> {
   const Udp = await getUdpPlugin();
   const { socketId: id } = await Udp.create({ properties: { name: "kroma-dmx" } });
   await Udp.bind({ socketId: id, port: 0 });
-  await Udp.setBroadcast({ socketId: id, enabled: true } as never);
+  await Udp.setBroadcast({ socketId: id, enabled: true });
   socketId = id;
   return id;
 }
@@ -64,9 +64,9 @@ export async function scanArtNet(): Promise<ScannedNode[]> {
   ]);
   const id = await getSocket();
   const found = new Map<string, ScannedNode>();
-  const handle = await Udp.addListener("receive", (event: { socketId: number; data: string; remoteAddress?: string }) => {
-    if (event.socketId !== id) return;
-    const bytes = fromBase64(event.data);
+  const handle = await Udp.addListener("receive", (event: { socketId: number; buffer?: string; remoteAddress?: string }) => {
+    if (event.socketId !== id || !event.buffer) return;
+    const bytes = fromBase64(event.buffer);
     const info = parseArtPollReply(bytes, event.remoteAddress ?? "");
     if (info) found.set(info.ip, info);
   });

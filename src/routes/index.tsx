@@ -628,6 +628,60 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   };
   const pauseRec = () => { if (play && play.pausedAt == null) setPlay({ ...play, pausedAt: (performance.now() - play.start) / 1000 }); };
   const stopRec = () => { setPlay(null); setRecProg(null); };
+
+  // Playback bank + cue stack
+  const bank = project.bank ?? [];
+  const cues = project.cues ?? [];
+  const [flash, setFlash] = useState<string | null>(null);
+  const [solo, setSolo] = useState<string | null>(null);
+  const [activeCue, setActiveCue] = useState<string | null>(null);
+  const [cueFade, setCueFade] = useState<{ id: string; start: number; from: Map<string, LookState> } | null>(null);
+  const [fadeK, setFadeK] = useState<number | null>(null);
+  const cuesRef = useRef(cues);
+  cuesRef.current = cues;
+  useEffect(() => {
+    if (!cueFade) return;
+    const id = setInterval(() => {
+      const cue = cuesRef.current.find((c) => c.id === cueFade.id);
+      if (!cue) { setCueFade(null); return; }
+      const k = cue.fade > 0 ? Math.min(1, (performance.now() - cueFade.start) / 1000 / cue.fade) : 1;
+      setFadeK(k);
+      const st = cueBlend(cue, fixturesRef.current, cueFade.from, k);
+      setFixtures((fs) => fs.map((f) => { const s = st.get(f.uid); return s ? { ...f, ...s, trigger: null } : f; }));
+      if (k >= 1) { setCueFade(null); setFadeK(null); }
+    }, 40);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cueFade]);
+  const gotoCue = (id: string) => { setActiveCue(id); setCueFade({ id, start: performance.now(), from: new Map(fixtures.map((f) => [f.uid, lookStateOf(f)])) }); };
+  const cueStep = (d: 1 | -1) => {
+    const s = sortCues(cuesRef.current);
+    if (!s.length) return;
+    const i = s.findIndex((c) => c.id === activeCue);
+    const n = s[i < 0 ? (d > 0 ? 0 : -1) : i + d];
+    if (n) gotoCue(n.id);
+  };
+  const recordCue = (name: string, after?: number) => {
+    const src = sel.length ? sel : fixtures;
+    const number = nextCueNumber(cues, after);
+    const cue: Cue = { id: uid(), number, name: name || `Cue ${number}`, fade: 3, states: src.map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) })) };
+    onCues([...cues, cue]);
+    setActiveCue(cue.id);
+  };
+  const updateCueStates = (id: string) => onCues(cues.map((c) => (c.id === id ? { ...c, states: (sel.length ? sel : fixtures).map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) })) } : c)));
+  const goRef = useRef(cueStep);
+  goRef.current = cueStep;
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      if (e.code === "Space") { e.preventDefault(); goRef.current(1); }
+      else if (e.key === "b" || e.key === "B") goRef.current(-1);
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+  const outFixtures = useMemo(() => applyBank(fixtures, bank, project.looks ?? [], flash, solo), [fixtures, bank, project.looks, flash, solo]);
   const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
   const pasteSettings = () => {
     if (!copied) return;

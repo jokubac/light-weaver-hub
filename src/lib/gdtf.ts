@@ -2,21 +2,13 @@
 // (which is a ZIP) into a FixtureDef compatible with the console's library.
 // GDTF spec: https://gdtf-share.com — we only read what the console needs to drive DMX.
 import { unzipSync, strFromU8 } from "fflate";
-import type { FixtureDef, FixtureMode, ModeKind } from "./dmx";
+import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode, ModeKind } from "./dmx";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-/** Canonical per-channel token used by the generic channelMap fallback. */
-export type GdtfAttr =
-  | "Dimmer" | "CCT" | "GM" | "Hue" | "Saturation"
-  | "Red" | "Green" | "Blue" | "White" | "Amber"
-  | "Crossfade" | "Strobe" | "Spare";
-
-export interface GdtfChannelMapEntry {
-  attr: GdtfAttr;
-  /** true = this is the low (fine) byte of a 16-bit attribute */
-  fine?: boolean;
-}
+/** Canonical per-channel token used by the generic channelMap fallback (alias of dmx.ts's ChannelAttr). */
+export type GdtfAttr = ChannelAttr;
+export type GdtfChannelMapEntry = ChannelMapEntry;
 
 /** Maps a GDTF LogicalChannel "Attribute" name (or Feature) to our canonical token. */
 function mapAttribute(raw: string): GdtfAttr | null {
@@ -90,7 +82,7 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
     return { name, channels: totalChannels, kind: match.kind, source: "gdtf" };
   }
   // generic fallback: one channelMap entry per DMX byte, in order
-  const channelMap: GdtfChannelMapEntry[] = [];
+  const channelMap: ChannelMapEntry[] = [];
   for (const r of raws) {
     channelMap.push({ attr: r.attr });
     if (r.bytes === 2) channelMap.push({ attr: r.attr, fine: true });

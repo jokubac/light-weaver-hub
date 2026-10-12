@@ -110,10 +110,11 @@ export interface Connection {
   node: { name: string; ip: string } | null;
   transmitter: string | null; // id from the transmitter library
   autoMap: boolean; // auto universe numbering + colour channel order from the transmitter profile
+  transport?: "bridge" | "direct"; // "direct" sends Art-Net/sACN UDP straight from the installed app, no bridge computer
 }
 
 const CKEY = "crmx-console-connection-v1";
-export const defaultConnection = (): Connection => ({ network: "wifi", protocol: "artnet", bridge: "localhost:8765", node: null, transmitter: null, autoMap: true });
+export const defaultConnection = (): Connection => ({ network: "wifi", protocol: "artnet", bridge: "localhost:8765", node: null, transmitter: null, autoMap: true, transport: undefined });
 export function loadConnection(): Connection {
   try { const r = localStorage.getItem(CKEY); if (r) return { ...defaultConnection(), ...JSON.parse(r) }; } catch { /* ignore */ }
   return defaultConnection();
