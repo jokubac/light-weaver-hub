@@ -18,8 +18,8 @@ export function DmxMap({ fixtures, universe, planned = [], onPick, highlight }: 
         <span>Universe {universe} · {used}/512 used{onPick ? " · tap a channel to set the address" : ""}</span>
         <span className={clashes ? "font-bold text-destructive" : "text-success"}>{clashes ? `${clashes} ch clash` : "No clashes"}</span>
       </div>
-      <div className="overflow-x-auto rounded-md border border-border">
-      <div className="grid min-w-[640px] grid-cols-[repeat(32,minmax(0,1fr))] gap-px bg-border p-px">
+      <div className="rounded-md border border-border">
+      <div className="grid w-full grid-cols-[repeat(32,minmax(0,1fr))] gap-px bg-border p-px">
         {Array.from({ length: 512 }, (_, k) => {
           const ch = k + 1;
           const o = owners[ch] ?? [];
