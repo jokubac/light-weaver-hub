@@ -42,3 +42,6 @@
 - REC steps reuse LookState snapshots (Project.recordings); src/lib/recordings.ts blends them by fade/hold timing.
 - Patch page is a console overlay, not a route, so it edits live fixture state.
 - Plot fixture/object/camera selection IDs stay separate; mixed moves and removals commit one snapshot for atomic undo.
+- Playback bank and cues live in Project.bank/Project.cues; applyBank (src/lib/playback.ts) changes output only, never live fixture state, so faders can't overwrite programming.
+- Imported fixtures (GDTF/builder/RDM) are stored in localStorage custom-fixtures and use FixtureMode.channelMap, so new lights need no code changes.
+- Direct DMX from the installed app uses src/lib/artnet.ts packets via a Capacitor UDP plugin; the browser keeps the bridge because web pages cannot send UDP.
