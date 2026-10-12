@@ -2,8 +2,20 @@
 import { asteraModes, asteraSpec } from "./astera";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
+import { loadCustomFixtures } from "./custom-fixtures";
 
 export type ModeKind = "dim" | "cct" | "cctgm" | "hsi" | "rgb" | "rgbw" | "full";
+
+/** Canonical per-channel token for the generic GDTF / custom-fixture channel layout (see gdtf.ts). */
+export type ChannelAttr =
+  | "Dimmer" | "CCT" | "GM" | "Hue" | "Saturation"
+  | "Red" | "Green" | "Blue" | "White" | "Amber"
+  | "Crossfade" | "Strobe" | "Spare";
+export interface ChannelMapEntry {
+  attr: ChannelAttr;
+  /** true = this is the low (fine) byte of a 16-bit attribute */
+  fine?: boolean;
+}
 
 export interface FixtureMode {
   pixels?: number; // pixel count for pixel modes
@@ -15,6 +27,9 @@ export interface FixtureMode {
   source?: string;
   /** exact Astera profile layout (number + per-pixel channel order) */
   astera?: import("./astera").AsteraSpec;
+  /** generic ordered per-channel layout for GDTF-imported / custom fixtures whose channel order
+   *  doesn't match one of the built-in `kind` layouts; one entry per DMX byte, in address order. */
+  channelMap?: ChannelMapEntry[];
 }
 
 export interface FixtureDef {
@@ -213,6 +228,13 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...RENTAL_FIXTURES.flatMap((r) => fam(r.brand, r.models, ({ DIM, DIM_STROBE, BI, APUTURE_COLOR, APUTURE_BI, APUTURE_MC, NANLITE_PAVO, NANLITE_BI, GODOX_RGB, KINO, LITEPANELS, DMG, CHAUVET, QUASAR, CREAM_MICRO, ARRI_SKYPANEL } as Record<string, FixtureMode[]>)[r.modes]!)),
 ].filter((d, i, all) => all.findIndex((x) => x.id === d.id) === i);
 
+/** User-imported (GDTF) / hand-built fixtures, appended after the built-in library so existing indices never shift. */
+const customDefs = (): FixtureDef[] => {
+  try { return loadCustomFixtures(); } catch { return []; }
+};
+export const CUSTOM_FIXTURE_LIBRARY: FixtureDef[] = [...customDefs()];
+const ALL_FIXTURES: FixtureDef[] = [...FIXTURE_LIBRARY, ...CUSTOM_FIXTURE_LIBRARY];
+
 /** Which local rental house stocks a fixture (search by "arclight" / "cinevera"). */
 export const RENTAL_STOCK: Record<string, string[]> = (() => {
   const out: Record<string, string[]> = {};
@@ -221,10 +243,23 @@ export const RENTAL_STOCK: Record<string, string[]> = (() => {
   return out;
 })();
 
-export const BRANDS = Array.from(new Set(FIXTURE_LIBRARY.map((d) => d.brand)));
-export const DEF_BY_ID: Record<string, FixtureDef> = Object.fromEntries(FIXTURE_LIBRARY.map((d) => [d.id, d]));
+export let BRANDS = Array.from(new Set(ALL_FIXTURES.map((d) => d.brand)));
+export let DEF_BY_ID: Record<string, FixtureDef> = Object.fromEntries(ALL_FIXTURES.map((d) => [d.id, d]));
 const FALLBACK = DEF_BY_ID["generic-rgbw-par"]!;
 export const getDef = (id: string) => DEF_BY_ID[id] ?? FALLBACK;
+
+/** Rebuilds the merged library + lookups so newly imported/removed custom fixtures show up without a reload. */
+function refreshCustomFixtures() {
+  const all = [...FIXTURE_LIBRARY, ...customDefs()];
+  FIXTURE_LIBRARY.length = FIXTURE_LIBRARY.length; // no-op, keeps built-ins untouched/un-reordered
+  CUSTOM_FIXTURE_LIBRARY.splice(0, CUSTOM_FIXTURE_LIBRARY.length, ...customDefs());
+  BRANDS = Array.from(new Set(all.map((d) => d.brand)));
+  DEF_BY_ID = Object.fromEntries(all.map((d) => [d.id, d]));
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("kroma-custom-fixtures", refreshCustomFixtures);
+  window.addEventListener("storage", refreshCustomFixtures);
+}
 export const getMode = (f: { defId: string; modeIdx: number }) => {
   const d = getDef(f.defId);
   return d.modes[f.modeIdx] ?? d.modes[0]!;

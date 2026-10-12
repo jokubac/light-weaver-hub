@@ -1,5 +1,5 @@
 import { Fragment as Frag, useRef, useState } from "react";
-import { ArrowLeft, Printer, Download, Upload, ArrowUp, ArrowDown, Pencil, Unplug } from "lucide-react";
+import { ArrowLeft, Printer, Download, Upload, ArrowUp, ArrowDown, Pencil, Unplug, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NumberField } from "./NumberField";
@@ -7,6 +7,7 @@ import { PatchPanel, LABEL_COLORS } from "./PatchPanel";
 import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
 import { getDef, normalizeFixture, overlaps, type PatchedFixture } from "@/lib/dmx";
+import { CallSheet } from "./CallSheet";
 
 /** Full-screen patch sheet: printable table in the middle, every fixture + patch editing on the right. */
 export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder }: {
@@ -16,6 +17,7 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
 }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
+  const [showCallSheet, setShowCallSheet] = useState(false);
   const swapPosition = (i: number, j: number) => {
     const fs = [...fixtures]; const source = fs[i], target = fs[j];
     if (!source || !target || i === j) return;
@@ -66,6 +68,7 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
         <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">Patch</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
         <Button variant="secondary" onClick={() => window.print()} title="Print, or choose “Save as PDF” in the print dialog"><Printer />Print / PDF</Button>
+        <Button variant="secondary" onClick={() => setShowCallSheet(true)}><ClipboardList />Call sheet</Button>
         <Button variant="secondary" onClick={exportPatch}><Download />Export</Button>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
@@ -142,6 +145,7 @@ export function PatchPage({ title, fixtures, onClose, onAdd, onRemove, onUpdate,
           <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap={false} showPatched={false} />
         </aside>
       </div>
+      {showCallSheet && <CallSheet title={title} fixtures={fixtures} onClose={() => setShowCallSheet(false)} />}
     </div>
   );
 }
