@@ -6,20 +6,31 @@ export interface CommandResult {
   select?: number[];
   /** intensity 0..1; undefined leaves levels alone */
   level?: number;
+  /** colour temperature in kelvin */
+  cct?: number;
   error?: string;
 }
 
 export function tokenize(cmd: string): string[] {
-  return cmd.toUpperCase().replace(/THRU|>/g, " THRU ").replace(/([+\-@])/g, " $1 ").split(/\s+/).filter(Boolean);
+  return cmd.toUpperCase().replace(/THRU|>/g, " THRU ").replace(/CCT/g, " CCT ").replace(/([+\-@])/g, " $1 ").split(/\s+/).filter(Boolean);
 }
 
 export function parseCommand(cmd: string, count: number): CommandResult {
-  const t = tokenize(cmd);
+  const all = tokenize(cmd);
+  const ci = all.indexOf("CCT");
+  const t = ci < 0 ? all : all.slice(0, ci);
+  let cct: number | undefined;
+  if (ci >= 0) {
+    const k = Number(all.slice(ci + 1).join("").replace(/K$/, ""));
+    if (!Number.isFinite(k) || k < 1000 || k > 20000) return { error: "CCT needs kelvin, e.g. CCT 3200" };
+    cct = Math.round(k);
+    if (!t.length) return { cct };
+  }
   if (!t.length) return { error: "Empty command" };
   const at = t.indexOf("@");
   const selTokens = at < 0 ? t : t.slice(0, at);
   const lvlTokens = at < 0 ? [] : t.slice(at + 1);
-  const res: CommandResult = {};
+  const res: CommandResult = cct != null ? { cct } : {};
 
   if (selTokens.length) {
     const set = new Set<number>();

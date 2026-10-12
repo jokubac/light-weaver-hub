@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard, Crosshair } from "lucide-react";
+import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -398,7 +398,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [groupsOpen, setGroupsOpen] = useState(true);
   const [fadersOpen, setFadersOpen] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
-  const [hl, setHl] = useState(false);
+  const [pulses, setPulses] = useState<Record<string, number>>({});
   const [t, setT] = useState(0);
   const clock = useRef(0);
 
@@ -694,18 +694,32 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   }, []);
   const outFixtures = useMemo(() => {
     const out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
-    if (!hl || !selected.length) return out;
-    // Highlight: selected lights at full open white, everything else out (output only)
+    const ids = Object.keys(pulses);
+    if (!ids.length) return out;
+    // Flash: 0.5 s fade up to full, 0.5 s fade back (output only)
+    const now = performance.now();
     return out.map((f) => {
-      if (!selected.includes(f.uid)) return { ...f, intensity: 0 };
-      const { gel: _gel, ...rest } = f;
-      return { ...rest, on: true, intensity: 1, fxPlaying: false, cct: 5600, gm: 0, saturation: 0, crossfade: 0 };
+      const st = pulses[f.uid];
+      if (st == null) return f;
+      const e = (now - st) / 1000;
+      if (e >= 1) return f;
+      const env = e < 0.5 ? e / 0.5 : 1 - (e - 0.5) / 0.5;
+      const base = f.on === false ? 0 : f.intensity;
+      return { ...f, on: true, intensity: base + (1 - base) * env };
     });
-  }, [fixtures, bank, project.looks, flash, solo, hl, selected]);
-  const runCommand = (select: number[] | undefined, level: number | undefined) => {
+  }, [fixtures, bank, project.looks, flash, solo, pulses, t]);
+  useEffect(() => {
+    const ids = Object.keys(pulses);
+    if (!ids.length) return;
+    const id = setTimeout(() => { const now = performance.now(); setPulses((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => now - v < 1000))); }, 1050);
+    return () => clearTimeout(id);
+  }, [pulses]);
+  const flashFixtures = (uids: string[]) => { const now = performance.now(); setPulses((p) => ({ ...p, ...Object.fromEntries(uids.map((u) => [u, now])) })); };
+  const runCommand = (select: number[] | undefined, level: number | undefined, cct?: number) => {
     const ids = select ? select.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x) : selected;
     if (select) { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }
     if (level != null) setFixtures((fs) => fs.map((f) => (ids.includes(f.uid) ? { ...f, intensity: level, on: true } : f)));
+    if (cct != null) setFixtures((fs) => fs.map((f) => (ids.includes(f.uid) ? { ...f, cct, saturation: 0, crossfade: 0 } : f)));
   };
   const stepLight = (dir: 1 | -1) => {
     if (!fixtures.length) return;
@@ -826,7 +840,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         onRestore={restoreSetup} onDelete={(id) => onSetups((project.setups ?? []).filter((s) => s.id !== id))} />
       {plotOpen && (
         <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
-          copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
+          onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
           colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
           levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
@@ -865,8 +879,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
                  <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
                   className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
-                 <Button variant="secondary" size="icon" aria-label="Highlight" aria-pressed={hl} title="Highlight — selected lights full white, all others out. NEXT/LAST steps through lights."
-                   onClick={() => setHl((h) => !h)} className={hl ? "bg-primary text-primary-foreground" : ""}><Crosshair className="h-4 w-4" /></Button>
                  <Button variant="secondary" size="icon" aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
                    onClick={() => setKeypadOpen((o) => !o)} className={keypadOpen ? "bg-primary text-primary-foreground" : ""}><Keyboard className="h-4 w-4" /></Button>
                  <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
@@ -942,7 +954,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
             <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
           ) : (
             <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
-              copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
+              onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
               remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
           )}
         </aside>}
