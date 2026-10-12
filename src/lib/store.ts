@@ -31,6 +31,8 @@ export interface RecStep {
   fadeIn: number;
   hold: number;
   fadeOut: number;
+  /** cue waits for a manual GO before it starts */
+  manual?: boolean;
 }
 export interface Recording {
   id: string;
