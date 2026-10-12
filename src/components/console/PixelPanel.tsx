@@ -1,6 +1,6 @@
 import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
-import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, RotateCcw } from "lucide-react";
+import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
   fixtures: PatchedFixture[]; selected?: string[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>; activeId: string; onActiveChange: (id: string) => void;
 }) {
   const setActiveId = onActiveChange;
+  const [coloursOpen, setColoursOpen] = useState(true);
   const allPx = fixtures.filter(isPixelFixture);
   const selPx = allPx.filter((f) => selected.includes(f.uid));
   // programming works on the lights selected in the console; with nothing selected every pixel light is listed
@@ -116,9 +117,18 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </div>
       )}
 
-      <PaletteEditor colours={layer.colors} native={["rainbow", "plasma", "fire"].includes(layer.kind) && !layer.customPalette}
-        onChange={(colors) => set({ colors, customPalette: true, tint: "" })}
-        onReset={() => set({ customPalette: false, tint: "" })} />
+      <section className="space-y-2" aria-label="Pixel colours">
+        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={coloursOpen} aria-controls="pixel-colour-editor" onClick={() => setColoursOpen((open) => !open)}>
+          {coloursOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          Colours
+          {!coloursOpen && <span className="ml-auto flex gap-1" aria-hidden="true">{layer.colors.map((colour, i) => <span key={i} className="h-3 w-3 rounded-sm" style={{ background: colour }} />)}</span>}
+        </Button>
+        <div id="pixel-colour-editor" hidden={!coloursOpen}>
+          <PaletteEditor colours={layer.colors} native={["rainbow", "plasma", "fire"].includes(layer.kind) && !layer.customPalette}
+            onChange={(colors) => set({ colors, customPalette: true, tint: "" })}
+            onReset={() => set({ customPalette: false, tint: "" })} />
+        </div>
+      </section>
 
       {layer.kind === "police" && (
         <div className="space-y-1.5">
