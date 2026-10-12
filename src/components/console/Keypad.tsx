@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Delete, GripVertical, X } from "lucide-react";
+import { ClipboardPaste, Copy, Delete, GripVertical, X } from "lucide-react";
 import { parseCommand } from "@/lib/command-line";
 
 interface Props {
@@ -8,16 +8,28 @@ interface Props {
   onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number) => void;
   onStep: (dir: 1 | -1) => void;
   onFlash: () => void;
+  onPreview?: (select: number[]) => void;
+  onCopy?: () => void;
+  onPaste?: () => void;
+  canPaste?: boolean;
   onClose: () => void;
 }
 
-const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "CLR", "0", "@", "FULL"];
+const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "OUT", "0", "@", "FULL"];
 
-export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onClose }: Props) {
+export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPreview, onCopy, onPaste, canPaste, onClose }: Props) {
   const [cmd, setCmd] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [pos, setPos] = useState({ x: 16, y: 16 });
   const drag = useRef<{ dx: number; dy: number } | null>(null);
+  // live selection while typing: "6" picks #6, "6 + 9" adds #9 before Please is pressed
+  useEffect(() => {
+    const head = cmd.split(/@|CCT/i)[0]!.replace(/[\s+\-]+$|THRU\s*$/gi, "").trim();
+    if (!/\d/.test(head)) return;
+    const r = parseCommand(head, count);
+    if (!r.error && r.select?.length) onPreview?.(r.select);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cmd, count]);
   useEffect(() => { setPos({ x: Math.max(8, window.innerWidth - 344), y: Math.max(16, window.innerHeight - 420) }); }, []);
   const clamp = (x: number, y: number) => ({ x: Math.min(Math.max(0, x), window.innerWidth - 120), y: Math.min(Math.max(0, y), window.innerHeight - 60) });
   const press = (k: string) => {
@@ -54,12 +66,14 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onClo
         ))}
         <button onClick={() => onStep(-1)} className={k}>LAST</button>
         <button onClick={() => onStep(1)} className={k}>NEXT</button>
-        <button onClick={() => press("OUT")} className={`${k} text-primary`}>OUT</button>
-        <button onClick={() => press("CCT")} className={`${k} text-primary`}>CCT</button>
+        <button onClick={() => press("CCT")} className={`${k} col-span-2 text-primary`}>CCT</button>
+        <button onClick={onCopy} disabled={!selectedNums.length} title="Copy settings from the first selected light" className={`${k} col-span-2 flex items-center justify-center gap-1 disabled:opacity-40`}><Copy className="h-4 w-4" />COPY</button>
+        <button onClick={onPaste} disabled={!canPaste || !selectedNums.length} title="Paste copied settings to the selected lights" className={`${k} col-span-2 flex items-center justify-center gap-1 disabled:opacity-40`}><ClipboardPaste className="h-4 w-4" />PASTE</button>
         </div>
-        <div className="flex w-16 flex-col gap-1.5">
+        <div className="flex w-20 flex-col gap-1.5">
           <button onClick={onFlash} disabled={!selectedNums.length} title="Flash selected lights to check them" className="rounded-lg bg-amber-glow py-3 text-xs font-black text-primary-foreground active:scale-95 disabled:opacity-40">FLASH</button>
-          <button onClick={run} className="flex-1 rounded-lg bg-primary text-base font-black text-primary-foreground active:scale-95">Please</button>
+          <button onClick={() => { setMsg(null); setCmd(""); }} className="flex-1 rounded-lg bg-surface-elevated text-sm font-black text-destructive active:scale-95">CLEAR</button>
+          <button onClick={run} className="flex-[1.5] rounded-lg bg-primary text-base font-black text-primary-foreground active:scale-95">Please</button>
         </div>
       </div>
     </div>
