@@ -33,3 +33,4 @@
 - Fixture FLASH and fader banks are output-only overlays in outFixtures, never mutating live fixture state; keypad numbers are console positions.
 - console-command.ts applies per-fixture relative command values and inverse FLASH envelopes; keeping these pure makes normalized CCT and restored output testable.
 - EffectsRail owns fixture/pixel effect saving and recall; ConsoleScreen shares the active pixel-layer ID with PixelPanel so the rail saves the layer being edited.
+- Pixel preview framing stays local to PixelPanel and derives from the logical grid and measured viewport, keeping display changes independent of saved effects and output.

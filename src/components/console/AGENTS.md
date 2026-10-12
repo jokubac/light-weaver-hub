@@ -9,7 +9,7 @@
 - Fixture grid columns use the available console container width rather than viewport width so the control panel cannot squeeze square tiles.
 - Live-plot cameras are an optional Plot.cameras field; CameraView renders a perspective view with exposure from lens/iris/ISO (src/lib/plot-camera.ts).
 - Camera projection uses the tested cameraBasis helper with plot Z-up coordinates so lens views remain upright at every yaw.
-- Pixel preview gestures affect viewport tilt/rotation only, preserving logical pixel addressing and DMX output.
+- Pixel preview auto-fits logical grid dimensions to a ResizeObserver-measured viewport; pan and zoom affect only the view, never pixel addressing or DMX output.
 - Emergency blackout sits to the right of the master fader with an output-enabled bulb indicator; full group management and saved looks share the collapsible right rail so neither needs a view tab.
 - Plot cameras use height-aware canvas placement and hit-testing; a selector keeps editing and confirmed removal reachable.
 - Plot fixture/object/camera selection IDs stay separate; mixed moves and removals commit one snapshot for atomic undo.
