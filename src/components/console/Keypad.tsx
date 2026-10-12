@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ClipboardPaste, Copy, Delete, GripVertical, X } from "lucide-react";
 import { parseCommand } from "@/lib/command-line";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   count: number;
@@ -13,18 +14,19 @@ interface Props {
   onPaste?: () => void;
   canPaste?: boolean;
   onClose: () => void;
+  onDeselect: () => void;
 }
 
 const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "OUT", "0", "@", "FULL"];
 
-export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPreview, onCopy, onPaste, canPaste, onClose }: Props) {
+export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPreview, onCopy, onPaste, canPaste, onClose, onDeselect }: Props) {
   const [cmd, setCmd] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [pos, setPos] = useState({ x: 16, y: 16 });
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   // live selection while typing: "6" picks #6, "6 + 9" adds #9 before Please is pressed
   useEffect(() => {
-    const head = cmd.split(/@|CCT/i)[0]!.replace(/[\s+\-]+$|THRU\s*$/gi, "").trim();
+    const head = (cmd.split(/@|CCT/i)[0] ?? "").replace(/[\s+\-]+$|THRU\s*$/gi, "").trim();
     if (!/\d/.test(head)) return;
     const r = parseCommand(head, count);
     if (!r.error && r.select?.length) onPreview?.(r.select);
@@ -72,7 +74,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
         </div>
         <div className="flex w-20 flex-col gap-1.5">
           <button onClick={onFlash} disabled={!selectedNums.length} title="Flash selected lights to check them" className="rounded-lg bg-amber-glow py-3 text-xs font-black text-primary-foreground active:scale-95 disabled:opacity-40">FLASH</button>
-          <button onClick={() => { setMsg(null); setCmd(""); }} className="flex-1 rounded-lg bg-surface-elevated text-sm font-black text-destructive active:scale-95">CLEAR</button>
+          <Button variant="secondary" onClick={() => { setMsg(null); setCmd(""); }} onDoubleClick={onDeselect} title="Clear command; double-click to deselect fixtures" className="h-auto flex-1 rounded-lg text-sm font-black text-destructive active:scale-95">CLEAR</Button>
           <button onClick={run} className="flex-[1.5] rounded-lg bg-primary text-base font-black text-primary-foreground active:scale-95">Please</button>
         </div>
       </div>
