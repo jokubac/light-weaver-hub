@@ -1,0 +1,15 @@
+# Console UI rules
+- Live-plot beam samples use an interpolated light texture and angular falloff rather than visible world-space tiles, preserving height-aware wall occlusion.
+- ColourControls is shared by fixture, effect and live-plot controls to keep the CCT/crossfade/HSI ordering consistent; HexColourControls edits step and pixel palette colours.
+- Live-plot openings reference stroke/segment indices and use height-aware ray intersections; remap their indices whenever walls are removed so saved openings stay attached.
+- Live-plot edit history stores plot and light-control snapshots, grouping pointer gestures as single edits so undo does not step through every drag frame.
+- PaletteEditor shares CCT/HSI/gel editing across fixture and pixel effects; generated pixel effects opt into custom palettes to preserve older saved looks.
+- FixtureGlyph uses validated, normalized PatchedFixture.icon overrides edited through FixtureIconPicker; icons never change DMX modes.
+- Plot camera state is an optional Scene.plot.view field and persists outside geometry undo history, keeping older saved projects compatible.
+- Fixture grid columns use the available console container width rather than viewport width so the control panel cannot squeeze square tiles.
+- Live-plot cameras are an optional Plot.cameras field; CameraView renders a perspective view with exposure from lens/iris/ISO (src/lib/plot-camera.ts).
+- Camera projection uses the tested cameraBasis helper with plot Z-up coordinates so lens views remain upright at every yaw.
+- Pixel preview gestures affect viewport tilt/rotation only, preserving logical pixel addressing and DMX output.
+- Emergency blackout sits to the right of the master fader with an output-enabled bulb indicator; full group management and saved looks share the collapsible right rail so neither needs a view tab.
+- Plot cameras use height-aware canvas placement and hit-testing; a selector keeps editing and confirmed removal reachable.
+- Plot fixture/object/camera selection IDs stay separate; mixed moves and removals commit one snapshot for atomic undo.
