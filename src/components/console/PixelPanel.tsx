@@ -1,6 +1,6 @@
 import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
-import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
+import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
 }) {
   const setActiveId = onActiveChange;
   const [coloursOpen, setColoursOpen] = useState(true);
+  const [effectsOpen, setEffectsOpen] = useState(true);
   const allPx = fixtures.filter(isPixelFixture);
   const selPx = allPx.filter((f) => selected.includes(f.uid));
   // programming works on the lights selected in the console; with nothing selected every pixel light is listed
@@ -93,7 +94,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       {!layer.playing && inMap.length > 0 && <p className="text-[10px] text-muted-foreground">Preview below — press PLAY to send it to the lights.</p>}
       {/* live preview of the layer grid */}
       {placed.length > 0 && (
-        <InfiniteGrid>
+        <InfiniteGrid columns={W} rows={H}>
           <div className="grid gap-px" style={{ gridTemplateColumns: `repeat(${W}, 10px)`, gridTemplateRows: `repeat(${H}, 10px)` }}>
             {placed.flatMap((p, fi) => p.cells.map((c, i) => {
               const col = (layer.playing ? frame.get(p.f.uid) : preview.get(p.f.uid))?.[i];
@@ -104,11 +105,20 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </InfiniteGrid>
       )}
 
-      <div className="grid grid-cols-3 gap-1.5">
-        {PIXEL_FX.map((e) => (
-          <button key={e.id} onClick={() => set({ kind: e.id })} className={`rounded-md py-2.5 text-xs font-semibold ${layer.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>{e.label}</button>
-        ))}
-      </div>
+      <section className="space-y-2" aria-label="Pixel effects">
+        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={effectsOpen} aria-controls="pixel-effect-choices" onClick={() => setEffectsOpen((open) => !open)}>
+          {effectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          Effects
+          <span className="ml-auto text-xs text-muted-foreground">{PIXEL_FX.find((effect) => effect.id === layer.kind)?.label}</span>
+        </Button>
+        <div id="pixel-effect-choices" hidden={!effectsOpen}>
+          <div className="grid grid-cols-3 gap-1.5">
+            {PIXEL_FX.map((e) => (
+              <Button key={e.id} variant={layer.kind === e.id ? "default" : "secondary"} aria-pressed={layer.kind === e.id} onClick={() => set({ kind: e.id })} className="h-auto py-2.5 text-xs font-semibold">{e.label}</Button>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {layer.kind === "text" && (
         <div className="space-y-1">
@@ -219,49 +229,64 @@ export function useClock() {
 }
 
 /** Endless preview viewport; gestures change only the view, never the programmed output. */
-function InfiniteGrid({ children }: { children: React.ReactNode }) {
+function InfiniteGrid({ children, columns, rows }: { children: React.ReactNode; columns: number; rows: number }) {
+  const viewport = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
   const [pan, setPan] = useState<[number, number]>([12, 12]);
   const [zoom, setZoom] = useState(1);
-  const [tilt, setTilt] = useState(0);
-  const [turn, setTurn] = useState(0);
+  const [autoFit, setAutoFit] = useState(true);
+  const gridWidth = columns * 11 - 1;
+  const gridHeight = rows * 11 - 1;
+  const fitZoom = Math.max(0.001, Math.min(Math.max(1, size.width - 32) / gridWidth, Math.max(1, size.height - 64) / gridHeight));
+  const viewZoom = autoFit ? fitZoom : zoom;
+  const viewPan: [number, number] = autoFit ? [(size.width - gridWidth * fitZoom) / 2, (size.height - gridHeight * fitZoom) / 2] : pan;
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => { setAutoFit(true); }, [columns, rows]);
+  const changeZoom = (factor: number) => {
+    const next = Math.max(.001, Math.min(32, viewZoom * factor));
+    const ratio = next / viewZoom;
+    setPan([size.width / 2 - (size.width / 2 - viewPan[0]) * ratio, size.height / 2 - (size.height / 2 - viewPan[1]) * ratio]);
+    setZoom(next);
+    setAutoFit(false);
+  };
   const pointers = useRef(new Map<number, [number, number]>());
-  const gesture = useRef<{ pan: [number, number]; zoom: number; turn: number; tilt: number; mid: [number, number]; distance: number; angle: number; count: number } | null>(null);
+  const gesture = useRef<{ pan: [number, number]; zoom: number; mid: [number, number]; distance: number; angle: number; count: number } | null>(null);
   const measure = () => {
     const pts = [...pointers.current.values()];
     const a = pts[0], b = pts[1];
     if (!a) return null;
     return { mid: [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length] as [number, number], distance: b ? Math.hypot(b[0] - a[0], b[1] - a[1]) : 1, angle: b ? Math.atan2(b[1] - a[1], b[0] - a[0]) : 0, count: pts.length };
   };
-  const begin = () => { const m = measure(); gesture.current = m ? { ...m, pan, zoom, turn, tilt } : null; };
+  const begin = () => { const m = measure(); gesture.current = m ? { ...m, pan: viewPan, zoom: viewZoom } : null; };
   const end = (e: React.PointerEvent) => { pointers.current.delete(e.pointerId); begin(); };
-  const cell = 11 * zoom;
+  const cell = 11 * viewZoom;
   return <div className="space-y-2">
-    <div aria-label="Pixel mapping viewport" className="relative h-56 touch-none overflow-hidden rounded-lg bg-background"
-      style={{ backgroundImage: "linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)", backgroundSize: `${cell}px ${cell}px`, backgroundPosition: `${pan[0]}px ${pan[1]}px` }}
+    <div ref={viewport} aria-label="Pixel mapping viewport" className="relative h-56 touch-none overflow-hidden rounded-lg bg-background"
+      style={{ backgroundImage: "linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)", backgroundSize: `${cell}px ${cell}px`, backgroundPosition: `${viewPan[0]}px ${viewPan[1]}px` }}
       onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pointers.current.set(e.pointerId, [e.clientX, e.clientY]); begin(); }}
       onPointerMove={(e) => {
         if (!pointers.current.has(e.pointerId)) return;
         pointers.current.set(e.pointerId, [e.clientX, e.clientY]); const m = measure(), g = gesture.current;
         if (!m || !g) return;
-        if (m.count >= 3 || e.shiftKey) setTilt(Math.max(-80, Math.min(80, g.tilt + (m.mid[1] - g.mid[1]) * .4)));
-        else {
-          setPan([g.pan[0] + m.mid[0] - g.mid[0], g.pan[1] + m.mid[1] - g.mid[1]]);
-          if (m.count === 2) {
-            setZoom(Math.max(.1, Math.min(10, g.zoom * m.distance / Math.max(1, g.distance))));
-            const delta = Math.atan2(Math.sin(m.angle - g.angle), Math.cos(m.angle - g.angle));
-            setTurn(g.turn + delta * 180 / Math.PI);
-          }
-        }
+        setAutoFit(false);
+        setPan([g.pan[0] + m.mid[0] - g.mid[0], g.pan[1] + m.mid[1] - g.mid[1]]);
+        setZoom(m.count === 2 ? Math.max(.001, Math.min(32, g.zoom * m.distance / Math.max(1, g.distance))) : g.zoom);
       }} onPointerUp={end} onPointerCancel={end}
-      onWheel={(e) => setZoom((z) => Math.max(.1, Math.min(10, z * (e.deltaY < 0 ? 1.1 : .9))))}>
-      <div className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${pan[0]}px, ${pan[1]}px) scale(${zoom}) rotate(${turn}deg) scaleY(${Math.cos(tilt * Math.PI / 180)})` }}>{children}</div>
+      onWheel={(e) => changeZoom(e.deltaY < 0 ? 1.1 : .9)}>
+      <div data-testid="pixel-preview-grid" className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${viewPan[0]}px, ${viewPan[1]}px) scale(${viewZoom})` }}>{children}</div>
       <div className="absolute bottom-1.5 right-1.5 flex gap-1" onPointerDown={(e) => e.stopPropagation()}>
-        <Button size="icon" variant="secondary" onClick={() => setZoom((z) => Math.min(10, z * 1.25))} title="Zoom in" aria-label="Zoom in"><Plus /></Button>
-        <Button size="icon" variant="secondary" onClick={() => setZoom((z) => Math.max(.1, z / 1.25))} title="Zoom out" aria-label="Zoom out">−</Button>
-        <Button size="icon" variant="secondary" title="Reset pixel view" aria-label="Reset pixel view" onClick={() => { setZoom(1); setPan([12, 12]); setTilt(0); setTurn(0); }}><RotateCcw /></Button>
+        <Button size="icon" variant="secondary" onClick={() => changeZoom(1.25)} title="Zoom in" aria-label="Zoom in"><Plus /></Button>
+        <Button size="icon" variant="secondary" onClick={() => changeZoom(.8)} title="Zoom out" aria-label="Zoom out">−</Button>
+        <Button size="icon" variant="secondary" title="Scale to fit" aria-label="Scale to fit" aria-pressed={autoFit} onClick={() => setAutoFit(true)}><Scan /></Button>
       </div>
     </div>
-    <Slider label="View tilt" value={tilt} min={-80} max={80} step={1} display={`${Math.round(tilt)}°`} onChange={setTilt} />
-    <Slider label="View rotation" value={((turn + 180) % 360 + 360) % 360 - 180} min={-180} max={180} step={1} display={`${Math.round(turn)}°`} onChange={setTurn} />
   </div>;
 }
