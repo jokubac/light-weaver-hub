@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
 import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight } from "lucide-react";
@@ -205,7 +206,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
           const [c, r] = pixelGrid(f);
           return (
             <div key={f.uid} className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${on ? "bg-primary/15" : "bg-surface-elevated"}`}>
-              <input type="checkbox" checked={on} onChange={() => toggle(f.uid)} className="h-4 w-4 accent-[var(--color-primary)]" />
+              <Checkbox checked={on} onCheckedChange={() => toggle(f.uid)} />
               {on && <span className="w-5 font-mono text-amber-glow">{inMap.indexOf(f.uid) + 1}</span>}
               <span className="min-w-0 flex-1 truncate">{f.name} <span className="text-muted-foreground">· {getDef(f.defId).model} · {pixelCount(f)} px{r > 1 ? ` (${c}×${r})` : ""}{other.length ? ` · also in ${other.join(", ")}` : ""}</span></span>
               {on && <>

@@ -168,7 +168,7 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
               </div>
             )}
             {grouped.length > 0 && <div className="flex flex-wrap items-center gap-2 print:hidden">
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" aria-label="Select all items" checked={picked.length > 0 && picked.length === equipment.length} onChange={(e) => setPicked(e.target.checked ? equipment.map((l) => l.id) : [])} />Select all</label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox aria-label="Select all items" checked={picked.length > 0 && picked.length === equipment.length} onCheckedChange={(c) => setPicked(c === true ? equipment.map((l) => l.id) : [])} />Select all</label>
               {picked.length > 0 && <Button size="sm" variant="destructive" onClick={removePicked}><Trash2 className="h-3.5 w-3.5" />Delete {picked.length}</Button>}
             </div>}
             {grouped.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nothing on the list yet — patch lights or add from the catalogue.</p> : (

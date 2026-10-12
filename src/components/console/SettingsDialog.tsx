@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
 import { Bluetooth, BatteryMedium, Maximize, Music, Trash2, Tv, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
             <h3 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground"><Music className="h-4 w-4" />MIDI controller</h3>
             <label className="flex items-center justify-between rounded-md bg-surface-elevated px-3 py-2 font-semibold">
               Enable MIDI
-              <input type="checkbox" checked={midi.enabled} onChange={(e) => setMidi({ ...midi, enabled: e.target.checked })} className="h-4 w-4 accent-[var(--color-primary)]" />
+              <Checkbox checked={midi.enabled} onCheckedChange={(c) => setMidi({ ...midi, enabled: c === true })} />
             </label>
             {midiError && <p className="text-destructive">{midiError}</p>}
             {onNanoKontrol && <button onClick={onNanoKontrol} className="w-full rounded-lg bg-surface-elevated py-2 font-semibold">Load Korg nanoKONTROL2 layout (faders 1–6, master, GO / Back / Blackout)</button>}
