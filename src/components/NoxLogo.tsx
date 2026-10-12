@@ -25,7 +25,7 @@ export function NoxLogo({
       aria-hidden={title ? undefined : true}
       focusable="false"
     >
-      {tile && <rect width="512" height="512" rx="115" fill="#17131c" />}
+      {tile && <rect width="512" height="512" rx="64" fill="#17131c" />}
 
       {/* Švelnus šviesos šaltinio švytėjimas aplink „O" */}
       <circle cx="256" cy="250" r="90" fill="#ff5a00" opacity="0.15" />
