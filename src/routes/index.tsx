@@ -728,7 +728,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   }, [pulses]);
   const flashFixtures = (uids: string[]) => {
     const now = performance.now();
-    setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => uids.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target: f.on === false ? 1 : 0 }])) }));
+    setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => uids.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target: fixtureState(f, t).v > 0.05 ? 0 : 1 }])) }));
   };
   const runCommand = (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number) => {
     const ids = select ? select.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x) : selected;
