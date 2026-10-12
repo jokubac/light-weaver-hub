@@ -7,13 +7,13 @@ import type { MidiMap } from "@/lib/midi";
 export interface BtDevice { id: string; name: string; battery: number | null }
 export interface MidiTarget { id: string; label: string }
 
-export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, midi, setMidi, targets, learning, setLearning, lastMsg, midiDevices, midiError }: {
+export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, midi, setMidi, targets, learning, setLearning, lastMsg, midiDevices, midiError, onNanoKontrol }: {
   open: boolean; onOpenChange: (o: boolean) => void;
   onSetups: () => void;
   bt: BtDevice[]; connectBt: () => void;
   midi: { enabled: boolean; maps: MidiMap[] }; setMidi: (m: { enabled: boolean; maps: MidiMap[] }) => void;
   targets: MidiTarget[]; learning: string | null; setLearning: (t: string | null) => void;
-  lastMsg: string | null; midiDevices: string[]; midiError: string | null;
+  lastMsg: string | null; midiDevices: string[]; midiError: string | null; onNanoKontrol?: () => void;
 }) {
   const [fs, setFs] = useState(false);
   useEffect(() => { const h = () => setFs(!!document.fullscreenElement); document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
@@ -51,6 +51,8 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
               <input type="checkbox" checked={midi.enabled} onChange={(e) => setMidi({ ...midi, enabled: e.target.checked })} className="h-4 w-4 accent-[var(--color-primary)]" />
             </label>
             {midiError && <p className="text-destructive">{midiError}</p>}
+            {onNanoKontrol && <button onClick={onNanoKontrol} className="w-full rounded-lg bg-surface-elevated py-2 font-semibold">Load Korg nanoKONTROL2 layout (faders 1–6, master, GO / Back / Blackout)</button>}
+            <p className="text-muted-foreground">Keyboard / Stream Deck: Space = GO, B = Back.</p>
             {midi.enabled && <p className="text-muted-foreground">Devices: {midiDevices.length ? midiDevices.join(", ") : "none found — plug in a controller"}{lastMsg ? ` · last: ${lastMsg}` : ""}</p>}
             {midi.enabled && (
               <div className="space-y-1">

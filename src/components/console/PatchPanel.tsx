@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
@@ -7,6 +7,11 @@ import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
 import type { FixtureIcon } from "@/lib/fixture-icons";
 import { planPatch } from "@/lib/patch-plan";
+import { importGdtfFile, buildMode } from "@/lib/gdtf";
+import { addCustomFixture, useCustomFixtures } from "@/lib/custom-fixtures";
+import { scanRdm, type RdmDevice } from "@/lib/rdm";
+import { loadConnection } from "@/lib/store";
+import { FixtureBuilder } from "./FixtureBuilder";
 import {
   BRANDS,
   FIXTURE_LIBRARY, RENTAL_STOCK,
@@ -21,6 +26,7 @@ import {
 export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
 
 const modeKey = (defId: string, i: number) => `${defId}:${i}`;
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = true, showPatched = true }: {
   defaultMap?: boolean; showPatched?: boolean; fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
@@ -86,6 +92,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         </div>
       )}
 
+      {!def && <MoreSources fixtures={fixtures} onAdd={onAdd} />}
       {!def && q ? (
         <List>
           {searchHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
@@ -276,6 +283,122 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function List({ children }: { children: React.ReactNode }) {
   return <div className="space-y-1.5">{children}</div>;
+}
+
+function MoreSources({ fixtures, onAdd }: { fixtures: PatchedFixture[]; onAdd: (fs: PatchedFixture[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [builder, setBuilder] = useState(false);
+  const [gdtfMsg, setGdtfMsg] = useState<string | null>(null);
+  const [rdmUniverse, setRdmUniverse] = useState(1);
+  const [scanning, setScanning] = useState(false);
+  const [rdmDevices, setRdmDevices] = useState<RdmDevice[] | null>(null);
+  const [rdmError, setRdmError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const custom = useCustomFixtures();
+
+  const handleGdtfFile = async (file: File) => {
+    setGdtfMsg("Importing…");
+    try {
+      const def = await importGdtfFile(file);
+      if (!def) { setGdtfMsg("Could not read a GDTF fixture from this file."); return; }
+      addCustomFixture(def);
+      setGdtfMsg(`Imported "${def.brand} ${def.model}" (${def.modes.length} mode${def.modes.length === 1 ? "" : "s"}).`);
+    } catch {
+      setGdtfMsg("Import failed — invalid .gdtf file.");
+    }
+  };
+
+  const runScan = async () => {
+    const conn = loadConnection();
+    if (!conn.node?.ip) { setRdmError("Connect to a node first (see CONNECT)."); setRdmDevices(null); return; }
+    setScanning(true); setRdmError(null); setRdmDevices(null);
+    try {
+      const devs = await scanRdm(conn.bridge, conn.node.ip, rdmUniverse);
+      setRdmDevices(devs);
+      if (devs.length === 0) setRdmError("No RDM devices found.");
+    } catch (e) {
+      setRdmError(e instanceof Error ? e.message : "Scan failed.");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const addRdmDevice = (dev: RdmDevice) => {
+    const nameHit = (s: string) => s.toLowerCase().trim();
+    let d = FIXTURE_LIBRARY.find((x) => nameHit(x.model) === nameHit(dev.model) || nameHit(`${x.brand} ${x.model}`) === nameHit(dev.model));
+    if (!d) {
+      const fp = Math.max(1, dev.footprint || 1);
+      const entries = [{ attr: "Dimmer" as const }, ...Array.from({ length: Math.max(0, fp - 1) }, () => ({ attr: "Spare" as const }))];
+      d = {
+        id: `custom-rdm-${slug(`${dev.manufacturer} ${dev.model} ${dev.uid}`)}`,
+        brand: dev.manufacturer || "RDM",
+        model: dev.model || "RDM device",
+        modes: [buildMode("DMX", entries)],
+      };
+      addCustomFixture(d);
+    }
+    const modeIdx = Math.max(0, d.modes.findIndex((mo) => mo.channels === dev.footprint));
+    const nf = createFixture(d, modeIdx, rdmUniverse, Math.max(1, dev.address || 1), `${d.brand} ${d.model}`);
+    onAdd([nf]);
+  };
+
+  return (
+    <div className="rounded-lg bg-surface-elevated/50">
+      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        More sources
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="space-y-2 p-2 pt-0">
+          <div className="flex flex-wrap gap-1.5">
+            <input ref={fileRef} type="file" accept=".gdtf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleGdtfFile(f); e.target.value = ""; }} />
+            <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><FileUp className="h-3.5 w-3.5" />Import GDTF</button>
+            <button onClick={() => setBuilder(true)} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Wrench className="h-3.5 w-3.5" />Fixture builder</button>
+          </div>
+          {gdtfMsg && <p className="text-[11px] text-muted-foreground">{gdtfMsg}</p>}
+
+          <div className="space-y-1.5 rounded-md bg-surface p-2">
+            <div className="flex items-center gap-1.5">
+              <Radar className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-[11px] font-semibold">RDM scan</span>
+              <NumberField integer min={1} max={64} value={rdmUniverse} onChange={(v) => v && setRdmUniverse(v)} className="ml-auto w-14 rounded border border-input bg-surface-elevated px-1 text-[11px]" aria-label="Universe" />
+              <button onClick={() => void runScan()} disabled={scanning} className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-40">{scanning ? "Scanning…" : "Scan"}</button>
+            </div>
+            {rdmError && <p className="text-[11px] text-destructive">{rdmError}</p>}
+            {rdmDevices && rdmDevices.length > 0 && (
+              <div className="space-y-1">
+                {rdmDevices.map((d) => (
+                  <div key={d.uid} className="flex items-center gap-2 rounded bg-surface-elevated px-2 py-1 text-[11px]">
+                    <span className="min-w-0 flex-1 truncate"><span className="font-semibold">{d.manufacturer} {d.model}</span> · U{rdmUniverse}.{d.address} · {d.footprint}ch</span>
+                    <button onClick={() => addRdmDevice(d)} className="shrink-0 rounded bg-primary px-2 py-1 font-semibold text-primary-foreground">Add</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {custom.list.length > 0 && (
+            <div className="space-y-1 rounded-md bg-surface p-2">
+              <span className="text-[11px] font-semibold">Custom fixtures</span>
+              {custom.list.map((d) => (
+                <div key={d.id} className="flex items-center gap-2 rounded bg-surface-elevated px-2 py-1 text-[11px]">
+                  <span className="min-w-0 flex-1 truncate">{d.brand} {d.model}</span>
+                  <button
+                    onClick={() => { if (window.confirm(`Delete custom fixture "${d.brand} ${d.model}"? This cannot be undone.`)) custom.remove(d.id); }}
+                    className="shrink-0 rounded p-1 text-destructive"
+                    aria-label={`Delete ${d.model}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {builder && <FixtureBuilder onClose={() => setBuilder(false)} onCreated={() => setBuilder(false)} />}
+    </div>
+  );
 }
 
 function Row({ title, sub, onClick, starred, onStar }: { title: string; sub: string; onClick: () => void; starred?: boolean; onStar?: () => void }) {

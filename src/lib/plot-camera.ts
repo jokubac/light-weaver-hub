@@ -6,6 +6,8 @@ export interface PlotCamera {
   fstop: number;
   iso: number;
   sensor: SensorId;
+  fps?: number; // frames per second, used for the light-meter T-stop
+  shutterAngle?: number; // degrees, used for the light-meter T-stop
 }
 export type SensorId = "s35" | "ff" | "m43" | "lf";
 export const SENSORS: { id: SensorId; label: string; w: number; h: number }[] = [
@@ -17,9 +19,11 @@ export const SENSORS: { id: SensorId; label: string; w: number; h: number }[] = 
 export const LENSES = [14, 18, 24, 35, 50, 85, 135];
 export const FSTOPS = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16];
 export const ISOS = [100, 200, 400, 800, 1280, 1600, 3200, 6400];
+export const FPS_OPTIONS = [23.98, 24, 25, 29.97, 30, 48, 50, 60];
+export const SHUTTER_ANGLES = [45, 90, 144, 172.8, 180, 270, 360];
 
 export const defaultCamera = (x: number, y: number, floor = 0): PlotCamera => ({
-  id: Math.random().toString(36).slice(2, 10), name: "Camera A", x, y, h: 1.5, rot: 0, tilt: 5, floor, lens: 35, fstop: 2.8, iso: 800, sensor: "s35",
+  id: Math.random().toString(36).slice(2, 10), name: "Camera A", x, y, h: 1.5, rot: 0, tilt: 5, floor, lens: 35, fstop: 2.8, iso: 800, sensor: "s35", fps: 24, shutterAngle: 180,
 });
 
 /** Horizontal field of view in degrees. */

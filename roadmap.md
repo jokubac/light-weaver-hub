@@ -44,3 +44,9 @@
 - [x] Blackout beside master fader; looks in the groups rail
 - [x] Patch as its own page with print/PDF, export and import
 - [x] REC sequences with steps, fades and hold in the side rail
+
+- [x] Playback fader bank, cue stack, nanoKONTROL2 preset
+- [x] Call sheet / rental order
+- [x] Live plot lux / T-stop meter
+- [x] GDTF import, fixture builder, RDM scan
+- [x] Direct Art-Net/sACN from installed app

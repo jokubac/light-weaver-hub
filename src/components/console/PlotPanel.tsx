@@ -2,9 +2,10 @@ import { NumberField } from "./NumberField";
 // Live light plot: draw the set (or drop in a floor plan photo) per floor, place lights on stands,
 // see their beams live in 2D or tilted 3D, and control them straight from the plot.
 // View: wheel / pinch zoom, hand or middle-drag pan, right-drag (or shift+hand) rotates / tilts.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Eraser, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X, DoorOpen, PanelsTopLeft, Undo2, Redo2, Armchair, UserRound, LampDesk, LockKeyhole, Unlock, ListChecks } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
+import { illuminanceAt, lux3m as lux3mOf, footcandles, shutterSeconds, tStopFor, roundToThirdStop, stopsDifference, type MeterLight } from "@/lib/photometry";
 import { fixtureWatts } from "@/lib/power";
 import { OPTICS, OPTIC_BY_ID, defaultOptic, type Optic } from "@/lib/optics";
 import { ColourControls } from "./ColourControls";
@@ -12,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { wallSegments, openingBounds, wallPanels, rayBlocked, segmentDistance, type Opening } from "@/lib/plot-geometry";
 import { editHistory } from "@/lib/edit-history";
 import { CameraView } from "./CameraView";
-import { FSTOPS, ISOS, LENSES, SENSORS, defaultCamera, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
-import { Video } from "lucide-react";
+import { FSTOPS, ISOS, LENSES, SENSORS, FPS_OPTIONS, SHUTTER_ANGLES, defaultCamera, horizontalFov, type PlotCamera } from "@/lib/plot-camera";
+import { Video, Gauge } from "lucide-react";
 import { SET_OBJECTS, objectContains, type SetObject, type SetObjectKind } from "@/lib/plot-objects";
 import { hexToHs } from "@/lib/gels";
 import { SettingsTransfer } from "./SettingsTransfer";
@@ -33,15 +34,17 @@ export interface Plot {
   openings?: Opening[];
   objects?: SetObject[];
   cameras?: PlotCamera[];
+  meters?: { id: string; x: number; y: number; z: number; floor?: number }[];
   view?: { view3d: boolean; yaw: number; pitch: number; zoom: number; pan: [number, number]; active: number };
 }
 export const emptyPlot = (): Plot => ({ strokes: [], items: {}, size: [20, 14] });
 
-type Tool = "move" | "pan" | "draw" | "rect" | "erase" | "door" | "window" | "fixture" | "object" | "camera";
+type Tool = "move" | "pan" | "draw" | "rect" | "erase" | "door" | "window" | "fixture" | "object" | "camera" | "meter";
 type Mat = [number, number, number, number, number, number];
 interface View { m: Mat; zs: number }
 type Drag =
   | { kind: "camera"; id: string; last: [number, number]; z: number }
+  | { kind: "meter"; id: string; last: [number, number]; z: number }
   | { kind: "item"; last: [number, number]; z: number }
   | { kind: "rot"; uid: string; sy: number; tilt0: number; alt: boolean }
   | { kind: "layout"; target: "wall" | "object"; id: number | string; segment?: number; last: [number, number] }
@@ -113,13 +116,14 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const [multiSelect, setMultiSelect] = useState(false);
   const setObjectId = (id: string | null) => { focusObject(id); setObjectIds(id ? [id] : []); };
   const setCameraId = (id: string | null) => { focusCamera(id); setCameraIds(id ? [id] : []); };
-  const clearSelection = () => { setSelected([]); setObjectId(null); setCameraId(null); setWallIndex(null); setOpeningId(null); };
+  const clearSelection = () => { setSelected([]); setObjectId(null); setCameraId(null); setWallIndex(null); setOpeningId(null); setMeterId(null); };
   const toggleId = (ids: string[], id: string) => ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
   const [camViewOpen, setCamViewOpen] = useState(false);
   const [objectKind, setObjectKind] = useState<SetObjectKind>("bed");
   const [placementUid, setPlacementUid] = useState("");
   const [wallHeight, setWallHeight] = useState(2.6);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [meterId, setMeterId] = useState<string | null>(null);
   type Snapshot = { plot: Plot; lights: PatchedFixture[] };
   const history = useRef(editHistory<Snapshot>());
   const gesture = useRef({ active: false, recorded: false });
@@ -152,6 +156,33 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     return { optic, beam: it.optic ? it.beam : OPTIC_BY_ID[optic].angle, watts: fixtureWatts(model) };
   };
   const segsOf = (floor: number) => wallSegments(plot.strokes, floor);
+
+  /** Light sources for the meter, recomputed only when the plot or the fixtures that light it change. */
+  const meterLights = useMemo<Record<number, MeterLight[]>>(() => {
+    const byFloor: Record<number, MeterLight[]> = {};
+    for (const f of fixtures) {
+      const it = plot.items[f.uid];
+      if (!it) continue;
+      const floor = floorOf(it);
+      const o = opticsOf(f, it);
+      const model = getDef(f.defId).model;
+      const l: MeterLight = { x: it.x, y: it.y, z: fz(it) + it.h, rot: it.rot, tilt: it.tilt ?? DEFAULT_TILT, beam: o.beam, lux3m: lux3mOf(model, o.watts, o.beam, (f as any).lux3m), level: levelOf(f) * (f.on === false ? 0 : 1) };
+      (byFloor[floor] ??= []).push(l);
+    }
+    return byFloor;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plot.items, plot.objects, fixtures]);
+  /** Meter points: user-placed plus one automatically at every person's head height. */
+  const meterPoints = useMemo(() => {
+    const manual = (plot.meters ?? []).map((m) => ({ ...m, floor: m.floor ?? 0, auto: false }));
+    const people = (plot.objects ?? []).filter((o) => o.kind === "person").map((o) => ({ id: `person:${o.id}`, x: o.x, y: o.y, z: o.h - 0.15, floor: o.floor, auto: true }));
+    return [...manual, ...people];
+  }, [plot.meters, plot.objects]);
+  const meterReading = (pt: { x: number; y: number; z: number; floor: number }) => {
+    const z = (floors[pt.floor]?.z ?? 0) + pt.z;
+    const lux = illuminanceAt([pt.x, pt.y, z], meterLights[pt.floor] ?? [], segsOf(pt.floor), plot.openings ?? []);
+    return { lux, fc: footcandles(lux) };
+  };
 
   useEffect(() => {
     for (let i = 0; i < floors.length; i++) {
@@ -397,6 +428,35 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       ctx.restore();
     }
 
+    // light meters: a dot at each manual point plus one automatically at every person's head,
+    // with a "xxx lx · T y" badge — only drawn once there is something on the floor to measure.
+    for (const pt of meterPoints) {
+      const mf = pt.floor;
+      if (!view3d && mf !== fl) continue;
+      const lights = meterLights[mf];
+      if (!lights || !lights.length) continue;
+      const z = floors[mf]?.z ?? 0;
+      const q = proj(V, pt.x, pt.y, z + pt.z);
+      const isSel = !pt.auto && pt.id === meterId;
+      if (!pt.auto) {
+        ctx.beginPath(); ctx.arc(q[0], q[1], 6, 0, Math.PI * 2);
+        ctx.fillStyle = isSel ? "rgba(250,204,21,0.9)" : "rgba(250,204,21,0.55)";
+        ctx.fill(); ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.lineWidth = 1; ctx.stroke();
+      }
+      const { lux } = meterReading(pt);
+      const cams = plot.cameras ?? [];
+      const cam = cams.find((c) => c.id === cameraId) ?? cams[0];
+      const tLabel = cam ? ` · ${roundToThirdStop(tStopFor(lux, cam.iso, shutterSeconds(cam.fps, cam.shutterAngle))).label}` : "";
+      const label = `${Math.round(lux)} lx${tLabel}`;
+      const ty = q[1] - (pt.auto ? 28 : 14);
+      ctx.font = "600 10px system-ui, sans-serif"; ctx.textAlign = "center";
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = "rgba(11,13,16,0.75)";
+      ctx.fillRect(q[0] - tw / 2 - 4, ty - 11, tw + 8, 14);
+      ctx.fillStyle = isSel ? "#facc15" : "#e5e7eb";
+      ctx.fillText(label, q[0], ty);
+    }
+
     const placed = fixtures.filter((f) => plot.items[f.uid] && visible(plot.items[f.uid]!));
     const sorted = [...placed].sort((a, b) => headOf(V, plot.items[a.uid]!)[1] - headOf(V, plot.items[b.uid]!)[1]);
 
@@ -536,6 +596,20 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     setPlot({ ...plot, cameras: (plot.cameras ?? []).filter((c) => c.id !== id) });
     setCameraId(null); setCamViewOpen(false);
   };
+  const hitMeter = (sx: number, sy: number) => {
+    const V = viewOf();
+    return [...(plot.meters ?? [])].reverse().find((m) => {
+      const mf = m.floor ?? 0;
+      if (!view3d && mf !== fl) return false;
+      const q = proj(V, m.x, m.y, (floors[mf]?.z ?? 0) + m.z);
+      return Math.hypot(q[0] - sx, q[1] - sy) < 16;
+    });
+  };
+  const removeMeter = (id: string) => {
+    if (!confirm("Remove this light meter?")) return;
+    setPlot({ ...plot, meters: (plot.meters ?? []).filter((m) => m.id !== id) });
+    setMeterId(null);
+  };
   const hitHandle = (sx: number, sy: number) => {
     const V = viewOf();
     for (const u of selected) {
@@ -607,8 +681,15 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       return;
     }
     if (tool === "object") { setCameraId(null); addObjectAt(...fp); return; }
+    if (tool === "meter") {
+      const m = { id: crypto.randomUUID(), x: fp[0], y: fp[1], z: 1.6, floor: fl };
+      clearSelection(); setPlot({ ...plot, meters: [...(plot.meters ?? []), m] }); setMeterId(m.id); setTool("move");
+      return;
+    }
     if (tool === "erase") {
       const cam = hitCamera(sx, sy); if (cam) { removeCamera(cam.id); return; }
+      const met = hitMeter(sx, sy);
+      if (met) { removeMeter(met.id); return; }
       const u = hit(sx,sy);
       if (u) { if (confirm("Remove this light from the plot?")) { const items = {...plot.items}; delete items[u]; setPlot({...plot,items}); } return; }
       const o = [...(plot.objects ?? [])].reverse().find((o) => o.floor === fl && objectContains(o,...fp));
@@ -651,6 +732,14 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         setWallIndex(null); setOpeningId(null);
         const z = (floors[cam.floor]?.z ?? 0) + cam.h;
         if (layoutUnlocked && !add) drag.current = { kind: "item", last: unproj(viewOf(), sx, sy, z), z };
+        return;
+      }
+      const met = hitMeter(sx, sy);
+      if (met) {
+        clearSelection(); setMeterId(met.id);
+        setWallIndex(null); setOpeningId(null);
+        const z = (floors[met.floor ?? 0]?.z ?? 0) + met.z;
+        drag.current = { kind: "meter", id: met.id, last: unproj(viewOf(), sx, sy, z), z };
         return;
       }
       const h = layoutUnlocked && !add ? hitHandle(sx, sy) : null;
@@ -761,6 +850,10 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       const fp = unproj(viewOf(), sx, sy, d.z);
       const dx = fp[0] - d.last[0], dy = fp[1] - d.last[1]; d.last = fp;
       setPlot({ ...p, cameras: (p.cameras ?? []).map((c) => c.id === d.id ? { ...c, x: +(c.x + dx).toFixed(2), y: +(c.y + dy).toFixed(2) } : c) });
+    } else if (d.kind === "meter") {
+      const fp = unproj(viewOf(), sx, sy, d.z);
+      const dx = fp[0] - d.last[0], dy = fp[1] - d.last[1]; d.last = fp;
+      setPlot({ ...p, meters: (p.meters ?? []).map((m) => m.id === d.id ? { ...m, x: +(m.x + dx).toFixed(2), y: +(m.y + dy).toFixed(2) } : m) });
     } else if (d.kind === "layout") {
       const fp = clampFloor(unproj(viewOf(),sx,sy,floorZ)), dx = fp[0]-d.last[0], dy = fp[1]-d.last[1]; d.last=fp;
       if (d.target === "wall") setPlot({...p,strokes:p.strokes.map((st,i) => {
@@ -955,6 +1048,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         <Button variant={tool === "fixture" ? "default" : "secondary"} aria-label="Add fixture" title="Add fixture" onClick={() => { setTool("fixture"); setPlacementUid(unplaced[0]?.uid ?? ""); }}><LampDesk className="h-4 w-4" /><span className="hidden md:inline">Add fixture</span></Button>
         <Button variant={tool === "object" ? "default" : "secondary"} aria-label="Add furniture / person" title="Add furniture / person" onClick={() => setTool("object")}><Armchair className="h-4 w-4" /><UserRound className="h-4 w-4" /></Button>
         <Button variant={tool === "camera" ? "default" : "secondary"} aria-label="Add camera" title="Place camera" onClick={() => { setTool("camera"); clearSelection(); }}><Video className="h-4 w-4" /><span className="hidden md:inline">Camera</span></Button>
+        <Button variant={tool === "meter" ? "default" : "secondary"} aria-label="Add light meter" title="Place light meter" onClick={() => { setTool("meter"); clearSelection(); }}><Gauge className="h-4 w-4" /><span className="hidden md:inline">Meter</span></Button>
         <Button variant={layoutUnlocked ? "default" : "secondary"} aria-label={layoutUnlocked ? "Lock layout" : "Unlock layout editing"} title={layoutUnlocked ? "Lock layout" : "Unlock layout editing"} onClick={() => setLayoutUnlocked(!layoutUnlocked)}>{layoutUnlocked ? <Unlock /> : <LockKeyhole />}</Button>
         <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
@@ -1053,6 +1147,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                 <Slider label="Focal length" value={cam.lens} min={8} max={300} step={1} unit=" mm" onChange={(lens) => editCam({ lens })} />
                 {pick("Iris", cam.fstop, FSTOPS, (n) => `f/${n}`, (fstop) => editCam({ fstop }))}
                 {pick("ISO", cam.iso, ISOS, (n) => `ISO ${n}`, (iso) => editCam({ iso }))}
+                {pick("Fps", cam.fps ?? 24, FPS_OPTIONS, (n) => `${n} fps`, (fps) => editCam({ fps }))}
+                {pick("Shutter angle", cam.shutterAngle ?? 180, SHUTTER_ANGLES, (n) => `${n}°`, (shutterAngle) => editCam({ shutterAngle }))}
                 <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Sensor</span>
                   <select value={cam.sensor} onChange={(e) => editCam({ sensor: e.target.value as PlotCamera["sensor"] })} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
                     {SENSORS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
@@ -1069,6 +1165,48 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
             );
           })()}
 
+          {meterId && (() => {
+            const met = (plot.meters ?? []).find((m) => m.id === meterId);
+            if (!met) return null;
+            const pt = { x: met.x, y: met.y, z: met.z, floor: met.floor ?? 0 };
+            const { lux, fc } = meterReading(pt);
+            const cams = plot.cameras ?? [];
+            return (
+              <div className="space-y-2 border-t border-border pt-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="flex items-center gap-1.5 text-sm font-semibold"><Gauge className="h-4 w-4 text-amber-glow" />Light meter</h3>
+                  <Button variant="ghost" size="icon" aria-label="Remove light meter" title="Remove light meter" onClick={() => removeMeter(met.id)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+                <p className="font-mono text-sm">{Math.round(lux)} lx <span className="text-muted-foreground">· {fc.toFixed(1)} fc</span></p>
+                <Slider label="Meter height" value={met.z} min={0.1} max={3} step={0.05} unit=" m" onChange={(z) => setPlot({ ...plot, meters: (plot.meters ?? []).map((m) => m.id === met.id ? { ...m, z } : m) })} />
+                {cams.length > 0 && (
+                  <div className="space-y-1 rounded-md border border-border p-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Exposure per camera</p>
+                    {cams.map((cam) => {
+                      const stop = roundToThirdStop(tStopFor(lux, cam.iso, shutterSeconds(cam.fps, cam.shutterAngle)));
+                      const diff = stopsDifference(stop.value, cam.fstop);
+                      const diffColour = diff > 0.05 ? "text-amber-glow" : diff < -0.05 ? "text-primary" : "text-success";
+                      return (
+                        <div key={cam.id} className="flex items-center justify-between gap-2 text-[11px]">
+                          <span className="truncate text-muted-foreground">{cam.name}</span>
+                          <span className="font-mono">needs {stop.label}<span className={`ml-1 ${diffColour}`}>({diff >= 0 ? "+" : ""}{diff.toFixed(1)} stop @ f/{cam.fstop})</span></span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          {(plot.objects ?? []).some((o) => o.kind === "person" && o.floor === fl) && (meterLights[fl]?.length ?? 0) > 0 && (
+            <div className="space-y-1 border-t border-border pt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Person meters (auto)</p>
+              {(plot.objects ?? []).filter((o) => o.kind === "person" && o.floor === fl).map((o) => {
+                const { lux, fc } = meterReading({ x: o.x, y: o.y, z: o.h - 0.15, floor: o.floor });
+                return <div key={o.id} className="flex items-center justify-between text-[11px]"><span>{o.name}</span><span className="font-mono">{Math.round(lux)} lx · {fc.toFixed(1)} fc</span></div>;
+              })}
+            </div>
+          )}
           {tool === "fixture" && <label className="block space-y-2 text-xs">Add fixture<select aria-label="Fixture to place" value={placementUid} onChange={(e) => setPlacementUid(e.target.value)} className="w-full rounded border border-input bg-surface-elevated p-2"><option value="">{unplaced.length ? "Select fixture" : "No unplaced lights — patch first"}</option>{unplaced.map((f) => <option key={f.uid} value={f.uid}>{f.name}</option>)}</select></label>}
           {tool === "object" && <div className="grid grid-cols-2 gap-2">{SET_OBJECTS.map((o) => <Button key={o.kind} variant={objectKind === o.kind ? "default":"secondary"} onClick={() => setObjectKind(o.kind)}>{o.label}</Button>)}</div>}
           {(tool === "draw" || tool === "rect") && <Slider label="New wall height" value={wallHeight} min={.2} max={12} step={.1} unit=" m" onChange={setWallHeight} />}
@@ -1135,6 +1273,12 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                     </label>
                     <Slider label="Beam angle" value={o.beam} min={spec.min} max={spec.max} unit="°" onChange={(v) => setItems({ optic: o.optic, beam: v })} />
                     <p className="text-[10px] text-muted-foreground">≈ {o.watts} W · light fades with distance; walls block it</p>
+                    <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Lux @3m</span>
+                      <span className="flex items-center gap-1 font-mono">
+                        <NumberField aria-label="Lux at 3 metres override" min={0} allowEmpty value={(first as any).lux3m} placeholder={String(Math.round(lux3mOf(getDef(first.defId).model, o.watts, o.beam)))} onChange={(v) => update(first.uid, { lux3m: v } as any)} className="w-20 rounded border border-input bg-surface-elevated px-1 text-right" />
+                        lx
+                      </span>
+                    </label>
                   </>
                 );
               })()}

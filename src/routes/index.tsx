@@ -41,7 +41,9 @@ import { RecRail, RecDialog, RecEditor } from "@/components/console/RecRail";
 import { PatchPage } from "@/components/console/PatchPage";
 import { statesAt } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
-import type { Recording, LookState } from "@/lib/store";
+import type { Recording, LookState, Cue, BankFader } from "@/lib/store";
+import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
+import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
@@ -215,6 +217,8 @@ function App() {
       onLooks={(looks) => updateProject(project.id, (p) => ({ ...p, looks }))}
       onSetups={(setups) => updateProject(project.id, (p) => ({ ...p, setups }))}
       onRecordings={(recordings) => updateProject(project.id, (p) => ({ ...p, recordings }))}
+      onBank={(bank) => updateProject(project.id, (p) => ({ ...p, bank }))}
+      onCues={(cues) => updateProject(project.id, (p) => ({ ...p, cues }))}
     />
   );
 }
@@ -366,8 +370,8 @@ type Panel = "patch" | "control" | "pixels";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRecordings }: {
-  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void;
+function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRecordings, onBank, onCues }: {
+  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void;
 }) {
   const [fixtures, setFixtures] = useState<PatchedFixture[]>(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
@@ -444,7 +448,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [bridge, setBridge] = useState<BridgeStatus>("off");
   const sender = useMemo(() => createSender(setBridge), []);
   useEffect(() => {
-    void sender(conn, buildUniverses(fixtures, t, outLevel, frame, conn));
+    void sender(conn, buildUniverses(outFixtures, t, outLevel, frame, conn));
   });
 
   // Battery drain: integrate each light's draw every 5 s
@@ -499,6 +503,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       else if (kind === "group") setFixtures((fs) => fs.map((f) => (f.group === id ? { ...f, intensity: m.value } : f)));
       else if (kind === "look" && (!m.isNote || m.on)) { const l = project.looks?.find((x) => x.id === id); if (l) recallLook(l); }
       else if (kind === "trig" && (!m.isNote || m.on)) fire(id as TriggerKind);
+      else if (kind === "bank") onBank((project.bank ?? []).map((b, i) => (String(i) === id ? { ...b, level: m.value } : b)));
+      else if (kind === "cue" && (!m.isNote || m.on) && m.value > 0) goRef.current(id === "back" ? -1 : 1);
     }
   };
   useEffect(() => {
@@ -628,6 +634,60 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   };
   const pauseRec = () => { if (play && play.pausedAt == null) setPlay({ ...play, pausedAt: (performance.now() - play.start) / 1000 }); };
   const stopRec = () => { setPlay(null); setRecProg(null); };
+
+  // Playback bank + cue stack
+  const bank = project.bank ?? [];
+  const cues = project.cues ?? [];
+  const [flash, setFlash] = useState<string | null>(null);
+  const [solo, setSolo] = useState<string | null>(null);
+  const [activeCue, setActiveCue] = useState<string | null>(null);
+  const [cueFade, setCueFade] = useState<{ id: string; start: number; from: Map<string, LookState> } | null>(null);
+  const [fadeK, setFadeK] = useState<number | null>(null);
+  const cuesRef = useRef(cues);
+  cuesRef.current = cues;
+  useEffect(() => {
+    if (!cueFade) return;
+    const id = setInterval(() => {
+      const cue = cuesRef.current.find((c) => c.id === cueFade.id);
+      if (!cue) { setCueFade(null); return; }
+      const k = cue.fade > 0 ? Math.min(1, (performance.now() - cueFade.start) / 1000 / cue.fade) : 1;
+      setFadeK(k);
+      const st = cueBlend(cue, fixturesRef.current, cueFade.from, k);
+      setFixtures((fs) => fs.map((f) => { const s = st.get(f.uid); return s ? { ...f, ...s, trigger: null } : f; }));
+      if (k >= 1) { setCueFade(null); setFadeK(null); }
+    }, 40);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cueFade]);
+  const gotoCue = (id: string) => { setActiveCue(id); setCueFade({ id, start: performance.now(), from: new Map(fixtures.map((f) => [f.uid, lookStateOf(f)])) }); };
+  const cueStep = (d: 1 | -1) => {
+    const s = sortCues(cuesRef.current);
+    if (!s.length) return;
+    const i = s.findIndex((c) => c.id === activeCue);
+    const n = s[i < 0 ? (d > 0 ? 0 : -1) : i + d];
+    if (n) gotoCue(n.id);
+  };
+  const recordCue = (name: string, after?: number) => {
+    const src = sel.length ? sel : fixtures;
+    const number = nextCueNumber(cues, after);
+    const cue: Cue = { id: uid(), number, name: name || `Cue ${number}`, fade: 3, states: src.map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) })) };
+    onCues([...cues, cue]);
+    setActiveCue(cue.id);
+  };
+  const updateCueStates = (id: string) => onCues(cues.map((c) => (c.id === id ? { ...c, states: (sel.length ? sel : fixtures).map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) })) } : c)));
+  const goRef = useRef(cueStep);
+  goRef.current = cueStep;
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      if (e.code === "Space") { e.preventDefault(); goRef.current(1); }
+      else if (e.key === "b" || e.key === "B") goRef.current(-1);
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+  const outFixtures = useMemo(() => applyBank(fixtures, bank, project.looks ?? [], flash, solo), [fixtures, bank, project.looks, flash, solo]);
   const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
   const pasteSettings = () => {
     if (!copied) return;
@@ -754,9 +814,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       <RecDialog open={recOpen} onOpenChange={setRecOpen} src={sel.length ? sel : fixtures} recordings={recordings} setRecordings={onRecordings} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
       <SettingsDialog onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
+        onNanoKontrol={() => { const ch = (n: number) => `CC 1/${n}`; const keep = midi.maps.filter((m) => !m.key.startsWith("CC 1/")); setMidi({ ...midi, enabled: true, maps: [...keep, ...NANOKONTROL2.faders.map((n, i) => ({ key: ch(n), target: `bank:${i}`, label: `Fader ${i + 1}` })), { key: ch(NANOKONTROL2.master), target: "master", label: "Master" }, { key: ch(NANOKONTROL2.go), target: "cue:go", label: "GO" }, { key: ch(NANOKONTROL2.back), target: "cue:back", label: "Back" }, { key: ch(NANOKONTROL2.blackout), target: "blackout", label: "Blackout" }] }); }}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
         targets={[
           { id: "master", label: "Master fader" }, { id: "blackout", label: "Blackout" },
+          { id: "cue:go", label: "Cue GO" }, { id: "cue:back", label: "Cue Back" },
+          ...(project.bank ?? []).map((b, i) => ({ id: `bank:${i}`, label: `Fader ${i + 1}${b.name ? ` — ${b.name}` : ""}` })),
           { id: "trig:lightning", label: "Trigger: lightning" }, { id: "trig:flash", label: "Trigger: flash" },
           ...groups.map((g) => ({ id: `group:${g}`, label: `Group "${g}" intensity` })),
           ...(project.looks ?? []).map((l) => ({ id: `look:${l.id}`, label: `Look: ${l.name}` })),
@@ -867,6 +930,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
         )}
       </div>
+      <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
+        flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
+        onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />
     </div>
   );
 }
