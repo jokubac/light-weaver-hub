@@ -43,11 +43,11 @@ export function PlaybackBar(p: PlaybackProps) {
       <div className="flex shrink-0 items-center gap-1.5">
         <Button variant="secondary" size="icon" aria-label="Back one cue" title="Back (B)" onClick={p.onBack} disabled={!sorted.length}><ChevronLeft /></Button>
         <button onClick={p.onGo} disabled={!sorted.length} aria-label="GO" title="GO (Space)"
-          className="relative h-12 w-20 overflow-hidden rounded-lg bg-success text-lg font-black tracking-wider text-primary-foreground active:scale-95 disabled:opacity-40">
+          className="relative h-9 w-14 overflow-hidden rounded-lg bg-success text-sm font-black tracking-wider text-primary-foreground active:scale-95 disabled:opacity-40">
           GO
           {p.fadeK != null && p.fadeK < 1 && <span className="absolute bottom-0 left-0 h-1 bg-background/60" style={{ width: `${p.fadeK * 100}%` }} />}
         </button>
-        <button onClick={() => setCuesOpen(true)} className="w-36 rounded-lg bg-surface-elevated px-2 py-1 text-left text-[11px] leading-tight" title="Open cue list">
+        <button onClick={() => setCuesOpen(true)} className="w-28 rounded-lg bg-surface-elevated px-2 py-1 text-left text-[10px] leading-tight" title="Open cue list">
           <div className="truncate font-semibold">{cur ? `Q${cur.number} ${cur.name}` : sorted.length ? "Ready" : "No cues"}</div>
           <div className="truncate text-muted-foreground">{next ? `Next: Q${next.number} ${next.name}` : sorted.length ? "End of list" : "Tap to add cues"}</div>
         </button>

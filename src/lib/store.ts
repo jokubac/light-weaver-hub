@@ -71,6 +71,15 @@ export interface Project {
   recordings?: Recording[];
   bank?: BankFader[];
   cues?: Cue[];
+  callSheet?: CallSheetData;
+}
+
+/** Saved call sheet / equipment list state for a project. */
+export interface CallSheetData {
+  production?: string; date?: string; location?: string; gaffer?: string; shiftHours?: number;
+  qty?: Record<string, number>; removed?: string[];
+  custom?: { id: string; label: string; group: string; qty: number }[];
+  packed?: Record<string, number>; returned?: Record<string, number>;
 }
 
 export const PROJECT_COLORS = ["#00E5FF", "#00E676", "#FFEA00", "#FF9100", "#FF3D00", "#F50057", "#D500F9", "#651FFF", "#2979FF", "#BDBDBD"];
