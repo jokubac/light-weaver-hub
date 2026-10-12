@@ -1,14 +1,11 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-// Native shell loads the published app so iPad/Android always run the latest version.
+// The installed app bundles the published NOX app (scripts/offline-bundle.mjs → offline-app/)
+// so it opens and runs DMX without internet. Rebuild the APK/IPA after publishing to update it.
 const config: CapacitorConfig = {
   appId: "com.kroma.console",
   appName: "NOX",
-  webDir: "ios-shell",
-  server: {
-    url: "https://light-weaver-hub.lovable.app",
-    cleartext: false,
-  },
+  webDir: "offline-app",
   ios: { contentInset: "always", backgroundColor: "#17131c" },
 };
 
