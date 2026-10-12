@@ -4,6 +4,7 @@ import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
 import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
+import { NoxLogo } from "@/components/NoxLogo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -239,8 +240,17 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className={`truncate font-display font-bold ${title === "NOX" ? "kroma-wordmark text-3xl text-primary" : "text-xl"}`}>{title}</h1>
-        {subtitle && <p className="truncate text-xs text-primary">{subtitle}</p>}
+        {title === "NOX" ? (
+          <div className="flex items-center gap-3">
+            <NoxLogo className="h-9 w-9 shrink-0" title="NOX" />
+            <h1 className="truncate font-display text-xl font-bold text-primary">{subtitle ?? "NOX"}</h1>
+          </div>
+        ) : (
+          <>
+            <h1 className="truncate font-display font-bold text-xl">{title}</h1>
+            {subtitle && <p className="truncate text-xs text-primary">{subtitle}</p>}
+          </>
+        )}
       </div>
       {right}
     </header>
