@@ -41,7 +41,7 @@ export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map
   let i = 0;
   for (; i < rec.steps.length - 1; i++) { if (t < acc + stepLength(rec.steps[i]!)) break; acc += stepLength(rec.steps[i]!); }
   const step = rec.steps[i]!;
-  const prev = i > 0 ? rec.steps[i - 1]! : rec.loop && t >= 0 && acc === 0 && rec.steps.length > 1 ? null : null;
+  const prev = i > 0 ? rec.steps[i - 1]! : null;
   const local = t - acc;
   const out = new Map<string, LookState>();
   for (const f of fixtures) {
