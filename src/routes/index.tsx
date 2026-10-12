@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
+import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { NoxLogo } from "@/components/NoxLogo";

@@ -30,7 +30,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const [picked, setPicked] = useState<string[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [showCallSheet, setShowCallSheet] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const swapPosition = (i: number, j: number) => {
     const fs = [...fixtures]; const source = fs[i], target = fs[j];
     if (!source || !target || i === j) return;
@@ -80,10 +80,9 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
         <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">Patch</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
         <Button variant="secondary" onClick={() => window.print()} title="Print, or choose “Save as PDF” in the print dialog"><Printer />Print / PDF</Button>
-        <Button variant="secondary" onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Hide the fixture list to see the full patch sheet" : "Show the fixture list"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Hide fixtures" : "Add fixtures"}</Button>
-        <Button variant="secondary" onClick={() => setShowCallSheet(true)}><ClipboardList />Equipment list</Button>
         <Button variant="secondary" onClick={exportPatch}><Download />Export</Button>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
+        <Button variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Hide the fixture list to see the full patch sheet" : "Show the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Hide fixtures" : "Add fixtures"}</Button>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -156,8 +155,8 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             <datalist id="patch-groups">{groupNames.map((g) => <option key={g} value={g} />)}</datalist>
           )}
         </main>
-        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden lg:max-h-none lg:w-[26rem] lg:border-l lg:border-t-0">
-          <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap={false} showPatched={false} />
+        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 print:hidden lg:max-h-none lg:w-1/2 lg:border-l lg:border-t-0">
+          <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap showPatched={false} />
         </aside>}
       </div>
       {showCallSheet && <CallSheet title={title} data={callSheet} onData={onCallSheet} fixtures={fixtures} onClose={() => setShowCallSheet(false)} />}

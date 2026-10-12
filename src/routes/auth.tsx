@@ -48,7 +48,7 @@ function AuthPage() {
       <div className="w-full max-w-sm space-y-5 rounded-xl border border-border bg-card p-6">
         <div>
           <div className="flex justify-center">
-            <NoxLogo className="h-20 w-20" title="NOX" />
+            <NoxLogo className="h-32 w-32 drop-shadow-lg" title="NOX" />
             <h1 className="sr-only">NOX</h1>
           </div>
           <p className="text-sm text-muted-foreground">Sign in to open your projects, favourites and saved effects on any device.</p>
