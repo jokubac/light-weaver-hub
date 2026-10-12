@@ -2,7 +2,7 @@ import { NumberField } from "./NumberField";
 // Live light plot: draw the set (or drop in a floor plan photo) per floor, place lights on stands,
 // see their beams live in 2D or tilted 3D, and control them straight from the plot.
 // View: wheel / pinch zoom, hand or middle-drag pan, right-drag (or shift+hand) rotates / tilts.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Eraser, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X, DoorOpen, PanelsTopLeft, Undo2, Redo2, Armchair, UserRound, LampDesk, LockKeyhole, Unlock, ListChecks } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { illuminanceAt, lux3m as lux3mOf, footcandles, shutterSeconds, tStopFor, roundToThirdStop, stopsDifference, type MeterLight } from "@/lib/photometry";
@@ -115,13 +115,14 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const [multiSelect, setMultiSelect] = useState(false);
   const setObjectId = (id: string | null) => { focusObject(id); setObjectIds(id ? [id] : []); };
   const setCameraId = (id: string | null) => { focusCamera(id); setCameraIds(id ? [id] : []); };
-  const clearSelection = () => { setSelected([]); setObjectId(null); setCameraId(null); setWallIndex(null); setOpeningId(null); };
+  const clearSelection = () => { setSelected([]); setObjectId(null); setCameraId(null); setWallIndex(null); setOpeningId(null); setMeterId(null); };
   const toggleId = (ids: string[], id: string) => ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
   const [camViewOpen, setCamViewOpen] = useState(false);
   const [objectKind, setObjectKind] = useState<SetObjectKind>("bed");
   const [placementUid, setPlacementUid] = useState("");
   const [wallHeight, setWallHeight] = useState(2.6);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [meterId, setMeterId] = useState<string | null>(null);
   type Snapshot = { plot: Plot; lights: PatchedFixture[] };
   const history = useRef(editHistory<Snapshot>());
   const gesture = useRef({ active: false, recorded: false });
@@ -154,6 +155,33 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     return { optic, beam: it.optic ? it.beam : OPTIC_BY_ID[optic].angle, watts: fixtureWatts(model) };
   };
   const segsOf = (floor: number) => wallSegments(plot.strokes, floor);
+
+  /** Light sources for the meter, recomputed only when the plot or the fixtures that light it change. */
+  const meterLights = useMemo<Record<number, MeterLight[]>>(() => {
+    const byFloor: Record<number, MeterLight[]> = {};
+    for (const f of fixtures) {
+      const it = plot.items[f.uid];
+      if (!it) continue;
+      const floor = floorOf(it);
+      const o = opticsOf(f, it);
+      const model = getDef(f.defId).model;
+      const l: MeterLight = { x: it.x, y: it.y, z: fz(it) + it.h, rot: it.rot, tilt: it.tilt ?? DEFAULT_TILT, beam: o.beam, lux3m: lux3mOf(model, o.watts, o.beam, (f as any).lux3m), level: levelOf(f) * (f.on === false ? 0 : 1) };
+      (byFloor[floor] ??= []).push(l);
+    }
+    return byFloor;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plot.items, plot.objects, fixtures]);
+  /** Meter points: user-placed plus one automatically at every person's head height. */
+  const meterPoints = useMemo(() => {
+    const manual = (plot.meters ?? []).map((m) => ({ ...m, floor: m.floor ?? 0, auto: false }));
+    const people = (plot.objects ?? []).filter((o) => o.kind === "person").map((o) => ({ id: `person:${o.id}`, x: o.x, y: o.y, z: o.h - 0.15, floor: o.floor, auto: true }));
+    return [...manual, ...people];
+  }, [plot.meters, plot.objects]);
+  const meterReading = (pt: { x: number; y: number; z: number; floor: number }) => {
+    const z = (floors[pt.floor]?.z ?? 0) + pt.z;
+    const lux = illuminanceAt([pt.x, pt.y, z], meterLights[pt.floor] ?? [], segsOf(pt.floor), plot.openings ?? []);
+    return { lux, fc: footcandles(lux) };
+  };
 
   useEffect(() => {
     for (let i = 0; i < floors.length; i++) {
