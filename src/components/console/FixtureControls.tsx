@@ -13,6 +13,7 @@ import {
   cctFromKelvin,
   overlaps,
   sampleEffect,
+  seedOf,
   type FxParams,
   type Curve,
   type Step,
@@ -163,14 +164,14 @@ export function FixtureControls({
         )}
         <div className="grid grid-cols-4 gap-2">
           {EFFECTS.map((e) => (
-            <button key={e.id} onClick={() => update(fx.kind === "none" ? { fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id }, fxPlaying: false } : { fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id } })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${fx.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
+            <button key={e.id} onClick={() => update({ fx: { ...fx, ...FX_PRESETS[e.id], kind: e.id }, fxPlaying: fx.kind === "none" ? false : sel.some((f) => f.fx.kind !== "none" && f.fxPlaying !== false) || first.fxPlaying !== false })} className={`rounded-md py-2.5 text-xs font-semibold active:scale-95 ${fx.kind === e.id ? "bg-amber-glow text-primary-foreground" : "bg-surface-elevated"}`}>
               {e.label}
             </button>
           ))}
         </div>
         {fx.kind !== "none" && <>
           {first.fxPlaying === false && <p className="text-[11px] text-amber-glow">Armed — watch the preview, then press PLAY to send it to the {sel.length} selected light{sel.length > 1 ? "s" : ""}.</p>}
-          <EffectEditor fx={fx} setFx={setFx} />
+          <EffectEditor fx={fx} setFx={setFx} seed={seedOf(first.uid)} />
           <details open className="border-t border-border pt-3"><summary className="mb-3 cursor-pointer text-xs font-semibold text-muted-foreground">Effect colours</summary>
             <PaletteEditor colours={fx.colors ?? []} onChange={(colors) => setFx({ colors })} onReset={() => setFx({ colors: [] })} />
           </details>
@@ -180,26 +181,29 @@ export function FixtureControls({
   );
 }
 
-function EffectEditor({ fx, setFx }: { fx: FxParams; setFx: (p: Partial<FxParams>) => void }) {
+function EffectEditor({ fx, setFx, seed = 0.3 }: { fx: FxParams; setFx: (p: Partial<FxParams>) => void; seed?: number }) {
   const now = useClock();
   const periodic = fx.kind === "pulse" || fx.kind === "strobe";
   const W = 300, H = 60;
   const secs = fx.kind === "steps" ? fx.steps.reduce((sum, step) => sum + step.hold + step.fade, 0) / fx.rate : 3 / fx.rate;
-  const pts = Array.from({ length: 200 }, (_, i) => {
-    const t = (i / 199) * secs;
-    return `${(i / 199) * W},${H - sampleEffect(fx, t) * H}`;
+  // same absolute time + per-light seed as the real output, so graph and preview match the light
+  const winStart = Math.floor(now / secs) * secs;
+  const pts = Array.from({ length: 300 }, (_, i) => {
+    const t = winStart + (i / 299) * secs;
+    return `${(i / 299) * W},${H - sampleEffect(fx, t, seed) * H}`;
   }).join(" ");
+  const live = sampleEffect(fx, now, seed);
 
   return (
     <div className="space-y-4">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-16 w-full rounded-md bg-surface-elevated" preserveAspectRatio="none">
         <polyline points={pts} fill="none" stroke="var(--color-amber-glow)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-        <line x1={((now % secs) / secs) * W} x2={((now % secs) / secs) * W} y1={0} y2={H} stroke="var(--color-primary)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        <line x1={((now - winStart) / secs) * W} x2={((now - winStart) / secs) * W} y1={0} y2={H} stroke="var(--color-primary)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       </svg>
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
         <span>Preview</span>
-        <div className="h-5 flex-1 rounded" style={{ background: "var(--color-amber-glow)", opacity: Math.max(0.03, sampleEffect(fx, now % secs)) }} />
-        <span className="w-10 text-right font-mono">{Math.round(sampleEffect(fx, now % secs) * 100)}%</span>
+        <div className="h-5 flex-1 rounded" style={{ background: "var(--color-amber-glow)", opacity: Math.max(0.03, live) }} />
+        <span className="w-10 text-right font-mono">{Math.round(live * 100)}%</span>
       </div>
 
       <SpeedControl
