@@ -96,31 +96,36 @@ setInterval(() => { if (Date.now() - lastFrame > 900 && Object.keys(state.univer
 
 /* ---------- RDM over Art-Net (ArtTod / ArtRdm) ---------- */
 // Minimal RDM client: discovers responder UIDs via ArtTodRequest/ArtTodData, then sends
-// RDM GET commands wrapped in ArtRdm to read DEVICE_INFO / labels. See Art-Net 4 spec §7, RDM spec (ANSI E1.20).
+// RDM GET commands wrapped in ArtRdm to read DEVICE_INFO / labels. See Art-Net 4 spec §7 (ArtTodRequest,
+// ArtTodData, ArtRdm) and RDM spec ANSI E1.20. Art-Net carries RDM packets *without* the leading 0xCC
+// START_CODE (the packet starts at the SUB_START_CODE 0x01 byte); the checksum is still computed as if
+// the 0xCC byte were present, per the RDM spec.
 const RDM_SUB_START_CODE = 0x01;
 const RDM_START_CODE = 0xcc;
 
-function artTodRequest(net, subUni, universe) {
-  const b = Buffer.alloc(16);
-  b.write("Art-Net\0", 0, "ascii"); b.writeUInt16LE(0x8000, 8); b.writeUInt16BE(14, 10);
-  b[12] = 0; b[13] = net & 0x7f; b[14] = 0x00; b[15] = 1; // RcPort=0, Net, Command=0(full tod), AddCount
+/** ArtTodRequest (OpCode 0x8000): ID, OpCode, ProtVer, Filler1-2, Spare1-7, Net, Command, AddCount, Address[]. */
+function artTodRequest(net, subUni) {
+  const b = Buffer.alloc(24);
+  b.write("Art-Net\0", 0, "ascii");
+  b.writeUInt16LE(0x8000, 8);
+  b.writeUInt16BE(14, 10);
+  // 12-13 Filler1/2, 14-20 Spare1-7 stay zero
+  b[21] = net & 0x7f;
+  b[22] = 0x00; // Command = 0 → TodRequest (return full ToD)
+  b[23] = 1; // AddCount
   const addr = Buffer.from([subUni & 0xff]);
   return Buffer.concat([b, addr]);
 }
 
-function rdmChecksum(buf) {
-  let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum += buf[i];
-  return sum & 0xffff;
-}
-
-/** Builds a raw RDM GET command frame (without the Art-Net wrapper), with a correct checksum. */
+/** Builds a raw RDM GET command frame as carried inside ArtRdm (no leading 0xCC — starts at SUB_START_CODE),
+ *  with the checksum computed as though the 0xCC START_CODE preceded it (RDM spec ANSI E1.20 §9.3.1). */
 function buildRdmGet(destUid, pid, sourceUid, tn = 0, subdevice = 0) {
   const pdl = 0;
-  const msgLen = 24 + pdl; // header(1)+len(1)+dst(6)+src(6)+tn(1)+port(1)+msgcount(1)+sub(2)+cc(1)+pid(2)+pdl(1) = 24
-  const b = Buffer.alloc(msgLen + 2); // +2 checksum
+  const msgLen = 24 + pdl; // RDM "Message Length" counts the (virtual, untransmitted) 0xCC start code too
+  const bodyLen = msgLen - 1; // bytes we actually transmit (sub-start code through PDL, no 0xCC)
+  const b = Buffer.alloc(bodyLen + 2); // +2 checksum
   let o = 0;
-  b[o++] = RDM_START_CODE;
+  b[o++] = RDM_SUB_START_CODE;
   b[o++] = msgLen;
   destUid.copy(b, o); o += 6;
   sourceUid.copy(b, o); o += 6;
@@ -131,8 +136,9 @@ function buildRdmGet(destUid, pid, sourceUid, tn = 0, subdevice = 0) {
   b[o++] = 0x20; // GET_COMMAND
   b.writeUInt16BE(pid, o); o += 2;
   b[o++] = pdl;
-  const sum = rdmChecksum(b.subarray(0, o));
-  b.writeUInt16BE(sum, o);
+  let sum = RDM_START_CODE; // include the untransmitted 0xCC in the checksum
+  for (let i = 0; i < o; i++) sum += b[i];
+  b.writeUInt16BE(sum & 0xffff, o);
   return b;
 }
 
@@ -141,48 +147,93 @@ function uidToStr(buf) { return buf.toString("hex").match(/.{1,2}/g).join(":").t
 
 const SOURCE_UID = Buffer.concat([Buffer.from([0x4b, 0x52]), crypto.randomBytes(4)]); // "KR" + random, fake ESTA id
 
-function artRdm(destUid, pid, net, tn) {
+/** ArtRdm (OpCode 0x8300): ID, OpCode, ProtVer, RdmVer, Filler, Spare1-7, Net, Command, Address, then the RDM packet. */
+function artRdm(destUid, pid, net, subUni, tn) {
   const rdm = buildRdmGet(destUid, pid, SOURCE_UID, tn);
-  const head = Buffer.alloc(16);
-  head.write("Art-Net\0", 0, "ascii"); head.writeUInt16LE(0x8300, 8); head.writeUInt16BE(14, 10);
-  head[12] = RDM_SUB_START_CODE; head[14] = net & 0x7f;
-  destUid.copy(head, 15 - 6 + 1, 0, 0); // placeholder, overwritten below (kept for clarity)
-  const frame = Buffer.alloc(21);
-  frame.write("Art-Net\0", 0, "ascii"); frame.writeUInt16LE(0x8300, 8); frame.writeUInt16BE(14, 10);
-  frame[12] = RDM_SUB_START_CODE; frame[13] = 0; frame[14] = net & 0x7f; frame[15] = 0;
-  destUid.copy(frame, 15); // 6 bytes dest UID at 15..20 per Art-Net 4 ArtRdm layout (simplified, single-target)
-  return Buffer.concat([frame, rdm]);
+  const head = Buffer.alloc(24);
+  head.write("Art-Net\0", 0, "ascii");
+  head.writeUInt16LE(0x8300, 8);
+  head.writeUInt16BE(14, 10);
+  head[12] = 0x01; // RdmVer = RDM STANDARD V1.0
+  head[13] = 0x00; // Filler
+  // 14-20 Spare1-7 stay zero
+  head[21] = net & 0x7f;
+  head[22] = 0x00; // Command = 0 → ArtRdm process directed
+  head[23] = subUni & 0xff; // Address
+  return Buffer.concat([head, rdm]);
+}
+
+/** Reads one RDM GET_RESPONSE (ArtRdm 0x8300) carrying `tn`, calling back with its PD (parameter data). */
+function rdmRequest(ip, uid, pid, net, subUni) {
+  return new Promise((resolve, reject) => {
+    const tn = Math.floor(Math.random() * 255);
+    const onMsg = (msg) => {
+      if (msg.length < 25 || msg.toString("ascii", 0, 7) !== "Art-Net" || msg.readUInt16LE(8) !== 0x8300) return;
+      const rdm = msg.subarray(24); // RDM data, no leading 0xCC
+      if (rdm.length < 24 || rdm[0] !== RDM_SUB_START_CODE) return;
+      if (rdm[14] !== tn) return; // transaction number
+      clearTimeout(timer);
+      udp.removeListener("message", onMsg);
+      const cc = rdm[19]; // response command class
+      if (cc !== 0x21) return resolve(null); // not GET_COMMAND_RESPONSE
+      const pdl = rdm[22];
+      const pd = rdm.subarray(23, 23 + pdl);
+      resolve(pd);
+    };
+    udp.on("message", onMsg);
+    udp.send(artRdm(uid, pid, net, subUni, tn), ARTNET_PORT, ip);
+    const timer = setTimeout(() => { udp.removeListener("message", onMsg); reject(new Error("timeout")); }, 400);
+  });
+}
+
+/** DEVICE_INFO (PID 0x0060) response layout (RDM spec §10.5.1), values read directly from PD. */
+async function rdmGet(ip, uid, pid, net, subUni) {
+  const pd = await rdmRequest(ip, uid, pid, net, subUni);
+  if (!pd || pd.length < 19) return null;
+  const modelId = pd.readUInt16BE(2);
+  const footprint = pd.readUInt16BE(10);
+  const personality = pd[12];
+  const address = pd.readUInt16BE(14);
+  return { modelId, footprint, personality, address };
+}
+
+/** Reads an ASCII label PID (e.g. MANUFACTURER_LABEL 0x0081, DEVICE_MODEL_DESCRIPTION 0x0080). */
+async function rdmGetLabel(ip, uid, pid, net, subUni) {
+  const pd = await rdmRequest(ip, uid, pid, net, subUni);
+  if (!pd) return "";
+  return pd.toString("ascii").replace(/\0.*$/, "").trim();
 }
 
 function rdmScan(ip, universe) {
   return new Promise((resolve) => {
     const uids = new Set();
     const onMsg = (msg) => {
-      if (msg.length < 14 || msg.toString("ascii", 0, 7) !== "Art-Net") return;
+      if (msg.length < 28 || msg.toString("ascii", 0, 7) !== "Art-Net") return;
       const op = msg.readUInt16LE(8);
       if (op === 0x8100) { // ArtTodData
-        const uidCount = msg[13] ?? msg.length > 13 ? msg[13] : 0;
-        const base = 14 + 10; // header fields before UID list vary by firmware; scan defensively below
-        for (let o = 0; o + 6 <= msg.length; o += 6) {
-          if (o < base) continue;
+        const uidCount = msg[27] ?? 0;
+        const base = 28;
+        for (let i = 0; i < uidCount; i++) {
+          const o = base + i * 6;
+          if (o + 6 > msg.length) break;
           const u = msg.subarray(o, o + 6);
-          if (u.length === 6 && u.some((x) => x !== 0)) uids.add(uidToStr(u));
+          if (u.some((x) => x !== 0)) uids.add(uidToStr(u));
         }
       }
     };
     udp.on("message", onMsg);
-    const net = (universe - 1) >> 8;
+    const net = ((universe - 1) >> 8) & 0x7f;
     const subUni = (universe - 1) & 0xff;
-    udp.send(artTodRequest(net, subUni, universe), ARTNET_PORT, ip);
+    udp.send(artTodRequest(net, subUni), ARTNET_PORT, ip);
     setTimeout(async () => {
       udp.removeListener("message", onMsg);
       const devices = [];
       for (const uidHex of uids) {
         try {
           const uid = parseUid(uidHex);
-          const info = await rdmGet(ip, uid, 0x0060, net); // DEVICE_INFO
-          const model = await rdmGetLabel(ip, uid, 0x0080, net); // DEVICE_MODEL_DESCRIPTION
-          const mfr = await rdmGetLabel(ip, uid, 0x0081, net); // MANUFACTURER_LABEL
+          const info = await rdmGet(ip, uid, 0x0060, net, subUni); // DEVICE_INFO
+          const model = await rdmGetLabel(ip, uid, 0x0080, net, subUni); // DEVICE_MODEL_DESCRIPTION
+          const mfr = await rdmGetLabel(ip, uid, 0x0081, net, subUni); // MANUFACTURER_LABEL
           devices.push({
             uid: uidHex,
             manufacturer: mfr || "Unknown",
@@ -195,50 +246,6 @@ function rdmScan(ip, universe) {
       }
       resolve(devices);
     }, 2500);
-  });
-}
-
-function rdmGet(ip, uid, pid, net) {
-  return new Promise((resolve, reject) => {
-    const tn = Math.floor(Math.random() * 255);
-    const onMsg = (msg) => {
-      if (msg.length < 14 || msg.toString("ascii", 0, 7) !== "Art-Net" || msg.readUInt16LE(8) !== 0x8300) return;
-      const rdm = msg.subarray(21);
-      if (rdm.length < 26 || rdm[0] !== RDM_START_CODE) return;
-      if (rdm[20] !== tn) return;
-      clearTimeout(timer);
-      udp.removeListener("message", onMsg);
-      if (pid === 0x0060 && rdm.length >= 26 + 19) {
-        const pd = rdm.subarray(24);
-        const footprint = pd.readUInt16BE(12);
-        const personality = pd[14];
-        const address = pd.readUInt16BE(15);
-        resolve({ footprint, personality, address });
-      } else resolve(null);
-    };
-    udp.on("message", onMsg);
-    udp.send(artRdm(uid, pid, net, tn), ARTNET_PORT, ip);
-    const timer = setTimeout(() => { udp.removeListener("message", onMsg); reject(new Error("timeout")); }, 400);
-  });
-}
-
-function rdmGetLabel(ip, uid, pid, net) {
-  return new Promise((resolve, reject) => {
-    const tn = Math.floor(Math.random() * 255);
-    const onMsg = (msg) => {
-      if (msg.length < 14 || msg.toString("ascii", 0, 7) !== "Art-Net" || msg.readUInt16LE(8) !== 0x8300) return;
-      const rdm = msg.subarray(21);
-      if (rdm.length < 26 || rdm[0] !== RDM_START_CODE) return;
-      if (rdm[20] !== tn) return;
-      clearTimeout(timer);
-      udp.removeListener("message", onMsg);
-      const pdl = rdm[23];
-      const text = rdm.subarray(24, 24 + pdl).toString("ascii").replace(/\0.*$/, "");
-      resolve(text);
-    };
-    udp.on("message", onMsg);
-    udp.send(artRdm(uid, pid, net, tn), ARTNET_PORT, ip);
-    const timer = setTimeout(() => { udp.removeListener("message", onMsg); reject(new Error("timeout")); }, 400);
   });
 }
 

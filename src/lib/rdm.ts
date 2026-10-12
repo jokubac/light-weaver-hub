@@ -9,7 +9,7 @@ export interface RdmDevice {
 }
 
 /** Scans one Art-Net node for RDM responders via the local bridge. Times out after ~6s. */
-export async function scanRdm(bridge: string, nodeIp: string, universe: number, timeoutMs = 6000): Promise<RdmDevice[]> {
+export async function scanRdm(bridge: string, nodeIp: string, universe: number, timeoutMs = 8000): Promise<RdmDevice[]> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
