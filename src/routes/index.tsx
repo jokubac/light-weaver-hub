@@ -766,6 +766,20 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     if (!next) return;
     setSelected([next.uid]); lastPick.current = next.uid;
   };
+  macroRef.current.run = (m: Macro) => {
+    const c = macroCommand(m);
+    if (c) return runCommand(undefined, c.level, c.cct, c.levelDelta, c.cctDelta);
+    if (m.action === "next") stepLight(1);
+    else if (m.action === "prev") stepLight(-1);
+    else if (m.action === "all") setSelected(fixtures.map((f) => f.uid));
+    else if (m.action === "deselect") { setSelected([]); lastPick.current = null; }
+    else if (m.action === "flash") flashFixtures(selected);
+    else if (m.action === "go") goRef.current(1);
+    else if (m.action === "back") goRef.current(-1);
+    else if (m.action === "blackout") toggleBlackout();
+    else if (m.action === "undo") undo();
+    else if (m.action === "redo") redo();
+  };
   const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
   const pasteSettings = () => {
     if (!copied) return;
@@ -893,7 +907,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} src={sel.length ? sel : fixtures} recordings={recordings} setRecordings={onRecordings} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
-      <SettingsDialog onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
+      <SettingsDialog macros={macros} setMacros={setMacros} macroLearn={macroLearn} setMacroLearn={setMacroLearn} onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
         onNanoKontrol={() => { const ch = (n: number) => `CC 1/${n}`; const keep = midi.maps.filter((m) => !m.key.startsWith("CC 1/")); setMidi({ ...midi, enabled: true, maps: [...keep, ...NANOKONTROL2.faders.map((n, i) => ({ key: ch(n), target: `bank:${i}`, label: `Fader ${i + 1}` })), { key: ch(NANOKONTROL2.master), target: "master", label: "Master" }, { key: ch(NANOKONTROL2.go), target: "cue:go", label: "GO" }, { key: ch(NANOKONTROL2.back), target: "cue:back", label: "Back" }, { key: ch(NANOKONTROL2.blackout), target: "blackout", label: "Blackout" }] }); }}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
         targets={[
