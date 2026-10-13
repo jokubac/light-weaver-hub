@@ -31,7 +31,7 @@
 - Fixture FLASH and fader banks are output-only overlays in outFixtures, never mutating live fixture state; keypad numbers are console positions.
 - console-command.ts applies per-fixture relative command values and inverse FLASH envelopes; keeping these pure makes normalized CCT and restored output testable.
 - EffectsRail owns fixture/pixel effect saving and recall; ConsoleScreen shares the active pixel-layer ID with PixelPanel so the rail saves the layer being edited.
-- The NOX brand mark has one source: src/components/NoxLogo.tsx draws it on screen and public/nox-logo.svg is rasterised into favicon/app icons with rsvg-convert; edit both together so the console header and the installed app icon stay identical.
+- Keep NoxLogo.tsx and public/nox-logo.svg identical; rasterise the SVG for favicon/app icons so all NOX marks match.
 
 - Plot edits share a browser-session unlock gate in plot-edit-session.ts; camera lens rendering and plotted view edges share the Z-up camera basis and tested projection helpers.
 
@@ -41,3 +41,4 @@
 - Windows app (electron/) loads the crawled offline bundle via app:// and exposes window.noxDesktop for UDP; native-udp.ts prefers it so DMX code stays shared across web, Capacitor and desktop.
 - iPad MIDI uses NOX's own CoreMIDI plugin in ios-native/, installed into the generated iOS project by ios-native/install.rb in CI; iOS builds need Xcode 16+ (macos-15) because Capacitor 8 plugins fail on older Swift.
 - offline-bundle.mjs strips the hosting "Edit with Lovable" badge so installed apps stay standalone.
+- Pixel map uses pixel-preview with the shared live frame and all active fixture IDs so REC overlap stays visible without changing output.
