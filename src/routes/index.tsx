@@ -36,6 +36,7 @@ import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
+import { defaultMacros, keyName, loadMacros, macroCommand, saveMacros, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
@@ -505,6 +506,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [midi, setMidiState] = useState(() => ({ enabled: false, maps: [] as ReturnType<typeof loadMidi>["maps"] }));
   useEffect(() => { setMidiState(loadMidi()); }, []);
   const setMidi = (m: typeof midi) => { setMidiState(m); saveMidi(m); };
+  const [macros, setMacrosState] = useState<Macro[]>(defaultMacros);
+  useEffect(() => { setMacrosState(loadMacros()); }, []);
+  const setMacros = (m: Macro[]) => { setMacrosState(m); saveMacros(m); };
+  const [macroLearn, setMacroLearn] = useState<string | null>(null);
+  const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {} });
+  Object.assign(macroRef.current, { macros, learn: macroLearn, setMacros });
   const [learning, setLearning] = useState<string | null>(null);
   const [lastMsg, setLastMsg] = useState<string | null>(null);
   const [midiDevices, setMidiDevices] = useState<string[]>([]);
@@ -525,6 +532,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       else if (kind === "trig" && (!m.isNote || m.on)) fire(id as TriggerKind);
       else if (kind === "bank") onBank((project.bank ?? []).map((b, i) => (String(i) === id ? { ...b, level: m.value } : b)));
       else if (kind === "cue" && (!m.isNote || m.on) && m.value > 0) goRef.current(id === "back" ? -1 : 1);
+      else if (kind === "macro" && (!m.isNote || m.on) && m.value > 0) { const mc = macroRef.current.macros.find((x) => x.id === id); if (mc) macroRef.current.run(mc); }
     }
   };
   useEffect(() => {
@@ -713,8 +721,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   goRef.current = cueStep;
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      const name = keyName(e);
+      const r = macroRef.current;
+      if (name && r.learn) { e.preventDefault(); r.setMacros(r.macros.map((m) => (m.id === r.learn ? { ...m, key: name } : m))); r.setLearn(null); return; }
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      const hit = name ? r.macros.filter((m) => m.key === name) : [];
+      if (hit.length) { e.preventDefault(); hit.forEach((m) => r.run(m)); return; }
       if (e.code === "Space") { e.preventDefault(); goRef.current(1); }
       else if (e.key === "b" || e.key === "B") goRef.current(-1);
     };
@@ -752,6 +765,20 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const next = fixtures[(cur + dir + fixtures.length) % fixtures.length];
     if (!next) return;
     setSelected([next.uid]); lastPick.current = next.uid;
+  };
+  macroRef.current.run = (m: Macro) => {
+    const c = macroCommand(m);
+    if (c) return runCommand(undefined, c.level, c.cct, c.levelDelta, c.cctDelta);
+    if (m.action === "next") stepLight(1);
+    else if (m.action === "prev") stepLight(-1);
+    else if (m.action === "all") setSelected(fixtures.map((f) => f.uid));
+    else if (m.action === "deselect") { setSelected([]); lastPick.current = null; }
+    else if (m.action === "flash") flashFixtures(selected);
+    else if (m.action === "go") goRef.current(1);
+    else if (m.action === "back") goRef.current(-1);
+    else if (m.action === "blackout") toggleBlackout();
+    else if (m.action === "undo") undo();
+    else if (m.action === "redo") redo();
   };
   const copySettings = () => { const source = sel[0]; if (source) setCopied({ name: source.name, settings: copyFixtureSettings(source) }); };
   const pasteSettings = () => {
@@ -880,7 +907,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} src={sel.length ? sel : fixtures} recordings={recordings} setRecordings={onRecordings} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
-      <SettingsDialog onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
+      <SettingsDialog macros={macros} setMacros={setMacros} macroLearn={macroLearn} setMacroLearn={setMacroLearn} onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
         onNanoKontrol={() => { const ch = (n: number) => `CC 1/${n}`; const keep = midi.maps.filter((m) => !m.key.startsWith("CC 1/")); setMidi({ ...midi, enabled: true, maps: [...keep, ...NANOKONTROL2.faders.map((n, i) => ({ key: ch(n), target: `bank:${i}`, label: `Fader ${i + 1}` })), { key: ch(NANOKONTROL2.master), target: "master", label: "Master" }, { key: ch(NANOKONTROL2.go), target: "cue:go", label: "GO" }, { key: ch(NANOKONTROL2.back), target: "cue:back", label: "Back" }, { key: ch(NANOKONTROL2.blackout), target: "blackout", label: "Blackout" }] }); }}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
         targets={[
