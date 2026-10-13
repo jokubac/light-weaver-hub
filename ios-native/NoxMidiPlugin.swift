@@ -1,17 +1,37 @@
 import Foundation
+import UIKit
 import Capacitor
 import CoreMIDI
+import CoreAudioKit
 
 // CoreMIDI input for the iPad app: USB / Bluetooth MIDI controllers send raw bytes to the console.
 @objc(NoxMidiPlugin)
 public class NoxMidiPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "NoxMidiPlugin"
     public let jsName = "NoxMidi"
-    public let pluginMethods: [CAPPluginMethod] = [CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise)]
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pairBluetooth", returnType: CAPPluginReturnPromise),
+    ]
 
     private var client = MIDIClientRef()
     private var port = MIDIPortRef()
     private var started = false
+
+    // Bluetooth MIDI controllers must be paired inside the app through Apple's picker before CoreMIDI sees them.
+    @objc func pairBluetooth(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let vc = self.bridge?.viewController else { call.reject("No view"); return }
+            let picker = CABTMIDICentralViewController()
+            picker.navigationItem.rightBarButtonItem = UIBarButtonItem(systemItem: .done, primaryAction: UIAction { _ in
+                vc.dismiss(animated: true) { _ = self.connectAll() }
+            })
+            let nav = UINavigationController(rootViewController: picker)
+            nav.modalPresentationStyle = .formSheet
+            vc.present(nav, animated: true)
+            call.resolve()
+        }
+    }
 
     @objc func start(_ call: CAPPluginCall) {
         DispatchQueue.main.async {

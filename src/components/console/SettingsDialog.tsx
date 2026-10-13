@@ -1,9 +1,9 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
-import { Bluetooth, BatteryMedium, Maximize, Music, Trash2, Tv, FolderOpen } from "lucide-react";
+import { Bluetooth, BatteryMedium, Music, Trash2, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { MidiMap } from "@/lib/midi";
+import { isIosApp, pairBluetoothMidi, type MidiMap } from "@/lib/midi";
 import { APP_VERSION } from "@/lib/app-version";
 
 export interface BtDevice { id: string; name: string; battery: number | null }
@@ -17,9 +17,8 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
   targets: MidiTarget[]; learning: string | null; setLearning: (t: string | null) => void;
   lastMsg: string | null; midiDevices: string[]; midiError: string | null; onNanoKontrol?: () => void;
 }) {
-  const [fs, setFs] = useState(false);
-  useEffect(() => { const h = () => setFs(!!document.fullscreenElement); document.addEventListener("fullscreenchange", h); return () => document.removeEventListener("fullscreenchange", h); }, []);
-  const toggleFs = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.()).catch?.(() => {});
+  const [ios, setIos] = useState(false);
+  useEffect(() => setIos(isIosApp()), []);
   const mapFor = (t: string) => midi.maps.filter((m) => m.target === t);
 
   return (
@@ -28,11 +27,6 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
         <DialogHeader><DialogTitle>Settings</DialogTitle><p className="font-mono text-xs text-muted-foreground">NOX v{APP_VERSION}</p></DialogHeader>
         <div className="space-y-5 text-xs">
           <Button variant="secondary" className="w-full" onClick={() => { onOpenChange(false); onSetups(); }}><FolderOpen />Project setups</Button>
-          <section className="space-y-2">
-            <h3 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground"><Tv className="h-4 w-4" />Tablet & screen</h3>
-            <button onClick={toggleFs} className="flex w-full items-center justify-center gap-2 rounded-lg bg-surface-elevated py-3 font-semibold"><Maximize className="h-4 w-4" />{fs ? "Exit full screen" : "Full screen console"}</button>
-            <p className="text-muted-foreground">The console runs straight on the tablet — open this page there and use "Add to Home Screen". To show it on a monitor too, mirror the tablet with AirPlay (iPad: Control Centre → Screen Mirroring) or Miracast/Cast (Android: Quick settings → Cast/Smart View).</p>
-          </section>
 
           <section className="space-y-2">
             <h3 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground"><Bluetooth className="h-4 w-4" />Bluetooth devices</h3>
@@ -52,6 +46,7 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
               Enable MIDI
               <Checkbox checked={midi.enabled} onCheckedChange={(c) => setMidi({ ...midi, enabled: c === true })} />
             </label>
+            {ios && <button onClick={() => void pairBluetoothMidi().catch(() => {})} className="w-full rounded-lg bg-surface-elevated py-2 font-semibold">Pair Bluetooth MIDI controller</button>}
             {midiError && <p className="text-destructive">{midiError}</p>}
             {onNanoKontrol && <button onClick={onNanoKontrol} className="w-full rounded-lg bg-surface-elevated py-2 font-semibold">Load Korg nanoKONTROL2 layout (faders 1–6, master, GO / Back / Blackout)</button>}
             <p className="text-muted-foreground">Keyboard / Stream Deck: Space = GO, B = Back.</p>
