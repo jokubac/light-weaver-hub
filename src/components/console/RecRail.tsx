@@ -152,7 +152,14 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
                         className={`flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold ${s.manual ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Hand className="h-3 w-3" />{s.manual ? "Wait GO" : "Auto"}</button>}
                     </div>
                     {i > 0 && <label className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground" title="Start this cue before the previous one ends — they dissolve into each other">Overlap
-                      <NumberField min={0} max={600} value={s.overlap ?? 0} onChange={(v) => updStep(r.id, s.id, { overlap: v || undefined })} className={num} aria-label="Overlap seconds" />s</label>}
+                      <NumberField min={0} max={600} value={s.overlap ?? 0} onChange={(v) => updStep(r.id, s.id, { overlap: v || undefined })} className={num} aria-label="Overlap seconds" />s
+                      {(s.overlap ?? 0) > 0 && <span className="ml-1 flex overflow-hidden rounded">
+                        {([["hue", "Colour wheel"], ["add", "Light mix"]] as const).map(([m, l]) => (
+                          <button key={m} onClick={() => updStep(r.id, s.id, { mixMode: m === "hue" ? undefined : m })} aria-pressed={(s.mixMode ?? "hue") === m}
+                            title={m === "hue" ? "Red → green → blue: colours travel round the wheel" : "Adds like two lamps: red + blue = magenta"}
+                            className={`px-1.5 py-0.5 font-semibold ${(s.mixMode ?? "hue") === m ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{l}</button>
+                        ))}</span>}
+                      {(s.overlap ?? 0) > 0 && s.fadeIn <= 0 && <span className="text-warning">set Fade in to blend</span>}</label>}
                     <TweakEditor tweak={s.tweak} onChange={(tweak) => updStep(r.id, s.id, { tweak })} hasPixels={!!s.pixels?.length} />
                     <button onClick={() => setStepOpen(stepOpen === s.id ? null : s.id)} className="mt-1 text-[10px] font-semibold text-primary">{stepOpen === s.id ? "Hide" : "Edit"} lights ({s.states.length})</button>
                     {stepOpen === s.id && s.states.map((x) => {

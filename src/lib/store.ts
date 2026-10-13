@@ -39,6 +39,8 @@ export interface RecStep {
   overlap?: number | undefined;
   /** playback-only corrections applied on top of the recorded states */
   tweak?: StepTweak | undefined;
+  /** how overlapping cues merge colours: forward round the hue wheel or additive light */
+  mixMode?: "hue" | "add" | undefined;
 }
 export interface StepTweak {
   intensity?: number | undefined; // multiplier, 1 = as recorded

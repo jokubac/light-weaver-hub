@@ -325,6 +325,28 @@ export interface FxParams {
   steps: Step[];
   /** Optional looping colour palette; absent keeps the fixture/step colours. */
   colors?: string[];
+  /** Optional speed ramp: rate glides to rampTo and back over rampTime seconds each way. */
+  rampTo?: number | undefined;
+  rampTime?: number | undefined;
+}
+
+/** Effect clock: integral of the (possibly ramping) rate divided by the base rate, so ramps never jump. */
+export function fxTime(fx: FxParams, t: number): number {
+  const T = fx.rampTime ?? 0, r0 = fx.rate, r1 = fx.rampTo;
+  if (r1 == null || !(T > 0) || r1 === r0 || !(r0 > 0)) return t;
+  const P = 2 * T, n = Math.floor(t / P), u = t - n * P;
+  const per = (r0 + r1) * T;
+  const inner = u < T ? r0 * u + ((r1 - r0) * u * u) / (2 * T) : per / 2 + r1 * (u - T) - ((r1 - r0) * (u - T) * (u - T)) / (2 * T);
+  return (n * per + inner) / r0;
+}
+
+/** Instantaneous rate of a ramping effect at time t. */
+export function fxRateAt(fx: FxParams, t: number): number {
+  const T = fx.rampTime ?? 0, r1 = fx.rampTo;
+  if (r1 == null || !(T > 0)) return fx.rate;
+  const u = ((t % (2 * T)) + 2 * T) % (2 * T);
+  const k = u < T ? u / T : 2 - u / T;
+  return fx.rate + (r1 - fx.rate) * k;
 }
 
 export const FX_PRESETS: Record<EffectKind, Partial<FxParams>> = {
@@ -385,6 +407,36 @@ export interface PatchedFixture {
   split?: { from: string; name: string; index: number; of: number; cpp: number };
   /** battery the light runs on (V-mount / Instagrid) for runtime estimates */
   power?: import("./power").PowerSource;
+  /** REC overlap: the outgoing cue still on this light; output is the merge of both, effects included */
+  mix?: FixtureMix | undefined;
+}
+
+export type MixSource = Pick<PatchedFixture, "intensity" | "cct" | "gm" | "hue" | "saturation" | "crossfade" | "cctOnly" | "fx" | "on" | "fxPlaying">;
+/** hue: colours travel forward round the colour wheel (red → green → blue); add: light adds like two lamps */
+export interface FixtureMix { from: MixSource; mode?: "hue" | "add" | undefined }
+
+const rgbToHsv = (r: number, g: number, b: number): [number, number, number] => {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [((h * 60) + 360) % 360, mx ? d / mx : 0, mx / 255];
+};
+
+/** Merges two lit states; weights are each side's own level, so a 100→0 / 0→100 overlap sums to full. */
+export function mergeStates(a: { v: number; rgb: [number, number, number] }, b: { v: number; rgb: [number, number, number] }, mode: "hue" | "add" = "hue"): { v: number; rgb: [number, number, number] } {
+  const sum = a.v + b.v;
+  if (sum <= 0) return { v: 0, rgb: b.rgb };
+  const k = b.v / sum;
+  const v = clamp01(sum);
+  if (mode === "add") {
+    const rgb = a.rgb.map((c, i) => (c * a.v + b.rgb[i]! * b.v) / sum) as [number, number, number];
+    return { v, rgb };
+  }
+  const [ha, sa, va] = rgbToHsv(...a.rgb), [hb, sb, vb] = rgbToHsv(...b.rgb);
+  // forward round the wheel, unless one side is white (no hue to travel from)
+  const fwd = sa < 0.05 ? 0 : sb < 0.05 ? 0 : ((hb - ha) + 360) % 360;
+  const h = sa < 0.05 ? hb : (ha + fwd * k) % 360;
+  return { v, rgb: hsvToRgb(h, sa + (sb - sa) * k, (va + (vb - va) * k)) };
 }
 
 export type FanMode = "auto" | "silent" | "low" | "medium" | "high" | "max" | "off";
@@ -515,7 +567,8 @@ function cycle(p: number, fx: FxParams): number {
 }
 
 /** Raw 0-1 effect value before min/max mapping. */
-function rawEffect(fx: FxParams, t: number, seed: number): number {
+function rawEffect(fx: FxParams, t0: number, seed: number): number {
+  const t = fxTime(fx, t0);
   const rnd = fx.random;
   switch (fx.kind) {
     case "none": return 1;
@@ -615,6 +668,11 @@ export function kelvinToRgb(k: number): [number, number, number] {
 
 /** Final level (0-1) and base colour (0-255 rgb, unscaled) of a fixture at time t. */
 export function fixtureState(f: PatchedFixture, t: number, masterLevel = 1): { v: number; rgb: [number, number, number] } {
+  if (f.mix) {
+    const a = fixtureState({ ...f, ...f.mix.from, mix: undefined }, t, masterLevel);
+    const b = fixtureState({ ...f, mix: undefined }, t, masterLevel);
+    return mergeStates(a, b, f.mix.mode);
+  }
   const kind = getMode(f).kind;
   const cp = caps(kind);
   const seed = seedOf(f.uid);
@@ -623,7 +681,7 @@ export function fixtureState(f: PatchedFixture, t: number, masterLevel = 1): { v
   let level = 1;
   if (playing) {
     if (f.fx.kind === "steps") {
-      const st = stepsState(f.fx, t);
+      const st = stepsState(f.fx, fxTime(f.fx, t));
       level = f.fx.min + (f.fx.max - f.fx.min) * st.level;
       stepRgb = st.rgb;
     } else {
@@ -649,7 +707,7 @@ export function fixtureState(f: PatchedFixture, t: number, masterLevel = 1): { v
   if (stepRgb) [r, g, b] = stepRgb;
   if (playing && cp.color && f.fx.colors?.length) {
     const colors = f.fx.colors;
-    const phase = ((t * f.fx.rate % colors.length) + colors.length) % colors.length;
+    const phase = ((fxTime(f.fx, t) * f.fx.rate % colors.length) + colors.length) % colors.length;
     const index = Math.floor(phase);
     const a = hexToRgb(colors[index] ?? "#ffffff");
     const next = hexToRgb(colors[(index + 1) % colors.length] ?? "#ffffff");

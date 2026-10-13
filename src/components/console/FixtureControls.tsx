@@ -14,6 +14,7 @@ import {
   overlaps,
   sampleEffect,
   fixtureColor,
+  fxRateAt,
   seedOf,
   type FxParams,
   type Curve,
@@ -213,6 +214,20 @@ function EffectEditor({ fx, setFx, seed = 0.3, colour = "var(--color-amber-glow)
         unit={fx.kind === "steps" ? "×" : "Hz"}
         onChange={(rate) => setFx({ rate })}
       />
+      <div className="space-y-2 rounded-md bg-surface-elevated p-2">
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          <input type="checkbox" checked={fx.rampTo != null} onChange={(e) => setFx(e.target.checked ? { rampTo: fx.rate * 3, rampTime: 4 } : { rampTo: undefined, rampTime: undefined })} />
+          Speed ramp
+          {fx.rampTo != null && <span className="ml-auto font-mono text-[10px] text-muted-foreground">now {fxRateAt(fx, now).toFixed(2)}{fx.kind === "steps" ? "×" : " Hz"}</span>}
+        </label>
+        {fx.rampTo != null && <>
+          <SpeedControl label="Ramp to" value={fx.rampTo} unit={fx.kind === "steps" ? "×" : "Hz"} onChange={(rampTo) => setFx({ rampTo })} />
+          <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Ramp time
+            <input type="range" min={0.5} max={60} step={0.5} value={fx.rampTime ?? 4} onChange={(e) => setFx({ rampTime: +e.target.value })} className="flex-1" aria-label="Ramp time seconds" />
+            <span className="w-10 text-right font-mono">{fx.rampTime ?? 4}s</span></label>
+          <p className="text-[10px] text-muted-foreground">Speeds up gradually to the target, then slows back down, and repeats.</p>
+        </>}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <Control label="Low" value={fx.min} display="" entry={{ text: String(+(fx.min * 100).toFixed(2)), suffix: "%", parse: (n) => Math.min(fx.max, Math.max(0, n / 100)) }} onChange={(v) => setFx({ min: Math.min(fx.max, v) })} />
         <Control label="High" value={fx.max} display="" entry={{ text: String(+(fx.max * 100).toFixed(2)), suffix: "%", parse: (n) => Math.max(fx.min, Math.min(1, n / 100)) }} onChange={(v) => setFx({ max: Math.max(fx.min, v) })} />

@@ -53,7 +53,7 @@ function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pi
   const st = fixtureState(f, t, level);
   const v = st.v;
   const [r, g, b] = reorder(st.rgb.map((c) => c / 255) as RGB, order);
-  const paletteActive = f.fxPlaying !== false && f.fx.kind !== "none" && !!f.fx.colors?.length;
+  const paletteActive = (f.fxPlaying !== false && f.fx.kind !== "none" && !!f.fx.colors?.length) || !!f.mix;
   const [hue, saturation] = paletteActive ? rgbToHs(r, g, b) : [f.hue / 360, f.cctOnly ? 0 : f.saturation];
 
   if (mode.astera && !f.split) {
