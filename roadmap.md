@@ -1,4 +1,5 @@
 # Tasks
+- [x] Separate plain Next/Previous light from the keeps-selection macro actions; 10 macro tests passed, typecheck clean, browser verified Next picks one light, Next-add keeps both, Prev moves to one
 - [x] Show both REC pixel effects in the pixel map using live overlap output; 16 tests passed and browser verified random red/blue takeover progresses with a stopped layer selected.
 - [x] Keep PATCH fixture split vertically stacked at every screen size; browser verified full-width panels at 1280 px
 - [x] Refresh native iOS logo from SVG and show shared version at Sign in and Settings; browser verified, all 18 icon sizes/opaque corners checked

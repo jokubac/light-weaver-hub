@@ -36,7 +36,7 @@ import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
-import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, type Macro } from "@/lib/macros";
+import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
@@ -776,19 +776,19 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     setFixtures((fs) => fs.map((f) => ids.includes(f.uid) ? { ...f, ...commandPatch(f, command) } : f));
   };
   const stepLight = (dir: 1 | -1, add = false) => {
-    if (!fixtures.length) return;
-    const cur = lastPick.current ? fixtures.findIndex((f) => f.uid === lastPick.current) : -1;
-    const next = fixtures[(cur + dir + fixtures.length) % fixtures.length];
-    if (!next) return;
-    setSelected((s) => (add ? (s.includes(next.uid) ? s : [...s, next.uid]) : [next.uid])); lastPick.current = next.uid;
+    const r = stepSelection(fixtures.map((f) => f.uid), selected, lastPick.current, dir, add);
+    if (!r) return;
+    setSelected(r.selection); lastPick.current = r.lastPick;
   };
   macroRef.current.run = (m: Macro) => {
     const c = macroCommand(m);
     if (c) return runCommand(undefined, c.level, c.cct, c.levelDelta, c.cctDelta);
     const pulse = (target: number) => { const now = performance.now(); setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => selected.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target }])) })); };
-    // Multiselect: moving to another light keeps earlier picks; Select toggles the current one, Deselect clears.
-    if (m.action === "next" || m.action === "next_add") stepLight(1, true);
-    else if (m.action === "prev" || m.action === "prev_add") stepLight(-1, true);
+    // Plain Next/Previous move the selection to one light; the "_add" versions keep earlier picks.
+    if (m.action === "next") stepLight(1);
+    else if (m.action === "next_add") stepLight(1, true);
+    else if (m.action === "prev") stepLight(-1);
+    else if (m.action === "prev_add") stepLight(-1, true);
     else if (m.action === "select") {
       // works like tapping a light: toggles the current light (the one Next/Previous moved to)
       const id = lastPick.current ?? fixtures[0]?.uid;
