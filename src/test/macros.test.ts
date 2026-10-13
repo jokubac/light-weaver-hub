@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keyName, macroCommand } from "@/lib/macros";
+import { keyName, macroCommand, MACRO_ACTIONS, stepSelection } from "@/lib/macros";
 
 describe("macro pad", () => {
   it("intensity +5 raises selected lights by 5%", () => {
