@@ -1,10 +1,18 @@
 // Native UDP transport used only inside the installed Android/iOS app (Capacitor).
 // Keeps the plugin import fully dynamic so the web/PWA build never touches it.
 
+interface DesktopBridge {
+  sendUdp: (host: string, port: number, bytes: Uint8Array) => Promise<void>;
+  scanArtNet: () => Promise<{ name: string; ip: string; universes?: number }[]>;
+}
+/** Set by the Windows app's preload script (electron/preload.cjs). */
+function desktop(): DesktopBridge | undefined {
+  return typeof window === "undefined" ? undefined : (window as unknown as { noxDesktop?: DesktopBridge }).noxDesktop;
+}
+
 export function isNativeApp(): boolean {
+  if (desktop()) return true;
   try {
-    // Avoid a static import so bundlers never pull Capacitor code into the web build's
-    // critical path; this file is safe to import from anywhere (browser or native).
     const w = globalThis as unknown as { Capacitor?: { isNativePlatform?: () => boolean } };
     if (w.Capacitor?.isNativePlatform) return w.Capacitor.isNativePlatform();
   } catch {
@@ -49,6 +57,7 @@ async function getSocket(): Promise<number> {
 
 /** Sends a single UDP datagram from the device. Throws on failure. */
 export async function sendUdp(host: string, port: number, bytes: Uint8Array): Promise<void> {
+  const d = desktop(); if (d) return d.sendUdp(host, port, bytes);
   const Udp = await getUdpPlugin();
   const id = await getSocket();
   await Udp.send({ socketId: id, address: host, port, buffer: toBase64(bytes) });
@@ -58,6 +67,7 @@ export interface ScannedNode { name: string; ip: string; universes?: number | un
 
 /** Broadcasts an ArtPoll and listens ~2s for ArtPollReply packets. */
 export async function scanArtNet(): Promise<ScannedNode[]> {
+  const d = desktop(); if (d) return d.scanArtNet();
   const [{ buildArtPoll, parseArtPollReply, ARTNET_UDP_PORT }, Udp] = await Promise.all([
     import("./artnet"),
     getUdpPlugin(),

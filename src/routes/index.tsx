@@ -490,21 +490,16 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bt, setBt] = useState<BtDevice[]>([]);
   const connectBt = async () => {
-    const nb = (navigator as Navigator & { bluetooth?: { requestDevice: (o: object) => Promise<any> } }).bluetooth;
-    if (!nb) { alert("This browser can't use Bluetooth. Use Chrome or Edge (Android, Windows, Mac)."); return; }
     try {
-      const dev = await nb.requestDevice({ acceptAllDevices: true, optionalServices: ["battery_service", "device_information"] });
-      const entry: BtDevice = { id: dev.id, name: dev.name || "Bluetooth device", battery: null };
-      setBt((b) => [...b.filter((x) => x.id !== dev.id), entry]);
-      const server = await dev.gatt.connect();
-      try {
-        const ch = await (await server.getPrimaryService("battery_service")).getCharacteristic("battery_level");
-        const set = (v: number) => setBt((b) => b.map((x) => (x.id === dev.id ? { ...x, battery: v } : x)));
-        set((await ch.readValue()).getUint8(0));
-        await ch.startNotifications().catch(() => {});
-        ch.addEventListener("characteristicvaluechanged", (e: any) => set(e.target.value.getUint8(0)));
-      } catch { /* device has no standard battery service */ }
-    } catch { /* user cancelled */ }
+      const { connectBluetoothBattery } = await import("@/lib/native-ble");
+      await connectBluetoothBattery(
+        (d) => setBt((b) => [...b.filter((x) => x.id !== d.id), { ...d, battery: null }]),
+        (id, v) => setBt((b) => b.map((x) => (x.id === id ? { ...x, battery: v } : x))),
+      );
+    } catch (e) {
+      const msg = (e as Error)?.message ?? "";
+      if (/can't use Bluetooth|disabled|not available|permission/i.test(msg)) alert(msg);
+    }
   };
 
   const [midi, setMidiState] = useState(() => ({ enabled: false, maps: [] as ReturnType<typeof loadMidi>["maps"] }));

@@ -18,10 +18,41 @@ export function parseMidi(data: Uint8Array): MidiMsg | null {
   return null;
 }
 
+/** Rebuilds a status byte from the Android MIDI plugin's message ("NoteOn", "NoteOff", "UNKNOWN - -80"). */
+export function nativeMidiToBytes(msg: { type: string; note: number; velocity: number }): Uint8Array | null {
+  let st: number;
+  if (msg.type === "NoteOn") st = 0x90;
+  else if (msg.type === "NoteOff") st = 0x80;
+  else {
+    const raw = Number(msg.type.split(" - ")[1]);
+    if (!Number.isFinite(raw)) return null;
+    st = raw < 0 ? raw + 256 : raw;
+  }
+  return new Uint8Array([st, msg.note & 0x7f, msg.velocity & 0x7f]);
+}
+
+async function listenNativeMidi(cb: (m: MidiMsg, device: string) => void, onDevices?: (names: string[]) => void) {
+  const { MIDI } = await import("capacitor-midi");
+  const handles: { remove: () => void }[] = [];
+  const open = async (names: string[]) => {
+    onDevices?.(names);
+    for (let i = 0; i < names.length; i++) await MIDI.openDevice({ deviceNumber: i }).catch(() => {});
+  };
+  handles.push(await MIDI.addListener("MIDI_MSG_EVENT", (raw) => {
+    const bytes = nativeMidiToBytes(raw); const m = bytes && parseMidi(bytes); if (m) cb(m, "USB MIDI");
+  }));
+  handles.push(await MIDI.addListener("MIDI_CON_EVENT", (d) => { void open(d.value); }));
+  await MIDI.initConnectionListener().catch(() => {});
+  await open((await MIDI.listMIDIDevices()).value);
+  return () => handles.forEach((h) => h.remove());
+}
+
 /** Subscribes to every MIDI input. Returns an unsubscribe function. */
 export async function listenMidi(cb: (m: MidiMsg, device: string) => void, onDevices?: (names: string[]) => void) {
   const nav = navigator as Navigator & { requestMIDIAccess?: () => Promise<any> };
-  if (!nav.requestMIDIAccess) throw new Error("This browser has no MIDI support. Use Chrome or Edge.");
+  const w = globalThis as unknown as { Capacitor?: { getPlatform?: () => string } };
+  if (!nav.requestMIDIAccess && w.Capacitor?.getPlatform?.() === "android") return listenNativeMidi(cb, onDevices);
+  if (!nav.requestMIDIAccess) throw new Error(w.Capacitor?.getPlatform?.() === "ios" ? "MIDI controllers are not supported on iPad yet. Use the Android or Windows app." : "This browser has no MIDI support. Use the installed NOX app, Chrome or Edge.");
   const access = await nav.requestMIDIAccess();
   const bind = () => {
     const names: string[] = [];

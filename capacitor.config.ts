@@ -6,7 +6,8 @@ const config: CapacitorConfig = {
   appId: "com.kroma.console",
   appName: "NOX",
   webDir: "offline-app",
-  ios: { contentInset: "always", backgroundColor: "#17131c" },
+  // capacitor-midi is Android-only; keep it out of the iOS project.
+  ios: { contentInset: "always", backgroundColor: "#17131c", includePlugins: ["@capacitor-community/bluetooth-le", "capacitor-udp-socket"] },
 };
 
 export default config;

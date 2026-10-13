@@ -31,3 +31,6 @@ dist-ssr
 *.sln
 *.sw?
 offline-app/
+electron/app
+electron/release
+electron/node_modules
