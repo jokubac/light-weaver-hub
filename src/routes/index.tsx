@@ -36,6 +36,7 @@ import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
+import { defaultMacros, keyName, loadMacros, macroCommand, saveMacros, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
@@ -505,6 +506,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [midi, setMidiState] = useState(() => ({ enabled: false, maps: [] as ReturnType<typeof loadMidi>["maps"] }));
   useEffect(() => { setMidiState(loadMidi()); }, []);
   const setMidi = (m: typeof midi) => { setMidiState(m); saveMidi(m); };
+  const [macros, setMacrosState] = useState<Macro[]>(defaultMacros);
+  useEffect(() => { setMacrosState(loadMacros()); }, []);
+  const setMacros = (m: Macro[]) => { setMacrosState(m); saveMacros(m); };
+  const [macroLearn, setMacroLearn] = useState<string | null>(null);
+  const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {} });
+  Object.assign(macroRef.current, { macros, learn: macroLearn, setMacros });
   const [learning, setLearning] = useState<string | null>(null);
   const [lastMsg, setLastMsg] = useState<string | null>(null);
   const [midiDevices, setMidiDevices] = useState<string[]>([]);
@@ -525,6 +532,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       else if (kind === "trig" && (!m.isNote || m.on)) fire(id as TriggerKind);
       else if (kind === "bank") onBank((project.bank ?? []).map((b, i) => (String(i) === id ? { ...b, level: m.value } : b)));
       else if (kind === "cue" && (!m.isNote || m.on) && m.value > 0) goRef.current(id === "back" ? -1 : 1);
+      else if (kind === "macro" && (!m.isNote || m.on) && m.value > 0) { const mc = macroRef.current.macros.find((x) => x.id === id); if (mc) macroRef.current.run(mc); }
     }
   };
   useEffect(() => {
@@ -713,8 +721,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   goRef.current = cueStep;
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      const name = keyName(e);
+      const r = macroRef.current;
+      if (name && r.learn) { e.preventDefault(); r.setMacros(r.macros.map((m) => (m.id === r.learn ? { ...m, key: name } : m))); r.setLearn(null); return; }
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      const hit = name ? r.macros.filter((m) => m.key === name) : [];
+      if (hit.length) { e.preventDefault(); hit.forEach((m) => r.run(m)); return; }
       if (e.code === "Space") { e.preventDefault(); goRef.current(1); }
       else if (e.key === "b" || e.key === "B") goRef.current(-1);
     };
