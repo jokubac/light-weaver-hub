@@ -7,12 +7,14 @@ on:
       - ".github/workflows/ios-ipa.yml"
       - "scripts/ios-icons.mjs"
       - "scripts/offline-bundle.mjs"
+      - "ios-native/**"
+      - "capacitor.config.ts"
       - "public/nox-logo.svg"
       - "public/app-release.json"
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -25,6 +27,10 @@ jobs:
           bunx cap sync ios
           /usr/libexec/PlistBuddy -c "Add :NSBluetoothAlwaysUsageDescription string 'NOX connects to Bluetooth batteries and lights.'" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSLocalNetworkUsageDescription string 'NOX sends DMX to wireless transmitters on your network.'" ios/App/App/Info.plist || true
+      - name: NOX native MIDI
+        run: |
+          sudo gem install xcodeproj --no-document
+          ruby ios-native/install.rb
       - name: App icon
         run: |
           brew install librsvg

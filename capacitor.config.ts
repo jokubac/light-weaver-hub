@@ -6,8 +6,8 @@ const config: CapacitorConfig = {
   appId: "com.kroma.console",
   appName: "NOX",
   webDir: "offline-app",
-  // capacitor-midi is Android-only and bluetooth-le fails to compile against Capacitor 8 iOS; keep both out of iOS.
-  ios: { contentInset: "always", backgroundColor: "#17131c", includePlugins: ["capacitor-udp-socket"] },
+  // capacitor-midi is Android-only; iPad MIDI uses NOX's own CoreMIDI plugin (ios-native/). Bluetooth needs Xcode 16+.
+  ios: { contentInset: "always", backgroundColor: "#17131c", includePlugins: ["capacitor-udp-socket", "@capacitor-community/bluetooth-le"] },
 };
 
 export default config;

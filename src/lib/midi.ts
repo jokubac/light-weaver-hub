@@ -1,4 +1,4 @@
-// MIDI controller mapping (Web MIDI — Chrome / Edge / Android; not available on iPad Safari).
+// MIDI controller mapping: Web MIDI in browsers/Windows, native plugins in the Android and iPad apps.
 
 export interface MidiMap { key: string; target: string; label: string }
 export interface MidiMsg { key: string; value: number; isNote: boolean; on: boolean }
@@ -47,12 +47,39 @@ async function listenNativeMidi(cb: (m: MidiMsg, device: string) => void, onDevi
   return () => handles.forEach((h) => h.remove());
 }
 
+/** Splits a raw CoreMIDI byte stream into 3-byte channel messages (status byte starts each one). */
+export function splitMidiBytes(bytes: number[]): Uint8Array[] {
+  const out: Uint8Array[] = [];
+  for (let i = 0; i < bytes.length; i++) {
+    const b = bytes[i] ?? 0; if (b >= 0x80 && b < 0xf0) out.push(new Uint8Array([b, bytes[i + 1] ?? 0, bytes[i + 2] ?? 0]));
+  }
+  return out;
+}
+
+async function listenIosMidi(cb: (m: MidiMsg, device: string) => void, onDevices?: (names: string[]) => void) {
+  const { registerPlugin } = await import("@capacitor/core");
+  type H = { remove: () => Promise<void> };
+  const NoxMidi = registerPlugin<{
+    start: () => Promise<{ names: string[] }>;
+    addListener: (ev: string, fn: (d: any) => void) => Promise<H>;
+  }>("NoxMidi");
+  const handles = [
+    await NoxMidi.addListener("message", (d: { bytes: number[] }) => {
+      for (const b of splitMidiBytes(d.bytes)) { const m = parseMidi(b); if (m) cb(m, "MIDI"); }
+    }),
+    await NoxMidi.addListener("devices", (d: { names: string[] }) => onDevices?.(d.names)),
+  ];
+  onDevices?.((await NoxMidi.start()).names);
+  return () => handles.forEach((h) => void h.remove());
+}
+
 /** Subscribes to every MIDI input. Returns an unsubscribe function. */
 export async function listenMidi(cb: (m: MidiMsg, device: string) => void, onDevices?: (names: string[]) => void) {
   const nav = navigator as Navigator & { requestMIDIAccess?: () => Promise<any> };
   const w = globalThis as unknown as { Capacitor?: { getPlatform?: () => string } };
   if (!nav.requestMIDIAccess && w.Capacitor?.getPlatform?.() === "android") return listenNativeMidi(cb, onDevices);
-  if (!nav.requestMIDIAccess) throw new Error(w.Capacitor?.getPlatform?.() === "ios" ? "MIDI controllers are not supported on iPad yet. Use the Android or Windows app." : "This browser has no MIDI support. Use the installed NOX app, Chrome or Edge.");
+  if (!nav.requestMIDIAccess && w.Capacitor?.getPlatform?.() === "ios") return listenIosMidi(cb, onDevices);
+  if (!nav.requestMIDIAccess) throw new Error("This browser has no MIDI support. Use the installed NOX app, Chrome or Edge.");
   const access = await nav.requestMIDIAccess();
   const bind = () => {
     const names: string[] = [];

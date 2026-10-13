@@ -39,4 +39,5 @@
 - Fixture setting history uses the transfer whitelist and groups pointer gestures; playback/battery updates bypass history so Undo never repatches fixtures or records output frames.
 - src/components/console/AGENTS.md holds the console-UI rules; read it before changing files under src/components/console.
 - Windows app (electron/) loads the crawled offline bundle via app:// and exposes window.noxDesktop for UDP; native-udp.ts prefers it so DMX code stays shared across web, Capacitor and desktop.
-- Native Bluetooth/MIDI go through src/lib/native-ble.ts and midi.ts plugin fallbacks (bluetooth-le and capacitor-midi are Android-only; iOS includePlugins keeps only UDP because they fail to compile there).
+- iPad MIDI uses NOX's own CoreMIDI plugin in ios-native/, installed into the generated iOS project by ios-native/install.rb in CI; iOS builds need Xcode 16+ (macos-15) because Capacitor 8 plugins fail on older Swift.
+- offline-bundle.mjs strips the hosting "Edit with Lovable" badge so installed apps stay standalone.

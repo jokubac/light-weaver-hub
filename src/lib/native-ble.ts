@@ -5,8 +5,6 @@ import { isNativeApp } from "./native-udp";
 export interface BtFound { id: string; name: string }
 
 export async function connectBluetoothBattery(onDevice: (d: BtFound) => void, onBattery: (id: string, pct: number) => void): Promise<void> {
-  const plat = (globalThis as unknown as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();
-  if (plat === "ios" && !hasDesktopBridge()) throw new Error("Bluetooth is not available in the iPad app yet.");
   if (isNativeApp() && !hasDesktopBridge()) {
     const { BleClient } = await import("@capacitor-community/bluetooth-le");
     await BleClient.initialize({ androidNeverForLocation: true });
