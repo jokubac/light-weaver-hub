@@ -36,7 +36,7 @@ import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
-import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, type Macro } from "@/lib/macros";
+import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
@@ -776,11 +776,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     setFixtures((fs) => fs.map((f) => ids.includes(f.uid) ? { ...f, ...commandPatch(f, command) } : f));
   };
   const stepLight = (dir: 1 | -1, add = false) => {
-    if (!fixtures.length) return;
-    const cur = lastPick.current ? fixtures.findIndex((f) => f.uid === lastPick.current) : -1;
-    const next = fixtures[(cur + dir + fixtures.length) % fixtures.length];
-    if (!next) return;
-    setSelected((s) => (add ? (s.includes(next.uid) ? s : [...s, next.uid]) : [next.uid])); lastPick.current = next.uid;
+    const r = stepSelection(fixtures.map((f) => f.uid), selected, lastPick.current, dir, add);
+    if (!r) return;
+    setSelected(r.selection); lastPick.current = r.lastPick;
   };
   macroRef.current.run = (m: Macro) => {
     const c = macroCommand(m);
