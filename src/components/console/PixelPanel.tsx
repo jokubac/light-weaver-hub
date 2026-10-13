@@ -1,12 +1,12 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
-import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight } from "lucide-react";
+import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight, Copy, ClipboardPaste } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
-import { renderLayer, textMask, PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
+import { renderLayer, textMask, PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelLayout, type PixelEffectClipboard } from "@/lib/pixels";
 
 type RGB = [number, number, number];
 
