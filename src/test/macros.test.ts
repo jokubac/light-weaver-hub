@@ -15,3 +15,11 @@ describe("macro pad", () => {
     expect(keyName({ code: "KeyA", key: "a", ctrlKey: true, shiftKey: true, altKey: false, metaKey: false })).toBe("Ctrl+Shift+KeyA");
   });
 });
+
+describe("v1.1.1 macros", () => {
+  it("reset colour sets 5600K and on/off set full/zero", () => {
+    expect(macroCommand({ id: "a", key: null, action: "cct_reset", amount: 0 })).toEqual({ cct: 5600 });
+    expect(macroCommand({ id: "a", key: null, action: "light_on", amount: 0 })).toEqual({ level: 1 });
+    expect(macroCommand({ id: "a", key: null, action: "light_off", amount: 0 })).toEqual({ level: 0 });
+  });
+});
