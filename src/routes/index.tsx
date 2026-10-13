@@ -644,6 +644,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [recProg, setRecProg] = useState<{ t: number; step: number } | null>(null);
   const fixturesRef = useRef(fixtures);
   fixturesRef.current = fixtures;
+  const lastPixelsRef = useRef<unknown>(null);
   useEffect(() => {
     if (!play || play.pausedAt != null) return;
     const id = setInterval(() => {
