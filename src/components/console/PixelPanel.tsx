@@ -6,7 +6,8 @@ import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
-import { renderLayer, textMask, PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelLayout, type PixelEffectClipboard } from "@/lib/pixels";
+import { PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, pixelCount, pixelGrid, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelLayout, type PixelEffectClipboard } from "@/lib/pixels";
+import { pixelPreview } from "./pixel-preview";
 
 type RGB = [number, number, number];
 
@@ -72,8 +73,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
     );
   }
 
-  const { placed, W, H } = layoutLayer({ ...layer, order: inMap }, fixtures);
-  const preview = layer.playing ? new Map<string, RGB[]>() : renderLayer({ ...layer, order: inMap }, fixtures, now, layer.kind === "text" ? textMask(layer.text.toUpperCase(), H) : null);
+  const { placed, W, H, frame: preview } = pixelPreview({ ...layer, order: inMap }, fixtures, frame, now);
 
   return (
     <div className="space-y-4">
@@ -117,7 +117,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         <InfiniteGrid columns={W} rows={H}>
           <div className="grid gap-px" style={{ gridTemplateColumns: `repeat(${W}, 10px)`, gridTemplateRows: `repeat(${H}, 10px)` }}>
             {placed.flatMap((p, fi) => p.cells.map((c, i) => {
-              const col = (layer.playing ? frame.get(p.f.uid) : preview.get(p.f.uid))?.[i];
+              const col = preview.get(p.f.uid)?.[i];
               return <div key={`${p.f.uid}-${i}`} title={`${p.f.name} px ${i + 1}`} className="rounded-[2px]"
                 style={{ gridColumn: c.x + 1, gridRow: c.y + 1, background: col ? `rgb(${col[0]},${col[1]},${col[2]})` : `hsl(${(fi * 47) % 360} 30% 22%)` }} />;
             }))}
