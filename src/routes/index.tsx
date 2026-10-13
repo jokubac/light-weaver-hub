@@ -42,7 +42,7 @@ import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
 import { RecRail, RecDialog, RecEditor } from "@/components/console/RecRail";
 import { PatchPage } from "@/components/console/PatchPage";
-import { statesAt, stepLength } from "@/lib/recordings";
+import { statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
 import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
@@ -652,22 +652,22 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       let t = (performance.now() - play.start) / 1000;
       if (rec) {
         // manual cues hold the sequence at their start until GO
-        let acc = 0;
+        const starts = stepStarts(rec);
         for (let i = 0; i < rec.steps.length; i++) {
           const st = rec.steps[i]!;
+          const acc = starts[i]!;
           if (i > 0 && st.manual && i > (play.released ?? 0) && t >= acc) {
             t = Math.max(0, acc - 0.001);
             setPlay({ ...play, pausedAt: t, waiting: i });
             break;
           }
-          acc += stepLength(st);
         }
       }
       const res = rec ? statesAt(rec, fixturesRef.current, play.origin, t) : null;
       if (!res) { setPlay(null); setRecProg(null); return; }
       setRecProg({ t, step: res.step });
       const px = rec?.steps[res.step]?.pixels;
-      if (px && px !== lastPixelsRef.current) { lastPixelsRef.current = px; setLayers(structuredClone(px)); }
+      if (px && px !== lastPixelsRef.current) { lastPixelsRef.current = px; setLayers(structuredClone(tweakPixels(px, rec?.steps[res.step]?.tweak))); }
       setUntrackedFixtures((fs) => fs.map((f) => { const st = res.states.get(f.uid); return st ? { ...f, ...st, trigger: null } : f; }));
     }, 40);
     return () => clearInterval(id);

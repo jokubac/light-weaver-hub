@@ -98,7 +98,7 @@ export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map
     return stepState(step, target, before ?? { ...target, intensity: 0 }, local);
   };
   for (const f of fixtures) {
-    if (!rec.steps.slice(0, i + 1).some((s) => find(s, f))) continue;
+    if (!find(rec.steps[i]!, f)) continue;
     const s = at(i, f);
     if (s) out.set(f.uid, s);
   }
