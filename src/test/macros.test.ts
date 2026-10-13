@@ -42,7 +42,7 @@ describe("next / previous light", () => {
     expect(stepSelection(order, ["b"], "a", -1)).toEqual({ selection: ["c"], lastPick: "c" });
   });
   it("offers plain and keeps-selection next/previous as separate actions", () => {
-    const ids = MACRO_ACTIONS.map((a) => a.id);
+    const ids: string[] = MACRO_ACTIONS.map((a) => a.id);
     expect(["next", "prev", "next_add", "prev_add"].every((i) => ids.includes(i))).toBe(true);
   });
 });
