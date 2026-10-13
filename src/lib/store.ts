@@ -31,6 +31,8 @@ export interface RecStep {
   fadeIn: number;
   hold: number;
   fadeOut: number;
+  /** pixel layers active at this cue; applied when the cue starts */
+  pixels?: import("./pixels").PixelLayer[];
   /** cue waits for a manual GO before it starts */
   manual?: boolean;
 }
