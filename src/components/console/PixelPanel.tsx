@@ -49,6 +49,19 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
     setActiveId(l.id);
   };
   const anyPlaying = layers.some((l) => l.playing);
+  const copyEffect = () => { const c = copyPixelEffect(layer); setEffectClip(c); savePixelEffectClipboard(c); };
+  const pasteEffect = () => {
+    if (!effectClip) return;
+    const selIds = selPx.map((f) => f.uid);
+    if (selIds.length && !selIds.every((u) => inMap.includes(u))) {
+      // selected lights that aren't in this layer yet get a fresh copy of the effect
+      const l = pastePixelEffect(`${layer.name} paste`, selIds, effectClip);
+      setLayers([...layers, l]);
+      setActiveId(l.id);
+    } else {
+      setLayerRaw(applyPixelEffect(layer, effectClip));
+    }
+  };
 
   if (allPx.length === 0) {
     return (
