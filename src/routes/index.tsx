@@ -784,6 +784,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     else if (m.action === "copy") copySettings();
     else if (m.action === "paste") pasteSettings();
     else if (m.action === "keypad") setKeypadOpen((o) => !o);
+    else if (m.action === "light_toggle") runCommand(undefined, sel.some((f) => f.intensity > 0) ? 0 : 1);
     else if (m.action === "all") setSelected(fixtures.map((f) => f.uid));
     else if (m.action === "deselect") {
       const now = performance.now();
