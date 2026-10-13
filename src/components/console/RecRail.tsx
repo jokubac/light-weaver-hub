@@ -189,7 +189,7 @@ const TWEAKS: { k: keyof StepTweak; label: string; min: number; max: number; ste
 ];
 
 /** Per-cue playback corrections, like grading a clip without re-recording it. */
-function TweakEditor({ tweak, onChange, hasPixels }: { tweak?: StepTweak; onChange: (t: StepTweak | undefined) => void; hasPixels: boolean }) {
+function TweakEditor({ tweak, onChange, hasPixels }: { tweak?: StepTweak | undefined; onChange: (t: StepTweak | undefined) => void; hasPixels: boolean }) {
   const [open, setOpen] = useState(false);
   const set = (k: keyof StepTweak, v: number, def: number) => {
     const next = { ...tweak, [k]: v === def ? undefined : v };
