@@ -11,6 +11,8 @@ import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixtur
 import { fixtureWattage } from "@/lib/callsheet";
 import { CallSheet } from "./CallSheet";
 import { NoxLogo } from "@/components/NoxLogo";
+import { saveFile, safeFileName } from "@/lib/save-file";
+import { buildPatchPdf } from "@/lib/patch-pdf";
 
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
 export function describeDef(d: FixtureDef): { type: string; cct: string } {
@@ -50,18 +52,12 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const totalW = fixtures.reduce((a, f) => a + fixtureWattage(f), 0);
   const exportPatch = async () => {
     const data = JSON.stringify({ kind: "kroma-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
-    const name = `${title.replace(/[^\w-]+/g, "_") || "patch"}.kroma-patch.json`;
-    const picker = (window as Window & { showSaveFilePicker?: (o: object) => Promise<any> }).showSaveFilePicker;
-    if (picker) {
-      try {
-        const h = await picker({ suggestedName: name, types: [{ description: "NOX patch", accept: { "application/json": [".json"] } }] });
-        const w = await h.createWritable(); await w.write(data); await w.close(); return;
-      } catch (e) { if ((e as Error).name === "AbortError") return; }
-    }
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
-    a.download = name; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    try { await saveFile(new Blob([data], { type: "application/json" }), `${safeFileName(title, "patch")}.kroma-patch.json`); }
+    catch (e) { alert(`Export failed: ${(e as Error).message ?? e}`); }
+  };
+  const savePdf = async () => {
+    try { await saveFile(await buildPatchPdf(title, fixtures), `${safeFileName(title, "patch")}-patch.pdf`); }
+    catch (e) { alert(`PDF failed: ${(e as Error).message ?? e}`); }
   };
 
   const importPatch = async (file: File) => {
@@ -80,7 +76,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3 print:hidden">
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
         <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">Patch</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
-        <Button variant="secondary" onClick={() => window.print()} title="Print, or choose “Save as PDF” in the print dialog"><Printer />Print / PDF</Button>
+        <Button variant="secondary" onClick={savePdf} title="Save the patch sheet as a PDF"><Printer />Save PDF</Button>
         <Button variant="secondary" onClick={exportPatch}><Download />Export</Button>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
         <Button variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Hide the fixture list to see the full patch sheet" : "Show the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Hide fixtures" : "Add fixtures"}</Button>
