@@ -1,12 +1,12 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
-import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight } from "lucide-react";
+import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight, Copy, ClipboardPaste } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
-import { renderLayer, textMask, PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, type PixelLayer, type PixelLayout } from "@/lib/pixels";
+import { renderLayer, textMask, PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, layoutLayer, pixelCount, pixelGrid, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelLayout, type PixelEffectClipboard } from "@/lib/pixels";
 
 type RGB = [number, number, number];
 
@@ -24,6 +24,8 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
   const [effectsOpen, setEffectsOpen] = useState(true);
   const [fixturesOpen, setFixturesOpen] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(true);
+  const [effectClip, setEffectClip] = useState<PixelEffectClipboard | null>(null);
+  useEffect(() => { setEffectClip(loadPixelEffectClipboard()); }, []);
   const allPx = fixtures.filter(isPixelFixture);
   const selPx = allPx.filter((f) => selected.includes(f.uid));
   // programming works on the lights selected in the console; with nothing selected every pixel light is listed
@@ -47,6 +49,19 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
     setActiveId(l.id);
   };
   const anyPlaying = layers.some((l) => l.playing);
+  const copyEffect = () => { const c = copyPixelEffect(layer); setEffectClip(c); savePixelEffectClipboard(c); };
+  const pasteEffect = () => {
+    if (!effectClip) return;
+    const selIds = selPx.map((f) => f.uid);
+    if (selIds.length && !selIds.every((u) => inMap.includes(u))) {
+      // selected lights that aren't in this layer yet get a fresh copy of the effect
+      const l = pastePixelEffect(`${layer.name} paste`, selIds, effectClip);
+      setLayers([...layers, l]);
+      setActiveId(l.id);
+    } else {
+      setLayerRaw(applyPixelEffect(layer, effectClip));
+    }
+  };
 
   if (allPx.length === 0) {
     return (
@@ -81,6 +96,8 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
 
       <div className="flex gap-2">
         <input value={layer.name} onChange={(e) => set({ name: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" aria-label="Layer name" />
+        <button onClick={copyEffect} title="Copy this pixel effect" aria-label="Copy pixel effect" className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
+        <button onClick={pasteEffect} disabled={!effectClip} title="Paste the copied effect onto the selected lights" aria-label="Paste pixel effect" className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><ClipboardPaste className="h-4 w-4" /></button>
         {layers.length > 1 && (
           <button onClick={() => { const rest = layers.filter((l) => l.id !== layer.id); setLayers(rest); setActiveId(rest[0]!.id); }} className="rounded-md bg-surface-elevated px-3 text-muted-foreground hover:text-destructive" aria-label="Delete layer"><Trash2 className="h-4 w-4" /></button>
         )}

@@ -69,6 +69,34 @@ export const PIXEL_FX: { id: PixelFx; label: string }[] = [
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
+/** Copied effect settings: identity, name, order (which lights) and playing never travel. */
+export type PixelEffectClipboard = Omit<PixelLayer, "id" | "name" | "playing" | "order">;
+
+export function copyPixelEffect(l: PixelLayer): PixelEffectClipboard {
+  const { id: _id, name: _name, playing: _playing, order: _order, ...rest } = l;
+  return structuredClone(rest);
+}
+
+/** Paste onto an existing layer: keeps the layer's lights, replaces the effect. */
+export function applyPixelEffect(layer: PixelLayer, clip: PixelEffectClipboard): PixelLayer {
+  return { ...structuredClone(clip), id: layer.id, name: layer.name, playing: false, order: layer.order };
+}
+
+/** Paste as a new layer aimed at other lights, e.g. the ones selected in the console. */
+export function pastePixelEffect(name: string, order: string[], clip: PixelEffectClipboard): PixelLayer {
+  return { ...structuredClone(clip), id: newId(), name, playing: false, order };
+}
+
+/** localStorage key so a copied effect survives closing the app. */
+export const PIXEL_EFFECT_CLIPBOARD_KEY = "nox-pixel-effect-clipboard";
+
+export const savePixelEffectClipboard = (clip: PixelEffectClipboard) => {
+  try { localStorage.setItem(PIXEL_EFFECT_CLIPBOARD_KEY, JSON.stringify(clip)); } catch { /* private mode */ }
+};
+export const loadPixelEffectClipboard = (): PixelEffectClipboard | null => {
+  try { const raw = localStorage.getItem(PIXEL_EFFECT_CLIPBOARD_KEY); return raw ? JSON.parse(raw) as PixelEffectClipboard : null; } catch { return null; }
+};
+
 export const defaultLayer = (name = "Layer 1", order: string[] = []): PixelLayer => ({
   id: newId(),
   name,
