@@ -2,7 +2,7 @@
 // local CRMX bridge, which sends Art-Net / sACN to the transmitter.
 // Channel layouts are generic per mode type — check against each fixture's DMX chart.
 
-import { fixtureState, getMode, kelvin, type PatchedFixture } from "./dmx";
+import { fixtureState, resolveCctMix, getMode, kelvin, type PatchedFixture } from "./dmx";
 import type { Connection } from "./store";
 import { asteraTokens, CELL_TOKENS } from "./astera";
 import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
@@ -47,7 +47,9 @@ function rgbToXy(r: number, g: number, b: number): [number, number] {
   return s ? [X / s, Y / s] : [0.3127, 0.329];
 }
 
-function encode(f: PatchedFixture, buf: Uint8Array, t: number, level: number, pixels: RGB[] | undefined, order: ColorOrder) {
+function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, pixels: RGB[] | undefined, order: ColorOrder) {
+  // white-light overlaps output a real blended colour temperature on CCT channels
+  const f = resolveCctMix(f0, t) ?? f0;
   const mode = getMode(f);
   const wide = /16/.test(mode.name);
   const st = fixtureState(f, t, level);

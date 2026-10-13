@@ -51,9 +51,20 @@ describe("overlap colour merge and speed ramp", () => {
 
 import { mixFrames } from "@/lib/recordings";
 describe("pixel overlap", () => {
-  it("red and blue pixels at 50/50 merge to green at full level", () => {
-    const m = mixFrames(new Map([["u", [[255, 0, 0]]]]), new Map([["u", [[0, 0, 255]]]]), 0.5);
-    const [r, g, b] = m.get("u")![0]!;
-    expect(g).toBeGreaterThan(200); expect(r).toBeLessThan(30); expect(b).toBeLessThan(30);
+  it("halfway, half of the pixels show the new cue and none are blended", () => {
+    const red = [255, 0, 0], blue = [0, 0, 255];
+    const m = mixFrames(new Map([["u", [red, red, red, red]]]) as never, new Map([["u", [blue, blue, blue, blue]]]) as never, 0.5);
+    expect(m.get("u")).toEqual([blue, blue, red, red]);
+  });
+});
+
+import { resolveCctMix } from "@/lib/dmx";
+describe("white light overlap", () => {
+  it("3200K → 5600K at 50/50 travels through CCT, not the colour wheel", () => {
+    const fx = { ...defaultFx() };
+    const base = { uid: "u1", name: "F", defId: "x", modeIdx: 0, intensity: 0.5, cct: 0.8, gm: 0, hue: 0, saturation: 0, crossfade: 0, cctOnly: true, fx, on: true } as unknown as import("@/lib/dmx").PatchedFixture;
+    const r = resolveCctMix({ ...base, mix: { from: { ...base, cct: 0.2, intensity: 0.5 } } }, 0)!;
+    expect(r.cct).toBeCloseTo(0.5);
+    expect(r.intensity).toBeCloseTo(1);
   });
 });
