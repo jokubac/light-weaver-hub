@@ -57,6 +57,7 @@ async function getSocket(): Promise<number> {
 
 /** Sends a single UDP datagram from the device. Throws on failure. */
 export async function sendUdp(host: string, port: number, bytes: Uint8Array): Promise<void> {
+  const d = desktop(); if (d) return d.sendUdp(host, port, bytes);
   const Udp = await getUdpPlugin();
   const id = await getSocket();
   await Udp.send({ socketId: id, address: host, port, buffer: toBase64(bytes) });
@@ -66,6 +67,7 @@ export interface ScannedNode { name: string; ip: string; universes?: number | un
 
 /** Broadcasts an ArtPoll and listens ~2s for ArtPollReply packets. */
 export async function scanArtNet(): Promise<ScannedNode[]> {
+  const d = desktop(); if (d) return d.scanArtNet();
   const [{ buildArtPoll, parseArtPollReply, ARTNET_UDP_PORT }, Udp] = await Promise.all([
     import("./artnet"),
     getUdpPlugin(),
