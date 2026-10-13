@@ -1,9 +1,9 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
-import { Bluetooth, BatteryMedium, Maximize, Music, Trash2, Tv, FolderOpen } from "lucide-react";
+import { Bluetooth, BatteryMedium, Music, Trash2, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { MidiMap } from "@/lib/midi";
+import { isIosApp, pairBluetoothMidi, type MidiMap } from "@/lib/midi";
 import { APP_VERSION } from "@/lib/app-version";
 
 export interface BtDevice { id: string; name: string; battery: number | null }
@@ -46,6 +46,7 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
               Enable MIDI
               <Checkbox checked={midi.enabled} onCheckedChange={(c) => setMidi({ ...midi, enabled: c === true })} />
             </label>
+            {ios && <button onClick={() => void pairBluetoothMidi().catch(() => {})} className="w-full rounded-lg bg-surface-elevated py-2 font-semibold">Pair Bluetooth MIDI controller</button>}
             {midiError && <p className="text-destructive">{midiError}</p>}
             {onNanoKontrol && <button onClick={onNanoKontrol} className="w-full rounded-lg bg-surface-elevated py-2 font-semibold">Load Korg nanoKONTROL2 layout (faders 1–6, master, GO / Back / Blackout)</button>}
             <p className="text-muted-foreground">Keyboard / Stream Deck: Space = GO, B = Back.</p>
