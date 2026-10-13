@@ -1,5 +1,6 @@
 // REC sequence timing and blending (browser-safe, pure).
-import type { FixtureMix, PatchedFixture } from "./dmx";
+import { mergeStates, type FixtureMix, type PatchedFixture } from "./dmx";
+type RGB = [number, number, number];
 import type { PixelLayer } from "./pixels";
 import type { LookState, RecStep, Recording, StepTweak } from "./store";
 
@@ -81,7 +82,7 @@ export type RecState = LookState & { mix?: FixtureMix | undefined };
  * cue keeps running underneath and both are merged in the output (effects and colours included).
  * Returns null when finished (non-looping).
  */
-export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map<string, LookState>, t: number): { states: Map<string, RecState>; step: number } | null {
+export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map<string, LookState>, t: number): { states: Map<string, RecState>; step: number; overlap?: { k: number; from: PixelLayer[] | undefined } } | null {
   const total = recLength(rec);
   if (!rec.steps.length) return null;
   if (total <= 0) return { states: new Map(), step: 0 };
@@ -116,5 +117,31 @@ export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map
     const s = at(i, f);
     if (s) out.set(f.uid, { mix: undefined, ...s });
   }
+  const cur = rec.steps[i]!;
+  const local = t - starts[i]!;
+  if (i > 0 && (cur.overlap ?? 0) > 0 && cur.fadeIn > 0 && local < cur.fadeIn) {
+    let from: PixelLayer[] | undefined;
+    for (let j = i - 1; j >= 0 && !from; j--) if (rec.steps[j]!.pixels?.length) from = tweakPixels(rec.steps[j]!.pixels!, rec.steps[j]!.tweak);
+    return { states: out, step: i, overlap: { k: local / cur.fadeIn, from } };
+  }
   return { states: out, step: i };
+}
+
+/** Merges two pixel frames like the fixture overlap: each pixel weighted by its own brightness, colours travel round the wheel. */
+export function mixFrames(a: Map<string, RGB[]>, b: Map<string, RGB[]>, k: number): Map<string, RGB[]> {
+  const out = new Map<string, RGB[]>();
+  const keys = new Set([...a.keys(), ...b.keys()]);
+  const one = (c: RGB | undefined, w: number) => {
+    const m = c ? Math.max(c[0], c[1], c[2]) : 0;
+    return { v: (m / 255) * w, rgb: (m ? c!.map((x) => (x / m) * 255) : [0, 0, 0]) as [number, number, number] };
+  };
+  for (const key of keys) {
+    const pa = a.get(key) ?? [], pb = b.get(key) ?? [];
+    const n = Math.max(pa.length, pb.length);
+    out.set(key, Array.from({ length: n }, (_, i) => {
+      const m = mergeStates(one(pa[i], 1 - k), one(pb[i], k));
+      return m.rgb.map((x) => Math.round(Math.min(255, x * m.v))) as RGB;
+    }));
+  }
+  return out;
 }
