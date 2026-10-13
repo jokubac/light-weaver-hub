@@ -73,6 +73,17 @@ async function listenIosMidi(cb: (m: MidiMsg, device: string) => void, onDevices
   return () => handles.forEach((h) => void h.remove());
 }
 
+export function isIosApp(): boolean {
+  const w = globalThis as unknown as { Capacitor?: { getPlatform?: () => string } };
+  return w.Capacitor?.getPlatform?.() === "ios";
+}
+
+/** Opens Apple's Bluetooth MIDI pairing sheet in the iPad app. */
+export async function pairBluetoothMidi() {
+  const { registerPlugin } = await import("@capacitor/core");
+  await registerPlugin<{ pairBluetooth: () => Promise<void> }>("NoxMidi").pairBluetooth();
+}
+
 /** Subscribes to every MIDI input. Returns an unsubscribe function. */
 export async function listenMidi(cb: (m: MidiMsg, device: string) => void, onDevices?: (names: string[]) => void) {
   const nav = navigator as Navigator & { requestMIDIAccess?: () => Promise<any> };
