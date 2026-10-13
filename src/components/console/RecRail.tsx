@@ -16,18 +16,18 @@ export const makeStep = (src: PatchedFixture[], n: number, pixels?: PixelLayer[]
 });
 
 /** REC dialog: save the selected lights as a new recording or as the next cue of an existing one. */
-export function RecDialog({ open, onOpenChange, src, recordings, setRecordings }: {
-  open: boolean; onOpenChange: (o: boolean) => void; src: PatchedFixture[]; recordings: Recording[]; setRecordings: (r: Recording[]) => void;
+export function RecDialog({ open, onOpenChange, src, recordings, setRecordings, pixels }: {
+  open: boolean; onOpenChange: (o: boolean) => void; src: PatchedFixture[]; recordings: Recording[]; setRecordings: (r: Recording[]) => void; pixels?: PixelLayer[];
 }) {
   const [name, setName] = useState("");
   const [naming, setNaming] = useState(false);
   const create = () => {
     const n = name.trim() || `REC ${recordings.length + 1}`;
-    setRecordings([{ id: uid(), name: n, createdAt: Date.now(), steps: [makeStep(src, 1)] }, ...recordings]);
+    setRecordings([{ id: uid(), name: n, createdAt: Date.now(), steps: [makeStep(src, 1, pixels)] }, ...recordings]);
     setName(""); setNaming(false); onOpenChange(false);
   };
   const append = (id: string) => {
-    setRecordings(recordings.map((r) => (r.id === id ? { ...r, steps: [...r.steps, makeStep(src, r.steps.length + 1)] } : r)));
+    setRecordings(recordings.map((r) => (r.id === id ? { ...r, steps: [...r.steps, makeStep(src, r.steps.length + 1, pixels)] } : r)));
     onOpenChange(false);
   };
   return (
