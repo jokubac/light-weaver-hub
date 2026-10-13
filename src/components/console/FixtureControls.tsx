@@ -15,6 +15,8 @@ import {
   sampleEffect,
   fixtureColor,
   fxRateAt,
+  fxTime,
+  hexToRgb,
   seedOf,
   type FxParams,
   type Curve,
@@ -196,15 +198,33 @@ function EffectEditor({ fx, setFx, seed = 0.3, colour = "var(--color-amber-glow)
   }).join(" ");
   const live = sampleEffect(fx, now, seed);
 
+  // effect colours: the palette while it cycles, the fixture colour otherwise — same maths as the real output
+  const cols = fx.colors?.length ? fx.colors : [colour];
+  let liveColour = colour;
+  if (fx.colors?.length) {
+    const phase = ((fxTime(fx, now) * fx.rate % fx.colors.length) + fx.colors.length) % fx.colors.length;
+    const index = Math.floor(phase);
+    const a = hexToRgb(fx.colors[index] ?? "#ffffff");
+    const next = hexToRgb(fx.colors[(index + 1) % fx.colors.length] ?? "#ffffff");
+    liveColour = `rgb(${a.map((v, i) => Math.round(v + ((next[i] ?? v) - v) * (phase - index))).join(",")})`;
+  }
+  const gradId = `fx-grad-${seed}`;
+
   return (
     <div className="space-y-4">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-16 w-full rounded-md bg-surface-elevated" preserveAspectRatio="none">
-        <polyline points={pts} fill="none" stroke={colour} strokeWidth={2} vectorEffect="non-scaling-stroke" />
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2={cols.length > 1 ? "1" : "0"} y2="0">
+            {cols.map((c, i) => <stop key={i} offset={`${(i / Math.max(1, cols.length - 1)) * 100}%`} stopColor={c} />)}
+          </linearGradient>
+        </defs>
+        <polyline points={pts} fill="none" stroke={`url(#${gradId})`} strokeWidth={2} vectorEffect="non-scaling-stroke" />
         <line x1={((now - winStart) / secs) * W} x2={((now - winStart) / secs) * W} y1={0} y2={H} stroke="var(--color-primary)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       </svg>
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
         <span>Preview</span>
-        <div className="h-5 flex-1 rounded" style={{ background: colour, opacity: Math.max(0.03, live) }} />
+        <div className="h-5 flex-1 rounded" style={{ background: cols.length > 1 ? `linear-gradient(90deg, ${cols.join(", ")})` : colour, opacity: Math.max(0.03, live) }} />
+        <span className="h-5 w-5 rounded ring-1 ring-border" style={{ background: liveColour }} aria-label="Current effect colour" />
         <span className="w-10 text-right font-mono">{Math.round(live * 100)}%</span>
       </div>
 
