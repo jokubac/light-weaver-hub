@@ -96,6 +96,8 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
 
       <div className="flex gap-2">
         <input value={layer.name} onChange={(e) => set({ name: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" aria-label="Layer name" />
+        <button onClick={copyEffect} title="Copy this pixel effect" aria-label="Copy pixel effect" className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
+        <button onClick={pasteEffect} disabled={!effectClip} title="Paste the copied effect onto the selected lights" aria-label="Paste pixel effect" className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><ClipboardPaste className="h-4 w-4" /></button>
         {layers.length > 1 && (
           <button onClick={() => { const rest = layers.filter((l) => l.id !== layer.id); setLayers(rest); setActiveId(rest[0]!.id); }} className="rounded-md bg-surface-elevated px-3 text-muted-foreground hover:text-destructive" aria-label="Delete layer"><Trash2 className="h-4 w-4" /></button>
         )}
