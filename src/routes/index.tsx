@@ -521,6 +521,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const setMacros = (m: Macro[]) => { setMacrosState(m); saveMacros(m); };
   const [macroLearn, setMacroLearn] = useState<string | null>(null);
   const lastDeselect = useRef(0);
+  const toggleLevels = useRef<Record<string, number>>({});
   const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {} });
   Object.assign(macroRef.current, { macros, learn: macroLearn, setMacros });
   const [learning, setLearning] = useState<string | null>(null);
