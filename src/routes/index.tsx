@@ -760,12 +760,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const command = { ...(level != null ? { level } : {}), ...(cct != null ? { cct } : {}), ...(levelDelta != null ? { levelDelta } : {}), ...(cctDelta != null ? { cctDelta } : {}) };
     setFixtures((fs) => fs.map((f) => ids.includes(f.uid) ? { ...f, ...commandPatch(f, command) } : f));
   };
-  const stepLight = (dir: 1 | -1) => {
+  const stepLight = (dir: 1 | -1, add = false) => {
     if (!fixtures.length) return;
     const cur = lastPick.current ? fixtures.findIndex((f) => f.uid === lastPick.current) : -1;
     const next = fixtures[(cur + dir + fixtures.length) % fixtures.length];
     if (!next) return;
-    setSelected([next.uid]); lastPick.current = next.uid;
+    setSelected((s) => (add ? (s.includes(next.uid) ? s : [...s, next.uid]) : [next.uid])); lastPick.current = next.uid;
   };
   macroRef.current.run = (m: Macro) => {
     const c = macroCommand(m);
@@ -773,7 +773,17 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const pulse = (target: number) => { const now = performance.now(); setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => selected.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target }])) })); };
     if (m.action === "next") stepLight(1);
     else if (m.action === "prev") stepLight(-1);
-    else if (m.action === "select") { const id = lastPick.current ?? fixtures[0]?.uid; if (id) { setSelected((s) => (s.includes(id) ? s : [...s, id])); lastPick.current = id; } }
+    else if (m.action === "next_add") stepLight(1, true);
+    else if (m.action === "prev_add") stepLight(-1, true);
+    else if (m.action === "select") {
+      // works like tapping a light: toggles the current light (the one Next/Previous moved to)
+      const id = lastPick.current ?? fixtures[0]?.uid;
+      if (id) { setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id])); lastPick.current = id; }
+    }
+    else if (m.action === "invert") setSelected((s) => fixtures.filter((f) => !s.includes(f.uid)).map((f) => f.uid));
+    else if (m.action === "copy") copySettings();
+    else if (m.action === "paste") pasteSettings();
+    else if (m.action === "keypad") setKeypadOpen((o) => !o);
     else if (m.action === "all") setSelected(fixtures.map((f) => f.uid));
     else if (m.action === "deselect") {
       const now = performance.now();

@@ -23,3 +23,9 @@ describe("v1.1.1 macros", () => {
     expect(macroCommand({ id: "a", key: null, action: "light_off", amount: 0 })).toEqual({ level: 0 });
   });
 });
+
+describe("extra macros", () => {
+  it("intensity 50% sets half", () => {
+    expect(macroCommand({ id: "a", key: null, action: "int_half", amount: 0 })).toEqual({ level: 0.5 });
+  });
+});
