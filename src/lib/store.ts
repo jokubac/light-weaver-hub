@@ -15,7 +15,7 @@ export interface Scene {
 }
 
 /** A saved snapshot of fixture settings, recallable from any scene in the project. */
-export type LookState = Pick<PatchedFixture, "intensity" | "cct" | "gm" | "hue" | "saturation" | "crossfade" | "cctOnly" | "fx" | "on" | "fxPlaying" | "fan" | "gel">;
+export type LookState = Pick<PatchedFixture, "intensity" | "cct" | "gm" | "hue" | "saturation" | "crossfade" | "cctOnly" | "fx" | "on" | "fxPlaying" | "fan" | "gel"> & { pixelLayers?: PixelLayer[] };
 export interface Look {
   id: string;
   name: string;
