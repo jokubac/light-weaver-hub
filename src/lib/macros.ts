@@ -3,7 +3,8 @@
 export type MacroAction =
   | "int_up" | "int_down" | "int_set" | "cct_up" | "cct_down" | "cct_set" | "cct_reset"
   | "flash_up" | "flash_down" | "light_on" | "light_off"
-  | "next" | "prev" | "select" | "flash" | "go" | "back" | "play" | "pause" | "blackout" | "undo" | "redo" | "deselect" | "all";
+  | "next" | "prev" | "select" | "flash" | "go" | "back" | "play" | "pause" | "blackout" | "undo" | "redo" | "deselect" | "all"
+  | "next_add" | "prev_add" | "invert" | "copy" | "paste" | "keypad" | "int_half" | "light_toggle";
 
 export interface Macro { id: string; key: string | null; action: MacroAction; amount: number }
 
@@ -11,6 +12,7 @@ export const MACRO_ACTIONS: { id: MacroAction; label: string; unit?: "%" | "K"; 
   { id: "int_up", label: "Intensity +", unit: "%", def: 1 },
   { id: "int_down", label: "Intensity −", unit: "%", def: 1 },
   { id: "int_set", label: "Intensity set", unit: "%", def: 100 },
+  { id: "int_half", label: "Intensity 50%" },
   { id: "cct_up", label: "CCT +", unit: "K", def: 100 },
   { id: "cct_down", label: "CCT −", unit: "K", def: 100 },
   { id: "cct_set", label: "CCT set", unit: "K", def: 5600 },
@@ -19,11 +21,18 @@ export const MACRO_ACTIONS: { id: MacroAction; label: string; unit?: "%" | "K"; 
   { id: "flash_down", label: "Flash light −100 (off)" },
   { id: "light_on", label: "Turn light on" },
   { id: "light_off", label: "Turn light off" },
-  { id: "select", label: "Select light" },
+  { id: "light_toggle", label: "Light on / off (toggle)" },
+  { id: "select", label: "Select / unselect current light (like a tap)" },
   { id: "deselect", label: "Deselect (double tap = all)" },
   { id: "all", label: "Select all" },
+  { id: "invert", label: "Invert selection" },
   { id: "prev", label: "Previous light" },
   { id: "next", label: "Next light" },
+  { id: "prev_add", label: "Previous light + keep selection" },
+  { id: "next_add", label: "Next light + keep selection" },
+  { id: "copy", label: "Copy settings" },
+  { id: "paste", label: "Paste settings" },
+  { id: "keypad", label: "Open / close keypad" },
   { id: "undo", label: "Undo" },
   { id: "redo", label: "Redo" },
   { id: "play", label: "Play cue" },
@@ -46,6 +55,7 @@ export function macroCommand(m: Macro): { level?: number; levelDelta?: number; c
     case "cct_reset": return { cct: 5600 };
     case "light_on": return { level: 1 };
     case "light_off": return { level: 0 };
+    case "int_half": return { level: 0.5 };
     default: return null;
   }
 }
