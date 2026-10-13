@@ -7,8 +7,8 @@ import { snapshot } from "./LooksPanel";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { PixelLayer } from "@/lib/pixels";
 import { kelvin } from "@/lib/dmx";
-import { recLength, stepLength } from "@/lib/recordings";
-import { uid, type RecStep, type Recording } from "@/lib/store";
+import { recLength, stepLength, stepStarts } from "@/lib/recordings";
+import { uid, type RecStep, type Recording, type StepTweak } from "@/lib/store";
 
 export const makeStep = (src: PatchedFixture[], n: number, pixels?: PixelLayer[]): RecStep => ({
   id: uid(), name: `Cue ${n}`, fadeIn: 2, hold: 3, fadeOut: 0,
@@ -109,22 +109,29 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
                 onDuplicate={() => setRecordings([{ ...structuredClone(r), id: uid(), name: `${r.name} copy`, createdAt: Date.now() }, ...recordings])}
                 onDelete={() => setRecordings(recordings.filter((x) => x.id !== r.id))} />
             </div>
-            {/* timeline: block width = step length; striped parts = fades */}
-            <div className={`relative flex overflow-hidden rounded bg-background ${large ? "h-12" : "h-6"}`}>
-              {r.steps.map((s, i) => {
-                const L = stepLength(s) || 0.0001;
-                return (
-                  <button key={s.id} onClick={() => { setOpen(r.id); setStepOpen(s.id); }} title={`${s.name}: in ${s.fadeIn}s · hold ${s.hold}s · out ${s.fadeOut}s`}
-                    className={`relative flex h-full border-r border-background text-[9px] font-bold text-primary-foreground ${isPlay && progress?.step === i ? "brightness-125" : "opacity-80"}`}
-                    style={{ width: `${(L / total) * 100}%`, background: STEP_HUES[i % STEP_HUES.length] }}>
-                    <span className="h-full bg-background/40" style={{ width: `${(s.fadeIn / L) * 100}%`, clipPath: "polygon(0 100%,100% 0,100% 100%)" }} />
-                    <span className="flex-1 truncate px-0.5 leading-6">{s.manual && "✋"}{i + 1}</span>
-                    <span className="h-full bg-background/40" style={{ width: `${(s.fadeOut / L) * 100}%`, clipPath: "polygon(0 0,100% 100%,0 100%)" }} />
-                  </button>
-                );
-              })}
-              {isPlay && progress && <span className="pointer-events-none absolute inset-y-0 w-0.5 bg-foreground" style={{ left: `${Math.min(100, ((progress.t % total) / total) * 100)}%` }} />}
-            </div>
+            {/* timeline like an editing track: overlapping cues sit on a second lane and dissolve through their fades */}
+            {(() => {
+              const starts = stepStarts(r);
+              const lanes = r.steps.some((s) => (s.overlap ?? 0) > 0);
+              return (
+                <div className={`relative overflow-hidden rounded bg-background ${large ? (lanes ? "h-20" : "h-12") : (lanes ? "h-10" : "h-6")}`}>
+                  {r.steps.map((s, i) => {
+                    const L = stepLength(s) || 0.0001;
+                    const lane = lanes ? i % 2 : 0;
+                    return (
+                      <button key={s.id} onClick={() => { setOpen(r.id); setStepOpen(s.id); }} title={`${s.name}: in ${s.fadeIn}s · hold ${s.hold}s · out ${s.fadeOut}s${s.overlap ? ` · overlap ${s.overlap}s` : ""}`}
+                        className={`absolute flex overflow-hidden rounded-sm border-r border-background text-[9px] font-bold text-primary-foreground ${isPlay && progress?.step === i ? "brightness-125" : "opacity-80"}`}
+                        style={{ left: `${(starts[i]! / total) * 100}%`, width: `${(L / total) * 100}%`, top: lanes ? `${lane * 50}%` : 0, height: lanes ? "50%" : "100%", background: STEP_HUES[i % STEP_HUES.length] }}>
+                        <span className="h-full bg-background/40" style={{ width: `${(s.fadeIn / L) * 100}%`, clipPath: "polygon(0 100%,100% 0,100% 100%)" }} />
+                        <span className="flex flex-1 items-center truncate px-0.5">{s.manual && "✋"}{i + 1}{s.tweak && " ✎"}</span>
+                        <span className="h-full bg-background/40" style={{ width: `${(s.fadeOut / L) * 100}%`, clipPath: "polygon(0 0,100% 100%,0 100%)" }} />
+                      </button>
+                    );
+                  })}
+                  {isPlay && progress && <span className="pointer-events-none absolute inset-y-0 w-0.5 bg-foreground" style={{ left: `${Math.min(100, ((progress.t % total) / total) * 100)}%` }} />}
+                </div>
+              );
+            })()}
             {open === r.id && (
               <div className="space-y-1.5">
                 {r.steps.map((s, i) => (
@@ -144,6 +151,9 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
                       {i > 0 && <button onClick={() => updStep(r.id, s.id, { manual: !s.manual })} aria-pressed={!!s.manual} title="Wait for GO — the previous cue stays on until you press GO"
                         className={`flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold ${s.manual ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Hand className="h-3 w-3" />{s.manual ? "Wait GO" : "Auto"}</button>}
                     </div>
+                    {i > 0 && <label className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground" title="Start this cue before the previous one ends — they dissolve into each other">Overlap
+                      <NumberField min={0} max={600} value={s.overlap ?? 0} onChange={(v) => updStep(r.id, s.id, { overlap: v || undefined })} className={num} aria-label="Overlap seconds" />s</label>}
+                    <TweakEditor tweak={s.tweak} onChange={(tweak) => updStep(r.id, s.id, { tweak })} hasPixels={!!s.pixels?.length} />
                     <button onClick={() => setStepOpen(stepOpen === s.id ? null : s.id)} className="mt-1 text-[10px] font-semibold text-primary">{stepOpen === s.id ? "Hide" : "Edit"} lights ({s.states.length})</button>
                     {stepOpen === s.id && s.states.map((x) => {
                       const set = (p: Partial<typeof x.state>) => updStep(r.id, s.id, { states: s.states.map((y) => (y.uid === x.uid ? { ...y, state: { ...y.state, ...p } } : y)) });
@@ -167,5 +177,39 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
         );
       })}
     </>
+  );
+}
+
+const TWEAKS: { k: keyof StepTweak; label: string; min: number; max: number; step: number; def: number; fmt: (v: number) => string }[] = [
+  { k: "intensity", label: "Intensity", min: 0, max: 2, step: 0.01, def: 1, fmt: (v) => `${Math.round(v * 100)}%` },
+  { k: "cct", label: "CCT shift", min: -0.5, max: 0.5, step: 0.005, def: 0, fmt: (v) => `${v > 0 ? "+" : ""}${Math.round(v * 100)}` },
+  { k: "fxSpeed", label: "FX speed", min: 0.1, max: 4, step: 0.05, def: 1, fmt: (v) => `×${v.toFixed(2)}` },
+  { k: "fxSize", label: "FX size", min: 0, max: 2, step: 0.05, def: 1, fmt: (v) => `×${v.toFixed(2)}` },
+  { k: "pixelSpeed", label: "Pixel speed", min: 0.1, max: 4, step: 0.05, def: 1, fmt: (v) => `×${v.toFixed(2)}` },
+];
+
+/** Per-cue playback corrections, like grading a clip without re-recording it. */
+function TweakEditor({ tweak, onChange, hasPixels }: { tweak?: StepTweak; onChange: (t: StepTweak | undefined) => void; hasPixels: boolean }) {
+  const [open, setOpen] = useState(false);
+  const set = (k: keyof StepTweak, v: number, def: number) => {
+    const next = { ...tweak, [k]: v === def ? undefined : v };
+    (Object.keys(next) as (keyof StepTweak)[]).forEach((x) => next[x] === undefined && delete next[x]);
+    onChange(Object.keys(next).length ? next : undefined);
+  };
+  return (
+    <div className="mt-1">
+      <button onClick={() => setOpen(!open)} className="text-[10px] font-semibold text-primary">{open ? "Hide" : "Tweak"} cue{tweak ? " ✎" : ""}</button>
+      {open && <div className="mt-1 space-y-1 rounded bg-surface-elevated p-1.5 text-[10px]">
+        {TWEAKS.filter((t) => t.k !== "pixelSpeed" || hasPixels).map((t) => {
+          const v = tweak?.[t.k] ?? t.def;
+          return (
+            <label key={t.k} className="flex items-center gap-1"><span className="w-16 shrink-0">{t.label}</span>
+              <input type="range" min={t.min} max={t.max} step={t.step} value={v} onChange={(e) => set(t.k, +e.target.value, t.def)} onDoubleClick={() => set(t.k, t.def, t.def)} className="flex-1" aria-label={t.label} />
+              <span className="w-10 text-right font-mono">{t.fmt(v)}</span></label>
+          );
+        })}
+        {tweak && <button onClick={() => onChange(undefined)} className="text-[10px] text-muted-foreground underline">Reset tweaks</button>}
+      </div>}
+    </div>
   );
 }
