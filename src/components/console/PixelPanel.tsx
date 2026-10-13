@@ -24,6 +24,8 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
   const [effectsOpen, setEffectsOpen] = useState(true);
   const [fixturesOpen, setFixturesOpen] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(true);
+  const [effectClip, setEffectClip] = useState<PixelEffectClipboard | null>(null);
+  useEffect(() => { setEffectClip(loadPixelEffectClipboard()); }, []);
   const allPx = fixtures.filter(isPixelFixture);
   const selPx = allPx.filter((f) => selected.includes(f.uid));
   // programming works on the lights selected in the console; with nothing selected every pixel light is listed
