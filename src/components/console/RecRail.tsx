@@ -31,6 +31,15 @@ export function RecDialog({ open, onOpenChange, src, recordings, setRecordings, 
     setRecordings(recordings.map((r) => (r.id === id ? { ...r, steps: [...r.steps, makeStep(src, r.steps.length + 1, pixels)] } : r)));
     onOpenChange(false);
   };
+  const [showCues, setShowCues] = useState<string | null>(null);
+  /** replace the selected lights' states (and pixels) in an existing cue; timing and tweaks stay */
+  const update = (rid: string, sid: string) => {
+    const fresh = makeStep(src, 0, pixels);
+    setRecordings(recordings.map((r) => (r.id !== rid ? r : { ...r, steps: r.steps.map((st) => (st.id !== sid ? st : {
+      ...st, states: [...st.states.filter((x) => !fresh.states.some((y) => y.uid === x.uid)), ...fresh.states], ...(fresh.pixels ? { pixels: fresh.pixels } : {}),
+    })) })));
+    onOpenChange(false);
+  };
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) setNaming(false); onOpenChange(o); }}>
       <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -46,9 +55,22 @@ export function RecDialog({ open, onOpenChange, src, recordings, setRecordings, 
           {recordings.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Add as next cue to</p>}
           <div className="max-h-60 space-y-1 overflow-auto">
             {recordings.map((r) => (
-              <button key={r.id} onClick={() => append(r.id)} className="flex w-full items-center justify-between rounded-lg bg-surface-elevated px-3 py-2 text-left text-xs active:scale-95">
-                <span className="truncate font-semibold">{r.name}</span><span className="text-muted-foreground">{r.steps.length} steps → +1</span>
-              </button>
+              <div key={r.id} className="rounded-lg bg-surface-elevated">
+                <div className="flex items-center">
+                  <button onClick={() => setShowCues(showCues === r.id ? null : r.id)} aria-label={`Show cues of ${r.name}`} className="p-2">{showCues === r.id ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</button>
+                  <button onClick={() => append(r.id)} className="flex min-w-0 flex-1 items-center justify-between py-2 pr-3 text-left text-xs active:scale-95">
+                    <span className="truncate font-semibold">{r.name}</span><span className="text-muted-foreground">{r.steps.length} steps → +1</span>
+                  </button>
+                </div>
+                {showCues === r.id && <div className="space-y-1 px-2 pb-2">
+                  <p className="text-[10px] text-muted-foreground">Update an existing cue with the selected lights</p>
+                  {r.steps.map((st, i) => (
+                    <button key={st.id} onClick={() => update(r.id, st.id)} className="flex w-full items-center justify-between rounded bg-surface px-2 py-1.5 text-left text-[11px] active:scale-95">
+                      <span className="truncate">{i + 1}. {st.name}</span><span className="flex items-center gap-1 font-semibold text-destructive"><RefreshCw className="h-3 w-3" />Update</span>
+                    </button>
+                  ))}
+                </div>}
+              </div>
             ))}
           </div>
         </div>
