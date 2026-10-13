@@ -1,0 +1,33 @@
+name: Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["electron/**", ".github/workflows/windows-exe.yml", "public/app-release.json"]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Bundle app for offline use
+        run: node scripts/offline-bundle.mjs https://light-weaver-hub.lovable.app electron/app
+      - name: Package NOX.exe
+        working-directory: electron
+        run: |
+          VERSION=$(node -p 'require("../public/app-release.json").version')
+          npm install --no-save electron @electron/packager
+          EV=$(node -p 'require("electron/package.json").version')
+          npx @electron/packager . NOX --platform=win32 --arch=x64 --electron-version=$EV \
+            --app-version=$VERSION --out=release --overwrite --ignore='^/node_modules' --ignore='^/release'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NOX-windows
+          path: electron/release/NOX-win32-x64
