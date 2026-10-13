@@ -16,15 +16,16 @@ describe("pixel effect copy/paste", () => {
   });
 
   it("paste creates an independent layer aimed at other lights", () => {
-    const c = copyPixelEffect(src());
+    const s = src();
+    const c = copyPixelEffect(s);
     const l = pastePixelEffect("Pasted", ["x", "y"], c);
-    expect(l.id).not.toBe(src().id);
+    expect(l.id).not.toBe(s.id);
     expect(l.order).toEqual(["x", "y"]);
     expect(l.playing).toBe(false);
     expect(l.speed).toBe(2.5);
     // mutating the paste must not touch the copied settings
     l.colors.push("#00ff00");
-    expect(src().colors).toEqual(["#ff0000", "#00e5ff", "#ffea00"]);
+    expect(s.colors).toEqual(["#ff0000"]);
   });
 
   it("apply keeps the target layer's lights and replaces the effect", () => {
