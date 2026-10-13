@@ -4,7 +4,7 @@ export type MacroAction =
   | "int_up" | "int_down" | "int_set" | "cct_up" | "cct_down" | "cct_set" | "cct_reset"
   | "flash_up" | "flash_down" | "light_on" | "light_off"
   | "next" | "prev" | "select" | "flash" | "go" | "back" | "play" | "pause" | "blackout" | "undo" | "redo" | "deselect" | "all"
-  | "next_add" | "prev_add" | "invert" | "copy" | "paste" | "keypad" | "int_half";
+  | "next_add" | "prev_add" | "invert" | "copy" | "paste" | "keypad" | "int_half" | "light_toggle";
 
 export interface Macro { id: string; key: string | null; action: MacroAction; amount: number }
 
@@ -21,6 +21,7 @@ export const MACRO_ACTIONS: { id: MacroAction; label: string; unit?: "%" | "K"; 
   { id: "flash_down", label: "Flash light −100 (off)" },
   { id: "light_on", label: "Turn light on" },
   { id: "light_off", label: "Turn light off" },
+  { id: "light_toggle", label: "Light on / off (toggle)" },
   { id: "select", label: "Select / unselect current light (like a tap)" },
   { id: "deselect", label: "Deselect (double tap = all)" },
   { id: "all", label: "Select all" },
