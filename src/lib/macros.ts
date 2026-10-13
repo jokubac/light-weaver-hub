@@ -55,6 +55,7 @@ export function macroCommand(m: Macro): { level?: number; levelDelta?: number; c
     case "cct_reset": return { cct: 5600 };
     case "light_on": return { level: 1 };
     case "light_off": return { level: 0 };
+    case "int_half": return { level: 0.5 };
     default: return null;
   }
 }
