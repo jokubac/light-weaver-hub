@@ -127,14 +127,29 @@ export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map
   return { states: out, step: i };
 }
 
-/** Pixel overlap: the incoming cue takes over pixel by pixel; at k the first k·n pixels of each light show the new cue. */
+/** Deterministic shuffle order per light, so the takeover order is random but stable frame to frame. */
+function pixelOrder(key: string, n: number): number[] {
+  let seed = 2166136261;
+  for (let i = 0; i < key.length; i++) seed = (seed ^ key.charCodeAt(i)) * 16777619 >>> 0;
+  const order = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const j = seed % (i + 1);
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  return order;
+}
+
+/** Pixel overlap: the incoming cue takes over pixel by pixel in random order; at k a random k·n pixels of each light show the new cue. */
 export function mixFrames(a: Map<string, RGB[]>, b: Map<string, RGB[]>, k: number): Map<string, RGB[]> {
   const out = new Map<string, RGB[]>();
   for (const key of new Set([...a.keys(), ...b.keys()])) {
     const pa = a.get(key) ?? [], pb = b.get(key) ?? [];
     const n = Math.max(pa.length, pb.length);
     const take = Math.round(Math.min(1, Math.max(0, k)) * n);
-    out.set(key, Array.from({ length: n }, (_, i) => (i < take ? pb[i] : pa[i]) ?? [0, 0, 0]));
+    const order = pixelOrder(key, n);
+    const useB = new Set(order.slice(0, take));
+    out.set(key, Array.from({ length: n }, (_, i) => (useB.has(i) ? pb[i] : pa[i]) ?? [0, 0, 0]));
   }
   return out;
 }
