@@ -51,7 +51,7 @@ async function listenNativeMidi(cb: (m: MidiMsg, device: string) => void, onDevi
 export function splitMidiBytes(bytes: number[]): Uint8Array[] {
   const out: Uint8Array[] = [];
   for (let i = 0; i < bytes.length; i++) {
-    if (bytes[i] >= 0x80 && bytes[i] < 0xf0) out.push(new Uint8Array([bytes[i], bytes[i + 1] ?? 0, bytes[i + 2] ?? 0]));
+    const b = bytes[i] ?? 0; if (b >= 0x80 && b < 0xf0) out.push(new Uint8Array([b, bytes[i + 1] ?? 0, bytes[i + 2] ?? 0]));
   }
   return out;
 }
