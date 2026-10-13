@@ -13,6 +13,7 @@ import {
   cctFromKelvin,
   overlaps,
   sampleEffect,
+  fixtureColor,
   seedOf,
   type FxParams,
   type Curve,
