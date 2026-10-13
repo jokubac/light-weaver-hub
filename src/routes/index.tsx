@@ -521,6 +521,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const setMacros = (m: Macro[]) => { setMacrosState(m); saveMacros(m); };
   const [macroLearn, setMacroLearn] = useState<string | null>(null);
   const lastDeselect = useRef(0);
+  const toggleLevels = useRef<Record<string, number>>({});
   const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {} });
   Object.assign(macroRef.current, { macros, learn: macroLearn, setMacros });
   const [learning, setLearning] = useState<string | null>(null);
@@ -785,10 +786,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const c = macroCommand(m);
     if (c) return runCommand(undefined, c.level, c.cct, c.levelDelta, c.cctDelta);
     const pulse = (target: number) => { const now = performance.now(); setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => selected.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target }])) })); };
-    if (m.action === "next") stepLight(1);
-    else if (m.action === "prev") stepLight(-1);
-    else if (m.action === "next_add") stepLight(1, true);
-    else if (m.action === "prev_add") stepLight(-1, true);
+    // Multiselect: moving to another light keeps earlier picks; Select toggles the current one, Deselect clears.
+    if (m.action === "next" || m.action === "next_add") stepLight(1, true);
+    else if (m.action === "prev" || m.action === "prev_add") stepLight(-1, true);
     else if (m.action === "select") {
       // works like tapping a light: toggles the current light (the one Next/Previous moved to)
       const id = lastPick.current ?? fixtures[0]?.uid;
@@ -797,8 +797,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     else if (m.action === "invert") setSelected((s) => fixtures.filter((f) => !s.includes(f.uid)).map((f) => f.uid));
     else if (m.action === "copy") copySettings();
     else if (m.action === "paste") pasteSettings();
-    else if (m.action === "keypad") setKeypadOpen((o) => !o);
-    else if (m.action === "light_toggle") runCommand(undefined, sel.some((f) => f.intensity > 0) ? 0 : 1);
+    else if (m.action === "light_toggle") {
+      // Off remembers each light's level; On restores it (full if never set).
+      const turnOff = sel.some((f) => f.intensity > 0);
+      if (turnOff) sel.forEach((f) => { if (f.intensity > 0) toggleLevels.current[f.uid] = f.intensity; });
+      setFixtures((fs) => fs.map((f) => selected.includes(f.uid) ? { ...f, intensity: turnOff ? 0 : (toggleLevels.current[f.uid] ?? 1) } : f));
+    }
     else if (m.action === "all") setSelected(fixtures.map((f) => f.uid));
     else if (m.action === "deselect") {
       const now = performance.now();
