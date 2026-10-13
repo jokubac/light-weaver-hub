@@ -19,8 +19,14 @@ if (published.version !== expected.version) throw new Error(`Publish NOX ${expec
 await mkdir(OUT, { recursive: true });
 const pageResponse = await fetch(SITE + "/", { cache: "no-store" });
 if (!pageResponse.ok) throw new Error(`Published page failed: ${pageResponse.status}`);
-const html = await pageResponse.text();
+// Hosting injects an "Edit with Lovable" badge (style + link + script); the installed app is standalone, so strip it.
+export const stripHostingBadge = (text) => text
+  .replace(/<style>(?:(?!<\/style>)[\s\S])*?lovable-badge[\s\S]*?<\/style>/g, "")
+  .replace(/<script>(?:(?!<\/script>)[\s\S])*?lovable-badge[\s\S]*?<\/script>/g, "")
+  .replace(/<aside[^>]*?id="lovable-badge"[\s\S]*?<\/aside>/g, "");
+const html = stripHostingBadge(await pageResponse.text());
 if (!html.includes("<html")) throw new Error("Published site did not return HTML");
+if (html.includes("lovable-badge")) throw new Error("Could not remove the hosting badge from the offline app");
 const refs = (text, base) => {
   const out = [];
   for (const m of text.matchAll(/["'(]((?:\/|\.\/|\.\.\/)?assets\/[^"'()\s?#]+)/g)) out.push(new URL(m[1].startsWith("assets/") ? "/" + m[1] : m[1], SITE + base).pathname);
