@@ -31,8 +31,6 @@ const refs = (text, base) => {
   const out = [];
   for (const m of text.matchAll(/["'(]((?:\/|\.\/|\.\.\/)?assets\/[^"'()\s?#]+)/g)) out.push(new URL(m[1].startsWith("assets/") ? "/" + m[1] : m[1], SITE + base).pathname);
   for (const m of text.matchAll(/["'(](\.\/[\w.-]+\.(?:js|css|woff2?|png|jpg|svg))/g)) out.push(new URL(m[1], SITE + base).pathname);
-  // Vite preload maps can list lazy chunks as bare "name-HASH.js" next to the importing chunk.
-  if (base.startsWith("/assets/")) for (const m of text.matchAll(/["']([\w.-]+-[\w-]{8}\.(?:js|css))["']/g)) out.push(new URL("/assets/" + m[1], SITE).pathname);
   return out;
 };
 refs(html, "/").forEach(add);
