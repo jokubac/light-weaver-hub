@@ -62,6 +62,18 @@ export function macroCommand(m: Macro): { level?: number; levelDelta?: number; c
 /** Double tap window for "Deselect" → select all. */
 export const DOUBLE_TAP_MS = 400;
 
+/**
+ * Next/Previous light step over the console order.
+ * Plain (add = false) moves the selection to the single light; add = true keeps earlier picks.
+ */
+export function stepSelection(order: string[], selection: string[], lastPick: string | null, dir: 1 | -1, add = false): { selection: string[]; lastPick: string } | null {
+  if (!order.length) return null;
+  const cur = lastPick ? order.indexOf(lastPick) : -1;
+  const next = order[(cur + dir + order.length) % order.length];
+  if (!next) return null;
+  return { selection: add ? (selection.includes(next) ? selection : [...selection, next]) : [next], lastPick: next };
+}
+
 /** Stable key name including modifiers, e.g. "Ctrl+Shift+KeyA" or "F13". */
 export function keyName(e: { code: string; key: string; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; metaKey: boolean }): string | null {
   if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return null;
