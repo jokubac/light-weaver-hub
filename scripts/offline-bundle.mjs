@@ -23,7 +23,7 @@ if (!pageResponse.ok) throw new Error(`Published page failed: ${pageResponse.sta
 export const stripHostingBadge = (text) => text
   .replace(/<style>(?:(?!<\/style>)[\s\S])*?lovable-badge[\s\S]*?<\/style>/g, "")
   .replace(/<script>(?:(?!<\/script>)[\s\S])*?lovable-badge[\s\S]*?<\/script>/g, "")
-  .replace(/<a[^>]*id="lovable-badge"[\s\S]*?<\/a>/g, "");
+  .replace(/<aside[^>]*?id="lovable-badge"[\s\S]*?<\/aside>/g, "");
 const html = stripHostingBadge(await pageResponse.text());
 if (!html.includes("<html")) throw new Error("Published site did not return HTML");
 if (html.includes("lovable-badge")) throw new Error("Could not remove the hosting badge from the offline app");
