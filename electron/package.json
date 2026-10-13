@@ -3,5 +3,7 @@
   "productName": "NOX",
   "version": "1.1.0",
   "main": "main.cjs",
-  "private": true
+  "private": true,
+  "author": "NOX",
+  "description": "NOX lighting console"
 }
