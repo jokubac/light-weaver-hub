@@ -403,6 +403,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [panel, setPanel] = useState<Panel>("control");
   const [panelOpen, setPanelOpen] = useState(true);
   const [layers, setLayers] = useState<PixelLayer[]>(() => migrateLayers(scene));
+  const [pixelMix, setPixelMix] = useState<{ from: PixelLayer[]; k: number } | null>(null);
   const [locked, setLocked] = useState(true);
   const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
   const [plotOpen, setPlotOpen] = useState(false);

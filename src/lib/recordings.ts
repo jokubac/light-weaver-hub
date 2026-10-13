@@ -1,6 +1,6 @@
 // REC sequence timing and blending (browser-safe, pure).
 import { mergeStates, type FixtureMix, type PatchedFixture } from "./dmx";
-import type { RGB } from "./output";
+type RGB = [number, number, number];
 import type { PixelLayer } from "./pixels";
 import type { LookState, RecStep, Recording, StepTweak } from "./store";
 

@@ -48,3 +48,12 @@ describe("overlap colour merge and speed ramp", () => {
     expect(fxTime(fx, 4) * fx.rate).toBeCloseTo(8);
   });
 });
+
+import { mixFrames } from "@/lib/recordings";
+describe("pixel overlap", () => {
+  it("red and blue pixels at 50/50 merge to green at full level", () => {
+    const m = mixFrames(new Map([["u", [[255, 0, 0]]]]), new Map([["u", [[0, 0, 255]]]]), 0.5);
+    const [r, g, b] = m.get("u")![0]!;
+    expect(g).toBeGreaterThan(200); expect(r).toBeLessThan(30); expect(b).toBeLessThan(30);
+  });
+});

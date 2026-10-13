@@ -65,9 +65,12 @@ export function RecDialog({ open, onOpenChange, src, recordings, setRecordings, 
                 {showCues === r.id && <div className="space-y-1 px-2 pb-2">
                   <p className="text-[10px] text-muted-foreground">Update an existing cue with the selected lights</p>
                   {r.steps.map((st, i) => (
-                    <button key={st.id} onClick={() => update(r.id, st.id)} className="flex w-full items-center justify-between rounded bg-surface px-2 py-1.5 text-left text-[11px] active:scale-95">
-                      <span className="truncate">{i + 1}. {st.name}</span><span className="flex items-center gap-1 font-semibold text-destructive"><RefreshCw className="h-3 w-3" />Update</span>
-                    </button>
+                    <div key={st.id} className="flex items-center gap-1 rounded bg-surface pr-1 text-[11px]">
+                      <span className="min-w-0 flex-1 truncate px-2 py-1.5">{i + 1}. {st.name}</span>
+                      <button onClick={() => update(r.id, st.id)} className="flex items-center gap-1 rounded px-1.5 py-1 font-semibold text-destructive active:scale-95"><RefreshCw className="h-3 w-3" />Update</button>
+                      <button onClick={() => { if (confirm(`Delete ${st.name}?`)) setRecordings(recordings.map((x) => (x.id === r.id ? { ...x, steps: x.steps.filter((y) => y.id !== st.id) } : x))); }}
+                        aria-label={`Delete ${st.name}`} className="rounded p-1 text-muted-foreground active:scale-95"><Trash2 className="h-3 w-3" /></button>
+                    </div>
                   ))}
                 </div>}
               </div>
@@ -175,12 +178,6 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
                     </div>
                     {i > 0 && <label className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground" title="Start this cue before the previous one ends — they dissolve into each other">Overlap
                       <NumberField min={0} max={600} value={s.overlap ?? 0} onChange={(v) => updStep(r.id, s.id, { overlap: v || undefined })} className={num} aria-label="Overlap seconds" />s
-                      {(s.overlap ?? 0) > 0 && <span className="ml-1 flex overflow-hidden rounded">
-                        {([["hue", "Colour wheel"], ["add", "Light mix"]] as const).map(([m, l]) => (
-                          <button key={m} onClick={() => updStep(r.id, s.id, { mixMode: m === "hue" ? undefined : m })} aria-pressed={(s.mixMode ?? "hue") === m}
-                            title={m === "hue" ? "Red → green → blue: colours travel round the wheel" : "Adds like two lamps: red + blue = magenta"}
-                            className={`px-1.5 py-0.5 font-semibold ${(s.mixMode ?? "hue") === m ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{l}</button>
-                        ))}</span>}
                       {(s.overlap ?? 0) > 0 && s.fadeIn <= 0 && <span className="text-warning">set Fade in to blend</span>}</label>}
                     <TweakEditor tweak={s.tweak} onChange={(tweak) => updStep(r.id, s.id, { tweak })} hasPixels={!!s.pixels?.length} />
                     <button onClick={() => setStepOpen(stepOpen === s.id ? null : s.id)} className="mt-1 text-[10px] font-semibold text-primary">{stepOpen === s.id ? "Hide" : "Edit"} lights ({s.states.length})</button>
