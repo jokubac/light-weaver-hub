@@ -1,5 +1,5 @@
 // REC sequence timing and blending (browser-safe, pure).
-import type { PatchedFixture } from "./dmx";
+import type { FixtureMix, PatchedFixture } from "./dmx";
 import type { PixelLayer } from "./pixels";
 import type { LookState, RecStep, Recording, StepTweak } from "./store";
 
@@ -73,12 +73,15 @@ function stepState(step: RecStep, target: LookState, from: LookState, local: num
   return { ...target, intensity: target.intensity * (1 - Math.min(1, (local - step.fadeIn - step.hold) / step.fadeOut)) };
 }
 
+export type RecState = LookState & { mix?: FixtureMix | undefined };
+
 /**
  * Fixture states at time t (seconds). `origin` is the look before the sequence started,
- * so step 1 fades in from what was on stage. Overlapping cues dissolve into each other.
+ * so step 1 fades in from what was on stage. While an overlapping cue fades in, the outgoing
+ * cue keeps running underneath and both are merged in the output (effects and colours included).
  * Returns null when finished (non-looping).
  */
-export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map<string, LookState>, t: number): { states: Map<string, LookState>; step: number } | null {
+export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map<string, LookState>, t: number): { states: Map<string, RecState>; step: number } | null {
   const total = recLength(rec);
   if (!rec.steps.length) return null;
   if (total <= 0) return { states: new Map(), step: 0 };
@@ -86,21 +89,32 @@ export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map
   const starts = stepStarts(rec);
   let i = 0;
   for (let j = 0; j < rec.steps.length; j++) if (starts[j]! <= t) i = j;
-  const out = new Map<string, LookState>();
-  // state of a fixture produced by step k at time t (recursive through earlier steps)
-  const at = (k: number, f: PatchedFixture): LookState | undefined => {
+  const out = new Map<string, RecState>();
+  const strip = (s: RecState): LookState => { const { mix: _m, ...rest } = s; return rest; };
+  const at = (k: number, f: PatchedFixture): RecState | undefined => {
     const step = rec.steps[k]!;
     const rec0 = find(step, f)?.state;
     if (!rec0) return k > 0 ? at(k - 1, f) : origin.get(f.uid);
     const target = applyTweak(rec0, step.tweak);
     const local = Math.min(t - starts[k]!, stepLength(step));
     const before = k > 0 ? at(k - 1, f) : origin.get(f.uid);
-    return stepState(step, target, before ?? { ...target, intensity: 0 }, local);
+    const overlapping = k > 0 && (step.overlap ?? 0) > 0 && step.fadeIn > 0 && local < step.fadeIn && before;
+    if (overlapping) {
+      const p = local / step.fadeIn;
+      const prev = rec.steps[k - 1]!;
+      const from = strip(before);
+      // an outgoing cue without its own fade-out hands over across the incoming fade
+      const fromLevel = prev.fadeOut > 0 ? from.intensity : from.intensity * (1 - p);
+      const mixFrom = { ...from, intensity: from.on === false ? 0 : fromLevel, on: true };
+      const inc = { ...target, intensity: (target.on === false ? 0 : target.intensity) * p, on: true };
+      return { ...inc, mix: { from: mixFrom, mode: step.mixMode ?? "hue" } };
+    }
+    return { ...stepState(step, target, strip(before ?? { ...target, intensity: 0 }), local), mix: undefined };
   };
   for (const f of fixtures) {
     if (!find(rec.steps[i]!, f)) continue;
     const s = at(i, f);
-    if (s) out.set(f.uid, s);
+    if (s) out.set(f.uid, { mix: undefined, ...s });
   }
   return { states: out, step: i };
 }
