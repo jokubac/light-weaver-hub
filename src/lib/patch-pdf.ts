@@ -1,4 +1,7 @@
 import { getDef, type PatchedFixture } from "@/lib/dmx";
+// Static imports: installed apps only contain files the offline crawler can find, so avoid lazy PDF chunks.
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 async function logoPng(): Promise<string | null> {
   try {
@@ -11,8 +14,6 @@ async function logoPng(): Promise<string | null> {
 
 /** Compact A4 patch sheet: # · Name · Fixture · Mode · Univ · DMX · Ch, with the NOX logo. */
 export async function buildPatchPdf(title: string, fixtures: PatchedFixture[]): Promise<Blob> {
-  const { jsPDF } = await import("jspdf");
-  const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const logo = await logoPng();
   if (logo) doc.addImage(logo, "PNG", 12, 10, 10, 10);
