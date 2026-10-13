@@ -498,7 +498,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       );
     } catch (e) {
       const msg = (e as Error)?.message ?? "";
-      if (/can't use Bluetooth|disabled|not available|permission/i.test(msg)) alert(msg);
+      if (!/cancel/i.test(msg)) alert(`Bluetooth: ${msg || "could not connect"}. Turn on Bluetooth and allow Nearby devices for NOX.`);
     }
   };
 
