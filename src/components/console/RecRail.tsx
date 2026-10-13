@@ -5,6 +5,7 @@ import { NumberField } from "./NumberField";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { snapshot } from "./LooksPanel";
 import type { PatchedFixture } from "@/lib/dmx";
+import type { PixelLayer } from "@/lib/pixels";
 import { kelvin } from "@/lib/dmx";
 import { recLength, stepLength } from "@/lib/recordings";
 import { uid, type RecStep, type Recording } from "@/lib/store";
