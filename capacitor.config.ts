@@ -7,7 +7,8 @@ const config: CapacitorConfig = {
   appName: "NOX",
   webDir: "offline-app",
   // capacitor-midi is Android-only; iPad MIDI uses NOX's own CoreMIDI plugin (ios-native/). Bluetooth needs Xcode 16+.
-  ios: { contentInset: "always", backgroundColor: "#17131c", includePlugins: ["capacitor-udp-socket", "@capacitor-community/bluetooth-le"] },
+  ios: { contentInset: "never", backgroundColor: "#17131c", includePlugins: ["capacitor-udp-socket", "@capacitor-community/bluetooth-le"] },
+  android: { backgroundColor: "#17131c" },
 };
 
 export default config;
