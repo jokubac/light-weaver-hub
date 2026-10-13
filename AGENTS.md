@@ -38,3 +38,5 @@
 
 - Fixture setting history uses the transfer whitelist and groups pointer gestures; playback/battery updates bypass history so Undo never repatches fixtures or records output frames.
 - src/components/console/AGENTS.md holds the console-UI rules; read it before changing files under src/components/console.
+- Windows app (electron/) loads the crawled offline bundle via app:// and exposes window.noxDesktop for UDP; native-udp.ts prefers it so DMX code stays shared across web, Capacitor and desktop.
+- Native Bluetooth/MIDI go through src/lib/native-ble.ts and midi.ts plugin fallbacks (bluetooth-le; capacitor-midi is Android-only and excluded from iOS via includePlugins).
