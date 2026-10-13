@@ -422,6 +422,24 @@ const rgbToHsv = (r: number, g: number, b: number): [number, number, number] => 
   return [((h * 60) + 360) % 360, mx ? d / mx : 0, mx / 255];
 };
 
+const isCctSide = (s: MixSource) => (s.cctOnly || (s.crossfade ?? 0) < 0.5) && !(s.fx.kind !== "none" && s.fxPlaying !== false && s.fx.colors?.length);
+
+/**
+ * When both sides of a REC overlap are white (CCT) light, the merge travels along colour temperature,
+ * not the colour wheel: returns a plain fixture with blended CCT/GM and the merged level baked in.
+ */
+export function resolveCctMix(f: PatchedFixture, t: number): PatchedFixture | null {
+  if (!f.mix || !isCctSide(f.mix.from) || !isCctSide(f)) return null;
+  const a = fixtureState({ ...f, ...f.mix.from, mix: undefined }, t, 1).v;
+  const b = fixtureState({ ...f, mix: undefined }, t, 1).v;
+  const sum = a + b;
+  const k = sum > 0 ? b / sum : 1;
+  return {
+    ...f, mix: undefined, on: true, intensity: clamp01(sum), fx: { ...f.fx, kind: "none" }, trigger: null,
+    cct: f.mix.from.cct + (f.cct - f.mix.from.cct) * k, gm: f.mix.from.gm + (f.gm - f.mix.from.gm) * k, crossfade: 0,
+  };
+}
+
 /** Merges two lit states; weights are each side's own level, so a 100→0 / 0→100 overlap sums to full. */
 export function mergeStates(a: { v: number; rgb: [number, number, number] }, b: { v: number; rgb: [number, number, number] }, mode: "hue" | "add" = "hue"): { v: number; rgb: [number, number, number] } {
   const sum = a.v + b.v;
@@ -669,6 +687,8 @@ export function kelvinToRgb(k: number): [number, number, number] {
 /** Final level (0-1) and base colour (0-255 rgb, unscaled) of a fixture at time t. */
 export function fixtureState(f: PatchedFixture, t: number, masterLevel = 1): { v: number; rgb: [number, number, number] } {
   if (f.mix) {
+    const cctMix = resolveCctMix(f, t);
+    if (cctMix) return fixtureState(cctMix, t, masterLevel);
     const a = fixtureState({ ...f, ...f.mix.from, mix: undefined }, t, masterLevel);
     const b = fixtureState({ ...f, mix: undefined }, t, masterLevel);
     return mergeStates(a, b, f.mix.mode);

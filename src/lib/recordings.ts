@@ -1,5 +1,5 @@
 // REC sequence timing and blending (browser-safe, pure).
-import { mergeStates, type FixtureMix, type PatchedFixture } from "./dmx";
+import { type FixtureMix, type PatchedFixture } from "./dmx";
 type RGB = [number, number, number];
 import type { PixelLayer } from "./pixels";
 import type { LookState, RecStep, Recording, StepTweak } from "./store";
@@ -127,21 +127,14 @@ export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map
   return { states: out, step: i };
 }
 
-/** Merges two pixel frames like the fixture overlap: each pixel weighted by its own brightness, colours travel round the wheel. */
+/** Pixel overlap: the incoming cue takes over pixel by pixel; at k the first k·n pixels of each light show the new cue. */
 export function mixFrames(a: Map<string, RGB[]>, b: Map<string, RGB[]>, k: number): Map<string, RGB[]> {
   const out = new Map<string, RGB[]>();
-  const keys = new Set([...a.keys(), ...b.keys()]);
-  const one = (c: RGB | undefined, w: number) => {
-    const m = c ? Math.max(c[0], c[1], c[2]) : 0;
-    return { v: (m / 255) * w, rgb: (m ? c!.map((x) => (x / m) * 255) : [0, 0, 0]) as [number, number, number] };
-  };
-  for (const key of keys) {
+  for (const key of new Set([...a.keys(), ...b.keys()])) {
     const pa = a.get(key) ?? [], pb = b.get(key) ?? [];
     const n = Math.max(pa.length, pb.length);
-    out.set(key, Array.from({ length: n }, (_, i) => {
-      const m = mergeStates(one(pa[i], 1 - k), one(pb[i], k));
-      return m.rgb.map((x) => Math.round(Math.min(255, x * m.v))) as RGB;
-    }));
+    const take = Math.round(Math.min(1, Math.max(0, k)) * n);
+    out.set(key, Array.from({ length: n }, (_, i) => (i < take ? pb[i] : pa[i]) ?? [0, 0, 0]));
   }
   return out;
 }
