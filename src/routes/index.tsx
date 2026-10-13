@@ -664,7 +664,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         }
       }
       const res = rec ? statesAt(rec, fixturesRef.current, play.origin, t) : null;
-      if (!res) { setPlay(null); setRecProg(null); return; }
+      if (!res) { setPlay(null); setRecProg(null); setUntrackedFixtures((fs) => fs.map((f) => (f.mix ? { ...f, mix: undefined } : f))); return; }
       setRecProg({ t, step: res.step });
       const px = rec?.steps[res.step]?.pixels;
       if (px && px !== lastPixelsRef.current) { lastPixelsRef.current = px; setLayers(structuredClone(tweakPixels(px, rec?.steps[res.step]?.tweak))); }
@@ -679,7 +679,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   };
   const goRec = () => { if (play?.waiting != null && play.pausedAt != null) setPlay({ ...play, start: performance.now() - (play.pausedAt + 0.002) * 1000, pausedAt: undefined, released: play.waiting, waiting: undefined }); };
   const pauseRec = () => { if (play && play.pausedAt == null) setPlay({ ...play, pausedAt: (performance.now() - play.start) / 1000 }); };
-  const stopRec = () => { setPlay(null); setRecProg(null); };
+  const stopRec = () => { setPlay(null); setRecProg(null); setUntrackedFixtures((fs) => fs.map((f) => (f.mix ? { ...f, mix: undefined } : f))); };
 
   // Playback bank + cue stack
   const bank = project.bank ?? [];
