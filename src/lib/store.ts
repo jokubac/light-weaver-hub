@@ -35,6 +35,17 @@ export interface RecStep {
   pixels?: import("./pixels").PixelLayer[];
   /** cue waits for a manual GO before it starts */
   manual?: boolean;
+  /** seconds this cue starts before the previous one ends (cross-dissolve, like stacked clips) */
+  overlap?: number | undefined;
+  /** playback-only corrections applied on top of the recorded states */
+  tweak?: StepTweak | undefined;
+}
+export interface StepTweak {
+  intensity?: number | undefined; // multiplier, 1 = as recorded
+  cct?: number | undefined; // normalised CCT offset (-1..1)
+  fxSpeed?: number | undefined; // effect rate multiplier
+  fxSize?: number | undefined; // effect depth multiplier
+  pixelSpeed?: number | undefined; // pixel layer speed multiplier
 }
 export interface Recording {
   id: string;

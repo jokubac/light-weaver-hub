@@ -13,6 +13,7 @@ import {
   cctFromKelvin,
   overlaps,
   sampleEffect,
+  fixtureColor,
   seedOf,
   type FxParams,
   type Curve,
@@ -171,7 +172,7 @@ export function FixtureControls({
         </div>
         {fx.kind !== "none" && <>
           {first.fxPlaying === false && <p className="text-[11px] text-amber-glow">Armed — watch the preview, then press PLAY to send it to the {sel.length} selected light{sel.length > 1 ? "s" : ""}.</p>}
-          <EffectEditor fx={fx} setFx={setFx} seed={seedOf(first.uid)} />
+          <EffectEditor fx={fx} setFx={setFx} seed={seedOf(first.uid)} colour={fixtureColor({ ...first, intensity: 1, on: true, fx: { ...first.fx, kind: "none" } }, 0)} />
           <details open className="border-t border-border pt-3"><summary className="mb-3 cursor-pointer text-xs font-semibold text-muted-foreground">Effect colours</summary>
             <PaletteEditor colours={fx.colors ?? []} onChange={(colors) => setFx({ colors })} onReset={() => setFx({ colors: [] })} />
           </details>
@@ -181,7 +182,7 @@ export function FixtureControls({
   );
 }
 
-function EffectEditor({ fx, setFx, seed = 0.3 }: { fx: FxParams; setFx: (p: Partial<FxParams>) => void; seed?: number }) {
+function EffectEditor({ fx, setFx, seed = 0.3, colour = "var(--color-amber-glow)" }: { fx: FxParams; setFx: (p: Partial<FxParams>) => void; seed?: number; colour?: string }) {
   const now = useClock();
   const periodic = fx.kind === "pulse" || fx.kind === "strobe";
   const W = 300, H = 60;
@@ -197,12 +198,12 @@ function EffectEditor({ fx, setFx, seed = 0.3 }: { fx: FxParams; setFx: (p: Part
   return (
     <div className="space-y-4">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-16 w-full rounded-md bg-surface-elevated" preserveAspectRatio="none">
-        <polyline points={pts} fill="none" stroke="var(--color-amber-glow)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+        <polyline points={pts} fill="none" stroke={colour} strokeWidth={2} vectorEffect="non-scaling-stroke" />
         <line x1={((now - winStart) / secs) * W} x2={((now - winStart) / secs) * W} y1={0} y2={H} stroke="var(--color-primary)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       </svg>
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
         <span>Preview</span>
-        <div className="h-5 flex-1 rounded" style={{ background: "var(--color-amber-glow)", opacity: Math.max(0.03, live) }} />
+        <div className="h-5 flex-1 rounded" style={{ background: colour, opacity: Math.max(0.03, live) }} />
         <span className="w-10 text-right font-mono">{Math.round(live * 100)}%</span>
       </div>
 
