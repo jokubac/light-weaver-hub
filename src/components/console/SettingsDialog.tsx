@@ -43,7 +43,7 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
                 <span className="flex items-center gap-1 font-mono"><BatteryMedium className="h-4 w-4" />{d.battery == null ? "no battery info" : `${d.battery}%`}</span>
               </div>
             ))}
-            <p className="text-muted-foreground">Works in Chrome / Edge on Android, Windows and Mac. iPad Safari doesn't allow Bluetooth from websites. Battery % shows for devices that share the standard battery level — some brands keep it in their own app.</p>
+            <p className="text-muted-foreground">Works in the installed NOX app (Android, iPad, Windows) and in Chrome / Edge. Battery % shows for devices that share the standard battery level — some brands keep it in their own app.</p>
           </section>
 
           <section className="space-y-2">

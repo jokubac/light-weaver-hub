@@ -1,4 +1,4 @@
-// MIDI controller mapping (Web MIDI — Chrome / Edge / Android; not available on iPad Safari).
+// MIDI controller mapping: Web MIDI in browsers/Windows, native plugins in the Android and iPad apps.
 
 export interface MidiMap { key: string; target: string; label: string }
 export interface MidiMsg { key: string; value: number; isNote: boolean; on: boolean }
@@ -51,7 +51,7 @@ async function listenNativeMidi(cb: (m: MidiMsg, device: string) => void, onDevi
 export function splitMidiBytes(bytes: number[]): Uint8Array[] {
   const out: Uint8Array[] = [];
   for (let i = 0; i < bytes.length; i++) {
-    if (bytes[i] >= 0x80 && bytes[i] < 0xf0 && i + 2 < bytes.length + 0) out.push(new Uint8Array([bytes[i], bytes[i + 1] ?? 0, bytes[i + 2] ?? 0]));
+    if (bytes[i] >= 0x80 && bytes[i] < 0xf0) out.push(new Uint8Array([bytes[i], bytes[i + 1] ?? 0, bytes[i + 2] ?? 0]));
   }
   return out;
 }
