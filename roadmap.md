@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Show both REC pixel effects in the pixel map using live overlap output; verify stopped-layer and outgoing-only fixture cases.
+- [x] Show both REC pixel effects in the pixel map using live overlap output; 16 tests passed and browser verified random red/blue takeover progresses with a stopped layer selected.
 - [x] Keep PATCH fixture split vertically stacked at every screen size; browser verified full-width panels at 1280 px
 - [x] Refresh native iOS logo from SVG and show shared version at Sign in and Settings; browser verified, all 18 icon sizes/opaque corners checked
 - [x] Update IPA/TestFlight packaging with release checks and shared native version
