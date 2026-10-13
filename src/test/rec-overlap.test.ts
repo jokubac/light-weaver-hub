@@ -54,7 +54,13 @@ describe("pixel overlap", () => {
   it("halfway, half of the pixels show the new cue and none are blended", () => {
     const red = [255, 0, 0], blue = [0, 0, 255];
     const m = mixFrames(new Map([["u", [red, red, red, red]]]) as never, new Map([["u", [blue, blue, blue, blue]]]) as never, 0.5);
-    expect(m.get("u")).toEqual([blue, blue, red, red]);
+    const out = m.get("u")!;
+    // random takeover order: exactly half show the new cue, no blended colours
+    expect(out.filter((c) => c[0] === 255 && c[2] === 0)).toHaveLength(2);
+    expect(out.filter((c) => c[2] === 255 && c[0] === 0)).toHaveLength(2);
+    // order is stable: same result on repeated calls, not sequential
+    expect(mixFrames(new Map([["u", [red, red, red, red]]]) as never, new Map([["u", [blue, blue, blue, blue]]]) as never, 0.5).get("u")).toEqual(out);
+    expect(out).not.toEqual([blue, blue, red, red]);
   });
 });
 
