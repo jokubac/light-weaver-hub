@@ -42,7 +42,7 @@ import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
 import { RecRail, RecDialog, RecEditor } from "@/components/console/RecRail";
 import { PatchPage } from "@/components/console/PatchPage";
-import { statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
+import { mixFrames, statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
 import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
@@ -468,7 +468,16 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maskKey]);
-  const frame = layers.some((l) => l.playing) ? renderLayers(layers, fixtures, t, masks) : new Map<string, RGB[]>();
+  const baseFrame = layers.some((l) => l.playing) ? renderLayers(layers, fixtures, t, masks) : new Map<string, RGB[]>();
+  // REC overlap: the outgoing cue's pixels keep running and dissolve into the incoming ones
+  const mixFrom = pixelMix?.from;
+  const mixMasks = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof textMask>>();
+    for (const l of mixFrom ?? []) if (l.kind === "text") m.set(l.id, textMask(l.text.toUpperCase(), layerHeight(l, fixtures)));
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mixFrom]);
+  const frame = pixelMix ? mixFrames(renderLayers(pixelMix.from, fixtures, t, mixMasks), baseFrame, pixelMix.k) : baseFrame;
 
   // Stream real DMX to the bridge (Art-Net / sACN → CRMX transmitter)
   const [bridge, setBridge] = useState<BridgeStatus>("off");
@@ -664,8 +673,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         }
       }
       const res = rec ? statesAt(rec, fixturesRef.current, play.origin, t) : null;
-      if (!res) { setPlay(null); setRecProg(null); setUntrackedFixtures((fs) => fs.map((f) => (f.mix ? { ...f, mix: undefined } : f))); return; }
+      if (!res) { setPlay(null); setRecProg(null); setPixelMix(null); setUntrackedFixtures((fs) => fs.map((f) => (f.mix ? { ...f, mix: undefined } : f))); return; }
       setRecProg({ t, step: res.step });
+      setPixelMix(res.overlap?.from ? { from: res.overlap.from, k: res.overlap.k } : null);
       const px = rec?.steps[res.step]?.pixels;
       if (px && px !== lastPixelsRef.current) { lastPixelsRef.current = px; setLayers(structuredClone(tweakPixels(px, rec?.steps[res.step]?.tweak))); }
       setUntrackedFixtures((fs) => fs.map((f) => { const st = res.states.get(f.uid); return st ? { ...f, ...st, trigger: null } : f; }));
@@ -679,7 +689,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   };
   const goRec = () => { if (play?.waiting != null && play.pausedAt != null) setPlay({ ...play, start: performance.now() - (play.pausedAt + 0.002) * 1000, pausedAt: undefined, released: play.waiting, waiting: undefined }); };
   const pauseRec = () => { if (play && play.pausedAt == null) setPlay({ ...play, pausedAt: (performance.now() - play.start) / 1000 }); };
-  const stopRec = () => { setPlay(null); setRecProg(null); setUntrackedFixtures((fs) => fs.map((f) => (f.mix ? { ...f, mix: undefined } : f))); };
+  const stopRec = () => { setPlay(null); setRecProg(null); setPixelMix(null); setUntrackedFixtures((fs) => fs.map((f) => (f.mix ? { ...f, mix: undefined } : f))); };
 
   // Playback bank + cue stack
   const bank = project.bank ?? [];
