@@ -9,9 +9,10 @@ import { kelvin } from "@/lib/dmx";
 import { recLength, stepLength } from "@/lib/recordings";
 import { uid, type RecStep, type Recording } from "@/lib/store";
 
-export const makeStep = (src: PatchedFixture[], n: number): RecStep => ({
+export const makeStep = (src: PatchedFixture[], n: number, pixels?: PixelLayer[]): RecStep => ({
   id: uid(), name: `Cue ${n}`, fadeIn: 2, hold: 3, fadeOut: 0,
   states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })),
+  ...(pixels?.length ? { pixels: structuredClone(pixels) } : {}),
 });
 
 /** REC dialog: save the selected lights as a new recording or as the next cue of an existing one. */
