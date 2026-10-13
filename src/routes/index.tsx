@@ -36,7 +36,7 @@ import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
-import { defaultMacros, keyName, loadMacros, macroCommand, saveMacros, type Macro } from "@/lib/macros";
+import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
@@ -510,6 +510,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   useEffect(() => { setMacrosState(loadMacros()); }, []);
   const setMacros = (m: Macro[]) => { setMacrosState(m); saveMacros(m); };
   const [macroLearn, setMacroLearn] = useState<string | null>(null);
+  const lastDeselect = useRef(0);
   const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {} });
   Object.assign(macroRef.current, { macros, learn: macroLearn, setMacros });
   const [learning, setLearning] = useState<string | null>(null);
@@ -769,13 +770,23 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   macroRef.current.run = (m: Macro) => {
     const c = macroCommand(m);
     if (c) return runCommand(undefined, c.level, c.cct, c.levelDelta, c.cctDelta);
+    const pulse = (target: number) => { const now = performance.now(); setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => selected.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target }])) })); };
     if (m.action === "next") stepLight(1);
     else if (m.action === "prev") stepLight(-1);
+    else if (m.action === "select") { const id = lastPick.current ?? fixtures[0]?.uid; if (id) { setSelected((s) => (s.includes(id) ? s : [...s, id])); lastPick.current = id; } }
     else if (m.action === "all") setSelected(fixtures.map((f) => f.uid));
-    else if (m.action === "deselect") { setSelected([]); lastPick.current = null; }
+    else if (m.action === "deselect") {
+      const now = performance.now();
+      if (now - lastDeselect.current < DOUBLE_TAP_MS) { setSelected(fixtures.map((f) => f.uid)); lastDeselect.current = 0; }
+      else { setSelected([]); lastDeselect.current = now; }
+    }
     else if (m.action === "flash") flashFixtures(selected);
+    else if (m.action === "flash_up") pulse(1);
+    else if (m.action === "flash_down") pulse(0);
     else if (m.action === "go") goRef.current(1);
     else if (m.action === "back") goRef.current(-1);
+    else if (m.action === "play") { if (play && play.pausedAt != null) { if (play.waiting != null) goRec(); else setPlay({ ...play, start: performance.now() - play.pausedAt * 1000, pausedAt: undefined }); } else goRef.current(1); }
+    else if (m.action === "pause") pauseRec();
     else if (m.action === "blackout") toggleBlackout();
     else if (m.action === "undo") undo();
     else if (m.action === "redo") redo();
