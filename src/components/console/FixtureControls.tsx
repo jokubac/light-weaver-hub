@@ -15,6 +15,8 @@ import {
   sampleEffect,
   fixtureColor,
   fxRateAt,
+  fxTime,
+  hexToRgb,
   seedOf,
   type FxParams,
   type Curve,
