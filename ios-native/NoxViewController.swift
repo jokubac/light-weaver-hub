@@ -7,7 +7,6 @@ class NoxViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(NoxMidiPlugin())
     }
     override var prefersStatusBarHidden: Bool { true }
-    override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
 }
