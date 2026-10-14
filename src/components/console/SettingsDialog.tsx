@@ -38,8 +38,12 @@ export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, ta
         <div className="space-y-5 text-xs">
           <Button variant="secondary" className="w-full" onClick={() => { onOpenChange(false); onSetups(); }}><FolderOpen />Project setups</Button>
 
-          <section className="space-y-2">
-            <h3 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground"><Music className="h-4 w-4" />MIDI controller</h3>
+          <Collapsible className="space-y-2">
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md bg-surface-elevated px-3 py-2 font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
+              <span className="flex items-center gap-1.5"><Music className="h-4 w-4" />MIDI controller</span>
+              <ChevronDown className="h-4 w-4 transition-transform [[data-state=open]>&]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-1">
             <label className="flex items-center justify-between rounded-md bg-surface-elevated px-3 py-2 font-semibold">
               Enable MIDI
               <Checkbox checked={midi.enabled} onCheckedChange={(c) => setMidi({ ...midi, enabled: c === true })} />
@@ -65,10 +69,15 @@ export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, ta
                 ))}
               </div>
             )}
-          </section>
+            </CollapsibleContent>
+          </Collapsible>
 
-          <section className="space-y-2">
-            <h3 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground"><Keyboard className="h-4 w-4" />Macro pad</h3>
+          <Collapsible className="space-y-2">
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md bg-surface-elevated px-3 py-2 font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
+              <span className="flex items-center gap-1.5"><Keyboard className="h-4 w-4" />Macro pad</span>
+              <ChevronDown className="h-4 w-4 transition-transform [[data-state=open]>&]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-1">
             <p className="text-muted-foreground">Choose what each macro does, tap LEARN, then press the button or turn the knob on your macro pad (keyboard-type pads and MIDI buttons both work). Works on the selected lights.</p>
             {macros.map((m, i) => {
               const a = MACRO_ACTIONS.find((x) => x.id === m.action);
@@ -88,7 +97,8 @@ export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, ta
               );
             })}
             <Button variant="secondary" className="w-full" onClick={() => setMacros([...macros, { id: Math.random().toString(36).slice(2, 9), key: null, action: "int_up", amount: 5 }])}><Plus />Add macro</Button>
-          </section>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </DialogContent>
     </Dialog>
