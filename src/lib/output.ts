@@ -155,13 +155,42 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
       }
     };
     const has16 = new Set(mode.channelMap.filter((e) => e.fine).map((e) => e.attr));
+    // pixel modes repeat colour cells; each repeat of an attribute addresses the next pixel
+    const nPx = mode.pixels ?? 0;
+    const coarse = new Map<string, number>();
+    for (const e of mode.channelMap) if (!e.fine) coarse.set(e.attr, (coarse.get(e.attr) ?? 0) + 1);
+    const seen = new Map<string, number>();
+    const pv = f.on === false ? 0 : f.intensity * level;
+    const pixelValue = (attr: string, px: number): number | undefined => {
+      const c = pixels?.[px];
+      if (!c) return undefined;
+      const [pr, pg, pb] = reorder([c[0] / 255, c[1] / 255, c[2] / 255], order);
+      const hasWhite = (coarse.get("White") ?? 0) === nPx;
+      const wh = hasWhite ? Math.min(pr, pg, pb) : 0;
+      const k = (coarse.get("Dimmer") ?? 0) === nPx ? 1 : pv;
+      switch (attr) {
+        case "Dimmer": return pv;
+        case "Red": return (pr - wh) * k;
+        case "Green": return (pg - wh) * k;
+        case "Blue": return (pb - wh) * k;
+        case "White": return wh * k;
+        case "Hue": return rgbToHs(pr, pg, pb)[0];
+        case "Saturation": return rgbToHs(pr, pg, pb)[1];
+        case "Crossfade": return 1;
+        default: return undefined;
+      }
+    };
     mode.channelMap.forEach((e, i) => {
+      const occ = seen.get(e.attr) ?? 0;
+      if (!e.fine) seen.set(e.attr, occ + 1);
+      const px = nPx && coarse.get(e.attr) === nPx ? (e.fine ? occ - 1 : occ) : -1;
+      const pxv = px >= 0 ? pixelValue(e.attr, px) : undefined;
       const idx = f.address - 1 + i;
       if (idx < 0 || idx >= 512) return;
       const beamValue = (BEAM_SET as Set<string>).has(e.attr) ? f.beam?.[e.attr as BeamAttr] : undefined;
       // slots the console doesn't drive keep the manufacturer default (shutter open, pan centre…)
       if (e.attr === "Spare" || e.attr === "Amber" || ((BEAM_SET as Set<string>).has(e.attr) && beamValue === undefined)) { buf[idx] = to8(e.home ?? 0); return; }
-      const raw = e.attr === "CCT" && e.physicalRange ? (kelvin(f.cct) - e.physicalRange[0]) / (e.physicalRange[1] - e.physicalRange[0]) : beamValue ?? valueFor(e.attr);
+      const raw = pxv !== undefined ? pxv : e.attr === "CCT" && e.physicalRange ? (kelvin(f.cct) - e.physicalRange[0]) / (e.physicalRange[1] - e.physicalRange[0]) : beamValue ?? valueFor(e.attr);
       const val = Math.max(0, Math.min(1, raw));
       if (has16.has(e.attr)) { const n = Math.round(val * 65535); buf[idx] = e.fine ? n & 255 : n >> 8; }
       else buf[idx] = to8(val);
