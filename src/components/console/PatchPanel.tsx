@@ -9,16 +9,13 @@ import { FixtureGlyph } from "./FixtureGlyph";
 import type { FixtureIcon } from "@/lib/fixture-icons";
 import { planPatch } from "@/lib/patch-plan";
 import { importGdtfFile, buildMode } from "@/lib/gdtf";
-import { OFL_INDEX } from "@/lib/ofl-index";
-import { loadOflFixture } from "@/lib/ofl";
 import { addCustomFixture, useCustomFixtures } from "@/lib/custom-fixtures";
 import { loadGdtfLibrary, searchGdtfLibrary, installGdtfFixture, type LibraryDef } from "@/lib/gdtf-library";
 import { scanRdm, type RdmDevice } from "@/lib/rdm";
 import { loadConnection } from "@/lib/store";
 import { FixtureBuilder } from "./FixtureBuilder";
 import {
-  BRANDS,
-  FIXTURE_LIBRARY, RENTAL_STOCK,
+  FIXTURE_LIBRARY,
   createFixture,
   findFreeAddress,
   getDef,
