@@ -32,6 +32,8 @@ interface RawChannel {
   attr: GdtfAttr;
   bytes: number; // 1 or 2
   firstOffset: number;
+  offsets: number[];
+  physicalRange?: [number, number];
 }
 
 /** The DMX order our encode() already writes for each kind — used to recognise an exact match. */
@@ -59,33 +61,40 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
   const channelsRoot = modeEl.querySelector("DMXChannels") ?? modeEl;
   const channelEls = Array.from(channelsRoot.querySelectorAll("DMXChannel"));
   const raws: RawChannel[] = [];
+  let footprint = 0;
   for (const ch of channelEls) {
     const offsetRaw = attrAt(ch, "Offset");
     if (!offsetRaw || offsetRaw === "None" || offsetRaw === "-1") continue;
     const offsets = offsetRaw.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => !Number.isNaN(x));
     if (offsets.length === 0) continue;
+    footprint = Math.max(footprint, ...offsets);
     // attribute lives on the (first) LogicalChannel's Attribute, falling back to InitialFunction
     const logical = ch.querySelector("LogicalChannel");
     const attrName = logical ? attrAt(logical, "Attribute") : attrAt(ch, "Attribute");
     const mapped = attrName ? mapAttribute(attrName) : null;
-    if (!mapped) continue;
-    raws.push({ attr: mapped, bytes: Math.min(2, offsets.length), firstOffset: Math.min(...offsets) });
+    const fn = logical?.querySelector("ChannelFunction");
+    const from = Number(fn?.getAttribute("PhysicalFrom"));
+    const to = Number(fn?.getAttribute("PhysicalTo"));
+    const physicalRange: [number, number] | undefined = mapped === "CCT" && from >= 1000 && to >= 1000 && from !== to ? [from, to] : undefined;
+    raws.push({ attr: mapped ?? "Spare", bytes: Math.min(2, offsets.length), firstOffset: Math.min(...offsets), offsets, ...(physicalRange ? { physicalRange } : {}) });
   }
   if (raws.length === 0) return null;
   raws.sort((a, b) => a.firstOffset - b.firstOffset);
 
   const wide = raws.some((r) => r.bytes === 2);
-  const totalChannels = raws.reduce((n, r) => n + r.bytes, 0);
+  const totalChannels = footprint;
   const bareSeq = raws.map((r) => r.attr);
-  const match = KIND_SEQUENCES.find((k) => k.seq.length === bareSeq.length && k.seq.every((a, i) => a === bareSeq[i]) && !wide);
+  const contiguous = raws.every((r, i) => r.firstOffset === i + 1) && totalChannels === raws.length;
+  const match = KIND_SEQUENCES.find((k) => contiguous && !raws.some((r) => r.physicalRange) && k.seq.length === bareSeq.length && k.seq.every((a, i) => a === bareSeq[i]) && !wide);
   if (match) {
     return { name, channels: totalChannels, kind: match.kind, source: "gdtf" };
   }
   // generic fallback: one channelMap entry per DMX byte, in order
-  const channelMap: ChannelMapEntry[] = [];
+  const channelMap: ChannelMapEntry[] = Array.from({ length: totalChannels }, () => ({ attr: "Spare" }));
   for (const r of raws) {
-    channelMap.push({ attr: r.attr });
-    if (r.bytes === 2) channelMap.push({ attr: r.attr, fine: true });
+    r.offsets.slice(0, 2).forEach((offset, index) => {
+      channelMap[offset - 1] = { attr: r.attr, ...(index === 1 ? { fine: true } : {}), ...(r.physicalRange ? { physicalRange: r.physicalRange } : {}) };
+    });
   }
   return { name: wide ? `${name} (16-bit)` : name, channels: totalChannels, kind: "full", source: "gdtf", channelMap } as FixtureMode;
 }

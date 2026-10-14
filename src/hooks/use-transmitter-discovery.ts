@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { isNativeApp, scanArtNet } from "@/lib/native-udp";
 import type { Connection } from "@/lib/store";
 
-export interface DiscoveredNode { name: string; ip: string; universes?: number }
+export interface DiscoveredNode { name: string; ip: string; universes?: number | undefined }
 
 /** Discovery never connects or replaces a manually selected output destination. */
 export function useTransmitterDiscovery(conn: Connection) {

@@ -1,4 +1,8 @@
 # Console UI rules
+- Scene.pixelMaster applies gain after REC compositing; cue snapshots and programmed layers stay unchanged.
+- MoonLite uses documented TimoTwo GATT slot changes with full 512-slot initialization; UDP remains separate.
+- Background discovery never changes the selected destination, preventing unintended output switches.
+- GDTF imports preserve absolute offsets and unknown slots; declared CCT physical bounds drive encoding.
 - Live-plot beam samples use an interpolated light texture and angular falloff rather than visible world-space tiles, preserving height-aware wall occlusion.
 - ColourControls is shared by fixture, effect and live-plot controls to keep the CCT/crossfade/HSI ordering consistent; HexColourControls edits step and pixel palette colours.
 - Live-plot openings reference stroke/segment indices and use height-aware ray intersections; remap their indices whenever walls are removed so saved openings stay attached.

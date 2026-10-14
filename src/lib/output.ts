@@ -157,7 +157,8 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
     mode.channelMap.forEach((e, i) => {
       const idx = f.address - 1 + i;
       if (idx < 0 || idx >= 512) return;
-      const val = Math.max(0, Math.min(1, valueFor(e.attr)));
+      const raw = e.attr === "CCT" && e.physicalRange ? (kelvin(f.cct) - e.physicalRange[0]) / (e.physicalRange[1] - e.physicalRange[0]) : valueFor(e.attr);
+      const val = Math.max(0, Math.min(1, raw));
       if (has16.has(e.attr)) { const n = Math.round(val * 65535); buf[idx] = e.fine ? n & 255 : n >> 8; }
       else buf[idx] = to8(val);
     });
