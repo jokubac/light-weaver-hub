@@ -109,16 +109,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
           {gdtfHits.map((d) => (
             <Row key={`g-${d.id}`} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
-          {builtHits.length === 0 && gdtfHits.length === 0 && oflHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
-          {builtHits.length > 0 && <p className="text-[10px] text-muted-foreground">{builtHits.length} results · {FIXTURE_LIBRARY.length + OFL_INDEX.length} fixtures in library</p>}
-          {builtHits.map((d) => (
-            <Row key={d.id} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); setQuery(""); }} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
-          ))}
-          {oflHits.length > 0 && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Open Fixture Library{oflBusy ? " · loading…" : ""}</p>}
-          {oflError && <p className="text-[11px] text-destructive">{oflError}</p>}
-          {oflHits.map(([key, b, model, n]) => (
-            <Row key={key} onClick={() => void pickOfl(key, b)} title={model} sub={`${b} · ${n} modes · downloads profile`} />
-          ))}
+          {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? "No fixtures found" : "Loading fixture library…"}</p>}
         </List>
       ) : !brand ? (
         <List>
@@ -130,15 +121,15 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
           {FIXTURE_LIBRARY.filter((d) => fav.has(d.id)).map((d) => (
             <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); }} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes`} />
           ))}
-          {(fav.list.length > 0 || favPairs.length > 0) && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers</p>}
-          {BRANDS.map((b) => (
-            <Row key={b} onClick={() => setBrand(b)} title={b} sub={`${FIXTURE_LIBRARY.filter((d) => d.brand === b).length} models`} />
+          <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers{gdtfLib ? ` · ${gdtfLib.length} fixtures` : " · loading…"}</p>
+          {gdtfBrands.map((b) => (
+            <Row key={b} onClick={() => setBrand(b)} title={b} sub={`${gdtfLib!.filter((d) => d.brand === b).length} models`} />
           ))}
         </List>
       ) : !def ? (
         <List>
-          {FIXTURE_LIBRARY.filter((d) => d.brand === brand).map((d) => (
-            <Row key={d.id} {...star(d.id)} onClick={() => setDef(d)} title={d.model} sub={`${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
+          {(gdtfLib ?? []).filter((d) => d.brand === brand).map((d) => (
+            <Row key={d.id} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
         </List>
       ) : modeIdx === null ? (
