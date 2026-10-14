@@ -1,5 +1,5 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
-import { asteraModes, asteraSpec } from "./astera";
+import { asteraModes, asteraSpec, asteraSpecFromName } from "./astera";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";

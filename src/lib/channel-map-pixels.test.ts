@@ -10,3 +10,15 @@ describe("channelMapPixels", () => {
     expect(channelMapPixels([{ attr: "Red" }, { attr: "Green" }, { attr: "Blue" }] as never)).toBe(0);
   });
 });
+
+import { asteraSpecFromName, asteraChannels } from "@/lib/astera";
+describe("asteraSpecFromName", () => {
+  it("reads the 145-channel Titan profile 193 as 16 pixels", () => {
+    const s = asteraSpecFromName("193: D16 CCT GM C CRO XY S (16-bit)", 145)!;
+    expect(s.px).toBe(16);
+    expect(asteraChannels(s)).toBe(145);
+  });
+  it("reads profile 116 with 113 channels as 16 pixels", () => {
+    expect(asteraSpecFromName("116: D CCT GM CRO RGB S", 113)!.px).toBe(16);
+  });
+});
