@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Edit Universe, DMX address and mode from the Patch sheet pencil, preserving identity and positions; verify saved changes.
+- [x] Edit Universe, DMX address and mode from the Patch sheet pencil; 7 tests passed and browser confirmed values persist after reload with fixture number unchanged.
 - [x] Restore plain Patch headings without sorting and read-only fixture numbers; retain drag reordering and console position changes.
 - [x] Add selected lights to an existing group with Add; tests and browser confirmed existing members stay.
 - [x] Keep patch numbers stable when sorting; three-line pointer drag handles insert whole fixtures and renumber; tests and browser confirmed sorting #1 stays #1 and dragging moves it to #2 without repatching.
