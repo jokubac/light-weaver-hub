@@ -109,3 +109,6 @@
 
 - [x] Curate GDTF library: pro brands only, merged brand names, best profile per model
 - [x] Fill missing fixture watts (cinema brands) from manufacturer specs (web lookup)
+
+- [ ] Creamsource: Vortex Soft, Vortex24 24-zone, SpaceX 6-zone from official charts
+- [ ] Aputure STORM, Astera AF80/AF250 Fresnels, Quasar RR/R2 pixel profiles from official charts
