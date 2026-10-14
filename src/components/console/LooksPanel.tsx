@@ -7,7 +7,7 @@ import { uid, type Look, type LookState } from "@/lib/store";
 export const snapshot = (f: PatchedFixture): LookState => ({
   intensity: f.intensity, cct: f.cct, gm: f.gm, hue: f.hue, saturation: f.saturation, crossfade: f.crossfade,
   cctOnly: f.cctOnly, fx: structuredClone(f.fx), on: f.on ?? true, fxPlaying: f.fxPlaying ?? true,
-  ...(f.fan ? { fan: f.fan } : {}), ...(f.gel ? { gel: f.gel } : {}),
+  ...(f.fan ? { fan: f.fan } : {}), ...(f.gel ? { gel: f.gel } : {}), ...(f.beam ? { beam: { ...f.beam } } : {}),
 });
 
 /** Applies a look: matches lights by id, falls back to name (so looks work across scenes). */

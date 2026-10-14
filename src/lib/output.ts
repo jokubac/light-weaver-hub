@@ -2,7 +2,8 @@
 // local CRMX bridge, which sends Art-Net / sACN to the transmitter.
 // Channel layouts are generic per mode type — check against each fixture's DMX chart.
 
-import { fixtureState, resolveCctMix, getMode, kelvin, type PatchedFixture } from "./dmx";
+import { fixtureState, resolveCctMix, getMode, kelvin, BEAM_ATTRS, type BeamAttr, type PatchedFixture } from "./dmx";
+const BEAM_SET = new Set<string>(BEAM_ATTRS);
 import type { Connection } from "./store";
 import { asteraTokens, CELL_TOKENS } from "./astera";
 import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
@@ -150,14 +151,17 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
         case "Blue": return b * v;
         case "White": return Math.min(r, g, b) * v;
         case "Crossfade": return paletteActive ? 1 : f.cctOnly ? 0 : f.crossfade;
-        default: return 0; // Amber, Strobe, Spare
+        default: return 0; // Amber, Spare
       }
     };
     const has16 = new Set(mode.channelMap.filter((e) => e.fine).map((e) => e.attr));
     mode.channelMap.forEach((e, i) => {
       const idx = f.address - 1 + i;
       if (idx < 0 || idx >= 512) return;
-      const raw = e.attr === "CCT" && e.physicalRange ? (kelvin(f.cct) - e.physicalRange[0]) / (e.physicalRange[1] - e.physicalRange[0]) : valueFor(e.attr);
+      const beamValue = (BEAM_SET as Set<string>).has(e.attr) ? f.beam?.[e.attr as BeamAttr] : undefined;
+      // slots the console doesn't drive keep the manufacturer default (shutter open, pan centre…)
+      if (e.attr === "Spare" || e.attr === "Amber" || ((BEAM_SET as Set<string>).has(e.attr) && beamValue === undefined)) { buf[idx] = to8(e.home ?? 0); return; }
+      const raw = e.attr === "CCT" && e.physicalRange ? (kelvin(f.cct) - e.physicalRange[0]) / (e.physicalRange[1] - e.physicalRange[0]) : beamValue ?? valueFor(e.attr);
       const val = Math.max(0, Math.min(1, raw));
       if (has16.has(e.attr)) { const n = Math.round(val * 65535); buf[idx] = e.fine ? n & 255 : n >> 8; }
       else buf[idx] = to8(val);

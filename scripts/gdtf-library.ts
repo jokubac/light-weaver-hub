@@ -16,7 +16,8 @@ for (const f of readdirSync(xmlDir!)) {
   seen.add(d.id);
   const key = f.replace(/\.xml$/, "");
   const ico = `${iconDir}/${key}.webp`;
-  if (existsSync(ico)) { copyFileSync(ico, `${out}/icons/${d.id}.webp`); d.icon = `${d.id}.webp`; }
+  if (iconDir && existsSync(ico)) { copyFileSync(ico, `${out}/icons/${d.id}.webp`); d.icon = `${d.id}.webp`; }
+  else if (existsSync(`${out}/icons/${d.id}.webp`)) d.icon = `${d.id}.webp`;
   defs.push(d);
 }
 defs.sort((a, b) => `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`));

@@ -33,6 +33,7 @@ import { SpeedControl } from "./SpeedControl";
 import { hexToHs } from "@/lib/gels";
 import { NumberField } from "./NumberField";
 import { useClock } from "./PixelPanel";
+import { BeamControls, beamChannels } from "./BeamControls";
 import { IntensityMacros, GmMacros, FanControl, GelPicker } from "./AdvancedControls";
 
 export function Control({
@@ -143,6 +144,8 @@ export function FixtureControls({
         {anyCaps.gm && <><Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm.toFixed(2)} onChange={(gm) => update({ gm })} onReset={() => update({ gm: 0 })} /><GmMacros value={first.gm} update={update} /></>}
         <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
       </Section>
+
+      {beamChannels(first).size > 0 && <Section title="Position & Beam"><BeamControls first={first} updateEach={updateEach} /></Section>}
 
       {<><Section title="Advanced">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fan</div>
