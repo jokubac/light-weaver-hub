@@ -886,7 +886,24 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     if (sweepMode.current === "remove") setSelected((s) => s.filter((x) => x !== id));
     else setSelected((s) => (s.includes(id) ? s : [...s, id]));
   };
+  const tileDown = (id: string) => {
+    const a = anchor.current;
+    if (a && a !== id) {
+      // second finger while the first light is still held: select the whole range between them
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      lastPick.current = a;
+      selectRange(id);
+      setSelected((s) => (s.includes(a) ? s : [...s, a]));
+      skipClick.current.add(a); skipClick.current.add(id);
+      navigator.vibrate?.(20);
+      return;
+    }
+    anchor.current = id;
+    holdStart(id);
+  };
+  const tileUp = (id: string) => { if (anchor.current === id) anchor.current = null; holdEnd(); };
   const tileClick = (e: React.MouseEvent, id: string) => {
+    if (skipClick.current.has(id)) { skipClick.current.delete(id); held.current = false; return; }
     if (held.current) { held.current = false; return; }
     if (e.shiftKey) selectRange(id); else toggleSelect(id);
   };
