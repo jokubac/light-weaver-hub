@@ -22,7 +22,7 @@ export function useUser() {
   return { user, ready };
 }
 
-const readFav = (): { gels?: string[]; fixtures?: string[]; modes?: string[] } => { try { return JSON.parse(localStorage.getItem(FAV_KEY) ?? "{}"); } catch { return {}; } };
+const readFav = (): { gels?: string[]; fixtures?: string[]; modes?: string[]; manufacturers?: string[] } => { try { return JSON.parse(localStorage.getItem(FAV_KEY) ?? "{}"); } catch { return {}; } };
 const union = (a: string[] = [], b: string[] = []) => Array.from(new Set([...a, ...b]));
 const byId = <T extends { id: string }>(a: T[], b: T[]) => [...a, ...b.filter((x) => !a.some((y) => y.id === x.id))];
 
@@ -36,9 +36,9 @@ export async function pullAndMerge(local: Project[]): Promise<Project[]> {
   const remote = (rows ?? []).map((r) => r.data as unknown as Project);
   const merged = byId(local, remote).sort((a, b) => b.createdAt - a.createdAt);
 
-  const cloud = (ud?.data ?? {}) as { favorites?: { gels?: string[]; fixtures?: string[]; modes?: string[] }; effects?: FxLibrary };
+  const cloud = (ud?.data ?? {}) as { favorites?: { gels?: string[]; fixtures?: string[]; modes?: string[]; manufacturers?: string[] }; effects?: FxLibrary };
   const fav = readFav();
-  const nextFav = { gels: union(fav.gels, cloud.favorites?.gels), fixtures: union(fav.fixtures, cloud.favorites?.fixtures), modes: union(fav.modes, cloud.favorites?.modes) };
+  const nextFav = { gels: union(fav.gels, cloud.favorites?.gels), fixtures: union(fav.fixtures, cloud.favorites?.fixtures), modes: union(fav.modes, cloud.favorites?.modes), manufacturers: union(fav.manufacturers, cloud.favorites?.manufacturers) };
   localStorage.setItem(FAV_KEY, JSON.stringify(nextFav));
   window.dispatchEvent(new Event("crmx-favorites"));
   const lib = readFxLib();

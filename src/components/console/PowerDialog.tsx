@@ -10,7 +10,8 @@ export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
   f: PatchedFixture; open: boolean; onOpenChange: (o: boolean) => void; level: number;
   onChange: (p: PowerSource | null) => void;
 }) {
-  const autoW = fixtureWatts(getDef(f.defId).model);
+  const fixtureDef = getDef(f.defId);
+  const autoW = fixtureDef.watts ?? fixtureWatts(`${fixtureDef.brand} ${fixtureDef.model}`);
   const [d, setD] = useState<PowerSource>(f.power ?? { kind: "instagrid", kwh: 2.1, charge: 1, watts: autoW, usedWh: 0 });
   const st = batteryStatus({ ...d, usedWh: 0 }, { ...f, intensity: 1, on: true }, 1);
   const kinds: { id: PowerKind; label: string }[] = [{ id: "vmount", label: "V-mount" }, { id: "instagrid", label: "Instagrid" }, { id: "other", label: "Other" }, { id: "mains", label: "Mains" }];
@@ -32,9 +33,9 @@ export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
               <div className="grid grid-cols-3 gap-2">
                 <label>Capacity kWh<NumberField min={0} value={d.kwh} onChange={(v) => setD({ ...d, kwh: v ?? 0 })} className={inputCls} /></label>
                 <label>Charged %<NumberField min={0} max={100} value={Math.round(d.charge * 100)} onChange={(v) => setD({ ...d, charge: (v ?? 0) / 100 })} className={inputCls} /></label>
-                <label>Light W<NumberField min={0} value={d.watts} onChange={(v) => setD({ ...d, watts: v ?? 0 })} className={inputCls} /></label>
+                <label>Light W<NumberField min={0} value={d.watts || null} onChange={(v) => setD({ ...d, watts: v ?? 0 })} className={inputCls} /></label>
               </div>
-              <p className="normal-case tracking-normal">Light watts auto-set from {getDef(f.defId).model}: {autoW} W max. {d.watts !== autoW && <button onClick={() => setD({ ...d, watts: autoW })} className="text-primary underline">Use {autoW} W</button>}</p>
+              <p className="normal-case tracking-normal">{autoW > 0 ? `${fixtureDef.model}: ${autoW} W max.` : "Power unknown"} {autoW > 0 && d.watts !== autoW && <button onClick={() => setD({ ...d, watts: autoW })} className="text-primary underline">Use {autoW} W</button>}</p>
               <p className="normal-case tracking-normal text-foreground">At 100% output: about <b>{fmtHours(st.hours)}</b>. Lower intensity stretches it — the estimate updates live while you work.</p>
               {f.power && <p className="normal-case tracking-normal">Now: {Math.round(batteryStatus(f.power, f, level).pct * 100)}% left · {fmtHours(batteryStatus(f.power, f, level).hours)} at current level</p>}
             </>

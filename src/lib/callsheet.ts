@@ -6,14 +6,7 @@ import { fixtureWatts } from "./power";
 
 /* ---------------- Wattage ---------------- */
 
-/**
- * Resolve a fixture's full-power draw in watts.
- * Priority: an explicit `watts` field on the fixture def (not currently modelled in FixtureDef,
- * but kept here so a future def-level override is picked up automatically) → the battery/power
- * source attached to the fixture (`f.power.watts`, the real draw gaffers measured on set) →
- * a model-name estimate from power.ts's regex table (manufacturer spec sheets), which already
- * falls back to 300 W for anything unrecognised.
- */
+/** Use profile or user-supplied power; unknown loads are excluded, never estimated. */
 export function fixtureWattage(f: PatchedFixture): number {
   const def = getDef(f.defId);
   const withWatts = def as typeof def & { watts?: number };
