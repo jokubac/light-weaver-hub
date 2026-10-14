@@ -1,5 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
@@ -56,6 +56,14 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
     () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""} ${(RENTAL_STOCK[d.id] ?? []).join(" ")}`.toLowerCase().includes(q)).slice(0, 120) : []),
     [q],
   );
+  const [gdtfLib, setGdtfLib] = useState<LibraryDef[] | null>(null);
+  useEffect(() => { if (q && !gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [q, gdtfLib]);
+  const gdtfHits = useMemo(() => (gdtfLib && q ? searchGdtfLibrary(gdtfLib, q, 60) : []), [gdtfLib, q]);
+  const norm = (d: { brand: string; model: string }) => `${d.brand} ${d.model}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const gdtfNames = useMemo(() => new Set(gdtfHits.map(norm)), [gdtfHits]);
+  const builtHits = searchHits.filter((d) => d.id.startsWith("gdtf-") || !gdtfNames.has(norm(d)));
+  const [gdtfBusy, setGdtfBusy] = useState(false);
+  const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setQuery(""); } finally { setGdtfBusy(false); } };
   const oflHits = useMemo(() => {
     if (!q) return [];
     const have = new Set(FIXTURE_LIBRARY.map((d) => `${d.brand} ${d.model}`.toLowerCase()));
@@ -114,9 +122,13 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       {!def && <MoreSources fixtures={fixtures} onAdd={onAdd} onPick={(d) => { setBrand(d.brand); setDef(d); setModeIdx(0); }} />}
       {!def && q ? (
         <List>
-          {searchHits.length === 0 && oflHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
-          {searchHits.length > 0 && <p className="text-[10px] text-muted-foreground">{searchHits.length} results · {FIXTURE_LIBRARY.length + OFL_INDEX.length} fixtures in library</p>}
-          {searchHits.map((d) => (
+          {gdtfHits.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Manufacturer GDTF{gdtfBusy ? " · loading…" : ""}</p>}
+          {gdtfHits.map((d) => (
+            <Row key={`g-${d.id}`} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
+          ))}
+          {builtHits.length === 0 && gdtfHits.length === 0 && oflHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
+          {builtHits.length > 0 && <p className="text-[10px] text-muted-foreground">{builtHits.length} results · {FIXTURE_LIBRARY.length + OFL_INDEX.length} fixtures in library</p>}
+          {builtHits.map((d) => (
             <Row key={d.id} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); setQuery(""); }} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
           ))}
           {oflHits.length > 0 && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Open Fixture Library{oflBusy ? " · loading…" : ""}</p>}
