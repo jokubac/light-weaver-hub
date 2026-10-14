@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Add selected lights to an existing group with an Add button.
 - [ ] Keep patch numbers stable when sorting; replace arrows with touch/mouse drag handles that reorder and renumber fixtures.
 - [x] Separate plain Next/Previous light from the keeps-selection macro actions; 10 macro tests passed, typecheck clean, browser verified Next picks one light, Next-add keeps both, Prev moves to one
 - [x] Show both REC pixel effects in the pixel map using live overlap output; 16 tests passed and browser verified random red/blue takeover progresses with a stopped layer selected.

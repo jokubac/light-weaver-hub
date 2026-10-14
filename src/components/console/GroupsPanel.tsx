@@ -65,6 +65,7 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
               <span className="w-12 text-right font-mono text-xs">{+(lvl * 100).toFixed(1)}%</span>
             </div>
             <div className="flex gap-1.5">
+              <Button variant="secondary" size="sm" disabled={!fixtures.some((f) => selected.includes(f.uid) && f.group !== g)} onClick={() => onCreate(g)} aria-label={`Add selected lights to ${g}`} title="Add selected lights to group" className="shrink-0 gap-1 text-[11px]"><Plus className="h-3 w-3" />Add</Button>
               <Button variant="ghost" disabled={!selected.length} onClick={() => onCopy(g, `${g} copy`)} title="Selected lights become a new group with the same settings" className="flex flex-1 items-center justify-center gap-1 rounded bg-surface py-1.5 text-[11px] font-semibold disabled:opacity-40"><Copy className="h-3 w-3" />Duplicate to selected</Button>
               {groups.length > 1 && (
                 <select value="" onChange={(e) => e.target.value && onCopy(g, e.target.value)} className="flex-1 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Copy settings to group">
