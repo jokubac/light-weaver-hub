@@ -59,6 +59,15 @@ type Drag =
 
 const DEFAULT_TILT = 24;
 const clampN = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const ICONS = new Map<string, HTMLImageElement>();
+/** Decoded fixture pictures (GDTF thumbnails), shared across redraws. */
+function iconImage(src?: string): HTMLImageElement | null {
+  if (!src || typeof Image === "undefined") return null;
+  let img = ICONS.get(src);
+  if (!img) { img = new Image(); img.src = src; ICONS.set(src, img); }
+  return img.complete && img.naturalWidth ? img : null;
+}
+
 /** Beam textures are reused until the fixture, its light or the wall geometry changes. */
 const beamCache = new Map<string, { key: string; canvas: HTMLCanvasElement }>();
 /** Theme colours are read once and refreshed only when the root theme class/style changes. */
@@ -553,6 +562,8 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       ctx.strokeStyle = isSel ? "#22d3ee" : f.label ?? "#9ca3af";
       ctx.lineWidth = isSel ? 3 : 1.5;
       ctx.fillRect(-9, -11, 18, 22); ctx.strokeRect(-9, -11, 18, 22);
+      const ic = iconImage(getDef(f.defId).icon);
+      if (ic) { ctx.save(); ctx.rotate(-Math.atan2(hd[1] - head[1], hd[0] - head[0])); ctx.drawImage(ic, -10, -10, 20, 20); ctx.restore(); }
       ctx.fillStyle = `rgb(${r * lv},${g * lv},${b * lv})`;
       ctx.shadowColor = `rgb(${r},${g},${b})`; ctx.shadowBlur = 14 * lv;
       ctx.fillRect(6, -9, 5, 18);

@@ -34,7 +34,8 @@ const refs = (text, base) => {
   return out;
 };
 refs(html, "/").forEach(add);
-["/app-release.json", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest", "/nox-logo.svg", "/crmx-bridge.mjs"].forEach(add);
+["/app-release.json", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest", "/nox-logo.svg", "/crmx-bridge.mjs", "/gdtf-library/library.json"].forEach(add);
+for (const f of await readdir(new URL("../public/gdtf-library/icons/", import.meta.url))) add(`/gdtf-library/icons/${f}`);
 
 while (queue.length) {
   const p = queue.shift();
