@@ -402,6 +402,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const lastPick = useRef<string | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const held = useRef(false);
+  // macro browsing: after Select, Next/Previous move this cursor without changing the selection
+  const [cursor, setCursor] = useState<string | null>(null);
+  const browsing = useRef(false);
+  // a light currently held down: tapping another light while holding selects everything between them
+  const anchor = useRef<string | null>(null);
+  const skipClick = useRef(new Set<string>());
   const [panel, setPanel] = useState<Panel>("control");
   const [panelOpen, setPanelOpen] = useState(true);
   const [layers, setLayers] = useState<PixelLayer[]>(() => migrateLayers(scene));
@@ -807,7 +813,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     else if (m.action === "deselect") {
       const now = performance.now();
       if (now - lastDeselect.current < DOUBLE_TAP_MS) { setSelected(fixtures.map((f) => f.uid)); lastDeselect.current = 0; }
-      else { setSelected([]); lastDeselect.current = now; }
+      else { setSelected([]); lastDeselect.current = now; browsing.current = false; }
     }
     else if (m.action === "flash") flashFixtures(selected);
     else if (m.action === "flash_up") pulse(1);
@@ -1003,8 +1009,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                   const pv = of.on === false ? 0 : of.intensity * outLevel;
                   const [gc, gr] = pixelGrid(f);
                   return (
-                     <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`${swapping ? "Swap" : "Select"} fixture ${i + 1}, ${f.name}`} aria-pressed={swapping ? swapSource === f.uid : isSel} tabIndex={0} onPointerDown={() => { if (!sweep && !swapping) holdStart(f.uid); }} onPointerUp={holdEnd} onPointerCancel={holdEnd} onClick={(e) => { if (swapping) swapTile(f.uid); else if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (swapping) swapTile(f.uid); else toggleSelect(f.uid); } if (e.key === "Escape") { setSwapSource(null); setSwapping(false); } }}
-                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"}`}>
+                     <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`${swapping ? "Swap" : "Select"} fixture ${i + 1}, ${f.name}`} aria-pressed={swapping ? swapSource === f.uid : isSel} tabIndex={0} onPointerDown={() => { if (!sweep && !swapping) tileDown(f.uid); }} onPointerUp={() => tileUp(f.uid)} onPointerCancel={() => tileUp(f.uid)} onClick={(e) => { if (swapping) swapTile(f.uid); else if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (swapping) swapTile(f.uid); else toggleSelect(f.uid); } if (e.key === "Escape") { setSwapSource(null); setSwapping(false); } }}
+                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"} ${cursor === f.uid && browsing.current ? "ring-2 ring-accent ring-offset-1 ring-offset-background" : ""}`}>
                       {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
                       <span aria-hidden="true" className="pointer-events-none absolute left-1 top-1.5 z-10 rounded bg-surface-elevated/90 px-1 font-mono text-[9px] font-semibold leading-tight text-foreground/80">#{i + 1}</span>
 
