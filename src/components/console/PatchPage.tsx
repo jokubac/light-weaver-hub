@@ -85,6 +85,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <Button size="sm" variant="secondary" onClick={savePdf} title="Save the patch sheet as a PDF"><Printer />Save PDF</Button>
         <Button size="sm" variant="secondary" onClick={exportPatch}><Download />Export</Button>
         <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
+        {rows.length === 0 && <span className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures · {new Date().toLocaleDateString("sv-SE")}</span>}
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
