@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil, X, Power, Check, Copy, Play, Square, ChevronDown, ChevronRight } from "lucide-react";
 import type { PatchedFixture } from "@/lib/dmx";
 
-export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, onUngroup, onUpdate, onCopy }: {
+export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, onUngroup, onUpdate, onCopy, onRemoveMember }: {
   fixtures: PatchedFixture[];
   selected: string[];
   onSelect: (g: string) => void;
@@ -13,6 +13,8 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
   onUpdate: (g: string, p: Partial<PatchedFixture>) => void;
   /** Copy settings (level, colour, effect) from group `from` to group `to`, or to the selected lights as a new group when `to` is new. */
   onCopy: (from: string, to: string) => void;
+  /** Take one light out of its group; its patch and settings stay. */
+  onRemoveMember: (uid: string) => void;
 }) {
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<{ g: string; v: string } | null>(null);
@@ -72,7 +74,8 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
               )}
             </div>
             <div className="flex flex-wrap gap-1">
-              {members.map((f) => <span key={f.uid} className="rounded bg-surface px-1.5 py-0.5 text-[10px]">{f.name}</span>)}
+              {members.map((f) => <span key={f.uid} className="flex items-center gap-0.5 rounded bg-surface py-0.5 pl-1.5 pr-0.5 text-[10px]">{f.name}
+                <button onClick={() => onRemoveMember(f.uid)} aria-label={`Remove ${f.name} from ${g}`} title="Remove from group" className="rounded p-0.5 text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button></span>)}
             </div>
             </>}
           </div>
