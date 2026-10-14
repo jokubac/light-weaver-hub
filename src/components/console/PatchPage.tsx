@@ -82,20 +82,18 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3 print:hidden">
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
         <div className="mr-auto min-w-0 truncate text-xs text-muted-foreground">{title}</div>
-        <div className="flex flex-col items-end gap-1.5">
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button size="sm" variant="secondary" onClick={savePdf} title="Save the patch sheet as a PDF"><Printer />Save PDF</Button>
-            <Button size="sm" variant="secondary" onClick={exportPatch}><Download />Export</Button>
-            <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
-          </div>
-          <span className="text-xs text-muted-foreground">{fixtures.length} fixtures{totalW ? ` · ${totalW} W` : ""} · {new Date().toLocaleDateString()}</span>
-        </div>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col">
         <main ref={mainRef} className="patch-print min-h-0 flex-1 overflow-auto p-4">
-          <div className="mb-2 flex items-center gap-2 print:hidden">
+          <div className="mb-2 flex flex-wrap items-center gap-2 print:hidden">
             <Button size="sm" variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Close the fixture list" : "Open the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Close fixtures" : "Add fixtures"}</Button>
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              <Button size="sm" variant="secondary" onClick={savePdf} title="Save the patch sheet as a PDF"><Printer />Save PDF</Button>
+              <Button size="sm" variant="secondary" onClick={exportPatch}><Download />Export</Button>
+              <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
+              <span className="text-xs text-muted-foreground">{fixtures.length} fixtures{totalW ? ` · ${totalW} W` : ""} · {new Date().toLocaleDateString()}</span>
+            </div>
           </div>
           <div className="mb-3 flex items-center gap-2 border-b border-border pb-2 print:mb-2">
             <h1 className="truncate font-display text-base font-semibold uppercase tracking-wider">{title} — Patch sheet</h1>
