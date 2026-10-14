@@ -110,5 +110,7 @@
 - [x] Curate GDTF library: pro brands only, merged brand names, best profile per model
 - [x] Fill missing fixture watts (cinema brands) from manufacturer specs (web lookup)
 
-- [ ] Creamsource: Vortex Soft, Vortex24 24-zone, SpaceX 6-zone from official charts
-- [ ] Aputure STORM, Astera AF80/AF250 Fresnels, Quasar RR/R2 pixel profiles from official charts
+- [x] Creamsource verified profiles (Vortex4/8/24, Vortex8 Soft, SpaceX) from official DMX Tables V3.1/V2.0: 8/16-bit CCT, RGBW(A), HS, xy + multi-zone (8/24 zones); SpaceX official table has no multizone DMX scenarios
+- [x] Aputure STORM 1200x all 32 profiles (V1.5), Astera AF80/AF250 Fresnel 12 core modes, Quasar RR50/RR100 per-pixel profiles (8/16 px) from official charts; 162 tests pass
+- [ ] Quasar Rainbow R2 (2/4/8 ft) verified pixel counts — official chart lists per-pixel groups but not per-length pixel counts; do not invent
+- [ ] Aputure STORM 80c / 1000c / XT52 verified profiles — need official DMX charts (RGBACL engine differs from 1200x)
