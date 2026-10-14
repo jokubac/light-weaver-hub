@@ -18,7 +18,6 @@
 - localStorage stays the working copy; when signed in, src/lib/cloud.ts merges cloud data once per sign-in and pushes changes (projects → console_projects rows, favourites + saved effects → console_user_data).
 - The live plot is stored per scene (Scene.plot) in metres; floor-plan images are downscaled JPEG data URLs to keep project data small.
 - Set-object presets and rotated footprint hit testing live in a browser-safe plot-objects module; objects and per-wall heights are optional scene fields so saved plots remain compatible.
-- Moving-head values live in PatchedFixture.beam; unset channels output GDTF defaults so shutters stay open. Library is sharded (library.json index) under the repo file limit.
 - Fixture settings transfer uses an explicit whitelist in fixture-settings.ts, excluding identity, patch, grouping, position and power to prevent accidental repatching.
 - Complete named setups are immutable Scene snapshots under Project.setups; restore replaces scene content but preserves scene identity so walls, fixture angles and all effects travel together.
 - Multi-fixture patch layout lives in src/lib/patch-plan.ts; universe overflow is only applied after the user confirms.

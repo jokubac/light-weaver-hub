@@ -27,3 +27,4 @@
 
 - EffectsRail owns fixture/pixel effect saving and recall; ConsoleScreen shares the active pixel-layer ID with PixelPanel so the rail saves the layer being edited.
 - Pixel map uses pixel-preview with the shared live frame and all active fixture IDs so REC overlap stays visible without changing output.
+- Moving-head values live in PatchedFixture.beam; unset channels output GDTF defaults so shutters stay open. Library is sharded (library.json index) under the repo file limit.
