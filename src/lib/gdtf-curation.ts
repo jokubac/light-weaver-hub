@@ -74,6 +74,10 @@ export function profileScore(d: { modes?: { channels?: unknown[] }[]; icon?: str
 export function specWatts(brand: string, model: string): number | undefined {
   const exact: Record<string, number> = {
     arriskypanels30c: 250, arriskypanels60c: 450, arriskypanels120c: 800, arriskypanels360c: 1600,
+    // manufacturer-published rated power only; unknown models stay empty
+    arril5c: 115, arril7c: 220, arril10c: 400, arriorbiter: 500,
+    litepanelsgemini1x1hard: 200, litepanelsgemini1x1soft: 200, litepanelsgemini2x1hard: 300, litepanelsgemini2x1soft: 300,
+    nanluxevoke1200: 1200, nanluxevoke1200b: 1200, nanluxevoke2400b: 2400, nanluxevoke900c: 900, nanluxdyno650c: 650, nanluxdyno1200c: 1200,
   };
   return exact[key(brand) + key(model)];
 }
