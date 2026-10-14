@@ -1,4 +1,6 @@
 # Tasks
+- [x] Patch sheet: duplicated title line removed from the top bar; Add fixtures, Save PDF, Export, Import and the fixture/watt/date line sit right-aligned in the top bar; the fixture panel opens as a split screen taking 60 % of the window. Browser verified at 1280 px.
+
 - [x] Add uploaded Godox AM1600R with original 11-byte Mode 07; restore available LiteGear/Lightstar XML profiles and merge exact Astera aliases. 2553 profiles; model-layout tests and Patch browser check pass.
 - [x] Remove unsupported power estimates; unknown watts stay blank. Hide bundled library copies and DXJ test entries from Custom fixtures without breaking patched lights.
 - [x] Favourite manufacturers and favourites-first fixture/mode lists; local persistence tests pass and browser confirms Godox is starred and first. Account sync verification waits on an authenticated session.
