@@ -282,9 +282,24 @@ if (typeof window !== "undefined") {
   window.addEventListener("kroma-custom-fixtures", refreshCustomFixtures);
   window.addEventListener("storage", refreshCustomFixtures);
 }
+/** Pixel count implied by an imported channel map: repeated colour cells (Red or Hue) mean one cell per pixel. */
+export function channelMapPixels(map: ChannelMapEntry[]): number {
+  const count = (a: string) => map.filter((e) => e.attr === a && !e.fine).length;
+  const n = Math.max(count("Red"), count("Hue"));
+  return n >= 2 ? n : 0;
+}
+const derivedModes = new WeakMap<FixtureMode, FixtureMode>();
 export const getMode = (f: { defId: string; modeIdx: number }) => {
   const d = getDef(f.defId);
-  return d.modes[f.modeIdx] ?? d.modes[0]!;
+  const mo = d.modes[f.modeIdx] ?? d.modes[0]!;
+  if (mo.pixels || !mo.channelMap) return mo;
+  let out = derivedModes.get(mo);
+  if (!out) {
+    const px = channelMapPixels(mo.channelMap);
+    out = px ? { ...mo, pixels: px } : mo;
+    derivedModes.set(mo, out);
+  }
+  return out;
 };
 
 /* ---------------- Effects ---------------- */
