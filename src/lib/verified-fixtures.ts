@@ -196,7 +196,6 @@ const quasarModes = (px: number): FixtureMode[] => {
   const P = { count: px, master: false };
   return [
     mm("1 HSIC 8-bit", [[Q_HSIC, false]], P),
-    mm("2 HSIC 16-bit", [[["Dimmer"], true], [["CCT", GM], false], [["Hue"], true], [["Saturation"], false]], P),
     mm("3 HSI 8-bit", [[Q_HSI, false]], P),
     mm("4 XFade +CC 8-bit", [[Q_XFCC, false]], P),
     mm("5 XFade 8-bit", [[Q_XF, false]], P),
@@ -217,6 +216,6 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
   { id: "gdtf-aputure-storm-1200x", brand: "Aputure", model: "STORM 1200x", watts: 1200, cctRange: [2500, 10000], lightType: "LED colour", modes: STORM1200X_MODES },
   { id: "gdtf-astera-led-technology-af80-plutofresnel", brand: "Astera", model: "AF80 PlutoFresnel", watts: 80, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_FRESNEL_MODES },
   { id: "gdtf-astera-led-technology-af250-leofresnel", brand: "Astera", model: "AF250 LeoFresnel", watts: 250, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_FRESNEL_MODES },
-  { id: "gdtf-quasar-science-double-rainbow-2ft", brand: "Quasar Science", model: "Double Rainbow 2ft (RR50)", watts: 25, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(8) },
-  { id: "gdtf-quasar-science-double-rainbow-4ft", brand: "Quasar Science", model: "Double Rainbow 4ft (RR100)", watts: 50, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(16) },
+  { id: "gdtf-quasar-science-double-rainbow-2ft", brand: "Quasar Science", model: "Double Rainbow 2ft", watts: 25, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(8) },
+  { id: "gdtf-quasar-science-double-rainbow-4ft", brand: "Quasar Science", model: "Double Rainbow 4ft", watts: 50, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(16) },
 ];
