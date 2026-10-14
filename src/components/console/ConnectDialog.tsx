@@ -53,12 +53,12 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
         <DialogHeader><DialogTitle>Connect to transmitter</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2">
-            <button onClick={() => { void disconnectMoonLite(); setConn({ ...conn, transport: "direct", node: conn.transport === "bluetooth" ? null : conn.node }); }} disabled={!native} className={`${opt(!!direct)} disabled:opacity-40`}>
+            <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, transport: "direct", node: conn.transport === "bluetooth" ? null : conn.node }); }} disabled={!native} className={`${opt(!!direct)} h-auto whitespace-normal disabled:opacity-40`}>
               <Smartphone className="h-4 w-4" />Direct from this tablet
-            </button>
-            <button onClick={() => { void disconnectMoonLite(); setConn({ ...conn, transport: "bridge", node: conn.transport === "bluetooth" ? null : conn.node }); }} className={opt(!direct && conn.transport !== "bluetooth")}>
+            </Button>
+            <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, transport: "bridge", node: conn.transport === "bluetooth" ? null : conn.node }); }} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
               <Router className="h-4 w-4" />Via bridge computer
-            </button>
+            </Button>
           </div>
           <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? "Connecting…" : "Connect MoonLite via Bluetooth"}</Button>
           {conn.transport === "bluetooth" && <label className="block text-xs">MoonLite universe<NumberField integer min={1} max={128} value={conn.bluetoothUniverse ?? 1} onChange={(v) => { if (v !== undefined) setConn({ ...conn, bluetoothUniverse: v }); }} aria-label="MoonLite universe" className="ml-2 w-16 rounded border border-input bg-surface-elevated px-2 py-1" /></label>}
@@ -104,8 +104,8 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
           {conn.node && (
             <div className="flex items-center justify-between rounded-lg border border-success/50 px-3 py-2 text-sm">
               <span><Check className="mr-1 inline h-4 w-4 text-success" />{conn.node.name} <span className="font-mono text-xs text-muted-foreground">{conn.node.ip}</span></span>
-              <span className={`text-[11px] ${status === "ok" ? "text-success" : status === "slow" ? "text-warning" : "text-destructive"}`}>{status === "error" ? (direct ? "send failed" : "bridge not answering") : status === "slow" ? "slow response" : status === "ok" ? (direct ? "sending directly" : "sending to bridge") : "disconnected"}</span>
-              <button onClick={() => { void disconnectMoonLite(); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">Disconnect</button>
+              <span className={`text-[11px] ${status === "ok" ? "text-success" : status === "slow" ? "text-warning" : "text-destructive"}`}>{status === "error" ? (conn.transport === "bluetooth" ? "Bluetooth send failed" : direct ? "send failed" : "bridge not answering") : status === "slow" ? "slow response" : status === "ok" ? (conn.transport === "bluetooth" ? "sending via Bluetooth" : direct ? "sending directly" : "sending to bridge") : "disconnected"}</span>
+              <Button variant="ghost" onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">Disconnect</Button>
             </div>
           )}
           <div hidden={conn.transport === "bluetooth"} className="space-y-2 rounded-lg border border-border p-3 text-xs">

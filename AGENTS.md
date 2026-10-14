@@ -11,7 +11,7 @@
 - Web DMX output POSTs universes to the local Node bridge (public/crmx-bridge.mjs) because browsers cannot send UDP; the installed app can send directly via src/lib/artnet.ts and a Capacitor UDP plugin.
 - Transmitter profiles (src/lib/transmitters.ts) drive optional universe/colour-order remapping in output.ts; the bridge stays protocol-only so mapping logic lives in one place.
 - Battery runtime is estimated client-side (src/lib/power.ts) by integrating watts × intensity; no hardware readout exists for V-mount/Instagrid.
-- Pixel and fixture speed inputs share logarithmic conversion helpers and a numeric/fine-adjustment control so their usable ranges remain consistent.
+- Pixel/fixture speed uses shared logarithmic helpers and numeric fine adjustment for consistent ranges.
 - Manufacturer mode identifiers must be verified against model-specific DMX charts; append new profiles rather than reorder saved mode indices.
 - Astera profiles live in src/lib/astera.ts as a numbered table with per-pixel token layouts; output.ts writes channels from those tokens so every profile is exact.
 - Rental-house stock (src/lib/rental-fixtures.ts) is appended to FIXTURE_LIBRARY and deduped by id; existing entries are tagged via aliases so patch search can filter by house.
@@ -37,7 +37,7 @@
 
 
 - Fixture setting history uses the transfer whitelist and groups pointer gestures; playback/battery updates bypass history so Undo never repatches fixtures or records output frames.
-- src/components/console/AGENTS.md holds the console-UI rules; read it before changing files under src/components/console.
+- Read src/components/console/AGENTS.md for console UI and output-integration rules before changes.
 - Windows app (electron/) loads the crawled offline bundle via app:// and exposes window.noxDesktop for UDP; native-udp.ts prefers it so DMX code stays shared across web, Capacitor and desktop.
 - iPad MIDI uses NOX's own CoreMIDI plugin in ios-native/, installed into the generated iOS project by ios-native/install.rb in CI; iOS builds need Xcode 16+ (macos-15) because Capacitor 8 plugins fail on older Swift.
 - offline-bundle.mjs strips the hosting "Edit with Lovable" badge so installed apps stay standalone.

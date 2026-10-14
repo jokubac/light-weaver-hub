@@ -65,7 +65,7 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
   for (const ch of channelEls) {
     const offsetRaw = attrAt(ch, "Offset");
     if (!offsetRaw || offsetRaw === "None" || offsetRaw === "-1") continue;
-    const offsets = offsetRaw.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => !Number.isNaN(x));
+    const offsets = offsetRaw.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => Number.isInteger(x) && x >= 1 && x <= 512);
     if (offsets.length === 0) continue;
     footprint = Math.max(footprint, ...offsets);
     // attribute lives on the (first) LogicalChannel's Attribute, falling back to InitialFunction
@@ -134,10 +134,11 @@ export function readPhysical(doc: Document, modes: FixtureMode[]): Pick<FixtureD
   // CCT: physical range of CTC / ColorTemperature channel functions
   const ks: number[] = [];
   for (const fn of Array.from(doc.querySelectorAll("ChannelFunction"))) {
-    if (!/^(CTC|ColorTemperature|CTO|CTB)$/i.test(attrAt(fn, "Attribute"))) continue;
+    const attribute = attrAt(fn, "Attribute") || (fn.parentElement ? attrAt(fn.parentElement, "Attribute") : "");
+    if (!/^(CTC|ColorTemperature)$/i.test(attribute)) continue;
     for (const v of [attrAt(fn, "PhysicalFrom"), attrAt(fn, "PhysicalTo")].map(parseFloat)) if (v >= 1000 && v <= 20000) ks.push(v);
   }
-  for (const em of Array.from(doc.querySelectorAll("Emitter"))) { const k = parseFloat(attrAt(em, "DominantWaveLength", "ColorTemperature")); if (k >= 1000 && k <= 20000) ks.push(k); }
+  for (const em of Array.from(doc.querySelectorAll("Emitter"))) { const k = parseFloat(attrAt(em, "ColorTemperature")); if (k >= 1000 && k <= 20000) ks.push(k); }
   if (ks.length) out.cctRange = [Math.round(Math.min(...ks)), Math.round(Math.max(...ks))];
   // Type: Beam LampType + emitters / channel layout
   const lamp = Array.from(doc.querySelectorAll("Beam")).map((b) => attrAt(b, "LampType")).find(Boolean) ?? "";
