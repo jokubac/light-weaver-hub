@@ -34,6 +34,12 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
       try {
         const list = await scanArtNet();
         setNodes(list);
+        // When the poll finds exactly one transmitter, auto-apply its detected
+        // model so the user can connect without touching the model list.
+        if (list.length === 1) {
+          const hit = detectTransmitter(list[0]!.name, list[0]!.universes);
+          if (hit) setConn({ ...conn, transmitter: hit.id });
+        }
         if (!list.length) setMsg("No transmitters answered the Art-Net poll on this network.");
       } catch {
         setMsg("Could not send UDP from this device.");
@@ -59,7 +65,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
 
   const pick = (n: Node) => {
     // auto-detect the transmitter model from the name it reports in the Art-Net reply
-    const hit = TRANSMITTERS.find((t) => n.name.toLowerCase().includes(t.model.toLowerCase().split(" ")[0]!) && n.name.toLowerCase().includes(t.brand.toLowerCase().split(" ")[0]!));
+    const hit = detectTransmitter(n.name, n.universes);
     setConn({ ...conn, node: { name: n.name, ip: n.ip }, transmitter: hit?.id ?? conn.transmitter });
   };
   const tx = getTransmitter(conn.transmitter ?? undefined);
@@ -106,7 +112,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
           {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
           {nodes.map((n) => (
             <button key={n.ip} onClick={() => pick(n)} className="flex w-full items-center justify-between rounded-lg bg-surface-elevated px-3 py-2.5 text-left text-sm">
-              <span><span className="block font-semibold">{n.name}</span><span className="font-mono text-[11px] text-muted-foreground">{n.ip}</span></span>
+              <span><span className="block font-semibold">{n.name}{(() => { const hit = detectTransmitter(n.name, n.universes); return hit ? <span className="ml-1.5 text-[11px] font-normal text-success">· {hit.brand} {hit.model}</span> : null; })()}</span><span className="font-mono text-[11px] text-muted-foreground">{n.ip}</span></span>
               {conn.node?.ip === n.ip && <Check className="h-4 w-4 text-success" />}
             </button>
           ))}
