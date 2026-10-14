@@ -1,4 +1,6 @@
 # Tasks
+- [ ] Clean the Patch sheet top bar: remove the duplicated project/scene title line, keeping back button only; title stays under the Add fixtures row.
+
 - [x] Add uploaded Godox AM1600R with original 11-byte Mode 07; restore available LiteGear/Lightstar XML profiles and merge exact Astera aliases. 2553 profiles; model-layout tests and Patch browser check pass.
 - [x] Remove unsupported power estimates; unknown watts stay blank. Hide bundled library copies and DXJ test entries from Custom fixtures without breaking patched lights.
 - [x] Favourite manufacturers and favourites-first fixture/mode lists; local persistence tests pass and browser confirms Godox is starred and first. Account sync verification waits on an authenticated session.

@@ -81,7 +81,6 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     <div className="fixed inset-0 z-40 flex flex-col bg-background">
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3 print:hidden">
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
-        <div className="mr-auto min-w-0 truncate text-xs text-muted-foreground">{title}</div>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col">
