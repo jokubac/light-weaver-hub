@@ -40,6 +40,7 @@ export const TRANSMITTERS: Transmitter[] = [
   T("Wireless Solution", "BlackBox F-1 G5", 1, ["W-DMX G5", "CRMX"]),
   T("Wireless Solution", "Rack Mount R-512 G4S", 1, ["W-DMX G4S"]),
   T("Exalux", "Connect One", 1, ["CRMX"], { artnetStart: 0, sacnStart: 1 }),
+  T("Exalux", "Connect+", 2, ["CRMX"], { artnetStart: 0, sacnStart: 1 }),
   T("Ratpac", "Ratpac Dimmer DMX Pro", 1, ["CRMX"], { protocols: ["artnet"] }),
   T("Aputure", "Sidus Link Bridge", 1, ["CRMX", "Sidus Mesh"], { protocols: ["artnet", "sacn"] }),
   T("Nanlite", "NanLink Box WS-TB-1", 1, ["NanLink", "CRMX"]),
