@@ -100,3 +100,5 @@
 - [x] Patch: fixtures hidden by default, Print/Export/Import/Add order, split screen with full DMX map; Equipment list moved to console GEAR button
 - [x] Bigger PATCH/CONTROL/PIXELS/FADERS/PLOT buttons; smaller name/universe/address in Control
 - [ ] Multi-transmitter output: NOX sends DMX to one transmitter IP at a time; add ability to output to two transmitters (Connect One + Connect+) on same network simultaneously
+- [x] Merge all uploaded GDTF archives (duplicates skipped) into a sharded offline library: 7144 fixtures, 2626 with pan/gobo.
+- [x] Position & Beam panel for moving heads: pan/tilt pad, shutter, gobo, zoom/focus/iris/frost/prism, framing blades; manufacturer defaults keep shutters open; saved in looks/REC.
