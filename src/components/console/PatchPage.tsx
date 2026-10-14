@@ -3,7 +3,6 @@ import { Fragment as Frag, useRef, useState } from "react";
 import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { NumberField } from "./NumberField";
 import { PatchPanel, LABEL_COLORS } from "./PatchPanel";
 import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
@@ -13,7 +12,7 @@ import { CallSheet } from "./CallSheet";
 import { NoxLogo } from "@/components/NoxLogo";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, type PatchSortKey } from "@/lib/patch-order";
+import { patchRows, movePatchFixture } from "@/lib/patch-order";
 
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
 export function describeDef(d: FixtureDef): { type: string; cct: string } {
@@ -35,13 +34,6 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const [editing, setEditing] = useState<string | null>(null);
   const [showCallSheet, setShowCallSheet] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
-  const swapPosition = (i: number, j: number) => {
-    const fs = [...fixtures]; const source = fs[i], target = fs[j];
-    if (!source || !target || i === j) return;
-    fs[i] = target; fs[j] = source; onReorder(fs);
-  };
-  const [sort, setSort] = useState<{ k: PatchSortKey; dir: 1 | -1 } | null>(null);
-  const sortBy = (k: PatchSortKey) => setSort((s) => ({ k, dir: s?.k === k && s.dir === 1 ? -1 : 1 }));
   const [drag, setDrag] = useState<{ uid: string; target: string } | null>(null);
   const dragRef = useRef<{ uid: string; target: string; y: number; moved: boolean } | null>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -53,7 +45,6 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     const target = fixtures.findIndex((f) => f.uid === current.target);
     if (target < 0) return;
     onReorder(movePatchFixture(fixtures, current.uid, target));
-    setSort(null);
   };
   const each = (p: Partial<PatchedFixture>) => picked.forEach((id) => onUpdate(id, p));
   const unpatch = () => {
@@ -63,7 +54,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   };
   const groupNames = Array.from(new Set(fixtures.map((f) => f.group).filter(Boolean))) as string[];
   const fileRef = useRef<HTMLInputElement>(null);
-  const rows = patchRows(fixtures, sort);
+  const rows = patchRows(fixtures, null);
   const totalW = fixtures.reduce((a, f) => a + fixtureWattage(f), 0);
   const exportPatch = async () => {
     const data = JSON.stringify({ kind: "kroma-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
@@ -119,10 +110,10 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
           {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet.</p> : (
             <table className="w-full border-collapse text-xs print:text-[9px]">
               <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="pr-1 print:hidden"></th><th className="py-2 pr-2"><Button variant="ghost" size="sm" onClick={() => sortBy("number")} title="Sort by fixture number" className="h-auto px-0 text-[10px]">#{sort?.k === "number" ? (sort.dir > 0 ? " ▲" : " ▼") : ""}</Button></th><th className="pr-2 print:hidden"></th>
+                <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2 print:hidden"></th>
                 {([["name", "Name"], ["fixture", "Fixture"], ["mode", "Mode"], ["univ", "Univ"], ["dmx", "DMX"], ["ch", "Ch"], ["group", "Group"]] as const).map(([k, l]) => (
                   <th key={k} className={`pr-2 ${k === "group" ? "print:hidden" : ""}`}>
-                    <Button variant="ghost" size="sm" onClick={() => sortBy(k)} title={`Sort by ${l}`} className={`h-auto px-0 text-[10px] uppercase tracking-wider hover:text-foreground print:pointer-events-none ${sort?.k === k ? "text-primary" : ""}`}>{l}{sort?.k === k ? (sort.dir > 0 ? " ▲" : " ▼") : ""}</Button>
+                    {l}
                   </th>
                 ))}
                 <th className="pr-2 print:hidden">W</th><th className="print:hidden"></th>
@@ -135,7 +126,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                   return (
                     <Frag key={f.uid}><tr data-patch-uid={f.uid} className={`border-b border-border/60 break-inside-avoid ${picked.includes(f.uid) ? "bg-muted/60" : ""} ${drag?.uid === f.uid ? "opacity-50" : ""} ${drag?.target === f.uid && drag.uid !== f.uid ? "outline outline-2 outline-primary" : ""}`}>
                       <td className="pr-2 print:hidden"><Checkbox checked={picked.includes(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6" /></td>
-                      <td className="py-1.5 pr-2 text-muted-foreground print:py-0.5"><NumberField integer min={1} max={fixtures.length} value={i + 1} onChange={(v) => { if (v !== undefined) swapPosition(i, v - 1); }} aria-label={`Fixture number for ${f.name}`} className="w-12 rounded-md border border-input bg-surface-elevated px-1.5 py-1.5 text-center font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring print:hidden" /><span className="hidden print:inline">{i + 1}</span></td>
+                      <td className="py-1.5 pr-2 font-mono text-muted-foreground print:py-0.5">{number}</td>
                       <td className="pr-2 print:hidden"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
                         <input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} aria-label="Fixture name" className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" /></td>
@@ -175,7 +166,6 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                             if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
                             e.preventDefault();
                             onReorder(movePatchFixture(fixtures, f.uid, i + (e.key === "ArrowUp" ? -1 : 1)));
-                            setSort(null);
                           }}><Menu className="h-4 w-4" /></Button>
                         <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
                       </td>

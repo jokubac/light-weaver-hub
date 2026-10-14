@@ -23,7 +23,7 @@
 - Multi-fixture patch layout lives in src/lib/patch-plan.ts; universe overflow is only applied after the user confirms.
 - Stage size remains a legacy framing/image reference, never a placement boundary; beam textures cover bounded fixture-local extents to keep unrestricted plots affordable.
 - Connection health measures bridge HTTP responsiveness with a slow threshold and timeout, not wireless fixture reception.
-- Console swaps and Patch number edits move whole fixtures without changing identity or settings. patch-order sorts views only; drag insertion changes canonical positions (keypad/PDF numbers).
+- Console swaps and Patch drag insertion move whole fixtures without changing identity or settings. Patch displays canonical positions as read-only numbers; drag insertion changes keypad/PDF positions.
 - REC steps reuse LookState snapshots (Project.recordings); src/lib/recordings.ts blends them by fade/hold timing.
 - Playback bank and cues live in Project.bank/Project.cues; applyBank (src/lib/playback.ts) changes output only, never live fixture state, so faders can't overwrite programming.
 - Imported fixtures (GDTF/builder/RDM) are stored in localStorage custom-fixtures and use FixtureMode.channelMap, so new lights need no code changes.

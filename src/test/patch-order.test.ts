@@ -9,6 +9,9 @@ const fixtures = [
 ];
 
 describe("Patch positions", () => {
+  it("displays canonical positions without sorting names or addresses", () => {
+    expect(patchRows(fixtures, null).map((r) => [r.fixture.uid, r.number])).toEqual([["a", 1], ["b", 2], ["c", 3]]);
+  });
   it("sorts names without changing fixture numbers or canonical order", () => {
     const rows = patchRows(fixtures, { k: "name", dir: 1 });
     expect(rows.map((r) => [r.fixture.uid, r.number])).toEqual([["b", 2], ["c", 3], ["a", 1]]);
