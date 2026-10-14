@@ -3,6 +3,7 @@ import { Fragment as Frag, useRef, useState } from "react";
 import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { NumberField } from "./NumberField";
 import { PatchPanel, LABEL_COLORS } from "./PatchPanel";
 import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
@@ -174,6 +175,25 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <div className="grid gap-3 md:grid-cols-2">
                         <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                         <div className="space-y-2">
+                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Mode
+                            <select value={f.modeIdx} aria-label={`Mode for ${f.name}`} onChange={(e) => {
+                              const modeIdx = Number(e.target.value);
+                              const mode = d.modes[modeIdx];
+                              if (!mode) return;
+                              onUpdate(f.uid, { modeIdx, address: Math.min(f.address, Math.max(1, 513 - mode.channels)) });
+                            }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm normal-case text-foreground">
+                              {d.modes.map((mode, idx) => <option key={idx} value={idx}>{mode.name} · {mode.channels} ch</option>)}
+                            </select>
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Universe
+                              <NumberField integer min={1} max={128} value={f.universe} aria-label={`Universe for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { universe: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />
+                            </label>
+                            <label className="block text-[10px] font-semibold uppercase text-muted-foreground">DMX address
+                              <NumberField integer min={1} max={Math.max(1, 513 - ch)} value={f.address} aria-label={`DMX address for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { address: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />
+                            </label>
+                          </div>
+                          {clash && <p role="alert" className="text-[11px] text-destructive">Overlaps {overlaps(fixtures, f.universe, f.address, ch, f.uid).map((fixture) => fixture.name).join(", ")}</p>}
                           <div className="text-[10px] font-semibold uppercase text-muted-foreground">Colour</div>
                           <div className="flex flex-wrap gap-1.5">{LABEL_COLORS.map((c) => <button key={c} onClick={() => onUpdate(f.uid, { label: c })} aria-label={`Colour ${c}`} className={`h-7 w-7 rounded-full border-2 ${f.label === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
                           <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Group
