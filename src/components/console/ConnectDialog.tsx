@@ -1,11 +1,15 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
-import { Wifi, Cable, Radar, Loader2, Check, Plus, Download, Smartphone, Router } from "lucide-react";
+import { Wifi, Cable, Radar, Loader2, Check, Plus, Download, Smartphone, Router, Bluetooth } from "lucide-react";
 import type { BridgeStatus } from "@/lib/output";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Connection } from "@/lib/store";
 import { TRANSMITTERS, getTransmitter, detectTransmitter } from "@/lib/transmitters";
-import { isNativeApp, scanArtNet } from "@/lib/native-udp";
+import { isNativeApp } from "@/lib/native-udp";
+import { Button } from "@/components/ui/button";
+import { NumberField } from "./NumberField";
+import { connectMoonLite, disconnectMoonLite } from "@/lib/moonlite";
+import type { DiscoveredNode } from "@/hooks/use-transmitter-discovery";
 
 interface Node { name: string; ip: string; universes?: number | undefined }
 
@@ -14,9 +18,9 @@ interface Node { name: string; ip: string; universes?: number | undefined }
  * bridge app on the same network that exposes GET http://<bridge>/nodes and forwards DMX.
  * The installed app (Android/iOS) can instead send UDP straight from the tablet.
  */
-export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { open: boolean; onOpenChange: (o: boolean) => void; conn: Connection; setConn: (c: Connection) => void; status: BridgeStatus }) {
-  const [scanning, setScanning] = useState(false);
-  const [nodes, setNodes] = useState<Node[]>([]);
+export function ConnectDialog({ open, onOpenChange, conn, setConn, status, discovery }: { open: boolean; onOpenChange: (o: boolean) => void; conn: Connection; setConn: (c: Connection) => void; status: BridgeStatus; discovery: { nodes: DiscoveredNode[]; scanning: boolean; error: string | null; scan: () => Promise<void> } }) {
+  const { scanning, nodes, scan } = discovery;
+  const [pairing, setPairing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [manual, setManual] = useState("");
   const native = isNativeApp();
@@ -28,39 +32,11 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const scan = async () => {
-    setScanning(true); setMsg(null); setNodes([]);
-    if (direct) {
-      try {
-        const list = await scanArtNet();
-        setNodes(list);
-        // When the poll finds exactly one transmitter, auto-apply its detected
-        // model so the user can connect without touching the model list.
-        if (list.length === 1) {
-          const hit = detectTransmitter(list[0]!.name, list[0]!.universes);
-          if (hit) setConn({ ...conn, transmitter: hit.id });
-        }
-        if (!list.length) setMsg("No transmitters answered the Art-Net poll on this network.");
-      } catch {
-        setMsg("Could not send UDP from this device.");
-      } finally {
-        setScanning(false);
-      }
-      return;
-    }
-    try {
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), 4000);
-      const res = await fetch(`http://${conn.bridge}/nodes?net=${conn.network}&proto=${conn.protocol}`, { signal: ctrl.signal });
-      clearTimeout(to);
-      const list = (await res.json()) as Node[];
-      setNodes(list);
-      if (!list.length) setMsg("Bridge found, but no transmitters answered the Art-Net poll.");
-    } catch {
-      setMsg(`No bridge found at ${conn.bridge}. A browser can't send Art-Net by itself — a small bridge app on a laptop or Raspberry Pi on the same ${conn.network === "wifi" ? "Wi-Fi" : "Ethernet"} network is needed. You can still enter the transmitter IP manually.`);
-    } finally {
-      setScanning(false);
-    }
+  const pair = async () => {
+    setPairing(true); setMsg(null);
+    try { const node = await connectMoonLite(); setConn({ ...conn, transport: "bluetooth", node, bluetoothUniverse: conn.bluetoothUniverse ?? 1 }); }
+    catch (e) { setMsg(e instanceof Error ? e.message : "Could not connect to MoonLite"); }
+    finally { setPairing(false); }
   };
 
   const pick = (n: Node) => {
@@ -77,13 +53,16 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
         <DialogHeader><DialogTitle>Connect to transmitter</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2">
-            <button onClick={() => setConn({ ...conn, transport: "direct" })} disabled={!native} className={`${opt(!!direct)} disabled:opacity-40`}>
+            <button onClick={() => { void disconnectMoonLite(); setConn({ ...conn, transport: "direct", node: conn.transport === "bluetooth" ? null : conn.node }); }} disabled={!native} className={`${opt(!!direct)} disabled:opacity-40`}>
               <Smartphone className="h-4 w-4" />Direct from this tablet
             </button>
-            <button onClick={() => setConn({ ...conn, transport: "bridge" })} className={opt(!direct)}>
+            <button onClick={() => { void disconnectMoonLite(); setConn({ ...conn, transport: "bridge", node: conn.transport === "bluetooth" ? null : conn.node }); }} className={opt(!direct && conn.transport !== "bluetooth")}>
               <Router className="h-4 w-4" />Via bridge computer
             </button>
           </div>
+          <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? "Connecting…" : "Connect MoonLite via Bluetooth"}</Button>
+          {conn.transport === "bluetooth" && <label className="block text-xs">MoonLite universe<NumberField integer min={1} max={128} value={conn.bluetoothUniverse ?? 1} onChange={(v) => { if (v !== undefined) setConn({ ...conn, bluetoothUniverse: v }); }} aria-label="MoonLite universe" className="ml-2 w-16 rounded border border-input bg-surface-elevated px-2 py-1" /></label>}
+          <div hidden={conn.transport === "bluetooth"} className="space-y-4">
           {!native && <p className="text-xs text-muted-foreground">Direct sending needs the installed NOX app — the browser can't send Art-Net/sACN UDP by itself.</p>}
           {!direct && (
             <div className="space-y-1.5 rounded-lg border border-border p-3 text-xs">
@@ -109,7 +88,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
           <button onClick={scan} disabled={scanning} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-glow py-3 text-sm font-bold text-primary-foreground disabled:opacity-50">
             {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radar className="h-4 w-4" />}{scanning ? "Scanning…" : `Scan for ${conn.protocol === "artnet" ? "Art-Net" : "sACN"} devices`}
           </button>
-          {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
+          {discovery.error && <p className="text-xs text-muted-foreground">{discovery.error}</p>}
           {nodes.map((n) => (
             <button key={n.ip} onClick={() => pick(n)} className="flex w-full items-center justify-between rounded-lg bg-surface-elevated px-3 py-2.5 text-left text-sm">
               <span><span className="block font-semibold">{n.name}{(() => { const hit = detectTransmitter(n.name, n.universes); return hit ? <span className="ml-1.5 text-[11px] font-normal text-success">· {hit.brand} {hit.model}</span> : null; })()}</span><span className="font-mono text-[11px] text-muted-foreground">{n.ip}</span></span>
@@ -120,14 +99,16 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status }: { o
             <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Transmitter IP, e.g. 2.0.0.10" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 font-mono text-sm" />
             <button type="submit" className="flex items-center gap-1 rounded-md bg-surface-elevated px-3 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add</button>
           </form>
+          </div>
+          {msg && <p role="alert" className="text-xs text-destructive">{msg}</p>}
           {conn.node && (
             <div className="flex items-center justify-between rounded-lg border border-success/50 px-3 py-2 text-sm">
               <span><Check className="mr-1 inline h-4 w-4 text-success" />{conn.node.name} <span className="font-mono text-xs text-muted-foreground">{conn.node.ip}</span></span>
               <span className={`text-[11px] ${status === "ok" ? "text-success" : status === "slow" ? "text-warning" : "text-destructive"}`}>{status === "error" ? (direct ? "send failed" : "bridge not answering") : status === "slow" ? "slow response" : status === "ok" ? (direct ? "sending directly" : "sending to bridge") : "disconnected"}</span>
-              <button onClick={() => setConn({ ...conn, node: null })} className="text-xs text-destructive">Disconnect</button>
+              <button onClick={() => { void disconnectMoonLite(); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">Disconnect</button>
             </div>
           )}
-          <div className="space-y-2 rounded-lg border border-border p-3 text-xs">
+          <div hidden={conn.transport === "bluetooth"} className="space-y-2 rounded-lg border border-border p-3 text-xs">
             <div className="font-semibold">Transmitter model</div>
             <select value={conn.transmitter ?? ""} onChange={(e) => setConn({ ...conn, transmitter: e.target.value || null })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm">
               <option value="">Not set</option>
