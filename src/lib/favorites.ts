@@ -1,13 +1,13 @@
 // Favourites (gels, fixture models, fixture+mode pairs) saved in localStorage and shared across all projects.
 import { useEffect, useState } from "react";
 
-export type FavKind = "gels" | "fixtures" | "modes";
+export type FavKind = "gels" | "fixtures" | "modes" | "manufacturers";
 const KEY = "crmx-console-favorites-v1";
 const EVT = "crmx-favorites";
 
 function read(): Record<FavKind, string[]> {
-  try { const r = localStorage.getItem(KEY); if (r) return { gels: [], fixtures: [], modes: [], ...JSON.parse(r) }; } catch { /* ignore */ }
-  return { gels: [], fixtures: [], modes: [] };
+  try { const r = localStorage.getItem(KEY); if (r) return { gels: [], fixtures: [], modes: [], manufacturers: [], ...JSON.parse(r) }; } catch { /* ignore */ }
+  return { gels: [], fixtures: [], modes: [], manufacturers: [] };
 }
 
 export function useFavorites(kind: FavKind) {
@@ -25,4 +25,9 @@ export function useFavorites(kind: FavKind) {
     window.dispatchEvent(new Event(EVT));
   };
   return { list, has: (id: string) => list.includes(id), toggle };
+}
+
+/** Stable favourites-first ordering; unstarred items keep their existing order. */
+export function favoritesFirst<T>(items: T[], isFavorite: (item: T) => boolean): T[] {
+  return [...items.filter(isFavorite), ...items.filter((item) => !isFavorite(item))];
 }

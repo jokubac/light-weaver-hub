@@ -1,7 +1,8 @@
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap } from "lucide-react";
-import { useFavorites } from "@/lib/favorites";
+import { favoritesFirst, useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
 import { FixtureIconPicker } from "./FixtureIconPicker";
@@ -45,6 +46,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [showMap, setShowMap] = useState(defaultMap);
   const fav = useFavorites("fixtures");
   const favModes = useFavorites("modes");
+  const favBrands = useFavorites("manufacturers");
   const star = (id: string) => ({ starred: fav.has(id), onStar: () => fav.toggle(id) });
   const universes = Array.from(new Set([1, ...fixtures.map((f) => f.universe)])).sort((a, b) => a - b);
 
@@ -53,13 +55,19 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   // library stays in dmx.ts solely so already-patched fixtures keep working.
   const [gdtfLib, setGdtfLib] = useState<LibraryDef[] | null>(null);
   useEffect(() => { if (!gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [gdtfLib]);
-  const gdtfHits = useMemo(() => (gdtfLib && q ? searchGdtfLibrary(gdtfLib, q, 60) : []), [gdtfLib, q]);
+  const gdtfHits = useMemo(() => (gdtfLib && q ? favoritesFirst(searchGdtfLibrary(gdtfLib, q, gdtfLib.length), (d) => fav.has(d.id) || favBrands.has(d.brand)).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list]);
   const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setQuery(""); } finally { setGdtfBusy(false); } };
+  const availableDefs = [...(gdtfLib ?? []), ...FIXTURE_LIBRARY.filter((d) => !(gdtfLib ?? []).some((g) => g.id === d.id))];
+  const chooseDef = async (d: FixtureDef, index: number | null = null) => {
+    const bundled = gdtfLib?.find((g) => g.id === d.id);
+    const installed = bundled ? await installGdtfFixture(bundled) : d;
+    setBrand(installed.brand); setDef(installed); setModeIdx(index);
+  };
   const favPairs = favModes.list.map((k) => {
     const [id, i] = [k.slice(0, k.lastIndexOf(":")), +k.slice(k.lastIndexOf(":") + 1)];
-    const d = FIXTURE_LIBRARY.find((x) => x.id === id);
+    const d = availableDefs.find((x) => x.id === id);
     return d && d.modes[i] ? { d, i, k } : null;
   }).filter((x): x is { d: FixtureDef; i: number; k: string } => !!x);
 
@@ -104,7 +112,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         <List>
           {gdtfHits.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Manufacturer GDTF{gdtfBusy ? " · loading…" : ""}</p>}
           {gdtfHits.map((d) => (
-            <Row key={`g-${d.id}`} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
+            <Row key={`g-${d.id}`} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
           {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? "No fixtures found" : "Loading fixture library…"}</p>}
         </List>
@@ -112,21 +120,21 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         <List>
           {favPairs.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixture + mode</p>}
           {favPairs.map(({ d, i, k }) => (
-            <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => { setBrand(d.brand); setDef(d); setModeIdx(i); }} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
+            <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => void chooseDef(d, i)} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
           ))}
           {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixtures</p>}
-          {FIXTURE_LIBRARY.filter((d) => fav.has(d.id)).map((d) => (
-            <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); }} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes`} />
+          {availableDefs.filter((d) => fav.has(d.id)).map((d) => (
+            <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes`} />
           ))}
           <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers{gdtfLib ? ` · ${gdtfLib.length} fixtures` : " · loading…"}</p>
-          {gdtfBrands.map((b) => (
-            <Row key={b} onClick={() => setBrand(b)} title={b} sub={`${gdtfLib!.filter((d) => d.brand === b).length} models`} />
+          {favoritesFirst(gdtfBrands, (b) => favBrands.has(b)).map((b) => (
+            <Row key={b} starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => setBrand(b)} title={b} sub={`${(gdtfLib ?? []).filter((d) => d.brand === b).length} models`} />
           ))}
         </List>
       ) : !def ? (
         <List>
-          {(gdtfLib ?? []).filter((d) => d.brand === brand).map((d) => (
-            <Row key={d.id} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
+          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand), (d) => fav.has(d.id)).map((d) => (
+            <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
         </List>
       ) : modeIdx === null ? (
@@ -135,7 +143,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
-          {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).sort((a, b) => a.n - b.n || a.i - b.i).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
+          {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).sort((a, b) => Number(favModes.has(modeKey(def.id, b.i))) - Number(favModes.has(modeKey(def.id, a.i))) || a.n - b.n || a.i - b.i).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
             <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={mo.name} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${mo.pixels ? ` · ${mo.pixels} px` : ""}`} />
           ))}
         </List>
@@ -301,6 +309,9 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
   const [rdmError, setRdmError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const custom = useCustomFixtures();
+  const [bundledIds, setBundledIds] = useState<Set<string>>(new Set());
+  useEffect(() => { void loadGdtfLibrary().then((items) => setBundledIds(new Set(items.map((d) => d.id))), () => {}); }, []);
+  const userFixtures = custom.list.filter((d) => !bundledIds.has(d.id) && !/\bdxj\b/i.test(`${d.brand} ${d.model}`));
 
   const handleGdtfFile = async (file: File) => {
     setGdtfMsg("Importing…");
@@ -385,10 +396,10 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
             )}
           </div>
 
-          {custom.list.length > 0 && (
+          {userFixtures.length > 0 && (
             <div className="space-y-1 rounded-md bg-surface p-2">
               <span className="text-[11px] font-semibold">Custom fixtures</span>
-              {custom.list.map((d) => (
+              {userFixtures.map((d) => (
                 <div key={d.id} className="flex items-center gap-2 rounded bg-surface-elevated px-2 py-1 text-[11px]">
                   <span className="min-w-0 flex-1 truncate">{d.brand} {d.model}</span>
                   <button
@@ -412,14 +423,14 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
 function Row({ title, sub, onClick, starred, onStar }: { title: string; sub: string; onClick: () => void; starred?: boolean; onStar?: () => void }) {
   return (
     <div className="flex w-full items-center rounded-lg bg-surface-elevated">
-      {onStar && <button onClick={onStar} className="py-2.5 pl-3" aria-label="Favourite"><Star className={`h-4 w-4 ${starred ? "fill-amber-glow text-amber-glow" : "text-muted-foreground"}`} /></button>}
-      <button onClick={onClick} className="flex min-w-0 flex-1 items-center justify-between px-3 py-2.5 text-left text-sm active:scale-[0.98]">
+      {onStar && <Button variant="ghost" size="icon" onClick={onStar} title={`Favourite ${title}`} aria-label={`Favourite ${title}`} aria-pressed={!!starred}><Star className={`h-4 w-4 ${starred ? "fill-amber-glow text-amber-glow" : "text-muted-foreground"}`} /></Button>}
+      <Button variant="ghost" onClick={onClick} className="h-auto min-w-0 flex-1 justify-between px-3 py-2.5 text-left text-sm active:scale-[0.98]">
         <span className="min-w-0">
           <span className="block truncate font-semibold">{title}</span>
           <span className="block text-[11px] text-muted-foreground">{sub}</span>
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
-      </button>
+      </Button>
     </div>
   );
 }
