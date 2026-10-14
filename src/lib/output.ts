@@ -8,6 +8,7 @@ import { asteraTokens, CELL_TOKENS } from "./astera";
 import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
 import { buildArtDmx, buildSacn, randomCid, sacnMulticastAddress, ARTNET_UDP_PORT, SACN_UDP_PORT } from "./artnet";
 import { isNativeApp, sendUdp } from "./native-udp";
+import { sendMoonLite } from "./moonlite";
 
 type RGB = [number, number, number];
 
@@ -190,7 +191,7 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
 /** One Uint8Array(512) per universe that has lights patched. */
 export function buildUniverses(fixtures: PatchedFixture[], t: number, level: number, frame: Map<string, RGB[]>, conn?: Connection) {
   const out = new Map<number, Uint8Array>();
-  const tx = conn?.autoMap ? getTransmitter(conn.transmitter ?? undefined) : undefined;
+  const tx = conn?.autoMap && conn.transport !== "bluetooth" ? getTransmitter(conn.transmitter ?? undefined) : undefined;
   const order: ColorOrder = tx?.order ?? "RGB";
   for (const f of fixtures) {
     if (tx && f.universe > tx.universes) continue; // transmitter can't carry this universe
@@ -212,6 +213,13 @@ function createDirectSender(onStatus: (s: BridgeStatus) => void) {
   const cid = randomCid();
   const set = (s: BridgeStatus) => { if (s !== status) { status = s; onStatus(s); } };
   return async (conn: Connection, universes: Map<number, Uint8Array>) => {
+    if (conn.transport === "bluetooth") {
+      if (!conn.node) { onStatus("off"); return; }
+      const data = universes.get(conn.bluetoothUniverse ?? 1) ?? new Uint8Array(512);
+      try { await sendMoonLite(conn.node.ip, data); onStatus("ok"); }
+      catch { onStatus("error"); }
+      return;
+    }
     if (!conn.node || !universes.size) { set("off"); return; }
     if (busy) return;
     const body = JSON.stringify({ protocol: conn.protocol, ip: conn.node.ip, universes: Object.fromEntries([...universes].map(([u, b]) => [u, Array.from(b)])) });

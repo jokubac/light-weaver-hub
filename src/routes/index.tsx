@@ -33,7 +33,8 @@ import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
 import { FixtureMenu } from "@/components/console/FixtureMenu";
-import { SettingsDialog, type BtDevice } from "@/components/console/SettingsDialog";
+import { SettingsDialog } from "@/components/console/SettingsDialog";
+import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
@@ -403,6 +404,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [panel, setPanel] = useState<Panel>("control");
   const [panelOpen, setPanelOpen] = useState(true);
   const [layers, setLayers] = useState<PixelLayer[]>(() => migrateLayers(scene));
+  const [pixelMaster, setPixelMaster] = useState(scene.pixelMaster ?? 1);
   const [pixelMix, setPixelMix] = useState<{ from: PixelLayer[]; k: number } | null>(null);
   const [locked, setLocked] = useState(true);
   const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
@@ -436,11 +438,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const latest = useRef({ fixtures, master, layers, plot });
-  latest.current = { fixtures, master, layers, plot };
+  const latest = useRef({ fixtures, master, layers, plot, pixelMaster });
+  latest.current = { fixtures, master, layers, plot, pixelMaster };
   const currentScene = (): Scene => {
     const { pixelMap: _legacy, ...rest } = scene;
-    return { ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot };
+    return { ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot, pixelMaster: latest.current.pixelMaster };
   };
   const save = () => onSave(currentScene());
   const restoreSetup = (setup: Scene) => {
@@ -448,6 +450,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     setPlotOpen(false);
     setFixtures(restored.fixtures);
     setMaster(restored.master);
+    setPixelMaster(restored.pixelMaster ?? 1);
     setLayers(migrateLayers(restored));
     setPlot(restored.plot ?? emptyPlot());
     setSelected([]);
@@ -478,7 +481,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mixFrom]);
-  const frame = pixelMix ? mixFrames(renderLayers(pixelMix.from, fixtures, t, mixMasks), baseFrame, pixelMix.k) : baseFrame;
+  const frame = applyPixelMaster(pixelMix ? mixFrames(renderLayers(pixelMix.from, fixtures, t, mixMasks), baseFrame, pixelMix.k) : baseFrame, pixelMaster);
 
   // Stream real DMX to the bridge (Art-Net / sACN → CRMX transmitter)
   const [bridge, setBridge] = useState<BridgeStatus>("off");
@@ -499,19 +502,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
 
   // Settings: Bluetooth + MIDI
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [bt, setBt] = useState<BtDevice[]>([]);
-  const connectBt = async () => {
-    try {
-      const { connectBluetoothBattery } = await import("@/lib/native-ble");
-      await connectBluetoothBattery(
-        (d) => setBt((b) => [...b.filter((x) => x.id !== d.id), { ...d, battery: null }]),
-        (id, v) => setBt((b) => b.map((x) => (x.id === id ? { ...x, battery: v } : x))),
-      );
-    } catch (e) {
-      const msg = (e as Error)?.message ?? "";
-      if (!/cancel/i.test(msg)) alert(`Bluetooth: ${msg || "could not connect"}. Turn on Bluetooth and allow Nearby devices for NOX.`);
-    }
-  };
 
   const [midi, setMidiState] = useState(() => ({ enabled: false, maps: [] as ReturnType<typeof loadMidi>["maps"] }));
   useEffect(() => { setMidiState(loadMidi()); }, []);
@@ -573,7 +563,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     }, 400);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fixtures, master, layers, plot]);
+  }, [fixtures, master, layers, plot, pixelMaster]);
   useEffect(() => {
     if (!savedFlash) return;
     const id = setTimeout(() => setSavedFlash(false), 1500);
@@ -947,7 +937,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} />
-      <SettingsDialog macros={macros} setMacros={setMacros} macroLearn={macroLearn} setMacroLearn={setMacroLearn} onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} bt={bt} connectBt={connectBt} midi={midi} setMidi={setMidi}
+      <SettingsDialog macros={macros} setMacros={setMacros} macroLearn={macroLearn} setMacroLearn={setMacroLearn} onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} midi={midi} setMidi={setMidi}
         onNanoKontrol={() => { const ch = (n: number) => `CC 1/${n}`; const keep = midi.maps.filter((m) => !m.key.startsWith("CC 1/")); setMidi({ ...midi, enabled: true, maps: [...keep, ...NANOKONTROL2.faders.map((n, i) => ({ key: ch(n), target: `bank:${i}`, label: `Fader ${i + 1}` })), { key: ch(NANOKONTROL2.master), target: "master", label: "Master" }, { key: ch(NANOKONTROL2.go), target: "cue:go", label: "GO" }, { key: ch(NANOKONTROL2.back), target: "cue:back", label: "Back" }, { key: ch(NANOKONTROL2.blackout), target: "blackout", label: "Blackout" }] }); }}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
         targets={[
@@ -1040,7 +1030,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
           ) : panel === "pixels" ? (
-            <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
+            <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
               const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
               if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
               setLayers(next);
