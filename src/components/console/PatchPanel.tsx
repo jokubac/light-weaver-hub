@@ -311,7 +311,7 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
   const custom = useCustomFixtures();
   const [bundledIds, setBundledIds] = useState<Set<string>>(new Set());
   useEffect(() => { void loadGdtfLibrary().then((items) => setBundledIds(new Set(items.map((d) => d.id))), () => {}); }, []);
-  const userFixtures = custom.list.filter((d) => !bundledIds.has(d.id) && !/\bdxj\b/i.test(`${d.brand} ${d.model}`));
+  const userFixtures = custom.list.filter((d) => !bundledIds.has(d.id) && !/\bdxj\b/i.test(`${d.id} ${d.brand} ${d.model}`));
 
   const handleGdtfFile = async (file: File) => {
     setGdtfMsg("Importing…");
