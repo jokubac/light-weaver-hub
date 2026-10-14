@@ -1,4 +1,7 @@
 # Tasks
+- [ ] Stage 2: pixel intensity master, speed ×/÷1.25 and 1.5, Hz/% display, live plot indicators, automatic transmitter discovery.
+- [ ] Stage 3: assess GDTF library access and correct fixture modes/CCT with verified profiles.
+- [ ] Stage 3: keep Wi-Fi and support direct MoonLite Bluetooth only if its protocol is available; remove lamp Bluetooth use.
 - [x] Edit Universe, DMX address and mode from the Patch sheet pencil; 7 tests passed and browser confirmed values persist after reload with fixture number unchanged.
 - [x] Restore plain Patch headings without sorting and read-only fixture numbers; retain drag reordering and console position changes.
 - [x] Add selected lights to an existing group with Add; tests and browser confirmed existing members stay.
