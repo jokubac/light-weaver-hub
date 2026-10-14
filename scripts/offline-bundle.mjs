@@ -1,7 +1,7 @@
 // Downloads the published NOX app (HTML + every JS/CSS chunk it can reach) into a
 // folder the Android/iOS apps bundle, so the installed app opens without internet.
 // Usage: node scripts/offline-bundle.mjs [siteUrl] [outDir]
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const SITE = (process.argv[2] || "https://light-weaver-hub.lovable.app").replace(/\/$/, "");
@@ -34,7 +34,8 @@ const refs = (text, base) => {
   return out;
 };
 refs(html, "/").forEach(add);
-["/app-release.json", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest", "/nox-logo.svg", "/crmx-bridge.mjs"].forEach(add);
+["/app-release.json", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest", "/nox-logo.svg", "/crmx-bridge.mjs", "/gdtf-library/library.json"].forEach(add);
+for (const f of await readdir(new URL("../public/gdtf-library/icons/", import.meta.url))) add(`/gdtf-library/icons/${f}`);
 
 while (queue.length) {
   const p = queue.shift();

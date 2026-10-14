@@ -24,3 +24,6 @@
 - Pixel preview framing stays local to PixelPanel and derives from the logical grid and measured viewport, keeping display changes independent of saved effects and output.
 - The console toolbar layer (sticky Select all/Sweep/REC bar) sits above the fixture number badges, so scrolled numbers slide under it instead of painting over it.
 
+
+- EffectsRail owns fixture/pixel effect saving and recall; ConsoleScreen shares the active pixel-layer ID with PixelPanel so the rail saves the layer being edited.
+- Pixel map uses pixel-preview with the shared live frame and all active fixture IDs so REC overlap stays visible without changing output.

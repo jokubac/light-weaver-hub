@@ -44,6 +44,8 @@ export interface FixtureDef {
   cctRange?: [number, number];
   /** light source description, e.g. "LED RGBW", "Bi-colour LED", "Tungsten", "HMI" */
   lightType?: string;
+  /** small fixture picture (data URL) drawn on the live plot */
+  icon?: string;
 }
 
 export function caps(kind: ModeKind) {

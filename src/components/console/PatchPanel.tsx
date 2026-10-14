@@ -12,6 +12,7 @@ import { importGdtfFile, buildMode } from "@/lib/gdtf";
 import { OFL_INDEX } from "@/lib/ofl-index";
 import { loadOflFixture } from "@/lib/ofl";
 import { addCustomFixture, useCustomFixtures } from "@/lib/custom-fixtures";
+import { loadGdtfLibrary, searchGdtfLibrary, installGdtfFixture, type LibraryDef } from "@/lib/gdtf-library";
 import { scanRdm, type RdmDevice } from "@/lib/rdm";
 import { loadConnection } from "@/lib/store";
 import { FixtureBuilder } from "./FixtureBuilder";
@@ -373,13 +374,13 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
       {open && (
         <div className="space-y-2 p-2 pt-0">
           <div className="flex flex-wrap gap-1.5">
-            <a href="https://www.gdtf.eu/gdtf/gdtf_fixturefinder/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Search className="h-3.5 w-3.5" />GDTF library</a>
             <input ref={fileRef} type="file" accept=".gdtf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleGdtfFile(f); e.target.value = ""; }} />
             <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><FileUp className="h-3.5 w-3.5" />Import GDTF</button>
             <button onClick={() => setBuilder(true)} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Wrench className="h-3.5 w-3.5" />Fixture builder</button>
             <button onClick={() => onPick(getDef("generic-dimmer"))} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Zap className="h-3.5 w-3.5" />Patch dimmer</button>
           </div>
           {gdtfMsg && <p className="text-[11px] text-muted-foreground">{gdtfMsg}</p>}
+          <GdtfLibrarySearch onPick={onPick} />
 
           <div className="space-y-1.5 rounded-md bg-surface p-2">
             <div className="flex items-center gap-1.5">
@@ -436,6 +437,36 @@ function Row({ title, sub, onClick, starred, onStar }: { title: string; sub: str
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
       </button>
+    </div>
+  );
+}
+
+function GdtfLibrarySearch({ onPick }: { onPick: (d: FixtureDef) => void }) {
+  const [q, setQ] = useState("");
+  const [list, setList] = useState<LibraryDef[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const hits = useMemo(() => (list ? searchGdtfLibrary(list, q) : []), [list, q]);
+  const open = () => { if (!list) loadGdtfLibrary().then(setList, () => setErr("Library could not be loaded.")); };
+  return (
+    <div className="space-y-1.5 rounded-md bg-surface p-2">
+      <div className="flex items-center gap-1.5">
+        <Search className="h-3.5 w-3.5 text-muted-foreground" />
+        <input value={q} onFocus={open} onChange={(e) => setQ(e.target.value)} placeholder={list ? `Search ${list.length} GDTF fixtures…` : "Search GDTF library…"} className="min-w-0 flex-1 rounded border border-input bg-surface-elevated px-2 py-1 text-[11px]" aria-label="Search GDTF library" />
+      </div>
+      {err && <p className="text-[11px] text-destructive">{err}</p>}
+      {q && list && hits.length === 0 && <p className="text-[11px] text-muted-foreground">No match.</p>}
+      {hits.length > 0 && (
+        <div className="max-h-56 space-y-1 overflow-y-auto">
+          {hits.map((d) => (
+            <button key={d.id} disabled={!!busy} onClick={async () => { setBusy(d.id); try { onPick(await installGdtfFixture(d)); setQ(""); } finally { setBusy(null); } }} className="flex w-full items-center gap-2 rounded bg-surface-elevated px-2 py-1 text-left text-[11px] disabled:opacity-50">
+              {d.icon ? <img src={`/gdtf-library/icons/${d.icon}`} alt="" loading="lazy" className="h-6 w-6 shrink-0 object-contain" /> : <span className="h-6 w-6 shrink-0" />}
+              <span className="min-w-0 flex-1 truncate"><span className="font-semibold">{d.brand}</span> {d.model}</span>
+              <span className="shrink-0 text-muted-foreground">{busy === d.id ? "…" : `${d.modes.length} modes`}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
