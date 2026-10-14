@@ -14,6 +14,7 @@ for (const d of all) {
   const brand = canonicalBrand(d.brand);
   if (!brand) continue;
   d.brand = brand;
+  // Only an exact model-specific lookup may supply missing power.
   if (!d.watts) { const w = specWatts(brand, d.model); if (w) d.watts = w; }
   const k = `${brand}|${modelKey(brand, d.model)}`;
   const cur = best.get(k);

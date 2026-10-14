@@ -50,8 +50,15 @@ export function modelKey(brand: string, model: string): string {
     const bk = key(b);
     if (bk && m.startsWith(bk) && m.length > bk.length) m = m.slice(bk.length);
   }
-  m = m.replace(/(centerinsertion|centreinsertion|90tocam|v\d+|rev\d+)$/g, "");
-  if (brand === "Astera") m = m.replace(/^(fp\d|ax\d|ast[a-z]+|af\d+)(?=[a-z]{3,})/, "").replace(/tube$/, "");
+  m = m.replace(/(centerinsertion|centreinsertion|90tocam|rev\d+)$/g, "");
+  if (brand === "Astera") {
+    const aliases: Record<string, string> = {
+      ax3: "ax3lightdrop", ax5: "ax5triplepar", ax2100: "ax2100pixelbar", ax250: "ax250pixelbar",
+      ax1: "ax1pixeltube", pluto: "af80plutofresnel", quickspot: "astqukspquikspot",
+      titantube: "fp1titantube", heliostube: "fp2heliostube", hyperiontube: "fp3hyperiontube",
+    };
+    m = aliases[m] ?? m;
+  }
   return m;
 }
 
@@ -83,7 +90,8 @@ export const SPEC_WATTS: [RegExp, number][] = [
 ];
 
 export function specWatts(brand: string, model: string): number | undefined {
-  const k = key(brand) + key(model);
-  for (const [re, w] of SPEC_WATTS) if (re.test(k)) return w;
-  return undefined;
+  const exact: Record<string, number> = {
+    arriskypanels30c: 250, arriskypanels60c: 450, arriskypanels120c: 800, arriskypanels360c: 1600,
+  };
+  return exact[key(brand) + key(model)];
 }
