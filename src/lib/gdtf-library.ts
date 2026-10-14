@@ -8,10 +8,11 @@ export type LibraryDef = FixtureDef & { icon?: string };
 let cache: Promise<LibraryDef[]> | null = null;
 
 export function loadGdtfLibrary(): Promise<LibraryDef[]> {
-  cache ??= fetch("/gdtf-library/library.json").then((r) => {
-    if (!r.ok) throw new Error("Library unavailable");
-    return r.json() as Promise<LibraryDef[]>;
-  }).catch((e) => { cache = null; throw e; });
+  const get = async <T,>(url: string): Promise<T> => { const r = await fetch(url); if (!r.ok) throw new Error("Library unavailable"); return r.json() as Promise<T>; };
+  // library.json is an index; fixtures are sharded to stay under repository file limits
+  cache ??= get<{ parts: number }>("/gdtf-library/library.json")
+    .then(async ({ parts }) => (await Promise.all(Array.from({ length: parts }, (_, i) => get<LibraryDef[]>(`/gdtf-library/library-${i + 1}.json`)))).flat())
+    .catch((e) => { cache = null; throw e; });
   return cache;
 }
 
