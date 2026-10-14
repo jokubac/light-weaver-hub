@@ -103,5 +103,5 @@
 - [x] Merge all uploaded GDTF archives (duplicates skipped) into a sharded offline library: 7144 fixtures, 2626 with pan/gobo.
 - [x] Position & Beam panel for moving heads: pan/tilt pad, shutter, gobo, zoom/focus/iris/frost/prism, framing blades; manufacturer defaults keep shutters open; saved in looks/REC.
 
-- [ ] Curate GDTF library: pro brands only, merged brand names, best profile per model
-- [ ] Fill missing fixture watts from manufacturer specs (web lookup)
+- [x] Curate GDTF library: pro brands only, merged brand names, best profile per model
+- [x] Fill missing fixture watts (cinema brands) from manufacturer specs (web lookup)
