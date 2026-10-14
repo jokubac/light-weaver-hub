@@ -116,3 +116,4 @@
 - [ ] Aputure STORM 80c / 1000c / XT52 verified profiles — need official DMX charts (RGBACL engine differs from 1200x)
 - [ ] Macro cursor frame brighter on fixture tiles
 - [ ] Verified wattage for cinema brands (157 fixtures)
+- [ ] Hold+tap range also deselects when held light is selected

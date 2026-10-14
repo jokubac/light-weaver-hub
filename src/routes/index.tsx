@@ -891,9 +891,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     if (a && a !== id) {
       // second finger while the first light is still held: select the whole range between them
       if (holdTimer.current) clearTimeout(holdTimer.current);
-      lastPick.current = a;
-      selectRange(id);
-      setSelected((s) => (s.includes(a) ? s : [...s, a]));
+      const ids = fixtures.map((f) => f.uid);
+      const i0 = ids.indexOf(a), i1 = ids.indexOf(id);
+      const span = ids.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
+      // holding an already selected light removes the range; otherwise it adds it
+      const remove = selectedRef.current.includes(a);
+      setSelected((s) => remove ? s.filter((x) => !span.includes(x)) : [...new Set([...s, ...span])]);
+      lastPick.current = id;
       skipClick.current.add(a); skipClick.current.add(id);
       navigator.vibrate?.(20);
       return;
