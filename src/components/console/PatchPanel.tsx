@@ -52,31 +52,14 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const universes = Array.from(new Set([1, ...fixtures.map((f) => f.universe)])).sort((a, b) => a - b);
 
   const q = query.trim().toLowerCase();
-  const searchHits = useMemo(
-    () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""} ${(RENTAL_STOCK[d.id] ?? []).join(" ")}`.toLowerCase().includes(q)).slice(0, 120) : []),
-    [q],
-  );
+  // Patch search/browse shows only the manufacturer GDTF library; the built-in
+  // library stays in dmx.ts solely so already-patched fixtures keep working.
   const [gdtfLib, setGdtfLib] = useState<LibraryDef[] | null>(null);
-  useEffect(() => { if (q && !gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [q, gdtfLib]);
+  useEffect(() => { if (!gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [gdtfLib]);
   const gdtfHits = useMemo(() => (gdtfLib && q ? searchGdtfLibrary(gdtfLib, q, 60) : []), [gdtfLib, q]);
-  const norm = (d: { brand: string; model: string }) => `${d.brand} ${d.model}`.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const gdtfNames = useMemo(() => new Set(gdtfHits.map(norm)), [gdtfHits]);
-  const builtHits = searchHits.filter((d) => d.id.startsWith("gdtf-") || !gdtfNames.has(norm(d)));
+  const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setQuery(""); } finally { setGdtfBusy(false); } };
-  const oflHits = useMemo(() => {
-    if (!q) return [];
-    const have = new Set(FIXTURE_LIBRARY.map((d) => `${d.brand} ${d.model}`.toLowerCase()));
-    return OFL_INDEX.filter(([, b, m]) => `${b} ${m}`.toLowerCase().includes(q) && !have.has(`${b} ${m}`.toLowerCase())).slice(0, 80);
-  }, [q]);
-  const [oflBusy, setOflBusy] = useState(false);
-  const [oflError, setOflError] = useState<string | null>(null);
-  const pickOfl = async (key: string, b: string) => {
-    setOflBusy(true); setOflError(null);
-    try { const d = await loadOflFixture(key, b); addCustomFixture(d); setBrand(d.brand); setDef(d); setQuery(""); }
-    catch (e) { setOflError(e instanceof Error ? e.message : "Download failed — check your internet connection."); }
-    finally { setOflBusy(false); }
-  };
   const favPairs = favModes.list.map((k) => {
     const [id, i] = [k.slice(0, k.lastIndexOf(":")), +k.slice(k.lastIndexOf(":") + 1)];
     const d = FIXTURE_LIBRARY.find((x) => x.id === id);
