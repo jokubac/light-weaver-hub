@@ -36,7 +36,7 @@ describe("Creamsource official charts", () => {
   });
   it("SpaceX scenario 1 is 10 slots with Amber and Fan", () => {
     const sx = byId("gdtf-creamsource-spacex-csx-1200-c");
-    const s1 = sx.modes[0];
+    const s1 = sx.modes[0]!;
     expect(s1.channels).toBe(10);
     expect(s1.channelMap!.map((c) => c.attr)).toEqual(["Dimmer", "CCT", "GM", "Crossfade", "Red", "Green", "Blue", "White", "Amber", "Spare"]);
   });
