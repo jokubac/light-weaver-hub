@@ -2,7 +2,7 @@
 // normalizes brand names and keeps the most complete profile per model.
 // Usage: bun scripts/gdtf-curate.ts
 import { readFileSync, writeFileSync, readdirSync, rmSync, existsSync } from "node:fs";
-import { BRAND_ALIASES, canonicalBrand, modelKey, profileScore } from "../src/lib/gdtf-curation";
+import { BRAND_ALIASES, canonicalBrand, modelKey, profileScore, specWatts } from "../src/lib/gdtf-curation";
 
 const out = "public/gdtf-library";
 const index = JSON.parse(readFileSync(`${out}/library.json`, "utf8"));
@@ -14,6 +14,7 @@ for (const d of all) {
   const brand = canonicalBrand(d.brand);
   if (!brand) continue;
   d.brand = brand;
+  if (!d.watts) { const w = specWatts(brand, d.model); if (w) d.watts = w; }
   const k = `${brand}|${modelKey(brand, d.model)}`;
   const cur = best.get(k);
   if (!cur || profileScore(d) > profileScore(cur)) best.set(k, d);
