@@ -117,6 +117,14 @@ export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map
       const p = local / step.fadeIn;
       const prev = rec.steps[k - 1]!;
       const from = strip(before);
+      // Pixel lights don't dim or blink through an overlap: the handover happens by swapping pixels,
+      // so the light's level just glides from the old cue's level to the new one.
+      const pixelLit = (s: RecStep | undefined) => !!s?.pixels?.some((l) => l.order.includes(f.uid));
+      if (pixelLit(step) || pixelLit(prev)) {
+        const prevRec = find(prev, f)?.state;
+        const a = prevRec ? applyTweak(prevRec, prev.tweak) : from;
+        return { ...blend({ ...a, on: true }, { ...target, on: true }, p), mix: undefined };
+      }
       // an outgoing cue without its own fade-out hands over across the incoming fade
       const fromLevel = prev.fadeOut > 0 ? from.intensity : from.intensity * (1 - p);
       const mixFrom = { ...from, intensity: from.on === false ? 0 : fromLevel, on: true };
