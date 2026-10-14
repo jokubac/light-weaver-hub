@@ -28,3 +28,5 @@
 - EffectsRail owns fixture/pixel effect saving and recall; ConsoleScreen shares the active pixel-layer ID with PixelPanel so the rail saves the layer being edited.
 - Pixel map uses pixel-preview with the shared live frame and all active fixture IDs so REC overlap stays visible without changing output.
 - Moving-head values live in PatchedFixture.beam; unset channels output GDTF defaults so shutters stay open. Library is sharded (library.json index) under the repo file limit.
+- Console swaps and Patch drag insertion move whole fixtures without changing identity or settings. Patch displays canonical positions as read-only numbers; drag insertion changes keypad/PDF positions.
+- Fixture FLASH and fader banks are output-only overlays in outFixtures, never mutating live fixture state; keypad numbers are console positions.
