@@ -288,6 +288,15 @@ export function channelMapPixels(map: ChannelMapEntry[]): number {
   const n = Math.max(count("Red"), count("Hue"), count("CCT"));
   return n >= 2 ? n : 0;
 }
+/** Modes named "… Pixel N" whose profile only describes one cell: repeat that cell N times. */
+export function namedPixelCells(mo: FixtureMode): FixtureMode | undefined {
+  const m = /\bpixel\s*(\d+)\b/i.exec(mo.name);
+  const n = m ? Number(m[1]) : 0;
+  const map = mo.channelMap;
+  if (!map || n < 2 || n * mo.channels > 512) return undefined;
+  if (!map.some((e) => e.attr === "Red" || e.attr === "Hue" || e.attr === "CCT")) return undefined;
+  return { ...mo, channels: n * mo.channels, pixels: n, channelMap: Array.from({ length: n }, () => map).flat() };
+}
 const derivedModes = new WeakMap<FixtureMode, FixtureMode>();
 export const getMode = (f: { defId: string; modeIdx: number }) => {
   const d = getDef(f.defId);
@@ -297,7 +306,8 @@ export const getMode = (f: { defId: string; modeIdx: number }) => {
   if (!out) {
     const spec = /astera/i.test(d.brand ?? "") ? asteraSpecFromName(mo.name, mo.channels) : undefined;
     const px = spec ? spec.px : channelMapPixels(mo.channelMap);
-    out = spec ? { ...mo, pixels: px, astera: spec } : px ? { ...mo, pixels: px } : mo;
+    const cell = !spec && !px ? namedPixelCells(mo) : undefined;
+    out = spec ? { ...mo, pixels: px, astera: spec } : px ? { ...mo, pixels: px } : cell ?? mo;
     derivedModes.set(mo, out);
   }
   return out;
