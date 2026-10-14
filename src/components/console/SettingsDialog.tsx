@@ -1,6 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEffect, useState } from "react";
-import { Music, Trash2, FolderOpen, Keyboard, Plus } from "lucide-react";
+import { Music, Trash2, FolderOpen, Keyboard, Plus, ChevronDown } from "lucide-react";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
