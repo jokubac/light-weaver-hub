@@ -70,7 +70,7 @@ const ALIASES: Record<string, string[]> = {
   "city-theatrical-multiverse-transmitter": ["city theatrical", "multiverse"],
   "wireless-solution-blackbox-f-1-g5": ["wireless solution", "blackbox", "w-dmx"],
   "wireless-solution-rack-mount-r-512-g4s": ["wireless solution", "w-dmx", "rack mount", "r-512"],
-  "exalux-connect-one": ["exalux", "connect one", "connect one"],
+  "exalux-connect-one": ["exalux", "connect one"],
   "exalux-connect": ["exalux", "connect+", "connect plus"],
   "ratpac-ratpac-dimmer-dmx-pro": ["ratpac", "dimmer dmx"],
   "aputure-sidus-link-bridge": ["aputure", "sidus"],

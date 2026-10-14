@@ -4,7 +4,7 @@ import { Wifi, Cable, Radar, Loader2, Check, Plus, Download, Smartphone, Router 
 import type { BridgeStatus } from "@/lib/output";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Connection } from "@/lib/store";
-import { TRANSMITTERS, getTransmitter } from "@/lib/transmitters";
+import { TRANSMITTERS, getTransmitter, detectTransmitter } from "@/lib/transmitters";
 import { isNativeApp, scanArtNet } from "@/lib/native-udp";
 
 interface Node { name: string; ip: string; universes?: number | undefined }
