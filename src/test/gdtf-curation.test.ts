@@ -10,6 +10,10 @@ describe("gdtf curation", () => {
     expect(canonicalBrand("User Test")).toBeNull();
     expect(canonicalBrand("SHEHDS")).toBeNull();
   });
+  it("keeps professional LiteGear and Lightstar manufacturers", () => {
+    expect(canonicalBrand("LiteGear")).toBe("LiteGear");
+    expect(canonicalBrand("Lightstar")).toBe("Lightstar");
+  });
   it("treats Titan variants as one model", () => {
     expect(modelKey("Astera", "Titan Tube")).toBe(modelKey("Astera", "FP1 Titan Tube"));
   });

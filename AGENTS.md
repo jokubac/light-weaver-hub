@@ -32,6 +32,7 @@
 - Plot edits share a browser-session unlock gate in plot-edit-session.ts; camera lens rendering and plotted view edges share the Z-up camera basis and tested projection helpers.
 - Fixture setting history uses the transfer whitelist and groups pointer gestures; playback/battery updates bypass history so Undo never repatches fixtures or records output frames.
 - Read src/components/console/AGENTS.md for console UI and output-integration rules before changes.
+- Bundled GDTF definitions remain locally cached for offline output but are excluded from user-created fixture lists; manufacturer favourites share the existing account-synced favourite store.
 - Windows app (electron/) loads the crawled offline bundle via app:// and exposes window.noxDesktop for UDP; native-udp.ts prefers it so DMX code stays shared across web, Capacitor and desktop.
 - iPad MIDI uses NOX's own CoreMIDI plugin in ios-native/, installed into the generated iOS project by ios-native/install.rb in CI; iOS builds need Xcode 16+ (macos-15) because Capacitor 8 plugins fail on older Swift.
 - offline-bundle.mjs strips the hosting "Edit with Lovable" badge so installed apps stay standalone.
