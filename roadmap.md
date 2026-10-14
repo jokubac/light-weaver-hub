@@ -117,3 +117,5 @@
 - [x] Macro cursor frame brighter on fixture tiles
 - [ ] Verified wattage for cinema brands (157 fixtures)
 - [x] Hold+tap range also deselects when held light is selected
+- [x] Macro cursor glow reduced ~50% (ring-2, warning/50)
+- [x] Patch: toolbar above visible PATCH SHEET heading
