@@ -9,16 +9,13 @@ import { FixtureGlyph } from "./FixtureGlyph";
 import type { FixtureIcon } from "@/lib/fixture-icons";
 import { planPatch } from "@/lib/patch-plan";
 import { importGdtfFile, buildMode } from "@/lib/gdtf";
-import { OFL_INDEX } from "@/lib/ofl-index";
-import { loadOflFixture } from "@/lib/ofl";
 import { addCustomFixture, useCustomFixtures } from "@/lib/custom-fixtures";
 import { loadGdtfLibrary, searchGdtfLibrary, installGdtfFixture, type LibraryDef } from "@/lib/gdtf-library";
 import { scanRdm, type RdmDevice } from "@/lib/rdm";
 import { loadConnection } from "@/lib/store";
 import { FixtureBuilder } from "./FixtureBuilder";
 import {
-  BRANDS,
-  FIXTURE_LIBRARY, RENTAL_STOCK,
+  FIXTURE_LIBRARY,
   createFixture,
   findFreeAddress,
   getDef,
@@ -52,31 +49,14 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const universes = Array.from(new Set([1, ...fixtures.map((f) => f.universe)])).sort((a, b) => a - b);
 
   const q = query.trim().toLowerCase();
-  const searchHits = useMemo(
-    () => (q ? FIXTURE_LIBRARY.filter((d) => `${d.brand} ${d.model}${d.modes.some((x) => x.pixels) ? " pixel" : ""} ${(RENTAL_STOCK[d.id] ?? []).join(" ")}`.toLowerCase().includes(q)).slice(0, 120) : []),
-    [q],
-  );
+  // Patch search/browse shows only the manufacturer GDTF library; the built-in
+  // library stays in dmx.ts solely so already-patched fixtures keep working.
   const [gdtfLib, setGdtfLib] = useState<LibraryDef[] | null>(null);
-  useEffect(() => { if (q && !gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [q, gdtfLib]);
+  useEffect(() => { if (!gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [gdtfLib]);
   const gdtfHits = useMemo(() => (gdtfLib && q ? searchGdtfLibrary(gdtfLib, q, 60) : []), [gdtfLib, q]);
-  const norm = (d: { brand: string; model: string }) => `${d.brand} ${d.model}`.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const gdtfNames = useMemo(() => new Set(gdtfHits.map(norm)), [gdtfHits]);
-  const builtHits = searchHits.filter((d) => d.id.startsWith("gdtf-") || !gdtfNames.has(norm(d)));
+  const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setQuery(""); } finally { setGdtfBusy(false); } };
-  const oflHits = useMemo(() => {
-    if (!q) return [];
-    const have = new Set(FIXTURE_LIBRARY.map((d) => `${d.brand} ${d.model}`.toLowerCase()));
-    return OFL_INDEX.filter(([, b, m]) => `${b} ${m}`.toLowerCase().includes(q) && !have.has(`${b} ${m}`.toLowerCase())).slice(0, 80);
-  }, [q]);
-  const [oflBusy, setOflBusy] = useState(false);
-  const [oflError, setOflError] = useState<string | null>(null);
-  const pickOfl = async (key: string, b: string) => {
-    setOflBusy(true); setOflError(null);
-    try { const d = await loadOflFixture(key, b); addCustomFixture(d); setBrand(d.brand); setDef(d); setQuery(""); }
-    catch (e) { setOflError(e instanceof Error ? e.message : "Download failed — check your internet connection."); }
-    finally { setOflBusy(false); }
-  };
   const favPairs = favModes.list.map((k) => {
     const [id, i] = [k.slice(0, k.lastIndexOf(":")), +k.slice(k.lastIndexOf(":") + 1)];
     const d = FIXTURE_LIBRARY.find((x) => x.id === id);
@@ -126,16 +106,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
           {gdtfHits.map((d) => (
             <Row key={`g-${d.id}`} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
-          {builtHits.length === 0 && gdtfHits.length === 0 && oflHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No fixtures found</p>}
-          {builtHits.length > 0 && <p className="text-[10px] text-muted-foreground">{builtHits.length} results · {FIXTURE_LIBRARY.length + OFL_INDEX.length} fixtures in library</p>}
-          {builtHits.map((d) => (
-            <Row key={d.id} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); setQuery(""); }} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
-          ))}
-          {oflHits.length > 0 && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Open Fixture Library{oflBusy ? " · loading…" : ""}</p>}
-          {oflError && <p className="text-[11px] text-destructive">{oflError}</p>}
-          {oflHits.map(([key, b, model, n]) => (
-            <Row key={key} onClick={() => void pickOfl(key, b)} title={model} sub={`${b} · ${n} modes · downloads profile`} />
-          ))}
+          {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? "No fixtures found" : "Loading fixture library…"}</p>}
         </List>
       ) : !brand ? (
         <List>
@@ -147,15 +118,15 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
           {FIXTURE_LIBRARY.filter((d) => fav.has(d.id)).map((d) => (
             <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => { setBrand(d.brand); setDef(d); }} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes`} />
           ))}
-          {(fav.list.length > 0 || favPairs.length > 0) && <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers</p>}
-          {BRANDS.map((b) => (
-            <Row key={b} onClick={() => setBrand(b)} title={b} sub={`${FIXTURE_LIBRARY.filter((d) => d.brand === b).length} models`} />
+          <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers{gdtfLib ? ` · ${gdtfLib.length} fixtures` : " · loading…"}</p>
+          {gdtfBrands.map((b) => (
+            <Row key={b} onClick={() => setBrand(b)} title={b} sub={`${gdtfLib!.filter((d) => d.brand === b).length} models`} />
           ))}
         </List>
       ) : !def ? (
         <List>
-          {FIXTURE_LIBRARY.filter((d) => d.brand === brand).map((d) => (
-            <Row key={d.id} {...star(d.id)} onClick={() => setDef(d)} title={d.model} sub={`${d.modes.length} modes${d.modes.some((x) => x.pixels) ? " · pixel" : ""}`} />
+          {(gdtfLib ?? []).filter((d) => d.brand === brand).map((d) => (
+            <Row key={d.id} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
         </List>
       ) : modeIdx === null ? (
