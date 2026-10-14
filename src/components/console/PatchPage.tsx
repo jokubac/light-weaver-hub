@@ -167,7 +167,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                               if (e.clientY > bounds.bottom - 60) main.scrollTop += 18;
                             }
                             const row = document.elementsFromPoint(e.clientX, e.clientY).map((el) => el.closest<HTMLElement>("tr[data-patch-uid]")).find(Boolean);
-                            const target = row?.dataset.patchUid;
+                            const target = row?.dataset["patchUid"];
                             if (target) { current.target = target; setDrag({ uid: current.uid, target }); }
                           }}
                           onPointerUp={() => finishDrag()} onPointerCancel={() => finishDrag(true)} onLostPointerCapture={() => finishDrag(true)}
