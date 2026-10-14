@@ -180,7 +180,7 @@ const ASTERA_FRESNEL_MODES: FixtureMode[] = [
   mm("89 D CCT GM CRO RGB", [[F_CCTRGB, false]]),
   mm("90 D CCT GM HUE SAT", [[F_CCTHS, false]]),
   mm("91 D16 CCT GM C RGB", [[["Dimmer"], true], [["CCT", GM, "Crossfade", "Red", "Green", "Blue"], false]]),
-  mm("92 D16 CCT GM H SAT", [[["Dimmer"], true], [["CCT", GM, "Hue", "Saturation"], false]]),
+  mm("92 D16 CCT GM H SAT", [[["Dimmer"], true], [["CCT", GM], false], [["Hue"], true], [["Saturation"], false]]),
   mm("93 D16 X Y", [[["Dimmer"], true], [XY, true]]),
 ];
 

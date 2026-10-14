@@ -64,9 +64,9 @@ describe("Astera Fresnel official chart", () => {
 describe("Quasar RR official chart", () => {
   it("RR50 has 8 pixels, RR100 has 16, per-pixel footprints", () => {
     const rr50 = byId("gdtf-quasar-science-double-rainbow-2ft");
-    const hsic = rr50.modes[0];
+    const hsic = rr50.modes[0]!;
     expect(hsic.pixels).toBe(8);
     expect(hsic.channels).toBe(8 * 5);
-    expect(byId("gdtf-quasar-science-double-rainbow-4ft").modes[0].channels).toBe(16 * 5);
+    expect(byId("gdtf-quasar-science-double-rainbow-4ft").modes[0]!.channels).toBe(16 * 5);
   });
 });
