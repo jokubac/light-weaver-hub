@@ -427,7 +427,7 @@ function Row({ title, sub, onClick, starred, onStar }: { title: string; sub: str
       <Button variant="ghost" onClick={onClick} className="h-auto min-w-0 flex-1 justify-between px-3 py-2.5 text-left text-sm active:scale-[0.98]">
         <span className="min-w-0">
           <span className="block truncate font-semibold">{title}</span>
-          <span className="block text-[11px] text-muted-foreground">{sub}</span>
+          <span className="block whitespace-normal text-[11px] text-muted-foreground">{sub}</span>
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
       </Button>

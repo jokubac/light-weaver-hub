@@ -1,7 +1,8 @@
 # Tasks
-- [ ] Add uploaded Godox AM1600R; audit missing Arclight models and fix remaining duplicates without inventing profiles.
-- [ ] Remove unsupported power estimates and hide library copies from Custom fixtures; remove DXJ test entries.
-- [ ] Favourite manufacturers and favourites-first fixture/mode lists; verify persistence and ordering.
+- [x] Add uploaded Godox AM1600R with original 11-byte Mode 07; restore available LiteGear/Lightstar XML profiles and merge exact Astera aliases. 2553 profiles; model-layout tests and Patch browser check pass.
+- [x] Remove unsupported power estimates; unknown watts stay blank. Hide bundled library copies and DXJ test entries from Custom fixtures without breaking patched lights.
+- [x] Favourite manufacturers and favourites-first fixture/mode lists; local persistence tests pass and browser confirms Godox is starred and first. Account sync verification waits on an authenticated session.
+- [ ] Remaining Arclight model-specific modes and wattage verification — requires verified model-specific charts; do not substitute similar fixture protocols or infer watts.
 - [x] Stage 2: pixel master, ×/÷1.25/1.5/2, Hz/% display, plot indicators and background discovery; tests and browser verified controls/persistence.
 - [x] Stage 3: GDTF library link and offset/CCT import correction; preserve unknown channel positions and declared physical CCT bounds.
 - [ ] Stage 3: replace inaccurate built-in modes with manufacturer-verified profiles — GDTF downloads require an account; verified profile files not supplied. Geometry references/multifunction channels need expanded import support before claiming full GDTF compatibility.

@@ -637,7 +637,7 @@ const RAW: [ArclightCategory, string, string][] = [
 [
 "fixture",
 "Led",
-"Astera BYX 8pcs set"
+"Astera NYX 8pcs set"
 ],
 [
 "fixture",
