@@ -18,7 +18,7 @@ export interface Transmitter {
 }
 
 const T = (brand: string, model: string, universes: number, radio: string[], o: Partial<Transmitter> = {}): Transmitter => ({
-  id: `${brand}-${model}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+  id: `${brand}-${model}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
   brand, model, universes, radio, protocols: ["artnet", "sacn"], artnetStart: 0, sacnStart: 1, order: "RGB", ...o,
 });
 
