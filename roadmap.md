@@ -89,3 +89,4 @@
 - [x] Side bar tabs Looks / Effects / REC with labelled toggle
 - [x] Patch: fixtures hidden by default, Print/Export/Import/Add order, split screen with full DMX map; Equipment list moved to console GEAR button
 - [x] Bigger PATCH/CONTROL/PIXELS/FADERS/PLOT buttons; smaller name/universe/address in Control
+- [ ] Multi-transmitter output: NOX sends DMX to one transmitter IP at a time; add ability to output to two transmitters (Connect One + Connect+) on same network simultaneously
