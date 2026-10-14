@@ -768,9 +768,17 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     setFixtures((fs) => fs.map((f) => ids.includes(f.uid) ? { ...f, ...commandPatch(f, command) } : f));
   };
   const stepLight = (dir: 1 | -1, add = false) => {
-    const r = stepSelection(fixtures.map((f) => f.uid), selected, lastPick.current, dir, add);
+    const ids = fixtures.map((f) => f.uid);
+    // after Select was pressed, Next/Previous only move the cursor so you can walk to any light and Select it too
+    if (!add && browsing.current && selected.length) {
+      const from = ids.indexOf(cursor ?? lastPick.current ?? "");
+      const next = ids[(from < 0 ? 0 : from + dir + ids.length) % ids.length];
+      if (next) { setCursor(next); lastPick.current = next; }
+      return;
+    }
+    const r = stepSelection(ids, selected, lastPick.current, dir, add);
     if (!r) return;
-    setSelected(r.selection); lastPick.current = r.lastPick;
+    setSelected(r.selection); lastPick.current = r.lastPick; setCursor(r.lastPick);
   };
   macroRef.current.run = (m: Macro) => {
     const c = macroCommand(m);
@@ -782,9 +790,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     else if (m.action === "prev") stepLight(-1);
     else if (m.action === "prev_add") stepLight(-1, true);
     else if (m.action === "select") {
-      // works like tapping a light: toggles the current light (the one Next/Previous moved to)
-      const id = lastPick.current ?? fixtures[0]?.uid;
-      if (id) { setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id])); lastPick.current = id; }
+      // works like tapping a light: toggles the light under the cursor and starts multi-select browsing
+      const id = cursor ?? lastPick.current ?? fixtures[0]?.uid;
+      if (id) { setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id])); lastPick.current = id; setCursor(id); browsing.current = true; }
     }
     else if (m.action === "invert") setSelected((s) => fixtures.filter((f) => !s.includes(f.uid)).map((f) => f.uid));
     else if (m.action === "copy") copySettings();
