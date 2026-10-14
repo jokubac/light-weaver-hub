@@ -84,7 +84,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
         <div className="mr-auto flex min-w-0 flex-col items-start gap-1.5">
           <Button size="sm" variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Close the fixture list" : "Open the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Close fixtures" : "Add fixtures"}</Button>
-          <div className="max-w-full truncate font-display text-lg font-semibold">{title}</div>
+          <div className="max-w-full truncate text-xs text-muted-foreground">{title}</div>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex flex-wrap justify-end gap-2">
@@ -98,8 +98,8 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col">
         <main ref={mainRef} className="patch-print min-h-0 flex-1 overflow-auto p-4">
-          <div className="mb-3 hidden items-center justify-between gap-3 print:mb-2 print:flex print:border-b print:pb-2">
-            <div className="flex min-w-0 items-center gap-2"><NoxLogo className="h-8 w-8 shrink-0" /><h1 className="truncate font-display text-base font-semibold">{title} — Patch sheet</h1></div>
+          <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2 print:mb-2">
+            <div className="flex min-w-0 items-center gap-2"><NoxLogo className="h-8 w-8 shrink-0" /><h1 className="truncate font-display text-base font-semibold uppercase tracking-wider">{title} — Patch sheet</h1></div>
             <span className="text-xs text-muted-foreground">{fixtures.length} fixtures{totalW ? ` · ${totalW} W` : ""} · {new Date().toLocaleDateString()}</span>
           </div>
           {rows.length > 0 && (
