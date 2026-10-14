@@ -37,7 +37,7 @@ describe("Fixture icon persistence", () => {
 describe("Collapsible named groups", () => {
   it("hides group details while keeping selection and rename available", () => {
     const fixture = { ...createFixture(getDef("astera-titan-tube"), 0, 1, 1, "Titan"), group: "Key" };
-    render(<GroupsPanel fixtures={[fixture]} selected={[]} onSelect={() => {}} onCreate={() => {}} onRename={() => {}} onUngroup={() => {}} onUpdate={() => {}} onCopy={() => {}} />);
+    render(<GroupsPanel fixtures={[fixture]} selected={[]} onSelect={() => {}} onCreate={() => {}} onRename={() => {}} onUngroup={() => {}} onUpdate={() => {}} onCopy={() => {}} onRemoveMember={() => {}} />);
     expect(screen.getByRole("slider", { name: "Key intensity" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Collapse group Key" }));
     expect(screen.queryByRole("slider", { name: "Key intensity" })).toBeNull();

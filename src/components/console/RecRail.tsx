@@ -17,11 +17,13 @@ export const makeStep = (src: PatchedFixture[], n: number, pixels?: PixelLayer[]
 });
 
 /** REC dialog: save the selected lights as a new recording or as the next cue of an existing one. */
-export function RecDialog({ open, onOpenChange, src, recordings, setRecordings, pixels }: {
-  open: boolean; onOpenChange: (o: boolean) => void; src: PatchedFixture[]; recordings: Recording[]; setRecordings: (r: Recording[]) => void; pixels?: PixelLayer[];
+export function RecDialog({ open, onOpenChange, selected, all, recordings, setRecordings, pixels }: {
+  open: boolean; onOpenChange: (o: boolean) => void; selected: PatchedFixture[]; all: PatchedFixture[]; recordings: Recording[]; setRecordings: (r: Recording[]) => void; pixels?: PixelLayer[];
 }) {
   const [name, setName] = useState("");
   const [naming, setNaming] = useState(false);
+  const [scope, setScope] = useState<"sel" | "all">("sel");
+  const src = scope === "sel" && selected.length ? selected : all;
   const create = () => {
     const n = name.trim() || `REC ${recordings.length + 1}`;
     setRecordings([{ id: uid(), name: n, createdAt: Date.now(), steps: [makeStep(src, 1, pixels)] }, ...recordings]);
@@ -32,7 +34,7 @@ export function RecDialog({ open, onOpenChange, src, recordings, setRecordings, 
     onOpenChange(false);
   };
   const [showCues, setShowCues] = useState<string | null>(null);
-  /** replace the selected lights' states (and pixels) in an existing cue; timing and tweaks stay */
+  /** replace the chosen lights' states (and pixels) in an existing cue; timing and tweaks stay */
   const update = (rid: string, sid: string) => {
     const fresh = makeStep(src, 0, pixels);
     setRecordings(recordings.map((r) => (r.id !== rid ? r : { ...r, steps: r.steps.map((st) => (st.id !== sid ? st : {
@@ -44,6 +46,10 @@ export function RecDialog({ open, onOpenChange, src, recordings, setRecordings, 
     <Dialog open={open} onOpenChange={(o) => { if (!o) setNaming(false); onOpenChange(o); }}>
       <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader><DialogTitle>REC — {src.length} light{src.length === 1 ? "" : "s"}</DialogTitle></DialogHeader>
+        <div role="radiogroup" aria-label="Record which lights" className="grid grid-cols-2 gap-1 rounded-lg bg-surface-elevated p-1">
+          <button role="radio" aria-checked={scope === "sel"} disabled={!selected.length} onClick={() => setScope("sel")} className={`rounded-md py-1.5 text-xs font-bold disabled:opacity-40 ${scope === "sel" && selected.length ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Selected ({selected.length})</button>
+          <button role="radio" aria-checked={scope === "all" || !selected.length} onClick={() => setScope("all")} className={`rounded-md py-1.5 text-xs font-bold ${scope === "all" || !selected.length ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>All lights ({all.length})</button>
+        </div>
         <div className="space-y-3">
           {!naming ? (
             <button onClick={() => setNaming(true)} className="w-full rounded-lg bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground">+ Create new REC</button>

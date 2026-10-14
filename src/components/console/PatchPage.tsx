@@ -40,6 +40,27 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     fs[i] = target; fs[j] = source; onReorder(fs);
   };
   const move = (i: number, d: number) => swapPosition(i, i + d);
+  type SortKey = "name" | "fixture" | "mode" | "univ" | "dmx" | "ch" | "group";
+  const [sort, setSort] = useState<{ k: SortKey; dir: 1 | -1 } | null>(null);
+  /** Renumber the whole patch by a column; clicking the same column again flips the order. */
+  const sortBy = (k: SortKey) => {
+    const dir: 1 | -1 = sort?.k === k && sort.dir === 1 ? -1 : 1;
+    const val = (f: PatchedFixture): string | number => {
+      const d = getDef(f.defId); const m = d.modes[f.modeIdx];
+      switch (k) {
+        case "name": return f.name; case "fixture": return `${d.brand} ${d.model}`; case "mode": return m?.name ?? "";
+        case "univ": return f.universe * 1000 + f.address; case "dmx": return f.universe * 1000 + f.address;
+        case "ch": return m?.channels ?? 1; case "group": return f.group ?? "\uffff";
+      }
+    };
+    const cmp = (a: PatchedFixture, b: PatchedFixture) => {
+      const x = val(a), y = val(b);
+      const r = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true });
+      return r || (a.universe - b.universe) || (a.address - b.address);
+    };
+    setSort({ k, dir });
+    onReorder([...fixtures].sort((a, b) => cmp(a, b) * dir));
+  };
   const each = (p: Partial<PatchedFixture>) => picked.forEach((id) => onUpdate(id, p));
   const unpatch = () => {
     if (!picked.length) return;
@@ -104,7 +125,13 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
           {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet.</p> : (
             <table className="w-full border-collapse text-xs print:text-[9px]">
               <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2 print:hidden"></th><th className="pr-2">Name</th><th className="pr-2">Fixture</th><th className="pr-2">Mode</th><th className="pr-2">Univ</th><th className="pr-2">DMX</th><th className="pr-2">Ch</th><th className="pr-2 print:hidden">Group</th><th className="pr-2 print:hidden">W</th><th className="print:hidden"></th>
+                <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2 print:hidden"></th>
+                {([["name", "Name"], ["fixture", "Fixture"], ["mode", "Mode"], ["univ", "Univ"], ["dmx", "DMX"], ["ch", "Ch"], ["group", "Group"]] as const).map(([k, l]) => (
+                  <th key={k} className={`pr-2 ${k === "group" ? "print:hidden" : ""}`}>
+                    <button onClick={() => sortBy(k)} title={`Renumber the patch by ${l}`} className={`uppercase tracking-wider hover:text-foreground print:pointer-events-none ${sort?.k === k ? "text-primary" : ""}`}>{l}{sort?.k === k ? (sort.dir > 0 ? " ▲" : " ▼") : ""}</button>
+                  </th>
+                ))}
+                <th className="pr-2 print:hidden">W</th><th className="print:hidden"></th>
               </tr></thead>
               <tbody>
                 {rows.map((f, i) => {
