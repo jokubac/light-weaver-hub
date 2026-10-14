@@ -1,5 +1,6 @@
 # Tasks
 - [x] Patch top bar meta line cleaned: fixture count, watts and an ISO date (2026-10-14) on one non-wrapping row; browser verified at 1280 px.
+- [x] Move the fixture/watt/date line out of the Patch top bar to the right of Unpatch in the sticky selection toolbar; empty patches keep the count and date in the top bar; browser verified at 1530 px.
 - [x] Patch sheet: duplicated title line removed from the top bar; Add fixtures, Save PDF, Export, Import and the fixture/watt/date line sit right-aligned in the top bar; the fixture panel opens as a split screen taking 60 % of the window. Browser verified at 1280 px.
 
 - [x] Add uploaded Godox AM1600R with original 11-byte Mode 07; restore available LiteGear/Lightstar XML profiles and merge exact Astera aliases. 2553 profiles; model-layout tests and Patch browser check pass.

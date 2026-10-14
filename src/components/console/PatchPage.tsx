@@ -85,7 +85,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <Button size="sm" variant="secondary" onClick={savePdf} title="Save the patch sheet as a PDF"><Printer />Save PDF</Button>
         <Button size="sm" variant="secondary" onClick={exportPatch}><Download />Export</Button>
         <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
-        <span className="ml-1 whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures{totalW ? ` · ${totalW} W` : ""} · {new Date().toLocaleDateString("sv-SE")}</span>
+        {rows.length === 0 && <span className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures · {new Date().toLocaleDateString("sv-SE")}</span>}
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
@@ -104,6 +104,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                 <button onClick={() => { const g = prompt(`Group name${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove`); if (g !== null) each({ group: g.trim() || undefined } as never); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Group…</button>
               </>}
               <button onClick={unpatch} disabled={!picked.length} className="ml-auto flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1.5 font-semibold text-destructive-foreground disabled:opacity-40"><Unplug className="h-3.5 w-3.5" />Unpatch{picked.length ? ` (${picked.length})` : ""}</button>
+              <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures{totalW ? ` · ${totalW} W` : ""} · {new Date().toLocaleDateString("sv-SE")}</span>
             </div>
           )}
           {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet.</p> : (
