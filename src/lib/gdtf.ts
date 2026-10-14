@@ -109,8 +109,12 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
   const geoRoot = modeGeo ? Array.from(doc.querySelectorAll("Geometries *")).find((g) => g.getAttribute("Name") === modeGeo && g.tagName !== "GeometryReference") : undefined;
   const refsFor = (geometry: string, dmxBreak: string): number[] => {
     if (!geometry || !geoRoot) return [];
+    // a channel on a child of a template geometry repeats with every reference to that template
+    const names = new Set<string>([geometry]);
+    let el: Element | null | undefined = Array.from(doc.querySelectorAll("Geometries *")).find((g) => g.getAttribute("Name") === geometry && g.tagName !== "GeometryReference");
+    while (el && el.tagName !== "Geometries") { const n = el.getAttribute("Name"); if (n) names.add(n); el = el.parentElement; }
     return Array.from(geoRoot.querySelectorAll("GeometryReference"))
-      .filter((r) => r.getAttribute("Geometry") === geometry)
+      .filter((r) => names.has(r.getAttribute("Geometry") ?? ""))
       .map((r) => {
         const b = Array.from(r.querySelectorAll("Break")).find((x) => (x.getAttribute("DMXBreak") ?? "1") === dmxBreak) ?? r.querySelector("Break");
         return parseInt(b?.getAttribute("DMXOffset") ?? "", 10);
