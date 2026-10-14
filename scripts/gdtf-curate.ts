@@ -2,6 +2,7 @@
 // normalizes brand names and keeps the most complete profile per model.
 // Usage: bun scripts/gdtf-curate.ts
 import { readFileSync, writeFileSync, readdirSync, rmSync, existsSync } from "node:fs";
+import { VERIFIED_FIXTURES } from "../src/lib/verified-fixtures";
 import { BRAND_ALIASES, canonicalBrand, modelKey, profileScore, specWatts } from "../src/lib/gdtf-curation";
 
 const out = "public/gdtf-library";
@@ -23,6 +24,8 @@ for (const d of all) {
   const cur = best.get(k);
   if (!cur || profileScore(d) > profileScore(cur)) best.set(k, d);
 }
+// Official manufacturer charts replace community profiles of the same model.
+for (const v of VERIFIED_FIXTURES) best.set(`${v.brand}|${modelKey(v.brand, v.model)}`, { ...(best.get(`${v.brand}|${modelKey(v.brand, v.model)}`)?.icon ? { icon: best.get(`${v.brand}|${modelKey(v.brand, v.model)}`).icon } : {}), ...v });
 const defs = [...best.values()].sort((a, b) => `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`));
 
 const parts: any[][] = [[]]; let size = 0;
