@@ -30,3 +30,4 @@
 - Moving-head values live in PatchedFixture.beam; unset channels output GDTF defaults so shutters stay open. Library is sharded (library.json index) under the repo file limit.
 - Console swaps and Patch drag insertion move whole fixtures without changing identity or settings. Patch displays canonical positions as read-only numbers; drag insertion changes keypad/PDF positions.
 - Fixture FLASH and fader banks are output-only overlays in outFixtures, never mutating live fixture state; keypad numbers are console positions.
+- GDTF library is curated by scripts/gdtf-curate.ts using src/lib/gdtf-curation.ts (brand whitelist, best profile per model, datasheet watts) so junk uploads never ship.
