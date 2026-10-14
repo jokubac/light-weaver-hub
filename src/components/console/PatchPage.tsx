@@ -57,8 +57,8 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const rows = patchRows(fixtures, null);
   const totalW = fixtures.reduce((a, f) => a + fixtureWattage(f), 0);
   const exportPatch = async () => {
-    const data = JSON.stringify({ kind: "kroma-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
-    try { await saveFile(new Blob([data], { type: "application/json" }), `${safeFileName(title, "patch")}.kroma-patch.json`); }
+    const data = JSON.stringify({ kind: "nox-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
+    try { await saveFile(new Blob([data], { type: "application/json" }), `${safeFileName(title, "patch")}.nox-patch.json`); }
     catch (e) { alert(`Export failed: ${(e as Error).message ?? e}`); }
   };
   const savePdf = async () => {

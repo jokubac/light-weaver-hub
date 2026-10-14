@@ -79,7 +79,7 @@ export function buildSacn(universe: number, data: Uint8Array, sequence: number, 
   writeU16BE(b, 16, 0x7000 | (638 - 16)); writeU32BE(b, 18, 0x00000004); b.set(cid, 22);
   // framing layer
   writeU16BE(b, 38, 0x7000 | (638 - 38)); writeU32BE(b, 40, 0x00000002);
-  writeAscii(b, 44, "KROMA"); b[108] = 100; writeU16BE(b, 109, 0); b[111] = sequence & 0xff; b[112] = 0; writeU16BE(b, 113, universe);
+  writeAscii(b, 44, "NOX"); b[108] = 100; writeU16BE(b, 109, 0); b[111] = sequence & 0xff; b[112] = 0; writeU16BE(b, 113, universe);
   // DMP layer
   writeU16BE(b, 115, 0x7000 | (638 - 115)); b[117] = 0x02; b[118] = 0xa1;
   writeU16BE(b, 119, 0); writeU16BE(b, 121, 1); writeU16BE(b, 123, 513); b[125] = 0;

@@ -48,7 +48,7 @@ let socketId: number | null = null;
 async function getSocket(): Promise<number> {
   if (socketId !== null) return socketId;
   const Udp = await getUdpPlugin();
-  const { socketId: id } = await Udp.create({ properties: { name: "kroma-dmx" } });
+  const { socketId: id } = await Udp.create({ properties: { name: "nox-dmx" } });
   await Udp.bind({ socketId: id, port: 0 });
   await Udp.setBroadcast({ socketId: id, enabled: true });
   socketId = id;
