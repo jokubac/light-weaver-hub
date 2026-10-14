@@ -1,7 +1,7 @@
 // Downloads the published NOX app (HTML + every JS/CSS chunk it can reach) into a
 // folder the Android/iOS apps bundle, so the installed app opens without internet.
 // Usage: node scripts/offline-bundle.mjs [siteUrl] [outDir]
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const SITE = (process.argv[2] || "https://light-weaver-hub.lovable.app").replace(/\/$/, "");
