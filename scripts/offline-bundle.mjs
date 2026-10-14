@@ -36,6 +36,7 @@ const refs = (text, base) => {
 refs(html, "/").forEach(add);
 ["/app-release.json", "/favicon.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest", "/nox-logo.svg", "/crmx-bridge.mjs", "/gdtf-library/library.json"].forEach(add);
 for (const f of await readdir(new URL("../public/gdtf-library/icons/", import.meta.url))) add(`/gdtf-library/icons/${f}`);
+for (const f of await readdir(new URL("../public/gdtf-library/", import.meta.url))) if (/^library-\d+\.json$/.test(f)) add(`/gdtf-library/${f}`);
 
 while (queue.length) {
   const p = queue.shift();

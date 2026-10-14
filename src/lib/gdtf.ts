@@ -24,8 +24,30 @@ function mapAttribute(raw: string): GdtfAttr | null {
   if (/^ColorAdd_W(hite)?$/i.test(a)) return "White";
   if (/^ColorAdd_A(mber)?$/i.test(a)) return "Amber";
   if (/^(Crossfade|HSB_Crossfade|CTO_Crossfade)$/i.test(a)) return "Crossfade";
-  if (/^(Shutter\d*|Strobe)$/i.test(a)) return "Strobe";
+  if (/^(Shutter1?|Strobe|Shutter1Strobe)$/i.test(a)) return "Strobe";
+  if (/^Pan$/i.test(a)) return "Pan";
+  if (/^Tilt$/i.test(a)) return "Tilt";
+  if (/^Gobo1$/i.test(a)) return "Gobo";
+  if (/^Gobo1(Pos|PosRotate|WheelSpin)?Rotate$|^Gobo1Pos$/i.test(a)) return "GoboRot";
+  if (/^Gobo2$/i.test(a)) return "Gobo2";
+  if (/^Prism1$/i.test(a)) return "Prism";
+  if (/^Prism1Pos(Rotate)?$/i.test(a)) return "PrismRot";
+  if (/^Zoom$/i.test(a)) return "Zoom";
+  if (/^Focus1?$/i.test(a)) return "Focus";
+  if (/^Iris$/i.test(a)) return "Iris";
+  if (/^Frost1?$/i.test(a)) return "Frost";
+  const blade = /^Blade([1-4])(A|B|Rot)$/i.exec(a);
+  if (blade) return `Blade${blade[1]}${blade[2]!.length === 3 ? "Rot" : blade[2]!.toUpperCase()}` as GdtfAttr;
+  if (/^ShaperRot$/i.test(a)) return "ShaperRot";
   return null;
+}
+
+/** GDTF DMX value "n/bytes" → 0-1 */
+export function dmxFraction(raw: string | null | undefined): number | undefined {
+  const m = /^\s*(\d+)\s*\/\s*([1-4])\s*$/.exec(raw ?? "");
+  if (!m) return undefined;
+  const max = 256 ** Number(m[2]) - 1;
+  return Math.max(0, Math.min(1, Number(m[1]) / max));
 }
 
 interface RawChannel {
@@ -34,6 +56,8 @@ interface RawChannel {
   firstOffset: number;
   offsets: number[];
   physicalRange?: [number, number];
+  home?: number;
+  slots?: { name: string; v: number }[];
 }
 
 /** The DMX order our encode() already writes for each kind — used to recognise an exact match. */
@@ -53,6 +77,24 @@ function attrAt(el: Element, ...names: string[]): string {
     if (v != null) return v;
   }
   return "";
+}
+
+const SLOT_ATTRS = new Set<GdtfAttr>(["Strobe", "Gobo", "Gobo2", "GoboRot", "Prism", "PrismRot", "Frost"]);
+
+/** Named positions from a channel's chart (gobo names, shutter Open/Closed/Strobe…), in DMX order. */
+function readSlots(ch: Element): { name: string; v: number }[] {
+  const out: { name: string; v: number }[] = []; const seen = new Set<string>();
+  const add = (name: string, raw: string | null) => {
+    const v = dmxFraction(raw); const n = name.trim();
+    if (v === undefined || !n || seen.has(n.toLowerCase()) || out.length >= 32) return;
+    seen.add(n.toLowerCase()); out.push({ name: n.slice(0, 24), v: +v.toFixed(4) });
+  };
+  for (const fn of Array.from(ch.querySelectorAll("ChannelFunction"))) {
+    const sets = Array.from(fn.querySelectorAll("ChannelSet")).filter((s) => (s.getAttribute("Name") ?? "").trim());
+    if (sets.length) sets.forEach((s) => add(s.getAttribute("Name")!, s.getAttribute("DMXFrom")));
+    else add(fn.getAttribute("Name") ?? "", fn.getAttribute("DMXFrom"));
+  }
+  return out.sort((a, b) => a.v - b.v);
 }
 
 /** Parses one DMXMode element into a FixtureMode (or null if it has no usable channels). */
@@ -76,7 +118,12 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
     const from = Number(fn?.getAttribute("PhysicalFrom"));
     const to = Number(fn?.getAttribute("PhysicalTo"));
     const physicalRange: [number, number] | undefined = mapped === "CCT" && from >= 1000 && to >= 1000 && from !== to ? [from, to] : undefined;
-    raws.push({ attr: mapped ?? "Spare", bytes: Math.min(2, offsets.length), firstOffset: Math.min(...offsets), offsets, ...(physicalRange ? { physicalRange } : {}) });
+    const home = dmxFraction(ch.getAttribute("Default")) ?? dmxFraction(fn?.getAttribute("Default"));
+    const slots = mapped && SLOT_ATTRS.has(mapped) ? readSlots(ch) : undefined;
+    raws.push({
+      attr: mapped ?? "Spare", bytes: Math.min(2, offsets.length), firstOffset: Math.min(...offsets), offsets,
+      ...(physicalRange ? { physicalRange } : {}), ...(home ? { home } : {}), ...(slots?.length ? { slots } : {}),
+    });
   }
   if (raws.length === 0) return null;
   raws.sort((a, b) => a.firstOffset - b.firstOffset);
@@ -85,7 +132,7 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
   const totalChannels = footprint;
   const bareSeq = raws.map((r) => r.attr);
   const contiguous = raws.every((r, i) => r.firstOffset === i + 1) && totalChannels === raws.length;
-  const match = KIND_SEQUENCES.find((k) => contiguous && !raws.some((r) => r.physicalRange) && k.seq.length === bareSeq.length && k.seq.every((a, i) => a === bareSeq[i]) && !wide);
+  const match = KIND_SEQUENCES.find((k) => contiguous && !raws.some((r) => r.physicalRange || r.home) && k.seq.length === bareSeq.length && k.seq.every((a, i) => a === bareSeq[i]) && !wide);
   if (match) {
     return { name, channels: totalChannels, kind: match.kind, source: "gdtf" };
   }
@@ -93,7 +140,13 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
   const channelMap: ChannelMapEntry[] = Array.from({ length: totalChannels }, () => ({ attr: "Spare" }));
   for (const r of raws) {
     r.offsets.slice(0, 2).forEach((offset, index) => {
-      channelMap[offset - 1] = { attr: r.attr, ...(index === 1 ? { fine: true } : {}), ...(r.physicalRange ? { physicalRange: r.physicalRange } : {}) };
+      const fine = index === 1;
+      const n = r.home !== undefined ? Math.round(r.home * (r.offsets.length > 1 ? 65535 : 255)) : 0;
+      const home = r.home === undefined ? undefined : r.offsets.length > 1 ? (fine ? (n & 255) / 255 : (n >> 8) / 255) : r.home;
+      channelMap[offset - 1] = {
+        attr: r.attr, ...(fine ? { fine: true } : {}), ...(r.physicalRange ? { physicalRange: r.physicalRange } : {}),
+        ...(home ? { home: +home.toFixed(4) } : {}), ...(!fine && r.slots ? { slots: r.slots } : {}),
+      };
     });
   }
   return { name: wide ? `${name} (16-bit)` : name, channels: totalChannels, kind: "full", source: "gdtf", channelMap } as FixtureMode;

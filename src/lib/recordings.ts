@@ -33,6 +33,18 @@ const lerpHue = (a: number, b: number, k: number) => {
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** Blends two states; non-numeric fields switch at the halfway point. */
+/** Moving-head values glide like intensity; a value only one side has snaps at the midpoint. */
+function blendBeam(a: LookState["beam"], b: LookState["beam"], k: number): Pick<LookState, "beam"> {
+  if (!a && !b) return {};
+  const out: NonNullable<LookState["beam"]> = {};
+  for (const key of new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]) as Set<keyof NonNullable<LookState["beam"]>>) {
+    const x = a?.[key], y = b?.[key];
+    const v = x !== undefined && y !== undefined ? lerp(x, y, k) : k < 0.5 ? x : y;
+    if (v !== undefined) out[key] = v;
+  }
+  return { beam: out };
+}
+
 export function blend(a: LookState, b: LookState, k: number): LookState {
   const base = k < 0.5 ? a : b;
   return {
@@ -44,6 +56,7 @@ export function blend(a: LookState, b: LookState, k: number): LookState {
     hue: lerpHue(a.hue, b.hue, k),
     saturation: lerp(a.saturation, b.saturation, k),
     crossfade: lerp(a.crossfade ?? 0, b.crossfade ?? 0, k),
+    ...blendBeam(a.beam, b.beam, k),
   };
 }
 

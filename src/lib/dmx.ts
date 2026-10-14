@@ -7,15 +7,26 @@ import { loadCustomFixtures } from "./custom-fixtures";
 export type ModeKind = "dim" | "cct" | "cctgm" | "hsi" | "rgb" | "rgbw" | "full";
 
 /** Canonical per-channel token for the generic GDTF / custom-fixture channel layout (see gdtf.ts). */
+/** Moving-head / spot attributes controlled from the fixture's Position & Beam panel. */
+export const BEAM_ATTRS = [
+  "Pan", "Tilt", "Strobe", "Gobo", "GoboRot", "Gobo2", "Prism", "PrismRot", "Zoom", "Focus", "Iris", "Frost",
+  "Blade1A", "Blade1B", "Blade1Rot", "Blade2A", "Blade2B", "Blade2Rot",
+  "Blade3A", "Blade3B", "Blade3Rot", "Blade4A", "Blade4B", "Blade4Rot", "ShaperRot",
+] as const;
+export type BeamAttr = (typeof BEAM_ATTRS)[number];
 export type ChannelAttr =
   | "Dimmer" | "CCT" | "GM" | "Hue" | "Saturation"
   | "Red" | "Green" | "Blue" | "White" | "Amber"
-  | "Crossfade" | "Strobe" | "Spare";
+  | "Crossfade" | BeamAttr | "Spare";
 export interface ChannelMapEntry {
   attr: ChannelAttr;
   /** true = this is the low (fine) byte of a 16-bit attribute */
   fine?: boolean;
   physicalRange?: [number, number];
+  /** manufacturer default (0-1) sent while the console isn't controlling this slot, e.g. shutter "Open" */
+  home?: number;
+  /** named ranges from the GDTF chart (gobo names, shutter open/strobe…), value 0-1 */
+  slots?: { name: string; v: number }[];
 }
 
 export interface FixtureMode {
@@ -412,6 +423,8 @@ export interface PatchedFixture {
   power?: import("./power").PowerSource;
   /** REC overlap: the outgoing cue still on this light; output is the merge of both, effects included */
   mix?: FixtureMix | undefined;
+  /** moving-head / spot values (pan, tilt, gobo, zoom, framing blades…), 0-1; unset = fixture default */
+  beam?: Partial<Record<BeamAttr, number>>;
 }
 
 export type MixSource = Pick<PatchedFixture, "intensity" | "cct" | "gm" | "hue" | "saturation" | "crossfade" | "cctOnly" | "fx" | "on" | "fxPlaying">;

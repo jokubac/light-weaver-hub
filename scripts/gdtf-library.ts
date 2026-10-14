@@ -16,9 +16,14 @@ for (const f of readdirSync(xmlDir!)) {
   seen.add(d.id);
   const key = f.replace(/\.xml$/, "");
   const ico = `${iconDir}/${key}.webp`;
-  if (existsSync(ico)) { copyFileSync(ico, `${out}/icons/${d.id}.webp`); d.icon = `${d.id}.webp`; }
+  if (iconDir && existsSync(ico)) { copyFileSync(ico, `${out}/icons/${d.id}.webp`); d.icon = `${d.id}.webp`; }
+  else if (existsSync(`${out}/icons/${d.id}.webp`)) d.icon = `${d.id}.webp`;
   defs.push(d);
 }
 defs.sort((a, b) => `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`));
-writeFileSync(`${out}/library.json`, JSON.stringify(defs));
+// shard under the 10 MB repository file limit; library.json is the index
+const parts: any[][] = [[]]; let size = 0;
+for (const d of defs) { const n = JSON.stringify(d).length; if (size + n > 7e6 && parts.at(-1)!.length) { parts.push([]); size = 0; } parts.at(-1)!.push(d); size += n; }
+parts.forEach((p, i) => writeFileSync(`${out}/library-${i + 1}.json`, JSON.stringify(p)));
+writeFileSync(`${out}/library.json`, JSON.stringify({ parts: parts.length, count: defs.length }));
 console.log(defs.length, "fixtures");
