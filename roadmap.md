@@ -1,4 +1,9 @@
 # Tasks
+- [x] Stage 2: pixel master, ×/÷1.25/1.5/2, Hz/% display, plot indicators and background discovery; tests and browser verified controls/persistence.
+- [x] Stage 3: GDTF library link and offset/CCT import correction; preserve unknown channel positions and declared physical CCT bounds.
+- [ ] Stage 3: replace inaccurate built-in modes with manufacturer-verified profiles — GDTF downloads require an account; verified profile files not supplied. Geometry references/multifunction channels need expanded import support before claiming full GDTF compatibility.
+- [x] Stage 3: Wi-Fi retained, MoonLite BLE transport and 512-slot initialization implemented; lamp-battery Bluetooth removed from Settings.
+- [ ] Test MoonLite throughput and real CRMX reception — requires physical MoonLite/tablet; packet tests alone do not establish hardware compatibility.
 - [x] Edit Universe, DMX address and mode from the Patch sheet pencil; 7 tests passed and browser confirmed values persist after reload with fixture number unchanged.
 - [x] Restore plain Patch headings without sorting and read-only fixture numbers; retain drag reordering and console position changes.
 - [x] Add selected lights to an existing group with Add; tests and browser confirmed existing members stay.
@@ -9,7 +14,7 @@
 - [x] Refresh native iOS logo from SVG and show shared version at Sign in and Settings; browser verified, all 18 icon sizes/opaque corners checked
 - [x] Auto-detect transmitter model from its ArtPollReply name (and port count) when scanning or connecting; no manual model pick needed; 8 new tests passed (120 total)
 - [x] Update IPA/TestFlight packaging with release checks and shared native version
-- [ ] Produce new IPA artifact — blocked until NOX 1.1.0 is published, then run GitHub iOS IPA workflow
+- [x] Previous IPA artifact produced with NOX 1.1.3; new packaging is only started when requested.
 - [x] DMX map fills the whole panel width as one 32×16 band; fixture panel now stacks below the patch sheet at every width
 
 - [x] Fixture numbers stay under the sticky console toolbar while scrolling; browser verified covered at z-20

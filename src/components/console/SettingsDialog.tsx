@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
-import { Bluetooth, BatteryMedium, Music, Trash2, FolderOpen, Keyboard, Plus } from "lucide-react";
+import { Music, Trash2, FolderOpen, Keyboard, Plus } from "lucide-react";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,10 +10,9 @@ import { APP_VERSION } from "@/lib/app-version";
 export interface BtDevice { id: string; name: string; battery: number | null }
 export interface MidiTarget { id: string; label: string }
 
-export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, midi, setMidi, targets, learning, setLearning, lastMsg, midiDevices, midiError, onNanoKontrol, macros, setMacros, macroLearn, setMacroLearn }: {
+export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, targets, learning, setLearning, lastMsg, midiDevices, midiError, onNanoKontrol, macros, setMacros, macroLearn, setMacroLearn }: {
   open: boolean; onOpenChange: (o: boolean) => void;
   onSetups: () => void;
-  bt: BtDevice[]; connectBt: () => void;
   midi: { enabled: boolean; maps: MidiMap[] }; setMidi: (m: { enabled: boolean; maps: MidiMap[] }) => void;
   targets: MidiTarget[]; learning: string | null; setLearning: (t: string | null) => void;
   lastMsg: string | null; midiDevices: string[]; midiError: string | null; onNanoKontrol?: () => void;
@@ -37,18 +36,6 @@ export function SettingsDialog({ open, onOpenChange, onSetups, bt, connectBt, mi
         <DialogHeader><DialogTitle>Settings</DialogTitle><p className="font-mono text-xs text-muted-foreground">NOX v{APP_VERSION}</p></DialogHeader>
         <div className="space-y-5 text-xs">
           <Button variant="secondary" className="w-full" onClick={() => { onOpenChange(false); onSetups(); }}><FolderOpen />Project setups</Button>
-
-          <section className="space-y-2">
-            <h3 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground"><Bluetooth className="h-4 w-4" />Bluetooth devices</h3>
-            <button onClick={connectBt} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-primary-foreground"><Bluetooth className="h-4 w-4" />Connect device (AsteraBox, battery…)</button>
-            {bt.map((d) => (
-              <div key={d.id} className="flex items-center justify-between rounded-lg bg-surface-elevated px-3 py-2">
-                <span className="font-semibold">{d.name}</span>
-                <span className="flex items-center gap-1 font-mono"><BatteryMedium className="h-4 w-4" />{d.battery == null ? "no battery info" : `${d.battery}%`}</span>
-              </div>
-            ))}
-            <p className="text-muted-foreground">Works in the installed NOX app (Android, iPad, Windows) and in Chrome / Edge. Battery % shows for devices that share the standard battery level — some brands keep it in their own app.</p>
-          </section>
 
           <section className="space-y-2">
             <h3 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-muted-foreground"><Music className="h-4 w-4" />MIDI controller</h3>

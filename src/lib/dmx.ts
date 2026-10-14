@@ -15,6 +15,7 @@ export interface ChannelMapEntry {
   attr: ChannelAttr;
   /** true = this is the low (fine) byte of a 16-bit attribute */
   fine?: boolean;
+  physicalRange?: [number, number];
 }
 
 export interface FixtureMode {

@@ -4,7 +4,7 @@ import { NumberField } from "./NumberField";
 // View: wheel / pinch zoom, hand or middle-drag pan, right-drag (or shift+hand) rotates / tilts.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, ChevronDown, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X, DoorOpen, PanelsTopLeft, Undo2, Redo2, Armchair, UserRound, LampDesk, LockKeyhole, Unlock, ListChecks } from "lucide-react";
-import { getDef, type PatchedFixture } from "@/lib/dmx";
+import { getDef, kelvin, type PatchedFixture } from "@/lib/dmx";
 import { illuminanceAt, lux3m as lux3mOf, footcandles, shutterSeconds, tStopFor, roundToThirdStop, stopsDifference, type MeterLight } from "@/lib/photometry";
 import { fixtureWatts } from "@/lib/power";
 import { OPTICS, OPTIC_BY_ID, defaultOptic, type Optic } from "@/lib/optics";
@@ -570,7 +570,11 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       ctx.fillText(f.name, head[0], head[1] - 16);
       ctx.fillStyle = "#9ca3af";
       ctx.font = "10px system-ui, sans-serif";
-      ctx.fillText(`${Math.round((f.on === false ? 0 : f.intensity) * 100)}%`, head[0], head[1] + 24);
+      const white = f.cctOnly || f.crossfade === 0;
+      ctx.fillStyle = theme.getPropertyValue("--color-foreground");
+      ctx.fillText(`${Math.round(lv * 100)}%${white ? ` · ${kelvin(f.cct)} K` : ""}`, head[0], head[1] + 24);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(head[0] - 4, head[1] + 29, 8, 5);
     }
   });
 
