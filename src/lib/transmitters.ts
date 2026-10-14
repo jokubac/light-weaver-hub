@@ -96,7 +96,7 @@ export function detectTransmitter(name: string, ports?: number): Transmitter | u
       if (t.universes === ports) score += 2;
       // Two entries sharing aliases (ART7 box vs Ethernet, eDMX1 vs eDMX4) are
       // told apart by port count; the other one stays eligible but never wins.
-      else if (ALIASES[t.id]!.every((a) => TRANSMITTERS.some((o) => o.id !== t.id && ALIASES[o.id] === aliases))) score -= 1;
+      else if (TRANSMITTERS.some((o) => o.id !== t.id && (ALIASES[o.id] ?? []).join("|") === aliases.join("|"))) score -= 1;
     }
     if (!best || score > best.score) best = { t, score };
   }
