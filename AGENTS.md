@@ -42,3 +42,4 @@
 - iPad MIDI uses NOX's own CoreMIDI plugin in ios-native/, installed into the generated iOS project by ios-native/install.rb in CI; iOS builds need Xcode 16+ (macos-15) because Capacitor 8 plugins fail on older Swift.
 - offline-bundle.mjs strips the hosting "Edit with Lovable" badge so installed apps stay standalone.
 - Pixel map uses pixel-preview with the shared live frame and all active fixture IDs so REC overlap stays visible without changing output.
+- Built-in GDTF library is generated offline (scripts/gdtf-library.ts) into public/gdtf-library, fetched only on search, and copied into custom fixtures on pick so patches stay offline-safe.
