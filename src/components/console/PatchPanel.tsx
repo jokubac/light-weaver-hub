@@ -373,13 +373,13 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
       {open && (
         <div className="space-y-2 p-2 pt-0">
           <div className="flex flex-wrap gap-1.5">
-            <a href="https://www.gdtf.eu/gdtf/gdtf_fixturefinder/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Search className="h-3.5 w-3.5" />GDTF library</a>
             <input ref={fileRef} type="file" accept=".gdtf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleGdtfFile(f); e.target.value = ""; }} />
             <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><FileUp className="h-3.5 w-3.5" />Import GDTF</button>
             <button onClick={() => setBuilder(true)} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Wrench className="h-3.5 w-3.5" />Fixture builder</button>
             <button onClick={() => onPick(getDef("generic-dimmer"))} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Zap className="h-3.5 w-3.5" />Patch dimmer</button>
           </div>
           {gdtfMsg && <p className="text-[11px] text-muted-foreground">{gdtfMsg}</p>}
+          <GdtfLibrarySearch onPick={onPick} />
 
           <div className="space-y-1.5 rounded-md bg-surface p-2">
             <div className="flex items-center gap-1.5">
