@@ -132,14 +132,24 @@ export function readPhysical(doc: Document, modes: FixtureMode[]): Pick<FixtureD
   const w = Math.max(0, ...powers, ...legacy);
   if (w > 0) out.watts = Math.round(w);
   // CCT: physical range of CTC / ColorTemperature channel functions
-  const ks: number[] = [];
+  // Prefer plain "CCT"/"CCT Range" functions (FX like Candle/Fire use other ranges) and take the
+  // most common range, so manufacturer data such as ARRI 2800–10000 K comes out exact.
+  const counts = new Map<string, number>(); const ks: number[] = [];
   for (const fn of Array.from(doc.querySelectorAll("ChannelFunction"))) {
     const attribute = attrAt(fn, "Attribute") || (fn.parentElement ? attrAt(fn.parentElement, "Attribute") : "");
     if (!/^(CTC|ColorTemperature)$/i.test(attribute)) continue;
-    for (const v of [attrAt(fn, "PhysicalFrom"), attrAt(fn, "PhysicalTo")].map(parseFloat)) if (v >= 1000 && v <= 20000) ks.push(v);
+    const from = parseFloat(attrAt(fn, "PhysicalFrom")), to = parseFloat(attrAt(fn, "PhysicalTo"));
+    if (!(from >= 1000 && to >= 1000 && from <= 20000 && to <= 20000 && from !== to)) continue;
+    if (/fx|candle|fire|flicker|explosion|lightning|tv|strobe|effect/i.test(attrAt(fn, "Name"))) continue;
+    const k = `${Math.round(Math.min(from, to))}-${Math.round(Math.max(from, to))}`;
+    counts.set(k, (counts.get(k) ?? 0) + 1);
   }
-  for (const em of Array.from(doc.querySelectorAll("Emitter"))) { const k = parseFloat(attrAt(em, "ColorTemperature")); if (k >= 1000 && k <= 20000) ks.push(k); }
-  if (ks.length) out.cctRange = [Math.round(Math.min(...ks)), Math.round(Math.max(...ks))];
+  const best = [...counts.entries()].sort((a, b) => b[1] - a[1] || (+b[0].split("-")[1]! - +b[0].split("-")[0]!) - (+a[0].split("-")[1]! - +a[0].split("-")[0]!))[0];
+  if (best) { const [a, b] = best[0].split("-").map(Number); out.cctRange = [a!, b!]; ks.push(a!, b!); }
+  else {
+    for (const em of Array.from(doc.querySelectorAll("Emitter"))) { const k = parseFloat(attrAt(em, "ColorTemperature")); if (k >= 1000 && k <= 20000) ks.push(k); }
+    if (ks.length) out.cctRange = [Math.round(Math.min(...ks)), Math.round(Math.max(...ks))];
+  }
   // Type: Beam LampType + emitters / channel layout
   const lamp = Array.from(doc.querySelectorAll("Beam")).map((b) => attrAt(b, "LampType")).find(Boolean) ?? "";
   const colour = modes.some((m) => m.kind === "rgb" || m.kind === "rgbw" || m.kind === "hsi" || m.kind === "full");
