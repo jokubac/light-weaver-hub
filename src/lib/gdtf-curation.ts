@@ -85,4 +85,5 @@ export const SPEC_WATTS: [RegExp, number][] = [
 export function specWatts(brand: string, model: string): number | undefined {
   const k = key(brand) + key(model);
   for (const [re, w] of SPEC_WATTS) if (re.test(k)) return w;
+  return undefined;
 }
