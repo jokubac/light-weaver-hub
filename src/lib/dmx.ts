@@ -285,7 +285,7 @@ if (typeof window !== "undefined") {
 /** Pixel count implied by an imported channel map: repeated colour cells (Red or Hue) mean one cell per pixel. */
 export function channelMapPixels(map: ChannelMapEntry[]): number {
   const count = (a: string) => map.filter((e) => e.attr === a && !e.fine).length;
-  const n = Math.max(count("Red"), count("Hue"));
+  const n = Math.max(count("Red"), count("Hue"), count("CCT"));
   return n >= 2 ? n : 0;
 }
 const derivedModes = new WeakMap<FixtureMode, FixtureMode>();
