@@ -1,4 +1,7 @@
 # Tasks
+- [ ] Add uploaded Godox AM1600R; audit missing Arclight models and fix remaining duplicates without inventing profiles.
+- [ ] Remove unsupported power estimates and hide library copies from Custom fixtures; remove DXJ test entries.
+- [ ] Favourite manufacturers and favourites-first fixture/mode lists; verify persistence and ordering.
 - [x] Stage 2: pixel master, ×/÷1.25/1.5/2, Hz/% display, plot indicators and background discovery; tests and browser verified controls/persistence.
 - [x] Stage 3: GDTF library link and offset/CCT import correction; preserve unknown channel positions and declared physical CCT bounds.
 - [ ] Stage 3: replace inaccurate built-in modes with manufacturer-verified profiles — GDTF downloads require an account; verified profile files not supplied. Geometry references/multifunction channels need expanded import support before claiming full GDTF compatibility.
