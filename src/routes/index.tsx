@@ -891,9 +891,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     if (a && a !== id) {
       // second finger while the first light is still held: select the whole range between them
       if (holdTimer.current) clearTimeout(holdTimer.current);
-      lastPick.current = a;
-      selectRange(id);
-      setSelected((s) => (s.includes(a) ? s : [...s, a]));
+      const ids = fixtures.map((f) => f.uid);
+      const i0 = ids.indexOf(a), i1 = ids.indexOf(id);
+      const span = ids.slice(Math.min(i0, i1), Math.max(i0, i1) + 1);
+      // holding an already selected light removes the range; otherwise it adds it
+      const remove = selectedRef.current.includes(a);
+      setSelected((s) => remove ? s.filter((x) => !span.includes(x)) : [...new Set([...s, ...span])]);
+      lastPick.current = id;
       skipClick.current.add(a); skipClick.current.add(id);
       navigator.vibrate?.(20);
       return;
@@ -1027,7 +1031,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                   const [gc, gr] = pixelGrid(f);
                   return (
                      <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`${swapping ? "Swap" : "Select"} fixture ${i + 1}, ${f.name}`} aria-pressed={swapping ? swapSource === f.uid : isSel} tabIndex={0} onPointerDown={() => { if (!sweep && !swapping) tileDown(f.uid); }} onPointerUp={() => tileUp(f.uid)} onPointerCancel={() => tileUp(f.uid)} onClick={(e) => { if (swapping) swapTile(f.uid); else if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (swapping) swapTile(f.uid); else toggleSelect(f.uid); } if (e.key === "Escape") { setSwapSource(null); setSwapping(false); } }}
-                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"} ${cursor === f.uid && browsing.current ? "ring-2 ring-accent ring-offset-1 ring-offset-background" : ""}`}>
+                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"} ${cursor === f.uid && browsing.current ? "ring-4 ring-warning ring-offset-2 ring-offset-background bg-warning/10 shadow-lg" : ""}`}>
                       {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
                       <span aria-hidden="true" className="pointer-events-none absolute left-1 top-1.5 z-10 rounded bg-surface-elevated/90 px-1 font-mono text-[9px] font-semibold leading-tight text-foreground/80">#{i + 1}</span>
 

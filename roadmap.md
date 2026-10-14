@@ -114,3 +114,6 @@
 - [x] Aputure STORM 1200x all 32 profiles (V1.5), Astera AF80/AF250 Fresnel 12 core modes, Quasar RR50/RR100 per-pixel profiles (8/16 px) from official charts; 162 tests pass
 - [ ] Quasar Rainbow R2 (2/4/8 ft) verified pixel counts — official chart lists per-pixel groups but not per-length pixel counts; do not invent
 - [ ] Aputure STORM 80c / 1000c / XT52 verified profiles — need official DMX charts (RGBACL engine differs from 1200x)
+- [x] Macro cursor frame brighter on fixture tiles
+- [ ] Verified wattage for cinema brands (157 fixtures)
+- [x] Hold+tap range also deselects when held light is selected
