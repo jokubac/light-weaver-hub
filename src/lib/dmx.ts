@@ -1,5 +1,5 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
-import { asteraModes, asteraSpec } from "./astera";
+import { asteraModes, asteraSpec, asteraSpecFromName } from "./astera";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";
@@ -292,11 +292,12 @@ const derivedModes = new WeakMap<FixtureMode, FixtureMode>();
 export const getMode = (f: { defId: string; modeIdx: number }) => {
   const d = getDef(f.defId);
   const mo = d.modes[f.modeIdx] ?? d.modes[0]!;
-  if (mo.pixels || !mo.channelMap) return mo;
+  if (mo.pixels || mo.astera || !mo.channelMap) return mo;
   let out = derivedModes.get(mo);
   if (!out) {
-    const px = channelMapPixels(mo.channelMap);
-    out = px ? { ...mo, pixels: px } : mo;
+    const spec = /astera/i.test(d.brand ?? "") ? asteraSpecFromName(mo.name, mo.channels) : undefined;
+    const px = spec ? spec.px : channelMapPixels(mo.channelMap);
+    out = spec ? { ...mo, pixels: px, astera: spec } : px ? { ...mo, pixels: px } : mo;
     derivedModes.set(mo, out);
   }
   return out;
