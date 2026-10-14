@@ -11,6 +11,7 @@ export interface Scene {
   master: number;
   pixelMap?: PixelMap; // legacy single layer
   pixelLayers?: PixelLayer[];
+  pixelMaster?: number;
   plot?: import("@/components/console/PlotPanel").Plot;
 }
 
@@ -136,7 +137,8 @@ export interface Connection {
   node: { name: string; ip: string } | null;
   transmitter: string | null; // id from the transmitter library
   autoMap: boolean; // auto universe numbering + colour channel order from the transmitter profile
-  transport?: "bridge" | "direct"; // "direct" sends Art-Net/sACN UDP straight from the installed app, no bridge computer
+  transport?: "bridge" | "direct" | "bluetooth";
+  bluetoothUniverse?: number;
 }
 
 const CKEY = "crmx-console-connection-v1";

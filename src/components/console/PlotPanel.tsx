@@ -570,7 +570,11 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       ctx.fillText(f.name, head[0], head[1] - 16);
       ctx.fillStyle = "#9ca3af";
       ctx.font = "10px system-ui, sans-serif";
-      ctx.fillText(`${Math.round((f.on === false ? 0 : f.intensity) * 100)}%`, head[0], head[1] + 24);
+      const white = f.cctOnly || f.crossfade === 0;
+      ctx.fillStyle = theme.getPropertyValue("--color-foreground");
+      ctx.fillText(`${Math.round(lv * 100)}%${white ? ` · ${Math.round(1750 + f.cct * 8160)} K` : ""}`, head[0], head[1] + 24);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(head[0] - 4, head[1] + 29, 8, 5);
     }
   });
 

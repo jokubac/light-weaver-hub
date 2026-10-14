@@ -17,8 +17,9 @@ const LAYOUTS: { id: PixelLayout; label: string; hint: string }[] = [
   { id: "stack", label: "Stacked", hint: "Horizontal lights stacked on top of each other" },
 ];
 
-export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, activeId, onActiveChange }: {
+export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, activeId, onActiveChange, pixelMaster = 1, onPixelMaster }: {
   fixtures: PatchedFixture[]; selected?: string[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>; activeId: string; onActiveChange: (id: string) => void;
+  pixelMaster?: number; onPixelMaster?: (value: number) => void;
 }) {
   const setActiveId = onActiveChange;
   const [coloursOpen, setColoursOpen] = useState(true);
@@ -174,6 +175,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </div>
       </section>
       <section className="space-y-2" aria-label="Pixel speed settings">
+        {onPixelMaster && <Slider label="Pixel master" value={pixelMaster} min={0} max={1} display={`${Math.round(pixelMaster * 100)}%`} onChange={onPixelMaster} />}
         <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={speedOpen} aria-controls="pixel-speed-settings" onClick={() => setSpeedOpen((open) => !open)}>{speedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}Pixel speed</Button>
         <div id="pixel-speed-settings" hidden={!speedOpen} className="space-y-3">
       {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size, phase: layer.phase ?? 0 })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
