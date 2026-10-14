@@ -104,10 +104,28 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
   const channelEls = Array.from(channelsRoot.querySelectorAll("DMXChannel"));
   const raws: RawChannel[] = [];
   let footprint = 0;
+  // pixel modes define one template channel per geometry; GeometryReferences repeat it at each pixel's DMX offset
+  const modeGeo = attrAt(modeEl, "Geometry");
+  const geoRoot = modeGeo ? Array.from(doc.querySelectorAll("Geometries *")).find((g) => g.getAttribute("Name") === modeGeo && g.tagName !== "GeometryReference") : undefined;
+  const refsFor = (geometry: string, dmxBreak: string): number[] => {
+    if (!geometry || !geoRoot) return [];
+    return Array.from(geoRoot.querySelectorAll("GeometryReference"))
+      .filter((r) => r.getAttribute("Geometry") === geometry)
+      .map((r) => {
+        const b = Array.from(r.querySelectorAll("Break")).find((x) => (x.getAttribute("DMXBreak") ?? "1") === dmxBreak) ?? r.querySelector("Break");
+        return parseInt(b?.getAttribute("DMXOffset") ?? "", 10);
+      })
+      .filter((n) => Number.isInteger(n) && n >= 1);
+  };
   for (const ch of channelEls) {
     const offsetRaw = attrAt(ch, "Offset");
     if (!offsetRaw || offsetRaw === "None" || offsetRaw === "-1") continue;
-    const offsets = offsetRaw.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => Number.isInteger(x) && x >= 1 && x <= 512);
+    const base = offsetRaw.split(",").map((x) => parseInt(x.trim(), 10)).filter((x) => Number.isInteger(x) && x >= 1);
+    if (base.length === 0) continue;
+    const refs = refsFor(attrAt(ch, "Geometry"), attrAt(ch, "DMXBreak") || "1");
+    const sets = refs.length ? refs.map((r) => base.map((o) => o + r - 1)) : [base];
+    for (const offsetsAll of sets) {
+    const offsets = offsetsAll.filter((x) => x <= 512);
     if (offsets.length === 0) continue;
     footprint = Math.max(footprint, ...offsets);
     // attribute lives on the (first) LogicalChannel's Attribute, falling back to InitialFunction
@@ -123,7 +141,7 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
     raws.push({
       attr: mapped ?? "Spare", bytes: Math.min(2, offsets.length), firstOffset: Math.min(...offsets), offsets,
       ...(physicalRange ? { physicalRange } : {}), ...(home ? { home } : {}), ...(slots?.length ? { slots } : {}),
-    });
+    });    }
   }
   if (raws.length === 0) return null;
   raws.sort((a, b) => a.firstOffset - b.firstOffset);
