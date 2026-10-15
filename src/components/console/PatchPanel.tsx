@@ -76,7 +76,6 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [showMap, setShowMap] = useState(defaultMap);
   const [caps, setCaps] = useState<CapFilter[]>([]);
   const toggleCap = (c: CapFilter) => setCaps((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
-  const capOk = (d: FixtureDef) => caps.every((c) => hasCap(d, c));
   const fav = useFavorites("fixtures");
   const favModes = useFavorites("modes");
   const favBrands = useFavorites("manufacturers");
@@ -88,7 +87,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   // library stays in dmx.ts solely so already-patched fixtures keep working.
   const [gdtfLib, setGdtfLib] = useState<LibraryDef[] | null>(null);
   useEffect(() => { if (!gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [gdtfLib]);
-  const gdtfHits = useMemo(() => (gdtfLib && q ? favoritesFirst(searchGdtfLibrary(gdtfLib, q, gdtfLib.length), (d) => fav.has(d.id) || favBrands.has(d.brand)).filter(capOk).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list, caps]);
+  const gdtfHits = useMemo(() => (gdtfLib && q ? favoritesFirst(searchGdtfLibrary(gdtfLib, q, gdtfLib.length), (d) => fav.has(d.id) || favBrands.has(d.brand)).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list]);
   const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setQuery(""); } finally { setGdtfBusy(false); } };
@@ -139,11 +138,6 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {CAP_FILTERS.map((c) => (
-              <button key={c.id} onClick={() => toggleCap(c.id)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${caps.includes(c.id) ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{c.label}</button>
-            ))}
-          </div>
         </div>
       )}
 
@@ -173,7 +167,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         </List>
       ) : !def ? (
         <List>
-          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand && capOk(d)), (d) => fav.has(d.id)).map((d) => (
+          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand), (d) => fav.has(d.id)).map((d) => (
             <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
         </List>
@@ -183,7 +177,12 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
-          {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).sort((a, b) => Number(favModes.has(modeKey(def.id, b.i))) - Number(favModes.has(modeKey(def.id, a.i))) || a.n - b.n || a.i - b.i).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
+          <div className="flex flex-wrap gap-1.5">
+            {CAP_FILTERS.map((c) => (
+              <button key={c.id} onClick={() => toggleCap(c.id)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${caps.includes(c.id) ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{c.label}</button>
+            ))}
+          </div>
+          {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).filter(({ i }) => caps.every((c) => modeHasCap(def, i, c))).sort((a, b) => Number(favModes.has(modeKey(def.id, b.i))) - Number(favModes.has(modeKey(def.id, a.i))) || a.n - b.n || a.i - b.i).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
             <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={`${mo.name}${pxCount(def, i) ? ` (${pxCount(def, i)} px)` : ""}`} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${pxCount(def, i) ? ` · ${pxCount(def, i)} px` : ""}`} />
           ))}
         </List>
