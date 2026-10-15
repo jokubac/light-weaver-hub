@@ -71,6 +71,9 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [modeIdx, setModeIdx] = useState<number | null>(null);
   const [mapU, setMapU] = useState(1);
   const [showMap, setShowMap] = useState(defaultMap);
+  const [caps, setCaps] = useState<CapFilter[]>([]);
+  const toggleCap = (c: CapFilter) => setCaps((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
+  const capOk = (d: FixtureDef) => caps.every((c) => hasCap(d, c));
   const fav = useFavorites("fixtures");
   const favModes = useFavorites("modes");
   const favBrands = useFavorites("manufacturers");
