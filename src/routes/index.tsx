@@ -580,10 +580,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
 
   const exit = () => { save(); onExit(); };
 
+  // with nothing selected, controls act on every light in the scene (same as FLASH)
   const updateSelected = (patch: Partial<PatchedFixture>) =>
-    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
+    setFixtures((fs) => fs.map((f) => (selected.length === 0 || selected.includes(f.uid) ? { ...f, ...patch } : f)));
   const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) =>
-    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
+    setFixtures((fs) => fs.map((f) => (selected.length === 0 || selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
   const updateOne = (id: string, patch: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
 
   const fire = (kind: TriggerKind) => {
@@ -1069,7 +1070,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           ) : panel === "pixels" ? (
             <div className="space-y-5">
               <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Effect pad</h2>
-              <FixtureEffects sel={sel} update={updateSelected} />
+              <FixtureEffects sel={sel.length ? sel : fixtures} update={updateSelected} />
               {!(sel.length ? sel : fixtures).some((f) => pixelCount(f) > 0) ? (
                 <p className="border-t border-border pt-4 text-[11px] text-muted-foreground">{sel.length ? "Selected lights aren't patched in a pixel mode." : "No lights patched in a pixel mode."}</p>
               ) : <div className="border-t border-border pt-4">

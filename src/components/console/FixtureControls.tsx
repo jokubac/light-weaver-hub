@@ -170,7 +170,7 @@ export function FixtureControls({
 /** Fixture effect editor used in the EFFECTS pad, alongside pixel layers. */
 export function FixtureEffects({ sel, update }: { sel: PatchedFixture[]; update: (patch: Partial<PatchedFixture>) => void }) {
   const first = sel[0];
-  if (!first) return <p className="rounded-md bg-surface-elevated p-3 text-center text-xs text-muted-foreground">Select lights to add a fixture effect.</p>;
+  if (!first) return <p className="rounded-md bg-surface-elevated p-3 text-center text-xs text-muted-foreground">No lights in this scene yet.</p>;
   const fx = first.fx;
   const setFx = (p: Partial<FxParams>) => update({ fx: { ...fx, ...p } });
   return (
