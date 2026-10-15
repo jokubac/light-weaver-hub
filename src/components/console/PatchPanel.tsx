@@ -490,7 +490,7 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
   );
 }
 
-function Row({ title, sub, onClick, starred, onStar, footprint }: { title: string; sub: string; onClick: () => void; starred?: boolean; onStar?: () => void; footprint?: string[] }) {
+function Row({ title, sub, onClick, starred, onStar, footprint }: { title: string; sub: string; onClick: () => void; starred?: boolean; onStar?: () => void; footprint?: string[] | undefined }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-lg bg-surface-elevated">
