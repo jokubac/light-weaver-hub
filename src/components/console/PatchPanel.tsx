@@ -131,9 +131,16 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       )}
 
       {!def && (
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {CAP_FILTERS.map((c) => (
+              <button key={c.id} onClick={() => toggleCap(c.id)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${caps.includes(c.id) ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{c.label}</button>
+            ))}
+          </div>
         </div>
       )}
 
