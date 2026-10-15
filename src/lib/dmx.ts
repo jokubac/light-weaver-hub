@@ -298,9 +298,8 @@ export function namedPixelCells(mo: FixtureMode): FixtureMode | undefined {
   return { ...mo, channels: n * mo.channels, pixels: n, channelMap: Array.from({ length: n }, () => map).flat() };
 }
 const derivedModes = new WeakMap<FixtureMode, FixtureMode>();
-export const getMode = (f: { defId: string; modeIdx: number }) => {
-  const d = getDef(f.defId);
-  const mo = d.modes[f.modeIdx] ?? d.modes[0]!;
+/** Mode with its pixel layout resolved (Astera name specs, repeated colour cells, "Pixel N" modes). Works for any def, installed or not. */
+export const deriveMode = (d: { brand?: string }, mo: FixtureMode): FixtureMode => {
   if (mo.pixels || mo.astera || !mo.channelMap) return mo;
   let out = derivedModes.get(mo);
   if (!out) {
@@ -311,6 +310,10 @@ export const getMode = (f: { defId: string; modeIdx: number }) => {
     derivedModes.set(mo, out);
   }
   return out;
+};
+export const getMode = (f: { defId: string; modeIdx: number }) => {
+  const d = getDef(f.defId);
+  return deriveMode(d, d.modes[f.modeIdx] ?? d.modes[0]!);
 };
 
 /* ---------------- Effects ---------------- */

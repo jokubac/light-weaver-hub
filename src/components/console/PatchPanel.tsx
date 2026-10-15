@@ -20,14 +20,14 @@ import {
   createFixture,
   findFreeAddress,
   getDef,
-  getMode,
+  deriveMode,
   overlaps,
   type FixtureDef,
   type PatchedFixture,
 } from "@/lib/dmx";
 
 /** Pixel count for a mode, including layouts derived at getMode time (Astera names, "Pixel N" modes). */
-const pxCount = (def: FixtureDef, i: number) => getMode(def, i)?.pixels ?? 0;
+const pxCount = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).pixels ?? 0;
 
 export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
 
