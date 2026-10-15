@@ -170,7 +170,7 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
       const n = r.home !== undefined ? Math.round(r.home * (r.offsets.length > 1 ? 65535 : 255)) : 0;
       const home = r.home === undefined ? undefined : r.offsets.length > 1 ? (fine ? (n & 255) / 255 : (n >> 8) / 255) : r.home;
       channelMap[offset - 1] = {
-        attr: r.attr, ...(fine ? { fine: true } : {}), ...(r.physicalRange ? { physicalRange: r.physicalRange } : {}),
+        attr: r.attr, ...(fine ? { fine: true } : {}), ...(r.label ? { label: r.label } : {}), ...(r.physicalRange ? { physicalRange: r.physicalRange } : {}),
         ...(home ? { home: +home.toFixed(4) } : {}), ...(!fine && r.slots ? { slots: r.slots } : {}),
       };
     });

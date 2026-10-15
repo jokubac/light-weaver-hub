@@ -53,7 +53,7 @@ function is16(def: FixtureDef, i: number): boolean {
   if (mo.channelMap) return mo.channelMap.some((e) => e.fine);
   return /16[\s-]?bit|\bfine\b|\b16\b/i.test(mo.name);
 }
-const ATTR_LABEL: Record<string, string> = { GM: "Green/Magenta", Spare: "Reserved / other", CCT: "CCT", Hue: "Hue", Saturation: "Saturation", Crossfade: "Colour crossfade" };
+const ATTR_LABEL: Record<string, string> = { GM: "Green/Magenta", CCT: "CCT", Hue: "Hue", Saturation: "Saturation", Crossfade: "Colour crossfade" };
 /** Human-readable channel list for a mode ("Dimmer", "Dimmer fine", ...). */
 function footprintOf(def: FixtureDef, i: number): string[] {
   const mo = deriveMode(def, def.modes[i]!);
