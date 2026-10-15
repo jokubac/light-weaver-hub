@@ -58,6 +58,7 @@ interface RawChannel {
   physicalRange?: [number, number];
   home?: number;
   slots?: { name: string; v: number }[];
+  label?: string; // original GDTF attribute name for unmapped channels
 }
 
 /** The DMX order our encode() already writes for each kind — used to recognise an exact match. */
@@ -147,6 +148,7 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
     const slots = mapped && SLOT_ATTRS.has(mapped) ? readSlots(ch) : undefined;
     raws.push({
       attr: mapped ?? "Spare", bytes: Math.min(2, offsets.length), firstOffset: Math.min(...offsets), offsets,
+      ...(!mapped && attrName ? { label: attrName } : {}),
       ...(physicalRange ? { physicalRange } : {}), ...(home ? { home } : {}), ...(slots?.length ? { slots } : {}),
     });    }
   }
@@ -169,7 +171,7 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
       const n = r.home !== undefined ? Math.round(r.home * (r.offsets.length > 1 ? 65535 : 255)) : 0;
       const home = r.home === undefined ? undefined : r.offsets.length > 1 ? (fine ? (n & 255) / 255 : (n >> 8) / 255) : r.home;
       channelMap[offset - 1] = {
-        attr: r.attr, ...(fine ? { fine: true } : {}), ...(r.physicalRange ? { physicalRange: r.physicalRange } : {}),
+        attr: r.attr, ...(fine ? { fine: true } : {}), ...(r.label ? { label: r.label } : {}), ...(r.physicalRange ? { physicalRange: r.physicalRange } : {}),
         ...(home ? { home: +home.toFixed(4) } : {}), ...(!fine && r.slots ? { slots: r.slots } : {}),
       };
     });

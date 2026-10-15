@@ -27,6 +27,8 @@ export interface ChannelMapEntry {
   home?: number;
   /** named ranges from the GDTF chart (gobo names, shutter open/strobe…), value 0-1 */
   slots?: { name: string; v: number }[];
+  /** original manufacturer channel name from the GDTF chart, when it isn't a NOX-controlled attribute */
+  label?: string;
 }
 
 export interface FixtureMode {
