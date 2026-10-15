@@ -170,7 +170,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         </List>
       ) : !def ? (
         <List>
-          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand), (d) => fav.has(d.id)).map((d) => (
+          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand && capOk(d)), (d) => fav.has(d.id)).map((d) => (
             <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
         </List>
