@@ -58,6 +58,7 @@ interface RawChannel {
   physicalRange?: [number, number];
   home?: number;
   slots?: { name: string; v: number }[];
+  label?: string; // original GDTF attribute name for unmapped channels
 }
 
 /** The DMX order our encode() already writes for each kind — used to recognise an exact match. */
