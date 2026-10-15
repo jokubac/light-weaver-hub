@@ -36,5 +36,5 @@
 - Windows app (electron/) loads the crawled offline bundle via app:// and exposes window.noxDesktop for UDP; native-udp.ts prefers it so DMX code stays shared across web, Capacitor and desktop.
 - iPad MIDI uses NOX's own CoreMIDI plugin in ios-native/, installed into the generated iOS project by ios-native/install.rb in CI; iOS builds need Xcode 16+ (macos-15) because Capacitor 8 plugins fail on older Swift.
 - offline-bundle.mjs strips the hosting "Edit with Lovable" badge so installed apps stay standalone.
-- Verified manufacturer profiles live in src/lib/verified-fixtures.ts; gdtf-curate replaces same-model GDTF entries with them and drops 1-channel modes.
+- Verified manufacturer profiles live in src/lib/verified-fixtures.ts; gdtf-curate replaces same-model GDTF entries with them (or appends VERIFIED_EXTRA_MODES to keep saved mode indices) and drops 1-channel modes.
 - GDTF pixel modes expand GeometryReference templates (incl. child geometries); one-cell "Pixel N" modes and numbered Astera mode names derive pixel layouts at getMode time so stored library data stays compatible.

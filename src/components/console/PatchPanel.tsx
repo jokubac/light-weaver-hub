@@ -53,6 +53,17 @@ function is16(def: FixtureDef, i: number): boolean {
   if (mo.channelMap) return mo.channelMap.some((e) => e.fine);
   return /16[\s-]?bit|\bfine\b|\b16\b/i.test(mo.name);
 }
+const ATTR_LABEL: Record<string, string> = { GM: "Green/Magenta", Spare: "Reserved / other", CCT: "CCT", Hue: "Hue", Saturation: "Saturation", Crossfade: "Colour crossfade" };
+/** Human-readable channel list for a mode ("Dimmer", "Dimmer fine", ...). */
+function footprintOf(def: FixtureDef, i: number): string[] {
+  const mo = deriveMode(def, def.modes[i]!);
+  if (!mo.channelMap) return [];
+  const px = mo.pixels ?? 0, per = px > 1 ? Math.floor(mo.channelMap.length / px) : 0, lead = px > 1 ? mo.channelMap.length - per * px : 0;
+  return mo.channelMap.map((e, k) => {
+    const name = `${ATTR_LABEL[e.attr] ?? e.attr}${e.fine ? " fine" : ""}`;
+    return per && k >= lead ? `P${Math.floor((k - lead) / per) + 1} ${name}` : name;
+  });
+}
 /** Per-mode capability test — chips filter individual modes by their actual channels, not mode names. */
 function modeHasCap(def: FixtureDef, i: number, cap: CapFilter): boolean {
   const mo = def.modes[i]!;
@@ -198,12 +209,12 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {CAP_FILTERS.map((c) => (
+            {CAP_FILTERS.filter((c) => caps.includes(c.id) || def.modes.some((_, i) => modeHasCap(def, i, c.id))).map((c) => (
               <button key={c.id} onClick={() => toggleCap(c.id)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${caps.includes(c.id) ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{c.label}</button>
             ))}
           </div>
           {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).filter(({ i }) => caps.every((c) => modeHasCap(def, i, c))).sort((a, b) => Number(favModes.has(modeKey(def.id, b.i))) - Number(favModes.has(modeKey(def.id, a.i))) || a.n - b.n || a.i - b.i).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
-            <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={`${mo.name}${pxCount(def, i) ? ` (${pxCount(def, i)} px)` : ""}`} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${pxCount(def, i) ? ` · ${pxCount(def, i)} px` : ""}`} />
+            <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={`${mo.name}${pxCount(def, i) ? ` (${pxCount(def, i)} px)` : ""}`} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${pxCount(def, i) ? ` · ${pxCount(def, i)} px` : ""}`} footprint={footprintOf(def, i).length ? footprintOf(def, i) : undefined} />
           ))}
         </List>
       ) : (
@@ -479,9 +490,11 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
   );
 }
 
-function Row({ title, sub, onClick, starred, onStar }: { title: string; sub: string; onClick: () => void; starred?: boolean; onStar?: () => void }) {
+function Row({ title, sub, onClick, starred, onStar, footprint }: { title: string; sub: string; onClick: () => void; starred?: boolean; onStar?: () => void; footprint?: string[] | undefined }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="flex w-full items-center rounded-lg bg-surface-elevated">
+    <div className="rounded-lg bg-surface-elevated">
+    <div className="flex w-full items-center">
       {onStar && <Button variant="ghost" size="icon" onClick={onStar} title={`Favourite ${title}`} aria-label={`Favourite ${title}`} aria-pressed={!!starred}><Star className={`h-4 w-4 ${starred ? "fill-amber-glow text-amber-glow" : "text-muted-foreground"}`} /></Button>}
       <Button variant="ghost" onClick={onClick} className="h-auto min-w-0 flex-1 justify-between px-3 py-2.5 text-left text-sm active:scale-[0.98]">
         <span className="min-w-0">
@@ -490,6 +503,13 @@ function Row({ title, sub, onClick, starred, onStar }: { title: string; sub: str
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
       </Button>
+      {footprint && <Button variant="ghost" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="shrink-0 px-2 text-[11px] text-muted-foreground">DMX {open ? "▴" : "▾"}</Button>}
+    </div>
+    {open && footprint && (
+      <ol className="grid grid-cols-2 gap-x-3 gap-y-0.5 px-3 pb-2.5 font-mono text-[11px] text-muted-foreground sm:grid-cols-3">
+        {footprint.map((f, i) => <li key={i}><span className="text-foreground">{i + 1}</span> {f}</li>)}
+      </ol>
+    )}
     </div>
   );
 }

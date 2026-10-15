@@ -255,7 +255,56 @@ const EVOKE2400B_MODES: FixtureMode[] = [
   nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(9), ZOOM, SP, SP, FAN], false]]),
 ];
 
+// Nanlux Evoke 150C / 600C DMX Charts V1.2 (Nebula C8 engine, 1000–20000K, Zoom added in V1.2).
+// Every mode ends with Fan, Strobe, Zoom (default 127) + 4 reserved; "Reduced" drops that tail.
+const C8_TAIL: Slot[] = [FAN, STROBE, ["Zoom", 0.498], ...NA(4)];
+const C8_RGBW: Slot[] = ["Red", "Green", "Blue", "White"];
+const C8_DIRECT: Slot[] = ["Red", "Red", "Amber", "Green", "Green", SP, "Blue", "Blue"]; // Deep Red, Red, Amber, Lime, Green, Cyan (held at 0), Blue, Indigo
+const C8_XY: Slot[] = [["Spare", 0.3127 / 0.8], ["Spare", 0.329 / 0.8]];
+function c8(name: string, eight: Slot[], wide: Slot[] = eight, extra8: Slot[] = []): FixtureMode[] {
+  // wide = slots sent as 16-bit; extra8 = slots that stay 8-bit in the 16-bit chart (crossfade, gel brand…)
+  return [
+    mm(`${name} 8bit`, [[[...eight, ...C8_TAIL], false]]),
+    mm(`${name} 8bit (Reduced)`, [[eight, false]]),
+    mm(`${name} 16bit`, [...wide.length ? [[wide, true] as [Slot[], boolean]] : [], [[...extra8, ...C8_TAIL], false]]),
+    mm(`${name} 16bit (Reduced)`, [...wide.length ? [[wide, true] as [Slot[], boolean]] : [], [extra8, false]]),
+  ];
+}
+const XF: Slot = "Crossfade";
+const C8_MODES: FixtureMode[] = [
+  ...c8("CCT & RGBW", ["Dimmer", "CCT", GM, XF, ...C8_RGBW]).map((m, i) => (i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [C8_RGBW, true], [i === 2 ? C8_TAIL : [], false]]) : m)),
+  ...c8("CCT & HSI", ["Dimmer", "CCT", GM, XF, "Hue", "Saturation"]).map((m, i) => (i === 0 ? mm(m.name, [[["Dimmer", "CCT", GM, XF, "Hue", "Saturation", ...C8_TAIL.slice(0, 6)], false]]) : i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [["Hue", "Saturation"], true], [i === 2 ? C8_TAIL : [], false]]) : m)),
+  ...c8("CCT & C8-Direct", ["Dimmer", "CCT", GM, XF, ...C8_DIRECT]).map((m, i) => (i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [C8_DIRECT, true], [i === 2 ? C8_TAIL : [], false]]) : m)),
+  ...c8("CCT & XY Coordinates", ["Dimmer", "CCT", GM, XF, ...C8_XY]).map((m, i) => (i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [C8_XY, true], [i === 2 ? C8_TAIL : [], false]]) : m)),
+  ...c8("CCT", ["Dimmer", "CCT", GM]),
+  ...c8("HSI", ["Dimmer", "Hue", "Saturation"]),
+  ...c8("RGBW", ["Dimmer", ...C8_RGBW]),
+  ...c8("C8-Direct", ["Dimmer", ...C8_DIRECT]),
+  ...c8("XY Coordinates", ["Dimmer", ...C8_XY]),
+  ...c8("RGB (No Dimmer)", ["Red", "Green", "Blue"]),
+  ...c8("Gel", ["Dimmer", SP, SP, SP], ["Dimmer"], [SP, SP, SP]),
+];
+
+// Nanlux Dyno 650C/1200C DMX Reference Guide B V2 2023-02-05 — Ultimate DMX 8bit modes (15 ch; ch2 selects the sub-mode).
+const DYNO_FAN: Slot = ["Spare", 0];
+const dynoUlt = (name: string, sel: number, body: Slot[]) => mm(`Ultimate DMX 8bit - ${name}`, [[["Dimmer", ["Spare", sel / 255], ...body, DYNO_FAN, ...NA(8)], false]]);
+const DYNO_ULTIMATE: FixtureMode[] = [
+  dynoUlt("CCT", 0, ["CCT", GM, SP, SP]),
+  dynoUlt("HSI", 32, ["Hue", "Saturation", SP, SP]),
+  dynoUlt("RGBW", 64, ["Red", "Green", "Blue", "White"]),
+  dynoUlt("XY", 96, [["Spare", 0.3127], ["Spare", 0.329], SP, SP]),
+  dynoUlt("Gel", 128, [SP, SP, SP, SP]),
+  dynoUlt("Effect", 160, [SP, SP, SP, SP]),
+];
+/** Official modes missing from an otherwise correct community profile; appended (never reordered) by gdtf-curate. */
+export const VERIFIED_EXTRA_MODES: { brand: string; model: string; modes: FixtureMode[] }[] = [
+  { brand: "Nanlux", model: "Dyno 650C", modes: DYNO_ULTIMATE },
+  { brand: "Nanlux", model: "Dyno 1200C", modes: DYNO_ULTIMATE },
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-nanlux-evoke-150c", brand: "Nanlux", model: "Evoke 150C", watts: 150, cctRange: [1000, 20000], lightType: "LED colour", modes: C8_MODES },
+  { id: "gdtf-nanlux-evoke-600c", brand: "Nanlux", model: "Evoke 600C", cctRange: [1000, 20000], lightType: "LED colour", modes: C8_MODES },
   { id: "gdtf-nanlux-evoke-1200", brand: "Nanlux", model: "Evoke 1200", watts: 1200, lightType: "LED daylight", modes: EVOKE1200_MODES },
   { id: "gdtf-nanlux-evoke-1200b", brand: "Nanlux", model: "Evoke 1200B", watts: 1200, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE1200B_MODES },
   { id: "gdtf-nanlux-evoke-2400b", brand: "Nanlux", model: "Evoke 2400B", watts: 2400, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE2400B_MODES },
