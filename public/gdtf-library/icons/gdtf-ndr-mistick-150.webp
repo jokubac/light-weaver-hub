@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Ebene_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4251.97 85.04">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #1d1d1b;
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <rect class="cls-2" x="5" y="5" width="4241.97" height="75.04"/>
+  <path class="cls-1" d="M4241.97,10v65.04H10V10h4231.97M4251.97,0H0v85.04h4251.97V0h0Z"/>
+</svg>
