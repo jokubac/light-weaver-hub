@@ -60,7 +60,7 @@ function footprintOf(def: FixtureDef, i: number): string[] {
   if (!mo.channelMap) return [];
   const px = mo.pixels ?? 0, per = px > 1 ? Math.floor(mo.channelMap.length / px) : 0, lead = px > 1 ? mo.channelMap.length - per * px : 0;
   return mo.channelMap.map((e, k) => {
-    const name = `${ATTR_LABEL[e.attr] ?? e.attr}${e.fine ? " fine" : ""}`;
+    const name = `${e.label ?? ATTR_LABEL[e.attr] ?? e.attr}${e.fine ? " fine" : ""}`;
     return per && k >= lead ? `P${Math.floor((k - lead) / per) + 1} ${name}` : name;
   });
 }
