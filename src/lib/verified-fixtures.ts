@@ -206,7 +206,62 @@ const quasarModes = (px: number): FixtureMode[] => {
   ];
 };
 
+
+// Nanlux / Nanlite official DMX Reference Guides (Evoke 1200 V2 2021-11-03, Evoke 1200B V2 2022-08-30, Evoke 2400B,
+// Forza 500B II V1 2022-12-28, Forza 720 V2 2021-12-25, Forza 720B). "Reduced" = DMX Reduced Channels ON (tail slots dropped).
+// Ultimate modes are fixed-length; channel 2 selects CCT/Daylight (0) or Effect (64) and is held at that value.
+const FAN: Slot = ["Spare", 0];
+const STROBE: Slot = ["Strobe", 0];
+const NA = (n: number): Slot[] => Array.from({ length: n }, () => SP);
+const ULT_CCT: Slot = ["Spare", 0];
+const ULT_FX: Slot = ["Spare", 0.2549];
+const nl = (name: string, parts: [Slot[], boolean][]) => mm(name, parts);
+const EVOKE1200_MODES: FixtureMode[] = [
+  nl("Daylight 8bit", [[["Dimmer", FAN], false]]),
+  nl("Daylight 16bit", [[["Dimmer"], true], [[FAN], false]]),
+  nl("Ultimate DMX 8bit - Daylight", [[["Dimmer", ULT_CCT, ...NA(7), FAN], false]]),
+  nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(7), FAN], false]]),
+];
+const FORZA720_MODES = EVOKE1200_MODES;
+const EVOKE1200B_MODES: FixtureMode[] = [
+  nl("CCT 8bit", [[["Dimmer", "CCT", FAN, STROBE, SP, SP], false]]),
+  nl("CCT 8bit (Reduced)", [[["Dimmer", "CCT"], false]]),
+  nl("CCT 16bit", [[["Dimmer", "CCT"], true], [[FAN, STROBE, ...NA(4)], false]]),
+  nl("CCT 16bit (Reduced)", [[["Dimmer", "CCT"], true]]),
+  nl("Ultimate DMX 8bit - CCT", [[["Dimmer", ULT_CCT, "CCT", ...NA(7), FAN], false]]),
+  nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(8), FAN], false]]),
+];
+const FORZA720B_MODES: FixtureMode[] = [
+  nl("CCT 8bit", [[["Dimmer", "CCT", FAN], false]]),
+  nl("CCT 16bit", [[["Dimmer", "CCT"], true], [[FAN], false]]),
+  nl("Ultimate DMX 8bit - CCT", [[["Dimmer", ULT_CCT, "CCT", ...NA(7), FAN], false]]),
+  nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(8), FAN], false]]),
+];
+const FORZA500BII_MODES: FixtureMode[] = [
+  nl("CCT 8bit", [[["Dimmer", "CCT", GM, FAN, STROBE, SP, SP], false]]),
+  nl("CCT 8bit (Reduced)", [[["Dimmer", "CCT", GM], false]]),
+  nl("CCT 16bit", [[["Dimmer", "CCT", GM], true], [[FAN, STROBE, ...NA(4)], false]]),
+  nl("CCT 16bit (Reduced)", [[["Dimmer", "CCT", GM], true]]),
+  nl("Ultimate DMX 8bit - CCT", [[["Dimmer", ULT_CCT, "CCT", GM, ...NA(7), FAN], false]]),
+  nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(9), FAN], false]]),
+];
+const ZOOM: Slot = ["Zoom", 0];
+const EVOKE2400B_MODES: FixtureMode[] = [
+  nl("CCT 8bit", [[["Dimmer", "CCT", GM, ZOOM, SP, SP, FAN, STROBE, SP, SP], false]]),
+  nl("CCT 8bit (Reduced)", [[["Dimmer", "CCT", GM, ZOOM], false]]),
+  nl("CCT 16bit", [[["Dimmer", "CCT", GM], true], [[ZOOM, SP, SP, FAN, STROBE, ...NA(4)], false]]),
+  nl("CCT 16bit (Reduced)", [[["Dimmer", "CCT", GM], true], [[ZOOM], false]]),
+  nl("Ultimate DMX 8bit - CCT", [[["Dimmer", ULT_CCT, "CCT", GM, ...NA(7), ZOOM, SP, SP, FAN], false]]),
+  nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(9), ZOOM, SP, SP, FAN], false]]),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-nanlux-evoke-1200", brand: "Nanlux", model: "Evoke 1200", watts: 1200, lightType: "LED daylight", modes: EVOKE1200_MODES },
+  { id: "gdtf-nanlux-evoke-1200b", brand: "Nanlux", model: "Evoke 1200B", watts: 1200, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE1200B_MODES },
+  { id: "gdtf-nanlux-evoke-2400b", brand: "Nanlux", model: "Evoke 2400B", watts: 2400, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE2400B_MODES },
+  { id: "gdtf-nanlite-forza-500b-ii", brand: "Nanlite", model: "Forza 500B II", cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: FORZA500BII_MODES },
+  { id: "gdtf-nanlite-forza-720", brand: "Nanlite", model: "Forza 720", lightType: "LED daylight", modes: FORZA720_MODES },
+  { id: "gdtf-nanlite-forza-720b", brand: "Nanlite", model: "Forza 720B", cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: FORZA720B_MODES },
   { id: "gdtf-sumolight-sumomax", brand: "SumoLight", model: "SUMOMAX", watts: 700, cctRange: [1800, 10000], lightType: "LED colour", modes: SUMOMAX_MODES },
   { id: "gdtf-creamsource-vortex-8", brand: "Creamsource", model: "Vortex 8", watts: 650, cctRange: [2200, 15000], lightType: "LED colour", modes: vortexModes(8) },
   { id: "gdtf-creamsource-vortex-4", brand: "Creamsource", model: "Vortex 4", watts: 325, cctRange: [2200, 15000], lightType: "LED colour", modes: vortexModes(4) },
