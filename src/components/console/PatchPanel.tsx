@@ -90,12 +90,12 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const gdtfHits = useMemo(() => (gdtfLib && q ? favoritesFirst(searchGdtfLibrary(gdtfLib, q, gdtfLib.length), (d) => fav.has(d.id) || favBrands.has(d.brand)).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list]);
   const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
-  const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setQuery(""); } finally { setGdtfBusy(false); } };
+  const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setModeIdx(null); setQuery(""); setCaps([]); } finally { setGdtfBusy(false); } };
   const availableDefs = [...(gdtfLib ?? []), ...FIXTURE_LIBRARY.filter((d) => !(gdtfLib ?? []).some((g) => g.id === d.id))];
   const chooseDef = async (d: FixtureDef, index: number | null = null) => {
     const bundled = gdtfLib?.find((g) => g.id === d.id);
     const installed = bundled ? await installGdtfFixture(bundled) : d;
-    setBrand(installed.brand); setDef(installed); setModeIdx(index);
+    setBrand(installed.brand); setDef(installed); setModeIdx(index); setCaps([]);
   };
   const favPairs = favModes.list.map((k) => {
     const [id, i] = [k.slice(0, k.lastIndexOf(":")), +k.slice(k.lastIndexOf(":") + 1)];
@@ -103,7 +103,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
     return d && d.modes[i] ? { d, i, k } : null;
   }).filter((x): x is { d: FixtureDef; i: number; k: string } => !!x);
 
-  const reset = () => { setBrand(null); setDef(null); setModeIdx(null); setModeQuery(""); };
+  const reset = () => { setBrand(null); setDef(null); setModeIdx(null); setModeQuery(""); setCaps([]); };
   const back = () => (modeIdx !== null ? setModeIdx(null) : def ? (setDef(null), setModeQuery("")) : setBrand(null));
   const crumbs = [brand, def?.model, modeIdx !== null ? def?.modes[modeIdx]?.name : null].filter(Boolean);
   const mq = modeQuery.trim().toLowerCase();
