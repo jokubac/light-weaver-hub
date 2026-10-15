@@ -303,10 +303,8 @@ function InfiniteGrid({ children, columns, rows }: { children: React.ReactNode; 
   };
   const begin = () => { const m = measure(); gesture.current = m ? { ...m, pan: viewPan, zoom: viewZoom } : null; };
   const end = (e: React.PointerEvent) => { pointers.current.delete(e.pointerId); begin(); };
-  const cell = 11 * viewZoom;
   return <div className="space-y-2">
     <div ref={viewport} aria-label="Pixel mapping viewport" className="relative h-56 touch-none overflow-hidden rounded-lg bg-background"
-      style={{ backgroundImage: "linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)", backgroundSize: `${cell}px ${cell}px`, backgroundPosition: `${viewPan[0]}px ${viewPan[1]}px` }}
       onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pointers.current.set(e.pointerId, [e.clientX, e.clientY]); begin(); }}
       onPointerMove={(e) => {
         if (!pointers.current.has(e.pointerId)) return;
