@@ -259,7 +259,7 @@ const EVOKE2400B_MODES: FixtureMode[] = [
 // Every mode ends with Fan, Strobe, Zoom (default 127) + 4 reserved; "Reduced" drops that tail.
 const C8_TAIL: Slot[] = [FAN, STROBE, ["Zoom", 0.498], ...NA(4)];
 const C8_RGBW: Slot[] = ["Red", "Green", "Blue", "White"];
-const C8_DIRECT: Slot[] = ["Red", "Red", "Amber", "Green", "Green", "Cyan", "Blue", "Blue"]; // Deep Red, Red, Amber, Lime, Green, Cyan, Blue, Indigo
+const C8_DIRECT: Slot[] = ["Red", "Red", "Amber", "Green", "Green", SP, "Blue", "Blue"]; // Deep Red, Red, Amber, Lime, Green, Cyan (held at 0), Blue, Indigo
 const C8_XY: Slot[] = [["Spare", 0.3127 / 0.8], ["Spare", 0.329 / 0.8]];
 function c8(name: string, eight: Slot[], wide: Slot[] = eight, extra8: Slot[] = []): FixtureMode[] {
   // wide = slots sent as 16-bit; extra8 = slots that stay 8-bit in the 16-bit chart (crossfade, gel brand…)
@@ -273,7 +273,7 @@ function c8(name: string, eight: Slot[], wide: Slot[] = eight, extra8: Slot[] = 
 const XF: Slot = "Crossfade";
 const C8_MODES: FixtureMode[] = [
   ...c8("CCT & RGBW", ["Dimmer", "CCT", GM, XF, ...C8_RGBW]).map((m, i) => (i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [C8_RGBW, true], [i === 2 ? C8_TAIL : [], false]]) : m)),
-  ...c8("CCT & HSI", ["Dimmer", "CCT", GM, XF, "Hue", "Saturation"]).map((m, i) => (i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [["Hue", "Saturation"], true], [i === 2 ? C8_TAIL : [], false]]) : m)),
+  ...c8("CCT & HSI", ["Dimmer", "CCT", GM, XF, "Hue", "Saturation"]).map((m, i) => (i === 0 ? mm(m.name, [[["Dimmer", "CCT", GM, XF, "Hue", "Saturation", ...C8_TAIL.slice(0, 6)], false]]) : i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [["Hue", "Saturation"], true], [i === 2 ? C8_TAIL : [], false]]) : m)),
   ...c8("CCT & C8-Direct", ["Dimmer", "CCT", GM, XF, ...C8_DIRECT]).map((m, i) => (i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [C8_DIRECT, true], [i === 2 ? C8_TAIL : [], false]]) : m)),
   ...c8("CCT & XY Coordinates", ["Dimmer", "CCT", GM, XF, ...C8_XY]).map((m, i) => (i % 4 > 1 ? mm(m.name, [[["Dimmer", "CCT", GM], true], [[XF], false], [C8_XY, true], [i === 2 ? C8_TAIL : [], false]]) : m)),
   ...c8("CCT", ["Dimmer", "CCT", GM]),
