@@ -148,7 +148,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
           {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).sort((a, b) => Number(favModes.has(modeKey(def.id, b.i))) - Number(favModes.has(modeKey(def.id, a.i))) || a.n - b.n || a.i - b.i).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
-            <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={mo.name} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${mo.pixels ? ` · ${mo.pixels} px` : ""}`} />
+            <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={`${mo.name}${pxCount(def, i) ? ` (${pxCount(def, i)} px)` : ""}`} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${pxCount(def, i) ? ` · ${pxCount(def, i)} px` : ""}`} />
           ))}
         </List>
       ) : (
@@ -198,7 +198,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
                       <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                       <Field label="Mode">
                         <select value={f.modeIdx} onChange={(e) => onUpdate(f.uid, { modeIdx: +e.target.value })} className={inputCls}>
-                          {d.modes.map((m, i) => <option key={m.name} value={i}>{m.name} · {m.channels} ch</option>)}
+                          {d.modes.map((m, i) => <option key={m.name} value={i}>{m.name}{pxCount(d, i) ? ` (${pxCount(d, i)} px)` : ""} · {m.channels} ch</option>)}
                         </select>
                       </Field>
                       <div className="grid grid-cols-2 gap-2">
