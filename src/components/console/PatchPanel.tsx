@@ -29,6 +29,29 @@ import {
 /** Pixel count for a mode, including layouts derived at getMode time (Astera names, "Pixel N" modes). */
 const pxCount = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).pixels ?? 0;
 
+/** Capability filters for the fixture search (chips under the search box). */
+type CapFilter = "pixels" | "cct" | "colour" | "mover" | "gobo";
+const CAP_FILTERS: { id: CapFilter; label: string }[] = [
+  { id: "pixels", label: "Pixels" },
+  { id: "cct", label: "CCT" },
+  { id: "colour", label: "Colour" },
+  { id: "mover", label: "Pan/Tilt" },
+  { id: "gobo", label: "Gobo" },
+];
+const modeAttrs = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).channelMap?.map((e) => e.attr) ?? [];
+function hasCap(def: FixtureDef, cap: CapFilter): boolean {
+  return def.modes.some((mo, i) => {
+    const attrs = modeAttrs(def, i);
+    switch (cap) {
+      case "pixels": return pxCount(def, i) > 0;
+      case "cct": return !!def.cctRange || mo.kind === "cct" || mo.kind === "cctgm" || mo.kind === "full" || mo.kind === "hsi" || attrs.includes("CCT");
+      case "colour": return mo.kind === "rgb" || mo.kind === "rgbw" || mo.kind === "hsi" || mo.kind === "full" || attrs.some((a) => a === "Red" || a === "Hue");
+      case "mover": return attrs.includes("Pan") || attrs.includes("Tilt");
+      case "gobo": return attrs.some((a) => a === "Gobo" || a === "Gobo2" || a === "GoboRot");
+    }
+  });
+}
+
 export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
 
 const modeKey = (defId: string, i: number) => `${defId}:${i}`;
