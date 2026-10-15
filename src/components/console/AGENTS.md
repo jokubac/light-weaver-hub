@@ -31,3 +31,4 @@
 - Console swaps and Patch drag insertion move whole fixtures without changing identity or settings. Patch displays canonical positions as read-only numbers; drag insertion changes keypad/PDF positions.
 - Fixture FLASH and fader banks are output-only overlays in outFixtures, never mutating live fixture state; keypad numbers are console positions.
 - GDTF library is curated by scripts/gdtf-curate.ts using src/lib/gdtf-curation.ts; exact model aliases dedupe profiles without merging distinct revisions, and only model-specific verified power may fill missing watts.
+- EFFECTS tab (panel id "pixels") is the Effect pad: FixtureEffects for selected lights above PixelPanel; CONTROL no longer edits fixture effects.
