@@ -49,12 +49,21 @@ function rgbToXy(r: number, g: number, b: number): [number, number] {
   return s ? [X / s, Y / s] : [0.3127, 0.329];
 }
 
-function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, pixels: RGB[] | undefined, order: ColorOrder) {
+/** A playing fixture effect (pulse, candle…) modulates the pixel layer brightness, so both effects combine. */
+export function fxPixels(pixels: RGB[] | undefined, f: PatchedFixture, v: number, level: number): RGB[] | undefined {
+  if (!pixels || f.fx.kind === "none" || f.fxPlaying === false) return pixels;
+  const base = f.on === false ? 0 : f.intensity * level;
+  const k = base > 0 ? Math.min(1, v / base) : 0;
+  return k === 1 ? pixels : pixels.map((c) => [c[0] * k, c[1] * k, c[2] * k] as RGB);
+}
+
+function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, pixels0: RGB[] | undefined, order: ColorOrder) {
   // white-light overlaps output a real blended colour temperature on CCT channels
   const f = resolveCctMix(f0, t) ?? f0;
   const mode = getMode(f);
   const wide = /16/.test(mode.name);
   const st = fixtureState(f, t, level);
+  const pixels = fxPixels(pixels0, f, st.v, level);
   const v = st.v;
   const [r, g, b] = reorder(st.rgb.map((c) => c / 255) as RGB, order);
   const paletteActive = (f.fxPlaying !== false && f.fx.kind !== "none" && !!f.fx.colors?.length) || !!f.mix;
