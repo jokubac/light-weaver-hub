@@ -25,7 +25,7 @@ import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel"
 import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
-import { FixtureControls } from "@/components/console/FixtureControls";
+import { FixtureControls, FixtureEffects } from "@/components/console/FixtureControls";
 import { FixtureGlyph } from "@/components/console/FixtureGlyph";
 import { copyFixtureSettings, type FixtureSettings } from "@/lib/fixture-settings";
 import { PixelPanel } from "@/components/console/PixelPanel";
