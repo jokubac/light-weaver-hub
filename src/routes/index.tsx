@@ -1069,7 +1069,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           ) : panel === "pixels" ? (
             <div className="space-y-5">
               <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Effect pad</h2>
-              <FixtureEffects sel={sel} update={updateSelected} />
+              <FixtureEffects sel={sel.length ? sel : fixtures} update={updateSelected} />
               {!(sel.length ? sel : fixtures).some((f) => pixelCount(f) > 0) ? (
                 <p className="border-t border-border pt-4 text-[11px] text-muted-foreground">{sel.length ? "Selected lights aren't patched in a pixel mode." : "No lights patched in a pixel mode."}</p>
               ) : <div className="border-t border-border pt-4">
