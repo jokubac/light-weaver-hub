@@ -58,7 +58,7 @@ jobs:
           xcodebuild $SRC -scheme App -configuration Release \
             -sdk iphoneos -destination generic/platform=iOS \
             -derivedDataPath $RUNNER_TEMP/dd \
-            PRODUCT_BUNDLE_IDENTIFIER=com.kroma.console \
+            PRODUCT_BUNDLE_IDENTIFIER=com.nox.console \
             MARKETING_VERSION=$APP_VERSION CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build
