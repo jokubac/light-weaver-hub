@@ -1070,14 +1070,16 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
             <div className="space-y-5">
               <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Effect pad</h2>
               <FixtureEffects sel={sel} update={updateSelected} />
-              <div className="border-t border-border pt-4">
+              {!(sel.length ? sel : fixtures).some((f) => pixelCount(f) > 0) ? (
+                <p className="border-t border-border pt-4 text-[11px] text-muted-foreground">{sel.length ? "Selected lights aren't patched in a pixel mode." : "No lights patched in a pixel mode."}</p>
+              ) : <div className="border-t border-border pt-4">
                 <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pixel layers</div>
                 <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
                   const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
                   if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
                   setLayers(next);
                 }} />
-              </div>
+              </div>}
             </div>
           ) : sel.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
