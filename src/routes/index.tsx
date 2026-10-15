@@ -580,10 +580,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
 
   const exit = () => { save(); onExit(); };
 
+  // with nothing selected, controls act on every light in the scene (same as FLASH)
   const updateSelected = (patch: Partial<PatchedFixture>) =>
-    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
+    setFixtures((fs) => fs.map((f) => (selected.length === 0 || selected.includes(f.uid) ? { ...f, ...patch } : f)));
   const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) =>
-    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
+    setFixtures((fs) => fs.map((f) => (selected.length === 0 || selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
   const updateOne = (id: string, patch: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
 
   const fire = (kind: TriggerKind) => {
