@@ -29,27 +29,30 @@ import {
 /** Pixel count for a mode, including layouts derived at getMode time (Astera names, "Pixel N" modes). */
 const pxCount = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).pixels ?? 0;
 
-/** Capability filters for the fixture search (chips under the search box). */
-type CapFilter = "pixels" | "cct" | "colour" | "mover" | "gobo";
+/** Capability filters for the mode list (chips at the Mode step). */
+type CapFilter = "pixels" | "cct" | "colour" | "mover" | "gobo" | "gm";
 const CAP_FILTERS: { id: CapFilter; label: string }[] = [
   { id: "pixels", label: "Pixels" },
   { id: "cct", label: "CCT" },
   { id: "colour", label: "Colour" },
   { id: "mover", label: "Pan/Tilt" },
   { id: "gobo", label: "Gobo" },
+  { id: "gm", label: "G/M" },
 ];
 const modeAttrs = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).channelMap?.map((e) => e.attr) ?? [];
-function hasCap(def: FixtureDef, cap: CapFilter): boolean {
-  return def.modes.some((mo, i) => {
-    const attrs = modeAttrs(def, i);
-    switch (cap) {
-      case "pixels": return pxCount(def, i) > 0;
-      case "cct": return !!def.cctRange || mo.kind === "cct" || mo.kind === "cctgm" || mo.kind === "full" || mo.kind === "hsi" || attrs.includes("CCT");
-      case "colour": return mo.kind === "rgb" || mo.kind === "rgbw" || mo.kind === "hsi" || mo.kind === "full" || attrs.some((a) => a === "Red" || a === "Hue");
-      case "mover": return attrs.includes("Pan") || attrs.includes("Tilt");
-      case "gobo": return attrs.some((a) => a === "Gobo" || a === "Gobo2" || a === "GoboRot");
-    }
-  });
+const goboAttr = (attrs: string[]) => attrs.some((a) => a === "Gobo" || a === "Gobo2" || a === "GoboRot");
+/** Per-mode capability test — chips filter individual modes, not whole fixtures. */
+function modeHasCap(def: FixtureDef, i: number, cap: CapFilter): boolean {
+  const mo = def.modes[i]!;
+  const attrs = modeAttrs(def, i);
+  switch (cap) {
+    case "pixels": return pxCount(def, i) > 0;
+    case "cct": return !!def.cctRange || mo.kind === "cct" || mo.kind === "cctgm" || mo.kind === "full" || mo.kind === "hsi" || attrs.includes("CCT");
+    case "colour": return mo.kind === "rgb" || mo.kind === "rgbw" || mo.kind === "hsi" || mo.kind === "full" || attrs.some((a) => a === "Red" || a === "Hue");
+    case "mover": return attrs.includes("Pan") || attrs.includes("Tilt");
+    case "gobo": return goboAttr(attrs);
+    case "gm": return (attrs.includes("Pan") || attrs.includes("Tilt")) && goboAttr(attrs);
+  }
 }
 
 export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
