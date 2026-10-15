@@ -29,6 +29,29 @@ import {
 /** Pixel count for a mode, including layouts derived at getMode time (Astera names, "Pixel N" modes). */
 const pxCount = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).pixels ?? 0;
 
+/** Capability filters for the fixture search (chips under the search box). */
+type CapFilter = "pixels" | "cct" | "colour" | "mover" | "gobo";
+const CAP_FILTERS: { id: CapFilter; label: string }[] = [
+  { id: "pixels", label: "Pixels" },
+  { id: "cct", label: "CCT" },
+  { id: "colour", label: "Colour" },
+  { id: "mover", label: "Pan/Tilt" },
+  { id: "gobo", label: "Gobo" },
+];
+const modeAttrs = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).channelMap?.map((e) => e.attr) ?? [];
+function hasCap(def: FixtureDef, cap: CapFilter): boolean {
+  return def.modes.some((mo, i) => {
+    const attrs = modeAttrs(def, i);
+    switch (cap) {
+      case "pixels": return pxCount(def, i) > 0;
+      case "cct": return !!def.cctRange || mo.kind === "cct" || mo.kind === "cctgm" || mo.kind === "full" || mo.kind === "hsi" || attrs.includes("CCT");
+      case "colour": return mo.kind === "rgb" || mo.kind === "rgbw" || mo.kind === "hsi" || mo.kind === "full" || attrs.some((a) => a === "Red" || a === "Hue");
+      case "mover": return attrs.includes("Pan") || attrs.includes("Tilt");
+      case "gobo": return attrs.some((a) => a === "Gobo" || a === "Gobo2" || a === "GoboRot");
+    }
+  });
+}
+
 export const LABEL_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#ffffff", "#78716c"];
 
 const modeKey = (defId: string, i: number) => `${defId}:${i}`;
@@ -48,6 +71,9 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [modeIdx, setModeIdx] = useState<number | null>(null);
   const [mapU, setMapU] = useState(1);
   const [showMap, setShowMap] = useState(defaultMap);
+  const [caps, setCaps] = useState<CapFilter[]>([]);
+  const toggleCap = (c: CapFilter) => setCaps((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
+  const capOk = (d: FixtureDef) => caps.every((c) => hasCap(d, c));
   const fav = useFavorites("fixtures");
   const favModes = useFavorites("modes");
   const favBrands = useFavorites("manufacturers");
@@ -59,7 +85,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   // library stays in dmx.ts solely so already-patched fixtures keep working.
   const [gdtfLib, setGdtfLib] = useState<LibraryDef[] | null>(null);
   useEffect(() => { if (!gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [gdtfLib]);
-  const gdtfHits = useMemo(() => (gdtfLib && q ? favoritesFirst(searchGdtfLibrary(gdtfLib, q, gdtfLib.length), (d) => fav.has(d.id) || favBrands.has(d.brand)).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list]);
+  const gdtfHits = useMemo(() => (gdtfLib && q ? favoritesFirst(searchGdtfLibrary(gdtfLib, q, gdtfLib.length), (d) => fav.has(d.id) || favBrands.has(d.brand)).filter(capOk).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list, caps]);
   const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setQuery(""); } finally { setGdtfBusy(false); } };
@@ -105,9 +131,16 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       )}
 
       {!def && (
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {CAP_FILTERS.map((c) => (
+              <button key={c.id} onClick={() => toggleCap(c.id)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${caps.includes(c.id) ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{c.label}</button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -137,7 +170,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         </List>
       ) : !def ? (
         <List>
-          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand), (d) => fav.has(d.id)).map((d) => (
+          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand && capOk(d)), (d) => fav.has(d.id)).map((d) => (
             <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
           ))}
         </List>
