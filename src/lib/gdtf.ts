@@ -106,11 +106,18 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
   let footprint = 0;
   // pixel modes define one template channel per geometry; GeometryReferences repeat it at each pixel's DMX offset
   const modeGeo = attrAt(modeEl, "Geometry");
-  const geoRoot = modeGeo ? Array.from(doc.querySelectorAll("Geometries *")).find((g) => g.getAttribute("Name") === modeGeo && g.tagName !== "GeometryReference") : undefined;
+  const geoByName = new Map<string, Element>();
+  for (const g of Array.from(doc.querySelectorAll("Geometries *"))) { const n = g.getAttribute("Name"); if (n && g.tagName !== "GeometryReference" && !geoByName.has(n)) geoByName.set(n, g); }
+  const geoRoot = modeGeo ? geoByName.get(modeGeo) : undefined;
+  const allRefs = geoRoot ? Array.from(geoRoot.querySelectorAll("GeometryReference")) : [];
   const refsFor = (geometry: string, dmxBreak: string): number[] => {
-    if (!geometry || !geoRoot) return [];
-    return Array.from(geoRoot.querySelectorAll("GeometryReference"))
-      .filter((r) => r.getAttribute("Geometry") === geometry)
+    if (!geometry || !allRefs.length) return [];
+    // a channel on a child of a template geometry repeats with every reference to that template
+    const names = new Set<string>([geometry]);
+    let el: Element | null | undefined = geoByName.get(geometry);
+    while (el && el.tagName !== "Geometries") { const n = el.getAttribute("Name"); if (n) names.add(n); el = el.parentElement; }
+    return allRefs
+      .filter((r) => names.has(r.getAttribute("Geometry") ?? ""))
       .map((r) => {
         const b = Array.from(r.querySelectorAll("Break")).find((x) => (x.getAttribute("DMXBreak") ?? "1") === dmxBreak) ?? r.querySelector("Break");
         return parseInt(b?.getAttribute("DMXOffset") ?? "", 10);

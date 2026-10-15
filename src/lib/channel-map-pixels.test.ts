@@ -22,3 +22,12 @@ describe("asteraSpecFromName", () => {
     expect(asteraSpecFromName("116: D CCT GM CRO RGB S", 113)!.px).toBe(16);
   });
 });
+
+import { namedPixelCells } from "@/lib/dmx";
+describe("namedPixelCells", () => {
+  it("expands an Infinibar 'LE RGB Mode Pixel 12' cell to 12 pixels", () => {
+    const mo = namedPixelCells({ name: "LE RGB Mode Pixel 12", channels: 4, kind: "full", channelMap: [{ attr: "Dimmer" }, { attr: "Red" }, { attr: "Green" }, { attr: "Blue" }] } as never)!;
+    expect(mo.pixels).toBe(12);
+    expect(mo.channels).toBe(48);
+  });
+});

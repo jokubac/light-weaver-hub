@@ -124,3 +124,4 @@
 - [x] Macro cursor glow reduced ~50% (ring-2, warning/50)
 - [x] Patch: toolbar above visible PATCH SHEET heading
 - [x] Patch sheet: NOX logo removed from the on-screen title, Add fixtures button moved above the PATCH SHEET heading; 162 tests pass and browser confirms the button sits above the plain title with no logo
+- [x] Rename any remaining Kroma naming to NOX (user-visible)

@@ -121,7 +121,7 @@ input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius
 @container (min-width: 600px) { .fixture-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @container (min-width: 760px) { .fixture-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
 
-.kroma-wordmark { letter-spacing: 0; text-shadow: var(--wordmark-glow); }
+.nox-wordmark { letter-spacing: 0; text-shadow: var(--wordmark-glow); }
 .bulb-lit { fill: color-mix(in oklab, var(--primary) 25%, transparent); filter: drop-shadow(var(--bulb-glow)); }
 
 @media print {
