@@ -126,7 +126,3 @@
 - [x] Patch sheet: NOX logo removed from the on-screen title, Add fixtures button moved above the PATCH SHEET heading; 162 tests pass and browser confirms the button sits above the plain title with no logo
 - [x] Rename any remaining Kroma naming to NOX (user-visible)
 - [ ] Nanlux official DMX charts (nanlux.com download id=97) — verify Evoke/Dyno modes against manufacturer tables
-
-## Effect pad + timeline
-- [x] Effect pad: fixture effects and pixel layers in one EFFECTS window
-- [ ] Live recording of all changes (faders, intensity, CCT, colour, fx speed) as curves + timeline editor

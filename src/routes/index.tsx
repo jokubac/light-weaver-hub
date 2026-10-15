@@ -25,7 +25,7 @@ import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel"
 import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { PatchPanel } from "@/components/console/PatchPanel";
-import { FixtureControls, FixtureEffects } from "@/components/console/FixtureControls";
+import { FixtureControls } from "@/components/console/FixtureControls";
 import { FixtureGlyph } from "@/components/console/FixtureGlyph";
 import { copyFixtureSettings, type FixtureSettings } from "@/lib/fixture-settings";
 import { PixelPanel } from "@/components/console/PixelPanel";
@@ -580,11 +580,10 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
 
   const exit = () => { save(); onExit(); };
 
-  // with nothing selected, controls act on every light in the scene (same as FLASH)
   const updateSelected = (patch: Partial<PatchedFixture>) =>
-    setFixtures((fs) => fs.map((f) => (selected.length === 0 || selected.includes(f.uid) ? { ...f, ...patch } : f)));
+    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
   const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) =>
-    setFixtures((fs) => fs.map((f) => (selected.length === 0 || selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
+    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
   const updateOne = (id: string, patch: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
 
   const fire = (kind: TriggerKind) => {
@@ -948,7 +947,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
         <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">PATCH</Button>
         {tab("control", "CONTROL")}
-        {tab("pixels", "EFFECTS")}
+        {tab("pixels", "PIXELS")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => setPlotOpen(true)} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
@@ -1068,20 +1067,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
           ) : panel === "pixels" ? (
-            <div className="space-y-5">
-              <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Effect pad</h2>
-              <FixtureEffects sel={sel.length ? sel : fixtures} update={updateSelected} />
-              {!(sel.length ? sel : fixtures).some((f) => pixelCount(f) > 0) ? (
-                <p className="border-t border-border pt-4 text-[11px] text-muted-foreground">{sel.length ? "Selected lights aren't patched in a pixel mode." : "No lights patched in a pixel mode."}</p>
-              ) : <div className="border-t border-border pt-4">
-                <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pixel layers</div>
-                <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
-                  const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
-                  if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
-                  setLayers(next);
-                }} />
-              </div>}
-            </div>
+            <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
+              const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
+              if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
+              setLayers(next);
+            }} />
           ) : sel.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
           ) : (

@@ -162,19 +162,7 @@ export function FixtureControls({
         </div>
       </Section></>}
 
-      <p className="text-[11px] text-muted-foreground">Effects moved to the EFFECTS pad.</p>
-    </div>
-  );
-}
-
-/** Fixture effect editor used in the EFFECTS pad, alongside pixel layers. */
-export function FixtureEffects({ sel, update }: { sel: PatchedFixture[]; update: (patch: Partial<PatchedFixture>) => void }) {
-  const first = sel[0];
-  if (!first) return <p className="rounded-md bg-surface-elevated p-3 text-center text-xs text-muted-foreground">No lights in this scene yet.</p>;
-  const fx = first.fx;
-  const setFx = (p: Partial<FxParams>) => update({ fx: { ...fx, ...p } });
-  return (
-    <Section title={`Fixture effect · ${sel.length === 1 ? first.name : `${sel.length} lights`}`}>
+      {<Section title="Effect">
         {fx.kind !== "none" && (
           <button onClick={() => update({ fxPlaying: first.fxPlaying === false })}
             className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.fxPlaying === false ? "bg-amber-glow text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
@@ -195,7 +183,8 @@ export function FixtureEffects({ sel, update }: { sel: PatchedFixture[]; update:
             <PaletteEditor colours={fx.colors ?? []} onChange={(colors) => setFx({ colors })} onReset={() => setFx({ colors: [] })} />
           </details>
         </>}
-    </Section>
+      </Section>}
+    </div>
   );
 }
 
