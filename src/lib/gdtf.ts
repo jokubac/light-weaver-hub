@@ -147,6 +147,7 @@ function parseMode(modeEl: Element, doc: Document): FixtureMode | null {
     const slots = mapped && SLOT_ATTRS.has(mapped) ? readSlots(ch) : undefined;
     raws.push({
       attr: mapped ?? "Spare", bytes: Math.min(2, offsets.length), firstOffset: Math.min(...offsets), offsets,
+      ...(!mapped && attrName ? { label: attrName } : {}),
       ...(physicalRange ? { physicalRange } : {}), ...(home ? { home } : {}), ...(slots?.length ? { slots } : {}),
     });    }
   }
