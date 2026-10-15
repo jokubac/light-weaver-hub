@@ -30,28 +30,48 @@ import {
 const pxCount = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).pixels ?? 0;
 
 /** Capability filters for the mode list (chips at the Mode step). */
-type CapFilter = "pixels" | "cct" | "colour" | "mover" | "gobo" | "gm";
+type CapFilter = "pixels" | "cct" | "gm" | "colour" | "rgbw" | "hsi" | "strobe" | "zoom" | "mover" | "gobo" | "bit8" | "bit16";
 const CAP_FILTERS: { id: CapFilter; label: string }[] = [
   { id: "pixels", label: "Pixels" },
   { id: "cct", label: "CCT" },
+  { id: "gm", label: "Green/Magenta" },
   { id: "colour", label: "Colour" },
+  { id: "rgbw", label: "RGBW" },
+  { id: "hsi", label: "HSI" },
+  { id: "strobe", label: "Strobe" },
+  { id: "zoom", label: "Zoom" },
   { id: "mover", label: "Pan/Tilt" },
   { id: "gobo", label: "Gobo" },
-  { id: "gm", label: "G/M" },
+  { id: "bit8", label: "8-bit" },
+  { id: "bit16", label: "16-bit" },
 ];
 const modeAttrs = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).channelMap?.map((e) => e.attr) ?? [];
 const goboAttr = (attrs: string[]) => attrs.some((a) => a === "Gobo" || a === "Gobo2" || a === "GoboRot");
-/** Per-mode capability test — chips filter individual modes, not whole fixtures. */
+/** Mode has at least one 16-bit (coarse+fine) channel — from the channel map, else from the mode name. */
+function is16(def: FixtureDef, i: number): boolean {
+  const mo = deriveMode(def, def.modes[i]!);
+  if (mo.channelMap) return mo.channelMap.some((e) => e.fine);
+  return /16[\s-]?bit|\bfine\b|\b16\b/i.test(mo.name);
+}
+/** Per-mode capability test — chips filter individual modes by their actual channels, not mode names. */
 function modeHasCap(def: FixtureDef, i: number, cap: CapFilter): boolean {
   const mo = def.modes[i]!;
   const attrs = modeAttrs(def, i);
+  const hasMap = attrs.length > 0;
+  const n = mo.name;
   switch (cap) {
     case "pixels": return pxCount(def, i) > 0;
-    case "cct": return !!def.cctRange || mo.kind === "cct" || mo.kind === "cctgm" || mo.kind === "full" || mo.kind === "hsi" || attrs.includes("CCT");
-    case "colour": return mo.kind === "rgb" || mo.kind === "rgbw" || mo.kind === "hsi" || mo.kind === "full" || attrs.some((a) => a === "Red" || a === "Hue");
+    case "cct": return hasMap ? attrs.includes("CCT") : mo.kind === "cct" || mo.kind === "cctgm" || mo.kind === "full" || /\bCCT\b/i.test(n);
+    case "gm": return hasMap ? attrs.includes("GM") : mo.kind === "cctgm" || mo.kind === "full" || /\bG\/?M\b|\bGM\b|green|magenta|\+\/-\s?green/i.test(n);
+    case "colour": return hasMap ? attrs.some((a) => a === "Red" || a === "Hue") : mo.kind === "rgb" || mo.kind === "rgbw" || mo.kind === "hsi" || mo.kind === "full" || /RGB|HS/i.test(n);
+    case "rgbw": return hasMap ? attrs.includes("Red") && attrs.includes("White") : mo.kind === "rgbw" || mo.kind === "full" || /RGBW/i.test(n);
+    case "hsi": return hasMap ? attrs.includes("Hue") : mo.kind === "hsi" || /\bHS/i.test(n);
+    case "strobe": return hasMap ? attrs.includes("Strobe") : /strobe|\bS\b/i.test(n);
+    case "zoom": return attrs.includes("Zoom");
     case "mover": return attrs.includes("Pan") || attrs.includes("Tilt");
     case "gobo": return goboAttr(attrs);
-    case "gm": return (attrs.includes("Pan") || attrs.includes("Tilt")) && goboAttr(attrs);
+    case "bit16": return is16(def, i);
+    case "bit8": return !is16(def, i);
   }
 }
 
