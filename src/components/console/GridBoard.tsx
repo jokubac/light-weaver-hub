@@ -4,7 +4,7 @@ import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
-import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
@@ -245,6 +245,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   groups?: string[];
 }) {
   const [live, setLive] = useState(true);
+  // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
+  const [panelOpen, setPanelOpen] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
   const [esel, setEsel] = useState<string[]>([]);
   const lastTap = useRef<{ id: string; t: number } | null>(null);
