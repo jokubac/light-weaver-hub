@@ -10,7 +10,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
 export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
-export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
+/** A brand-new scene's GRID starts with two default macro tables — MACROS (intensity/CCT) and TOOLS (edit tools) — laid out like the user's own setup. */
+export function emptyGrid(): GridLayout {
+  const C = MACRO_CELL, X = 12.2, Y = 1;
+  const t1: GridItem = { id: "def-macros", kind: "table", text: "MACROS", x: X, y: Y, cols: 4, rows: 5, w: 4 * C, h: 5 * C + TABLE_HEADER };
+  const t2: GridItem = { id: "def-tools", kind: "table", text: "TOOLS", x: X, y: Y + 5 * C + TABLE_HEADER + 0.5, cols: 2, rows: 3, w: 2 * C, h: 3 * C + TABLE_HEADER };
+  const macro = (t: GridItem, r: number, c: number, action: MacroAction, amount: number, label: string, color?: string, cs = 1, rs = 1): GridItem =>
+    ({ id: `def-${t.id}-${r}-${c}`, kind: "macro", tbl: t.id, x: t.x + c * C, y: t.y + TABLE_HEADER + r * C, cs, rs, macro: { action, amount, label }, ...(color ? { color } : {}) });
+  return { items: layoutTables([
+    t1,
+    macro(t1, 0, 0, "int_up", 5, "Intensity + 5%", "#3B82F6"),
+    macro(t1, 0, 1, "int_down", 5, "Intensity − 5%", "#3B82F6"),
+    macro(t1, 0, 2, "cct_up", 100, "CCT + 100K", "#F59E0B"),
+    macro(t1, 0, 3, "cct_down", 100, "CCT − 100K", "#F59E0B"),
+    macro(t1, 1, 0, "int_fader", 0, "Intensity fader", undefined, 4, 2),
+    macro(t1, 3, 0, "cct_fader", 5600, "CCT fader", undefined, 4, 2),
+    t2,
+    macro(t2, 0, 0, "copy", 0, "Copy"),
+    macro(t2, 0, 1, "paste", 0, "Paste", "#FFFFFF"),
+    macro(t2, 1, 0, "checkout", 0, "Check out!", "#A855F7"),
+    macro(t2, 1, 1, "undo", 0, "Undo", "#F97316"),
+    macro(t2, 2, 0, "redo", 0, "Redo", "#22C55E"),
+    macro(t2, 2, 1, "locate", 0, "Locate!", "#EF4444"),
+  ]), walls: [] };
+}
 
 const CELL = 76, COLS = 24, ROWS = 16, SIZE = 0.92;
 const nid = () => Math.random().toString(36).slice(2, 10);
