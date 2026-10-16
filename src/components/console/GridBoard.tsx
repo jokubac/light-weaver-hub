@@ -1,8 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import type { PatchedFixture } from "@/lib/dmx";
-import { PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
@@ -181,16 +181,37 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
       if (i.w != null || i.kind === "image" || i.kind === "table") return i;
       const c = { x: i.x + sz / 2, y: i.y + sz / 2 };
       const n = ids.has(i.id) ? { x: ox + (c.x - ox) * k, y: oy + (c.y - oy) * k } : c;
-      return { ...i, x: Math.max(0, Math.min(COLS - size, n.x - size / 2)), y: Math.max(0, Math.min(ROWS - size, n.y - size / 2)) };
+      return { ...i, x: n.x - size / 2, y: n.y - size / 2 };
     }) });
   };
   const onGap = (g: number) => { if (selItems.length > 1) rescale(g, sz); setGap(g); };
-  const onSize = (v: number) => { if (selItems.length) setGrid({ ...grid, items: applySize(grid.items, selItems.map((i) => i.id), v, sz) }); else rescale(gap, v); };
+  const onSize = (v: number) => { if (selItems.length) setGrid({ ...grid, items: applySize(grid.items, selItems.map((i) => i.id), v, sz, 1e6, 1e6).map((i, k) => (selItems.some((x) => x.id === i.id) ? i : grid.items[k]!)) }); else rescale(gap, v); };
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
   const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => i.kind !== "image" && i.kind !== "table" && Math.abs(i.x - x) < W(i) && Math.abs(i.y - y) < H(i))) return { x, y }; return { x: 0, y: 0 }; };
-  const pt = (e: React.PointerEvent) => { const r = area.current!.getBoundingClientRect(); return { x: (e.clientX - r.left) / CELL, y: (e.clientY - r.top) / CELL }; };
+  const pt = (e: { clientX: number; clientY: number }) => { const r = vp.current!.getBoundingClientRect(); return { x: (e.clientX - r.left - view.x) / (CELL * view.z), y: (e.clientY - r.top - view.y) / (CELL * view.z) }; };
+  // Endless canvas: wheel pans, ctrl/pinch-wheel zooms about the cursor; middle/right drag pans; two fingers pinch-zoom and pan.
+  const HOME = { x: 12, y: 12, z: 1 };
+  const [view, setView] = useState(HOME);
+  const vp = useRef<HTMLDivElement>(null);
+  const viewRef = useRef(view); viewRef.current = view;
+  const zoomAt = (px: number, py: number, next: number) => { const v = viewRef.current; const z = Math.max(0.2, Math.min(4, next)), k = z / v.z; setView({ z, x: px - (px - v.x) * k, y: py - (py - v.y) * k }); };
+  useEffect(() => {
+    const el = vp.current; if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const m = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1;
+      const r = el.getBoundingClientRect();
+      if (e.ctrlKey || e.metaKey) zoomAt(e.clientX - r.left, e.clientY - r.top, viewRef.current.z * Math.exp(-e.deltaY * m * 0.004));
+      else setView((v) => ({ ...v, x: v.x - e.deltaX * m, y: v.y - e.deltaY * m }));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ d: number; cx: number; cy: number } | null>(null);
+  const panDrag = useRef<{ sx: number; sy: number; x0: number; y0: number } | null>(null);
   const patch = (id: string, p: Partial<GridItem>) => setGrid({ ...grid, items: grid.items.map((i) => (i.id === id ? { ...i, ...p } : i)) });
   const removeIds = (ids: string[]) => { setGrid({ ...grid, items: grid.items.filter((i) => !ids.includes(i.id)) }); setEsel((s) => s.filter((x) => !ids.includes(x))); };
   const pick = grid.items.find((i) => i.id === picker);
@@ -329,6 +350,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <button onClick={() => { setLive(true); setEsel([]); setMode("select"); }} aria-pressed={live} className={chip(live)}><Play className="h-3.5 w-3.5" />Live</button>
             <button onClick={() => setLive(false)} aria-pressed={!live} className={chip(!live)}><Pencil className="h-3.5 w-3.5" />Edit</button>
           </div>
+          <button onClick={() => setView(HOME)} className={chip(false)} aria-label="Recenter grid"><LocateFixed className="h-3.5 w-3.5" />Recenter</button>
+          <span className="font-mono text-[10px] text-muted-foreground">{Math.round(view.z * 100)}%</span>
           {!live && (<>
             <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={chip(mode === "select")}><MousePointer2 className="h-3.5 w-3.5" />Select</button>
             <button onClick={() => setMode("walls")} aria-pressed={mode === "walls"} className={chip(mode === "walls")}><PenLine className="h-3.5 w-3.5" />Walls</button>
@@ -338,24 +361,34 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             </label>
           </>)}
         </div>
-        <div className="min-h-0 flex-1 overflow-auto bg-background p-3">
-        <div ref={area} className="relative select-none" style={{ width: COLS * CELL, height: ROWS * CELL, touchAction: "none",
-          backgroundImage: live ? undefined : "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)", backgroundSize: `${CELL}px ${CELL}px` }}
+        <div ref={vp} data-grid-bg="" className="relative min-h-0 flex-1 select-none overflow-hidden bg-background" style={{ touchAction: "none" }}
+          onContextMenu={(e) => e.preventDefault()}
           onPointerDown={(e) => {
-            if (e.target !== e.currentTarget && !(e.target as Element).closest("svg")) return;
-            const p = pt(e); area.current!.setPointerCapture(e.pointerId);
+            if (e.pointerType === "touch") { touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (touches.current.size === 2) { const [p1, p2] = [...touches.current.values()]; pinch.current = { d: Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y), cx: (p1!.x + p2!.x) / 2, cy: (p1!.y + p2!.y) / 2 }; setBox(null); setDrag(null); setWall(null); setRs(null); return; } }
+            if (e.button === 1 || e.button === 2) { vp.current!.setPointerCapture(e.pointerId); panDrag.current = { sx: e.clientX, sy: e.clientY, x0: view.x, y0: view.y }; return; }
+            const tg = e.target as Element;
+            if (tg !== e.currentTarget && tg !== area.current && tg.getAttribute("data-grid-bg") == null && !tg.closest("svg")) return;
+            const area_ = vp;
+            const p = pt(e); area_.current!.setPointerCapture(e.pointerId);
             if (!live && mode === "walls") setWall({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
             else if (!live && mode === "text") addText(p.x, p.y);
             else setBox({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, add: e.shiftKey || e.ctrlKey || e.metaKey });
           }}
           onPointerMove={(e) => {
+            if (touches.current.has(e.pointerId)) touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pinch.current && touches.current.size === 2) { const [p1, p2] = [...touches.current.values()]; const d = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y), cx = (p1!.x + p2!.x) / 2, cy = (p1!.y + p2!.y) / 2; const r = vp.current!.getBoundingClientRect(); const pc = pinch.current; setView((v) => ({ ...v, x: v.x + cx - pc.cx, y: v.y + cy - pc.cy })); viewRef.current = { ...viewRef.current, x: viewRef.current.x + cx - pc.cx, y: viewRef.current.y + cy - pc.cy }; zoomAt(cx - r.left, cy - r.top, viewRef.current.z * (d / pc.d)); pinch.current = { d, cx, cy }; return; }
+            if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
             const p = pt(e);
             if (rs) setRs({ ...rs, out: resizeBoxes(rs.orig, rs.corner, p.x, p.y) });
             else if (wall) setWall({ ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) });
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
-            else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; let dx = p.x - drag.sx, dy = p.y - drag.sy; for (const m of drag.group) { dx = Math.max(-m.x, Math.min(COLS - m.w - m.x, dx)); dy = Math.max(-m.y, Math.min(ROWS - m.h - m.y, dy)); } setDrag({ ...drag, moved, x: dx, y: dy }); }
+            else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; let dx = p.x - drag.sx, dy = p.y - drag.sy; setDrag({ ...drag, moved, x: dx, y: dy }); }
           }}
-          onPointerUp={() => {
+          onPointerCancel={(e) => { touches.current.delete(e.pointerId); pinch.current = null; panDrag.current = null; }}
+          onPointerUp={(e) => {
+            touches.current.delete(e.pointerId);
+            if (pinch.current) { if (touches.current.size < 2) pinch.current = null; return; }
+            if (panDrag.current) { panDrag.current = null; return; }
             if (rs) { setGrid({ ...grid, items: grid.items.map((i) => { const m = rs.out.find((o) => o.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: m.w, h: m.h, s: undefined } : i; }) }); setRs(null); return; }
             if (wall) { if (Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, wall] }); setWall(null); }
             if (box) {
@@ -384,8 +417,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               setDrag(null);
             }
           }}>
+        <div ref={area} className="absolute left-0 top-0 z-[2]" style={{ width: COLS * CELL, height: ROWS * CELL, transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, transformOrigin: "0 0" }}>
           {grid.bg && <img src={grid.bg} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ transform: `translate(${grid.bgT?.x ?? 0}%, ${grid.bgT?.y ?? 0}%) scale(${grid.bgT?.scale ?? 1})`, transformOrigin: "center", filter: grid.bgT?.invert ? "invert(1)" : undefined }} />}
-          <svg className="absolute inset-0 z-[5]" width={COLS * CELL} height={ROWS * CELL} style={{ pointerEvents: "none" }}>
+          <svg className="absolute left-0 top-0 z-[5] overflow-visible" width={1} height={1} style={{ pointerEvents: "none" }}>
             {[...grid.walls, ...(wall ? [wall] : [])].map((w, i) => (
               <line key={i} x1={w.x1 * CELL} y1={w.y1 * CELL} x2={w.x2 * CELL} y2={w.y2 * CELL} strokeWidth={8} strokeLinecap="round" style={{ pointerEvents: !live && mode === "walls" && i < grid.walls.length ? "auto" : "none" }}
                 className={`stroke-foreground/70 ${!live && mode === "walls" ? "cursor-pointer hover:stroke-destructive" : ""}`}
@@ -438,6 +472,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           )}
           {box && <div className="pointer-events-none absolute z-40 border border-primary bg-primary/10" style={{ left: Math.min(box.x1, box.x2) * CELL, top: Math.min(box.y1, box.y2) * CELL, width: Math.abs(box.x2 - box.x1) * CELL, height: Math.abs(box.y2 - box.y1) * CELL }} />}
         </div>
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]" style={{ backgroundImage: "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)", backgroundSize: `${CELL * view.z}px ${CELL * view.z}px`, backgroundPosition: `${view.x}px ${view.y}px` }} />
         </div>
       </div>
       <aside aria-label={live ? "Fixture controls" : "Grid editor"} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
