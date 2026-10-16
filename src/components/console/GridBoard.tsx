@@ -95,13 +95,16 @@ export function arrange(pts: { id: string; x: number; y: number }[], how: Arrang
 export function applySize(items: GridItem[], selIds: string[], v: number, def: number, cols = COLS, rows = ROWS): GridItem[] {
   const sel = items.filter((i) => selIds.includes(i.id));
   if (!sel.length) return items;
+  // A fixture without an explicit size occupies the default 2:3 box; the slider sets a square of `v`.
+  const bw = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? def * 2 * Math.sqrt(2 / 3) : ISW(i, def));
+  const bh = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? def * 2 * Math.sqrt(3 / 2) : ISH(i, def));
   const grp = sel.length > 1 ? sel : [];
-  const ox = grp.reduce((a, i) => a + i.x + (i.s ?? def) / 2, 0) / grp.length;
-  const oy = grp.reduce((a, i) => a + i.y + (i.s ?? def) / 2, 0) / grp.length;
+  const ox = grp.reduce((a, i) => a + i.x + bw(i) / 2, 0) / grp.length;
+  const oy = grp.reduce((a, i) => a + i.y + bh(i) / 2, 0) / grp.length;
   const ids = new Set(sel.map((i) => i.id));
   return items.map((i) => {
     if (!ids.has(i.id)) return i;
-    const o = i.s ?? def, c = { x: i.x + o / 2, y: i.y + o / 2 };
+    const o = bw(i), c = { x: i.x + o / 2, y: i.y + bh(i) / 2 };
     const n = grp.length ? { x: ox + (c.x - ox) * (v / o), y: oy + (c.y - oy) * (v / o) } : c;
     return { ...i, s: v, w: undefined, h: undefined, x: Math.max(0, Math.min(cols - v, n.x - v / 2)), y: Math.max(0, Math.min(rows - v, n.y - v / 2)) };
   });
