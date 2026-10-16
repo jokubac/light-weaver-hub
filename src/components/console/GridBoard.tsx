@@ -6,7 +6,7 @@ import { MoreHorizontal, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus }
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
 export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text"; uid?: string | undefined; macro?: { action: MacroAction; amount: number; label: string } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined }
-export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined }
+export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
 const CELL = 76, COLS = 24, ROWS = 16, SIZE = 0.92;
@@ -114,12 +114,13 @@ const ICON: Record<Arrange, React.ReactNode> = {
   row: <><rect x="1" y="9" width="6" height="6" /><rect x="9" y="9" width="6" height="6" /><rect x="17" y="9" width="6" height="6" /></>,
   column: <><rect x="9" y="1" width="6" height="6" /><rect x="9" y="9" width="6" height="6" /><rect x="9" y="17" width="6" height="6" /></>,
   grid: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></>,
-  triangle: <><rect x="9.5" y="3" width="5" height="5" /><rect x="5" y="10" width="5" height="5" /><rect x="14" y="10" width="5" height="5" /><rect x="1" y="17" width="5" height="5" /><rect x="9.5" y="17" width="5" height="5" /><rect x="18" y="17" width="5" height="5" /></>,
+  triangle: <><rect x="9.5" y="2" width="5" height="5" /><rect x="2" y="16" width="5" height="5" /><rect x="17" y="16" width="5" height="5" /></>,
+  pentagon: <>{[0, 1, 2, 3, 4].map((i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5; return <rect key={i} x={11 + 8 * Math.cos(a) - 2} y={11 + 8 * Math.sin(a) - 2} width="4" height="4" />; })}</>,
   circle: <>{[0, 1, 2, 3, 4, 5].map((i) => { const a = -Math.PI / 2 + (i * Math.PI) / 3; return <rect key={i} x={10 + 8 * Math.cos(a)} y={10 + 8 * Math.sin(a)} width="4" height="4" />; })}</>,
   rotate: <><path d="M20 12a8 8 0 1 1-2.3-5.7" /><polyline points="20 3 20 7 16 7" /></>,
 };
-const ARRANGE: [Arrange, string][] = [["hcenter", "Middle ↔"], ["vcenter", "Centre ↕"], ["hspace", "Space ↔"], ["vspace", "Space ↕"], ["row", "Line"], ["column", "Column"], ["grid", "Grid"], ["triangle", "Triangle"], ["circle", "Circle"], ["rotate", "Rotate ↻"]];
-const LIVE: Arrange[] = ["hspace", "vspace", "row", "column", "grid", "triangle", "circle", "hcenter", "vcenter"];
+const ARRANGE: [Arrange, string][] = [["hcenter", "Middle ↔"], ["vcenter", "Centre ↕"], ["hspace", "Space ↔"], ["vspace", "Space ↕"], ["row", "Line"], ["column", "Column"], ["grid", "Grid"], ["triangle", "Triangle"], ["pentagon", "Pentagon"], ["circle", "Circle"], ["rotate", "Rotate ↻"]];
+const LIVE: Arrange[] = ["hspace", "vspace", "row", "column", "grid", "triangle", "pentagon", "circle", "hcenter", "vcenter"];
 
 export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf }: {
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
