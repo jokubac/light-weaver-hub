@@ -167,4 +167,4 @@
 - [x] GRID fader reset triggers on a double tap anywhere on the whole box (label, value, slider, padding; mouse or touch): Intensity 50%, CCT 5600K, G/M 0. Single taps and drags never reset.
 - [x] Filter picker for macros has separate Manufacturer (All/Rosco/LEE) and Type (All/Correction/Effect) rows that combine, plus a live result count.
 - [x] "Add light" button removed from the GRID toolbar — lights are placed straight from the light picker that is always visible in Edit mode.
-- [ ] Text boxes in GRID: editing opens on the box itself when you tap it, not in the right-hand panel.
+- [x] Text boxes in GRID are edited on the box itself: the Text tool opens typing straight away, one tap on a placed label reopens it; the right panel no longer holds the text field (colour only).
