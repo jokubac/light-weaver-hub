@@ -8,7 +8,7 @@ import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Tab
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
-export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined }
+export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
@@ -159,10 +159,10 @@ export function tableCarry(items: GridItem[], table: { id?: string; x: number; y
   return id ? items.filter((i) => isMacroBox(i) && i.tbl === id) : [];
 }
 export const MACRO_CELL = 1.1;
-/** Turns a corner-resized macro box into a whole-cell span inside its table (at least 1×1, never wider than the table). */
+/** Turns a corner-resized macro box into a whole-cell span inside its table (at least 1×1, never wider than the table); the size stops reset to full cells. */
 export function spanOf(w: number, h: number, table: GridItem, sz = SIZE) {
-  const tb = boxOf(table, sz), cols = Math.max(1, Math.round(tb.w / MACRO_CELL)), cw = tb.w / cols;
-  return { cs: Math.min(cols, Math.max(1, Math.round(w / cw))), rs: Math.max(1, Math.round(h / cw)) };
+  const tb = boxOf(table, sz), cols = Math.max(1, table.cols ?? 0, Math.round(tb.w / MACRO_CELL)), cw = tb.w / cols;
+  return { cs: Math.min(cols, Math.max(1, Math.round(w / cw))), rs: Math.max(1, Math.round(h / cw)), sk: 1 as const };
 }
 const isMacroBox = (i: GridItem) => i.kind === "macro" || i.kind === "empty";
 /** After a drag: moved macro squares join the table under their centre; dropped outside every table they go back to the table they came from. */
@@ -179,8 +179,8 @@ export function dropIntoTables(items: GridItem[], moved: Set<string>, sz = SIZE)
 export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
   const out = new Map(items.map((i) => [i.id, i]));
   for (const t of items.filter((i) => i.kind === "table")) {
-    // Columns follow the table width (one cell ≈ MACRO_CELL); rows follow its height and grow when macros need more room.
-    const tb = boxOf(t, sz), cols = Math.max(1, Math.round(tb.w / MACRO_CELL));
+    // Columns follow the table width (one cell ≈ MACRO_CELL) but never drop below the table's current count — a narrower table shrinks its cells instead of collapsing to one column; rows follow its height and grow when macros need more room.
+    const tb = boxOf(t, sz), cols = Math.max(1, t.cols ?? 0, Math.round(tb.w / MACRO_CELL));
     const members = items.filter((i) => isMacroBox(i) && i.tbl === t.id).sort((a, b) => a.y - b.y || a.x - b.x);
     const cw = tb.w / cols, ch = cw;
     const pad = cw * 0.06;
@@ -192,7 +192,9 @@ export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
     const place = (m: GridItem, r: number, c: number, w: number, h: number) => {
       for (let y = r; y < r + h; y++) { used[y] ??= []; for (let x = c; x < c + w; x++) used[y]![x] = true; }
       rowsUsed = Math.max(rowsUsed, r + h);
-      out.set(m.id, { ...m, x: t.x + c * cw + pad, y: t.y + 0.4 + r * ch + pad, w: w * cw - 2 * pad, h: h * ch - 2 * pad, s: undefined });
+      // A size stop below 1 (`sk`) shrinks the button inside its cell block; ≥1 stops always fill their cells.
+      const sk = m.sk ?? 1;
+      out.set(m.id, { ...m, x: t.x + c * cw + pad + (w * cw * (1 - sk)) / 2, y: t.y + 0.4 + r * ch + pad + (h * ch * (1 - sk)) / 2, w: w * cw * sk - 2 * pad, h: h * ch * sk - 2 * pad, s: undefined });
     };
     const rest: GridItem[] = [];
     for (const m of members) {
