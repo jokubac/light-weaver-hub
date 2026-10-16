@@ -610,7 +610,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   {!live && <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `repeat(${it.cols ?? 4}, 1fr)`, gridTemplateRows: `repeat(${it.rows ?? 3}, 1fr)` }}>
                     {Array.from({ length: (it.cols ?? 4) * (it.rows ?? 3) }, (_, k) => (
                       <button key={k} type="button" aria-label="Add macro here" disabled={mode !== "select"}
-                        className="flex items-center justify-center border border-dashed border-border/25 text-muted-foreground/35 hover:border-border/60 hover:bg-surface-elevated hover:text-foreground"
+                        className="m-0.5 flex items-center justify-center rounded-md border border-border/60 bg-surface-elevated/55 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => { e.stopPropagation(); const cols = it.cols ?? 4, cw = W(it) / cols; addSquare(it.id, it.x + (k % cols) * cw + cw / 2 - 0.01, it.y + 0.4 + Math.floor(k / cols) * cw + cw / 2 - 0.01); }}>
                         <Plus className="h-4 w-4" />
