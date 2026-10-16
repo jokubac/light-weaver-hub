@@ -545,7 +545,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   };
   const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {}, fire: (_m: Macro, _src: string) => {} });
   const [macroLog, setMacroLog] = useState<MacroLogEntry[]>(() => (typeof window === "undefined" ? [] : loadLog()));
-  const [macroLogging, setMacroLogging] = useState(true);
+  const [macroLogging, setMacroLogging] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [replayId, setReplayId] = useState<string | null>(null);
   const replayTimers = useRef<number[]>([]);
@@ -1006,7 +1006,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   // tapping the active tab again collapses / expands the side panel
   const tab = (p: Panel, label: string) => (
     <Button variant="secondary" onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
-      className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</Button>
+      className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label}</Button>
   );
   const outputEnabled = bo.target === 0;
   const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen;
@@ -1215,7 +1215,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} discovery={discovery} />
-      <MacroTimeline open={timelineOpen} onOpenChange={setTimelineOpen} log={macroLog} recording={macroLogging} setRecording={setMacroLogging} onClear={() => setMacroLog([])} onReplay={replayMacros} onStop={stopReplay} playing={replayId} />
+      <MacroTimeline open={timelineOpen} onOpenChange={setTimelineOpen} log={macroLog} setLog={setMacroLog} recording={macroLogging} setRecording={setMacroLogging} onReplay={replayMacros} onStop={stopReplay} playing={replayId} />
       <SettingsDialog macros={macros} setMacros={setMacros} macroLearn={macroLearn} setMacroLearn={setMacroLearn} onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} midi={midi} setMidi={setMidi}
         onNanoKontrol={() => { const ch = (n: number) => `CC 1/${n}`; const keep = midi.maps.filter((m) => !m.key.startsWith("CC 1/")); setMidi({ ...midi, enabled: true, maps: [...keep, ...NANOKONTROL2.faders.map((n, i) => ({ key: ch(n), target: `bank:${i}`, label: `Fader ${i + 1}` })), { key: ch(NANOKONTROL2.master), target: "master", label: "Master" }, { key: ch(NANOKONTROL2.go), target: "cue:go", label: "GO" }, { key: ch(NANOKONTROL2.back), target: "cue:back", label: "Back" }, { key: ch(NANOKONTROL2.blackout), target: "blackout", label: "Blackout" }] }); }}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
