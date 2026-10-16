@@ -127,9 +127,9 @@ input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius
 /* Every glyph carries a thin black outline so text stays readable on any surface. */
 :root {
   --text-outline:
-    1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000,
-    0.75px 0.75px 0 #000, -0.75px -0.75px 0 #000,
-    0.75px -0.75px 0 #000, -0.75px 0.75px 0 #000;
+    1.7px 0 0 #000, -1.7px 0 0 #000, 0 1.7px 0 #000, 0 -1.7px 0 #000,
+    1.3px 1.3px 0 #000, -1.3px 1.3px 0 #000,
+    1.3px -1.3px 0 #000, -1.3px -1.3px 0 #000;
 }
 body { text-shadow: var(--text-outline); }
 
