@@ -131,6 +131,14 @@ const ISW = (i: GridItem, d: number) => i.w ?? i.s ?? d;
 const ISH = (i: GridItem, d: number) => i.h ?? i.s ?? d;
 /** Default fixture box on the board: a 2×-scaled 3:2 (w:h) rectangle — wider than tall. */
 export const fixtureBox = (sz = SIZE) => ({ w: sz * 2 * Math.sqrt(3 / 2), h: sz * 2 * Math.sqrt(2 / 3) });
+/** Box of one grid item at base size `sz` — a fixture that was never resized takes the default 3:2 rectangle. */
+export function boxOf(i: GridItem, sz = SIZE) {
+  return i.kind === "fixture" && i.w == null && i.s == null ? fixtureBox(sz) : { w: ISW(i, sz), h: ISH(i, sz) };
+}
+/** Squares that stick to a table when it is dragged: macros whose centre sits inside the table. Fixtures never stick. */
+export function tableCarry(items: GridItem[], table: { x: number; y: number; w: number; h: number }, sz = SIZE) {
+  return items.filter((i) => { const b = boxOf(i, sz); const cx = i.x + b.w / 2, cy = i.y + b.h / 2; return i.kind === "macro" && cx > table.x && cx < table.x + table.w && cy > table.y && cy < table.y + table.h; });
+}
 type Box = { id: string; x: number; y: number; w: number; h: number };
 export type Corner = "tl" | "tr" | "bl" | "br";
 
@@ -178,9 +186,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
   // Fixtures default to a 2×-scaled 3:2 (w:h) rectangle; tube/bar elongation is ignored — every light renders the same box shape.
-  const fxAuto = (i: GridItem) => i.kind === "fixture" && i.w == null && i.s == null;
-  const FXW = sz * 2 * Math.sqrt(3 / 2), FXH = sz * 2 * Math.sqrt(2 / 3);
-  const W = (i: GridItem) => (fxAuto(i) ? FXW : ISW(i, sz)), H = (i: GridItem) => (fxAuto(i) ? FXH : ISH(i, sz));
+  const FXW = fixtureBox(sz).w, FXH = fixtureBox(sz).h;
+  const W = (i: GridItem) => boxOf(i, sz).w, H = (i: GridItem) => boxOf(i, sz).h;
   const selItems = live ? grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!)) : grid.items.filter((i) => esel.includes(i.id));
   const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, Math.max(size, FXW, FXH)); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
   const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
@@ -288,7 +295,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   // Dragging a table carries only macro squares whose centre sits inside it — fixtures never stick to a table.
   const groupFor = (it: GridItem, sel: string[]) => {
     let base = sel.includes(it.id) ? grid.items.filter((i) => sel.includes(i.id)) : [it];
-    for (const t of base.filter((b) => b.kind === "table")) for (const i of grid.items) { const cx = i.x + W(i) / 2, cy = i.y + H(i) / 2; if (i.kind === "macro" && cx > t.x && cx < t.x + W(t) && cy > t.y && cy < t.y + H(t) && !base.includes(i)) base = [...base, i]; }
+    for (const t of base.filter((b) => b.kind === "table")) for (const i of tableCarry(grid.items, { x: t.x, y: t.y, w: W(t), h: H(t) }, sz)) if (!base.includes(i)) base = [...base, i];
     return base.map((i) => ({ id: i.id, x: i.x, y: i.y, w: W(i), h: H(i) }));
   };
   const pal = (c?: string) => (c ? { background: c } : undefined);
