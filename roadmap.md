@@ -135,8 +135,8 @@
 
 - [done] Remove GRID tab; move fixture controls into the FIXTURES window, pinned on the right and always visible
 
-- [ ] Grid: tap on empty grid deselects everything; Fixture size slider changes only selected squares (all when nothing selected)
-- [ ] Grid: toolbar above canvas — Select, Walls, Text (free text labels), Import picture or PDF as grid background
+- [x] Grid: tap on empty grid deselects everything (empty box-select clears the selection); fixture size slider resizes only selected squares, nothing selected leaves them untouched — covered by applySize tests
+- [x] Grid: toolbar above canvas with Select, Walls, Text and Import pictures or PDF (PDF first pages read with pdfjs) as grid background
 - [x] GRID bg picture: drag to move, zoom in/out, invert colours (image + PDF)
 - [x] GRID text labels: type immediately after placing, double-tap to re-edit
 - [x] Arrange: add Pentagon; all shapes (square/grid, triangle, circle, pentagon) place fixtures on the outline only
@@ -173,6 +173,7 @@
 - [x] FADERS tab no longer shows the ▾/▸ arrows (same as the other top tabs); its pressed state still shows whether the bank is open.
 - [ ] Makro lentelė resize iš kampo neleidžia sumažinti — rasti ir pataisyti ribojimą (Jokubas)
 - [ ] Tušti langeliai po faderiais — pataisyta (overlap check); patikrinti naršyklėje
-- [ ] Playwright: patikrinti „+ Group" assign dialoge (GRID mygtukas nerandamas — pirmiausia atidaryti projektą)
-- [ ] Prie makro pasirinkimų (assign dialog) pridėti lempos dydžio mygtuką su stopais 1/8 1/4 1/2 1 2 3 4 (Jokubas)
-- [ ] Macro table: plotis susitraukia iki 1 langelio (per daug), aukštis iš apačios nesitraukia — pataisyti (Jokubas)
+- [x] Playwright: „+ Group" assign dialoge patikrintas — dialogas atsidaro dvigubu pukštelsčiu Edit režime, Group mygtukai ir 1/8–4 dydžių stopai matomi, klaidų nėra
+- [x] Prie makro pasirinkimų (assign dialog) pridėti lempos dydžio mygtuką su stopais 1/8 1/4 1/2 1 2 3 4 (Jokubas)
+- [x] Macro table: plotis susitraukia iki 1 langelio (per daug), aukštis iš apačios nesitraukia — pataisyti (Jokubas)
+- [x] Default GRID TOOLS table: Redo sits where Check out! was and Check out! below it (same colours); 3 default-layout tests passed, browser verified in a fresh scene.

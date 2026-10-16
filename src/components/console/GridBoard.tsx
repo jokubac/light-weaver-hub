@@ -28,9 +28,9 @@ export function emptyGrid(): GridLayout {
     t2,
     macro(t2, 0, 0, "copy", 0, "Copy"),
     macro(t2, 0, 1, "paste", 0, "Paste", "#FFFFFF"),
-    macro(t2, 1, 0, "checkout", 0, "Check out!", "#A855F7"),
+    macro(t2, 1, 0, "redo", 0, "Redo", "#22C55E"),
     macro(t2, 1, 1, "undo", 0, "Undo", "#F97316"),
-    macro(t2, 2, 0, "redo", 0, "Redo", "#22C55E"),
+    macro(t2, 2, 0, "checkout", 0, "Check out!", "#A855F7"),
     macro(t2, 2, 1, "locate", 0, "Locate!", "#EF4444"),
   ]), walls: [] };
 }
