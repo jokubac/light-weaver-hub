@@ -852,6 +852,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       const { h, s: sat } = hexToHs(g.hex); return updateSelected({ hue: h, saturation: sat, crossfade: 1, cctOnly: false, gel: g.id });
     }
     if (m.action === "group") { const ids = m.param ? membersOf(fixtures, m.param).map((f) => f.uid) : []; setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; return; }
+    if (m.action === "group_new") {
+      if (!selected.length) { window.alert("Select the lights for the new group first."); return; }
+      const name = window.prompt(`New group name (${selected.length} selected light${selected.length > 1 ? "s" : ""}):`)?.trim();
+      if (!name) return;
+      setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? addToGroup(f, name) : f)));
+      return;
+    }
     if (m.action === "checkout") {
       // hold: selected lights go dark; release: they come back to where they were
       if (!m.release) { holdSaved.current.checkout = Object.fromEntries(sel.map((f) => [f.uid, { intensity: f.intensity, cct: f.cct }])); setFixtures((fs) => fs.map((f) => selected.includes(f.uid) ? { ...f, intensity: 0 } : f)); }

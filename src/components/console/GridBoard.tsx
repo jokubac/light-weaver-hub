@@ -8,7 +8,7 @@ import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Tab
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
-export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined }
+export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
@@ -159,10 +159,12 @@ export function tableCarry(items: GridItem[], table: { id?: string; x: number; y
   return id ? items.filter((i) => isMacroBox(i) && i.tbl === id) : [];
 }
 export const MACRO_CELL = 1.1;
-/** Turns a corner-resized macro box into a whole-cell span inside its table (at least 1×1, never wider than the table). */
+/** Size stops for boxes: fractions shrink inside the cell block, whole numbers take that many cells (macro buttons) or scale the light. */
+const SIZE_STOPS: [number, string][] = [[1 / 8, "1/8"], [1 / 4, "1/4"], [1 / 2, "1/2"], [1, "1"], [2, "2"], [3, "3"], [4, "4"]];
+/** Turns a corner-resized macro box into a whole-cell span inside its table (at least 1×1, never wider than the table); the size stops reset to full cells. */
 export function spanOf(w: number, h: number, table: GridItem, sz = SIZE) {
-  const tb = boxOf(table, sz), cols = Math.max(1, Math.round(tb.w / MACRO_CELL)), cw = tb.w / cols;
-  return { cs: Math.min(cols, Math.max(1, Math.round(w / cw))), rs: Math.max(1, Math.round(h / cw)) };
+  const tb = boxOf(table, sz), cols = Math.max(1, table.cols ?? 0, Math.round(tb.w / MACRO_CELL)), cw = tb.w / cols;
+  return { cs: Math.min(cols, Math.max(1, Math.round(w / cw))), rs: Math.max(1, Math.round(h / cw)), sk: 1 as const };
 }
 const isMacroBox = (i: GridItem) => i.kind === "macro" || i.kind === "empty";
 /** After a drag: moved macro squares join the table under their centre; dropped outside every table they go back to the table they came from. */
@@ -179,8 +181,8 @@ export function dropIntoTables(items: GridItem[], moved: Set<string>, sz = SIZE)
 export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
   const out = new Map(items.map((i) => [i.id, i]));
   for (const t of items.filter((i) => i.kind === "table")) {
-    // Columns follow the table width (one cell ≈ MACRO_CELL); rows follow its height and grow when macros need more room.
-    const tb = boxOf(t, sz), cols = Math.max(1, Math.round(tb.w / MACRO_CELL));
+    // Columns follow the table width (one cell ≈ MACRO_CELL) but never drop below the table's current count — a narrower table shrinks its cells instead of collapsing to one column; rows follow its height and grow when macros need more room.
+    const tb = boxOf(t, sz), cols = Math.max(1, t.cols ?? 0, Math.round(tb.w / MACRO_CELL));
     const members = items.filter((i) => isMacroBox(i) && i.tbl === t.id).sort((a, b) => a.y - b.y || a.x - b.x);
     const cw = tb.w / cols, ch = cw;
     const pad = cw * 0.06;
@@ -192,7 +194,9 @@ export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
     const place = (m: GridItem, r: number, c: number, w: number, h: number) => {
       for (let y = r; y < r + h; y++) { used[y] ??= []; for (let x = c; x < c + w; x++) used[y]![x] = true; }
       rowsUsed = Math.max(rowsUsed, r + h);
-      out.set(m.id, { ...m, x: t.x + c * cw + pad, y: t.y + 0.4 + r * ch + pad, w: w * cw - 2 * pad, h: h * ch - 2 * pad, s: undefined });
+      // A size stop below 1 (`sk`) shrinks the button inside its cell block; ≥1 stops always fill their cells.
+      const sk = m.sk ?? 1;
+      out.set(m.id, { ...m, x: t.x + c * cw + pad + (w * cw * (1 - sk)) / 2, y: t.y + 0.4 + r * ch + pad + (h * ch * (1 - sk)) / 2, w: w * cw * sk - 2 * pad, h: h * ch * sk - 2 * pad, s: undefined });
     };
     const rest: GridItem[] = [];
     for (const m of members) {
@@ -580,7 +584,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (pinch.current && touches.current.size === 2) { const [p1, p2] = [...touches.current.values()]; const d = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y), cx = (p1!.x + p2!.x) / 2, cy = (p1!.y + p2!.y) / 2; const r = vp.current!.getBoundingClientRect(); const pc = pinch.current; setView((v) => ({ ...v, x: v.x + cx - pc.cx, y: v.y + cy - pc.cy })); viewRef.current = { ...viewRef.current, x: viewRef.current.x + cx - pc.cx, y: viewRef.current.y + cy - pc.cy }; zoomAt(cx - r.left, cy - r.top, viewRef.current.z * (d / pc.d)); pinch.current = { d, cx, cy }; return; }
             if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
             const p = pt(e);
-            if (rs) setRs({ ...rs, out: resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && isMacroBox(i) && i.tbl)) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) });
+            if (rs) setRs({ ...rs, out: resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) });
             else if (wEnd) { const w0 = grid.walls[wEnd.i]!; const o = wEnd.e === 1 ? { x: w0.x2, y: w0.y2 } : { x: w0.x1, y: w0.y1 }; const sn = snapToEnds(grid.walls, p.x, p.y, wEnd); const q = sn.x !== p.x || sn.y !== p.y ? sn : (() => { const k = snapWall(o.x, o.y, p.x, p.y); return { x: k.x2, y: k.y2 }; })(); setGrid({ ...grid, walls: grid.walls.map((w, k) => (k !== wEnd.i ? w : wEnd.e === 1 ? { ...w, x1: q.x, y1: q.y } : { ...w, x2: q.x, y2: q.y })) }); }
             else if (wall) setWall(wallRect ? { ...wall, x2: Math.round(p.x * 4) / 4, y2: Math.round(p.y * 4) / 4 } : (() => { const sn = snapToEnds(grid.walls, p.x, p.y); return sn.x !== p.x || sn.y !== p.y ? { ...wall, x2: sn.x, y2: sn.y } : { ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) }; })());
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
@@ -691,7 +695,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   {!live && <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `repeat(${it.cols ?? 4}, 1fr)`, gridTemplateRows: `repeat(${it.rows ?? 3}, 1fr)` }}>
                     {Array.from({ length: (it.cols ?? 4) * (it.rows ?? 3) }, (_, k) => {
                       const cols = it.cols ?? 4, cw = W(it) / cols, cx = it.x + (k % cols) * cw, cy = it.y + 0.4 + Math.floor(k / cols) * cw;
-                      const taken = grid.items.some((m) => m.macro && m.x + W(m) / 2 > cx && m.x + W(m) / 2 < cx + cw + 0.001 && m.y + H(m) / 2 > cy && m.y + H(m) / 2 < cy + cw + 0.001 && m.x < cx + cw - 0.001 && m.x + W(m) > cx + 0.001);
+                      // Any overlap with a macro box hides the cell — a partially covered cell must never peek out from under a fader.
+                      const taken = grid.items.some((m) => m.macro && m.x < cx + cw - 0.001 && m.x + W(m) > cx + 0.001 && m.y < cy + cw - 0.001 && m.y + H(m) > cy + 0.001);
                       if (taken) return <div key={k} />;
                       return (
                       <button key={k} type="button" aria-label="Add macro here" disabled={mode !== "select"}
@@ -774,6 +779,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             {pick.kind === "fixture" ? (<>
               <input aria-label="Box name" placeholder={fixtures.find((f) => f.uid === pick.uid)?.name ?? "Name"} value={pick.text ?? ""} onChange={(e) => patch(pick.id, { text: e.target.value || undefined })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
               <section>
+                <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">Size</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {SIZE_STOPS.map(([v, lbl]) => { const cur = (pick.s ?? fixtureBox(sz).w) / fixtureBox(sz).w; return (
+                    <button key={lbl} aria-pressed={Math.abs(cur - v) < 0.06} onClick={() => patch(pick.id, { s: v === 1 ? undefined : fixtureBox(sz).w * v, w: undefined, h: undefined })}
+                      className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${Math.abs(cur - v) < 0.06 ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{lbl}</button>); })}
+                </div>
+              </section>
+              <section>
                 <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">Swap to another fixture</h3>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                   {fixtures.map((f, i) => { const on = pick.uid === f.uid; const taken = placed.has(f.uid) && !on; return (
@@ -787,6 +800,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                 {sortedActions.map((a) => <button key={a.id} onClick={() => { setAction(a.id); setAmount(a.def ?? 0); }} className={`rounded-md border px-2 py-1.5 text-left text-xs font-semibold ${action === a.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{a.label}</button>)}
               </div>
+              <section>
+                <h3 className="text-xs font-bold uppercase text-muted-foreground">Size</h3>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {SIZE_STOPS.map(([v, lbl]) => { const cur = pick.sk ?? (pick.cs != null && pick.cs >= 1 && pick.cs <= 4 ? pick.cs : 1); return (
+                    <button key={lbl} aria-pressed={Math.abs(cur - v) < 0.06} onClick={() => patch(pick.id, v >= 1 ? { sk: undefined, cs: v, rs: pick.rs ?? 1 } : { sk: v })}
+                      className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${Math.abs(cur - v) < 0.06 ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{lbl}</button>); })}
+                </div>
+              </section>
               <div className="flex flex-wrap items-center gap-2">
                 {meta?.unit && <label className="flex items-center gap-2 text-xs">Amount<input type="number" value={amount} onChange={(e) => setAmount(+e.target.value)} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{meta.unit}</label>}
                 <input aria-label="Button name" placeholder="Name (optional)" value={label} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
