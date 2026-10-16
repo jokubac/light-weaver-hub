@@ -1108,7 +1108,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => openWin("plot")} aria-pressed={plotOpen} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
         <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} className="h-11 px-5 text-sm font-bold">PATCH</Button>
-        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && !windowOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen && !windowOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && !windowOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}

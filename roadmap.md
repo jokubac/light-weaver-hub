@@ -153,4 +153,4 @@
 - [x] GRID: dragging a macro table over another macro table must NOT steal its macros — only dragging a macro itself moves it into a cell
 - [x] GRID: a selected macro table can change its colour (Colour row for selected tables)
 - [x] Look visada išsaugo visas lempas su visais parametrais
-- [ ] Groups · Looks · Effects · REC skydelis ne visada atsidaro
+- [x] Groups · Looks · Effects · REC skydelis ne visada atsidaro
