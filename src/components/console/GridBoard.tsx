@@ -12,9 +12,9 @@ export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "t
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
 /** A brand-new scene's GRID starts with two default macro tables — MACROS (intensity/CCT) and TOOLS (edit tools) — laid out like the user's own setup. */
 export function emptyGrid(): GridLayout {
-  const C = MACRO_CELL, X = 4.6, Y = 1;
+  const C = MACRO_CELL, X = 15.6, Y = 0.5;
   const t1: GridItem = { id: "def-macros", kind: "table", text: "MACROS", x: X, y: Y, cols: 4, rows: 5, w: 4 * C, h: 5 * C + TABLE_HEADER };
-  const t2: GridItem = { id: "def-tools", kind: "table", text: "TOOLS", x: X, y: Y + 5 * C + TABLE_HEADER + 0.5, cols: 2, rows: 3, w: 2 * C, h: 3 * C + TABLE_HEADER };
+  const t2: GridItem = { id: "def-tools", kind: "table", text: "TOOLS", x: X + C, y: Y + 5 * C + TABLE_HEADER + 0.4, cols: 2, rows: 3, w: 2 * C, h: 3 * C + TABLE_HEADER };
   const macro = (t: GridItem, r: number, c: number, action: MacroAction, amount: number, label: string, color?: string, cs = 1, rs = 1): GridItem =>
     ({ id: `def-${t.id}-${r}-${c}`, kind: "macro", tbl: t.id, x: t.x + c * C, y: t.y + TABLE_HEADER + r * C, cs, rs, macro: { action, amount, label }, ...(color ? { color } : {}) });
   return { items: layoutTables([
