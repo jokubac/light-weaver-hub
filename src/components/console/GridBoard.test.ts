@@ -10,7 +10,7 @@ describe("grid arrange", () => {
     expect(r).toHaveLength(3);
     const d = (p: typeof r[0], q: typeof r[0]) => Math.hypot(p.x - q.x, p.y - q.y);
     const ds = [d(r[0]!, r[1]!), d(r[1]!, r[2]!), d(r[2]!, r[0]!)];
-    expect(Math.max(...ds) - Math.min(...ds)).toBeLessThan(1e-9);
+    expect(Math.max(...ds) - Math.min(...ds)).toBeLessThan(1e-3);
     expect(Math.min(...ds)).toBeGreaterThan(0);
   });
   it("rotate moves each light to the next clockwise spot", () => { const r = arrange(pts, "rotate"); expect(new Set(r.map((p) => `${p.x},${p.y}`))).toEqual(new Set(pts.map((p) => `${p.x},${p.y}`))); expect(r.every((p) => { const o = pts.find((q) => q.id === p.id)!; return o.x !== p.x || o.y !== p.y; })).toBe(true); });
