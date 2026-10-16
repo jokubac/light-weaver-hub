@@ -668,6 +668,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                       <div className="nox-outline-2 flex justify-between text-[10px] font-bold text-foreground"><span className="truncate">{it.macro!.label || a.label}</span><span className="font-mono">{show(val)}</span></div>
                       <input type="range" aria-label={a.label} min={min} max={max} step={step} value={val} disabled={!live || !f0}
                         onPointerDown={(e) => e.stopPropagation()} onChange={(e) => onRun({ id: it.id, key: null, action: a.id, amount: +e.target.value })}
+                        onDoubleClick={(e) => { e.stopPropagation(); onRun({ id: it.id, key: null, action: a.id, amount: a.id === "int_fader" ? 50 : a.id === "cct_fader" ? 5600 : 0 }); }}
                         className="w-full accent-primary" />
                     </div>;
                   })()}
