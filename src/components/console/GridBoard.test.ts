@@ -164,3 +164,20 @@ describe("macro spans", () => {
     expect(overlap).toBe(false);
   });
 });
+
+import { groupSlots } from "./GridBoard";
+describe("group drop", () => {
+  it("four lights land as a 2x2 block centred on the tap", () => {
+    expect(groupSlots(4, 10, 6, 2, 1, 0.5)).toEqual([
+      { x: 7.75, y: 4.75 }, { x: 10.25, y: 4.75 }, { x: 7.75, y: 6.25 }, { x: 10.25, y: 6.25 },
+    ]);
+  });
+  it("a single light is centred exactly on the tap", () => {
+    expect(groupSlots(1, 3, 4, 2, 1, 0.3)).toEqual([{ x: 2, y: 3.5 }]);
+  });
+  it("partial groups never stack on the same slot", () => {
+    const s = groupSlots(3, 0, 0, 2, 1, 0.4);
+    expect(s).toHaveLength(3);
+    expect(new Set(s.map((p) => `${p.x},${p.y}`)).size).toBe(3);
+  });
+});
