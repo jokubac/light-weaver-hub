@@ -6,7 +6,7 @@ import { MoreHorizontal, PenLine, Plus, Trash2, MousePointer2 } from "lucide-rea
 
 /** Free layout (cell units, fractional) of squares — empty, fixture or user macro — plus drawn walls. */
 export interface GridItem { id: string; kind: "empty" | "fixture" | "macro"; uid?: string | undefined; macro?: { action: MacroAction; amount: number; label: string } | undefined; x: number; y: number }
-export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[] }
+export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
 const CELL = 76, COLS = 24, ROWS = 16, SIZE = 0.92;
@@ -22,43 +22,69 @@ export function snapWall(x1: number, y1: number, x2: number, y2: number) {
   return { x2: x1 + Math.cos(s) * len, y2: y1 + Math.sin(s) * len };
 }
 
-export type Arrange = "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter" | "hspace" | "vspace" | "row" | "column" | "circle" | "square";
+export type Arrange = "hcenter" | "vcenter" | "hspace" | "vspace" | "row" | "column" | "grid" | "circle" | "triangle" | "rotate";
 
-/** Arranges squares (top-left positions, cell units). `gap` is free space between squares for row/column/square/circle. */
-export function arrange(pts: { id: string; x: number; y: number }[], how: Arrange, gap = 0.2): { id: string; x: number; y: number }[] {
+/** Arranges squares (top-left positions, cell units). `gap` is free space between squares; squares never end up stacked on each other. */
+export function arrange(pts: { id: string; x: number; y: number }[], how: Arrange, gap = 0.2, size = SIZE): { id: string; x: number; y: number }[] {
   if (pts.length < 2) return pts;
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, step = SIZE + gap;
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, step = size + gap;
   const byX = [...pts].sort((a, b) => a.x - b.x || a.y - b.y), byY = [...pts].sort((a, b) => a.y - b.y || a.x - b.x);
   const n = pts.length;
   const fit = (r: { id: string; x: number; y: number }[]) => {
-    const dx = Math.max(0, -Math.min(...r.map((p) => p.x))) - Math.max(0, Math.max(...r.map((p) => p.x)) - (COLS - SIZE));
-    const dy = Math.max(0, -Math.min(...r.map((p) => p.y))) - Math.max(0, Math.max(...r.map((p) => p.y)) - (ROWS - SIZE));
+    const dx = Math.max(0, -Math.min(...r.map((p) => p.x))) - Math.max(0, Math.max(...r.map((p) => p.x)) - (COLS - size));
+    const dy = Math.max(0, -Math.min(...r.map((p) => p.y))) - Math.max(0, Math.max(...r.map((p) => p.y)) - (ROWS - size));
     return r.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy }));
   };
+  // keeps at least one square + gap between neighbours along an axis
+  const spread = (sorted: { id: string; x: number; y: number }[], k: "x" | "y") => {
+    let last = -Infinity;
+    return sorted.map((p) => { const v = Math.max(p[k], last + step); last = v; return { ...p, [k]: v }; });
+  };
+  const angle = (p: { x: number; y: number }) => Math.atan2(p.y - cy, p.x - cx);
   switch (how) {
-    case "left": return pts.map((p) => ({ ...p, x: minX }));
-    case "right": return pts.map((p) => ({ ...p, x: maxX }));
-    case "top": return pts.map((p) => ({ ...p, y: minY }));
-    case "bottom": return pts.map((p) => ({ ...p, y: maxY }));
-    case "hcenter": return pts.map((p) => ({ ...p, y: cy }));
-    case "vcenter": return pts.map((p) => ({ ...p, x: cx }));
-    case "hspace": return byX.map((p, i) => ({ ...p, x: minX + ((maxX - minX) * i) / (n - 1) }));
-    case "vspace": return byY.map((p, i) => ({ ...p, y: minY + ((maxY - minY) * i) / (n - 1) }));
+    case "hcenter": return fit(spread(byX.map((p) => ({ ...p, y: cy })), "x"));
+    case "vcenter": return fit(spread(byY.map((p) => ({ ...p, x: cx })), "y"));
+    case "hspace": { const s = Math.max((maxX - minX) / (n - 1), step); return fit(byX.map((p, i) => ({ ...p, x: minX + s * i }))); }
+    case "vspace": { const s = Math.max((maxY - minY) / (n - 1), step); return fit(byY.map((p, i) => ({ ...p, y: minY + s * i }))); }
     case "row": return fit(byX.map((p, i) => ({ ...p, x: minX + i * step, y: minY })));
     case "column": return fit(byY.map((p, i) => ({ ...p, x: minX, y: minY + i * step })));
-    case "square": { const c = Math.ceil(Math.sqrt(n)); return fit(byY.map((p, i) => ({ ...p, x: minX + (i % c) * step, y: minY + Math.floor(i / c) * step }))); }
+    case "grid": { const c = Math.ceil(Math.sqrt(n)); return fit(byY.map((p, i) => ({ ...p, x: minX + (i % c) * step, y: minY + Math.floor(i / c) * step }))); }
+    case "triangle": {
+      let rows = 1; while ((rows * (rows + 1)) / 2 < n) rows++;
+      let i = 0; const out: { id: string; x: number; y: number }[] = [];
+      for (let r = 0; r < rows && i < n; r++) { const k = Math.min(r + 1, n - i); for (let j = 0; j < k; j++, i++) out.push({ ...byY[i]!, x: minX + ((rows - k) * step) / 2 + j * step, y: minY + r * step }); }
+      return fit(out);
+    }
     case "circle": {
       const r = Math.max(step / (2 * Math.sin(Math.PI / n)), step);
-      const ox = cx + SIZE / 2, oy = cy + SIZE / 2;
-      const order = [...pts].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-      return fit(order.map((p, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return { ...p, x: ox + r * Math.cos(a) - SIZE / 2, y: oy + r * Math.sin(a) - SIZE / 2 }; }));
+      const ox = cx + size / 2, oy = cy + size / 2;
+      const order = [...pts].sort((a, b) => angle(a) - angle(b));
+      return fit(order.map((p, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return { ...p, x: ox + r * Math.cos(a) - size / 2, y: oy + r * Math.sin(a) - size / 2 }; }));
+    }
+    case "rotate": {
+      // screen y points down, so increasing angle is clockwise: each light takes the next light's spot
+      const order = [...pts].sort((a, b) => angle(a) - angle(b));
+      return order.map((p, i) => { const t = order[(i + 1) % n]!; return { ...p, x: t.x, y: t.y }; });
     }
   }
 }
 
-const ARRANGE: [Arrange, string][] = [["left", "Left"], ["vcenter", "Centre ↕"], ["right", "Right"], ["top", "Top"], ["hcenter", "Middle ↔"], ["bottom", "Bottom"], ["hspace", "Space ↔"], ["vspace", "Space ↕"], ["row", "Line"], ["column", "Column"], ["square", "Square"], ["circle", "Circle"]];
+const ICON: Record<Arrange, React.ReactNode> = {
+  hcenter: <><rect x="2" y="9" width="5" height="6" /><rect x="9.5" y="9" width="5" height="6" /><rect x="17" y="9" width="5" height="6" /><line x1="1" y1="12" x2="23" y2="12" /></>,
+  vcenter: <><rect x="9" y="2" width="6" height="5" /><rect x="9" y="9.5" width="6" height="5" /><rect x="9" y="17" width="6" height="5" /><line x1="12" y1="1" x2="12" y2="23" /></>,
+  hspace: <><rect x="2" y="8" width="4" height="8" /><rect x="10" y="8" width="4" height="8" /><rect x="18" y="8" width="4" height="8" /></>,
+  vspace: <><rect x="8" y="2" width="8" height="4" /><rect x="8" y="10" width="8" height="4" /><rect x="8" y="18" width="8" height="4" /></>,
+  row: <><rect x="1" y="9" width="6" height="6" /><rect x="9" y="9" width="6" height="6" /><rect x="17" y="9" width="6" height="6" /></>,
+  column: <><rect x="9" y="1" width="6" height="6" /><rect x="9" y="9" width="6" height="6" /><rect x="9" y="17" width="6" height="6" /></>,
+  grid: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></>,
+  triangle: <><rect x="9.5" y="3" width="5" height="5" /><rect x="5" y="10" width="5" height="5" /><rect x="14" y="10" width="5" height="5" /><rect x="1" y="17" width="5" height="5" /><rect x="9.5" y="17" width="5" height="5" /><rect x="18" y="17" width="5" height="5" /></>,
+  circle: <>{[0, 1, 2, 3, 4, 5].map((i) => { const a = -Math.PI / 2 + (i * Math.PI) / 3; return <rect key={i} x={10 + 8 * Math.cos(a)} y={10 + 8 * Math.sin(a)} width="4" height="4" />; })}</>,
+  rotate: <><path d="M20 12a8 8 0 1 1-2.3-5.7" /><polyline points="20 3 20 7 16 7" /></>,
+};
+const ARRANGE: [Arrange, string][] = [["hcenter", "Middle ↔"], ["vcenter", "Centre ↕"], ["hspace", "Space ↔"], ["vspace", "Space ↕"], ["row", "Line"], ["column", "Column"], ["grid", "Grid"], ["triangle", "Triangle"], ["circle", "Circle"], ["rotate", "Rotate ↻"]];
+const LIVE: Arrange[] = ["hspace", "vspace", "row", "column", "grid", "triangle", "circle", "hcenter", "vcenter"];
 
 export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf }: {
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
@@ -73,12 +99,17 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [amount, setAmount] = useState(100);
   const [label, setLabel] = useState("");
   const [gap, setGap] = useState(0.2);
+  const [last, setLast] = useState<Arrange | null>(null);
+  const sz = grid.size ?? SIZE;
   const selItems = grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!));
-  const doArrange = (how: Arrange) => { const r = arrange(selItems, how, gap); setGrid({ ...grid, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y } : i; }) }); };
+  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, size); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y } : i; }) }); };
+  const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
+  const onGap = (g: number) => { setGap(g); if (last && selItems.length > 1) apply(last, g, sz); };
+  const onSize = (v: number) => { if (last && selItems.length > 1) apply(last, gap, v); else setGrid({ ...grid, size: v }); };
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
-  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => Math.abs(i.x - x) < SIZE && Math.abs(i.y - y) < SIZE)) return { x, y }; return { x: 0, y: 0 }; };
+  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => Math.abs(i.x - x) < sz && Math.abs(i.y - y) < sz)) return { x, y }; return { x: 0, y: 0 }; };
   const pt = (e: React.PointerEvent) => { const r = area.current!.getBoundingClientRect(); return { x: (e.clientX - r.left) / CELL, y: (e.clientY - r.top) / CELL }; };
   const patch = (id: string, p: Partial<GridItem>) => setGrid({ ...grid, items: grid.items.map((i) => (i.id === id ? { ...i, ...p } : i)) });
   const edit = grid.items.find((i) => i.id === editing);
@@ -108,14 +139,19 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           <section className="space-y-2">
             <h3 className="text-xs font-bold uppercase text-muted-foreground">Arrange {selItems.length} selected</h3>
             <div className="grid grid-cols-3 gap-1">
-              {ARRANGE.map(([k, l]) => <button key={k} onClick={() => doArrange(k)} className="rounded-md bg-surface-elevated px-1 py-1.5 text-[11px] font-semibold active:scale-95">{l}</button>)}
+              {ARRANGE.map(([k, l]) => <button key={k} onClick={() => doArrange(k)} aria-pressed={last === k} className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[10px] font-semibold active:scale-95 ${last === k ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{ICON[k]}</svg>{l}</button>)}
             </div>
             <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
-              <input type="range" min={0} max={2} step={0.05} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
+              <input type="range" min={0} max={2} step={0.05} value={gap} onChange={(e) => onGap(+e.target.value)} className="flex-1" />
               <span className="w-8 text-right font-mono">{Math.round(gap * 100)}%</span>
             </label>
           </section>
         )}
+        <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Fixture size
+          <input type="range" min={0.4} max={2} step={0.02} value={sz} onChange={(e) => onSize(+e.target.value)} className="flex-1" />
+          <span className="w-8 text-right font-mono">{Math.round(sz * 100)}%</span>
+        </label>
         {edit && (
           <section className="space-y-2 rounded-lg border border-primary/50 p-2">
             <div className="flex items-center justify-between">
@@ -161,14 +197,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const p = pt(e);
             if (wall) setWall({ ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) });
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
-            else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; const g0 = drag.group; let dx = p.x - drag.sx, dy = p.y - drag.sy; for (const m of g0) { dx = Math.max(-m.x, Math.min(COLS - SIZE - m.x, dx)); dy = Math.max(-m.y, Math.min(ROWS - SIZE - m.y, dy)); } setDrag({ ...drag, moved, x: dx, y: dy }); }
+            else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; const g0 = drag.group; let dx = p.x - drag.sx, dy = p.y - drag.sy; for (const m of g0) { dx = Math.max(-m.x, Math.min(COLS - sz - m.x, dx)); dy = Math.max(-m.y, Math.min(ROWS - sz - m.y, dy)); } setDrag({ ...drag, moved, x: dx, y: dy }); }
           }}
           onPointerUp={() => {
             if (wall) { if (Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, wall] }); setWall(null); }
             if (box) {
               const [l, r, t, b] = [Math.min(box.x1, box.x2), Math.max(box.x1, box.x2), Math.min(box.y1, box.y2), Math.max(box.y1, box.y2)];
               if (r - l > 0.1 || b - t > 0.1) {
-                const hit = grid.items.filter((i) => i.kind === "fixture" && i.x < r && i.x + SIZE > l && i.y < b && i.y + SIZE > t).map((i) => i.uid!);
+                const hit = grid.items.filter((i) => i.kind === "fixture" && i.x < r && i.x + sz > l && i.y < b && i.y + sz > t).map((i) => i.uid!);
                 onSelect(box.add ? [...new Set([...selected, ...hit])] : hit);
               }
               setBox(null);
@@ -198,7 +234,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             return (
               <div key={it.id} role="button" tabIndex={0} aria-label={f ? `Select fixture ${n}, ${f.name}` : it.macro ? `Run ${macroLabel(it.macro)}` : "Empty square"} aria-pressed={f ? isSel : undefined}
                 className={`absolute flex flex-col overflow-hidden rounded-lg border p-1 text-[10px] ${mode === "walls" ? "pointer-events-none opacity-60" : "cursor-grab"} ${isSel ? "border-primary ring-2 ring-primary" : editing === it.id ? "border-primary/70 border-dashed" : it.kind === "empty" ? "border-dashed border-border" : "border-border"} ${f ? "bg-card" : "bg-surface-elevated"} ${gm ? "z-30 shadow-lg" : "z-10"}`}
-                style={{ left: pos.x * CELL, top: pos.y * CELL, width: SIZE * CELL, height: SIZE * CELL }}
+                style={{ left: pos.x * CELL, top: pos.y * CELL, width: sz * CELL, height: sz * CELL }}
                 onPointerDown={(e) => { if (mode !== "select") return; e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); const p = pt(e); const inSel = it.kind === "fixture" && selected.includes(it.uid!); const group = (inSel ? grid.items.filter((i) => i.id === it.id || (i.kind === "fixture" && selected.includes(i.uid!))) : [it]).map((i) => ({ id: i.id, x: i.x, y: i.y })); setDrag({ id: it.id, ox: p.x - it.x, oy: p.y - it.y, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group }); }}>
                 <button aria-label="Edit square" onPointerDown={(e) => e.stopPropagation()} onClick={() => { setEditing(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); } }}
                   className="absolute right-0.5 top-0.5 z-10 rounded bg-surface/80 p-0.5 text-muted-foreground hover:text-foreground"><MoreHorizontal className="h-3 w-3" /></button>
