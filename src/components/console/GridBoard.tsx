@@ -275,7 +275,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
-  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => i.kind !== "image" && Math.abs(i.x - x) < (W(i) + FXW) / 2 && Math.abs(i.y - y) < (H(i) + FXH) / 2)) return { x, y }; return { x: 0, y: 0 }; };
+  const freeSpot = (items: GridItem[], w = FXW, h = FXH) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => i.kind !== "image" && Math.abs(i.x - x) < (W(i) + w) / 2 && Math.abs(i.y - y) < (H(i) + h) / 2)) return { x, y }; return { x: 0, y: 0 }; };
   const pt = (e: { clientX: number; clientY: number }) => { const r = vp.current!.getBoundingClientRect(); return { x: (e.clientX - r.left - view.x) / (CELL * view.z), y: (e.clientY - r.top - view.y) / (CELL * view.z) }; };
   // Endless canvas: wheel pans, ctrl/pinch-wheel zooms about the cursor; middle/right drag pans; two fingers pinch-zoom and pan.
   const HOME = { x: 12, y: 12, z: 1 };
@@ -348,7 +348,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y1 }, { x1: w.x2, y1: w.y1, x2: w.x2, y2: w.y2 },
     { x1: w.x2, y1: w.y2, x2: w.x1, y2: w.y2 }, { x1: w.x1, y1: w.y2, x2: w.x1, y2: w.y1 },
   ];
-  const newTable = (items: GridItem[]): GridItem => { const n = items.filter((i) => i.kind === "table").length; const sp = freeSpot(items); return { id: nid(), kind: "table", text: n ? `Macros ${n + 1}` : "Macros", cols: 4, rows: 3, x: sp.x, y: sp.y, w: 4 * 1.1, h: 3 * 1.1 + 0.4 }; };
+  const newTable = (items: GridItem[]): GridItem => { const n = items.filter((i) => i.kind === "table").length; const w = 4 * MACRO_CELL, h = 3 * MACRO_CELL + 0.4; const sp = freeSpot(items, w, h); return { id: nid(), kind: "table", text: n ? `Macros ${n + 1}` : "Macros", cols: 4, rows: 3, x: sp.x, y: sp.y, w, h }; };
   const addTable = () => { const t = newTable(grid.items); setGrid({ ...grid, items: [...grid.items, t] }); setEsel([t.id]); };
   /** Moves macro squares (selected ones, or all loose ones) into the table; they line up automatically. */
   const fillTable = (t: GridItem) => {
