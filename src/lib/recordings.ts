@@ -38,7 +38,9 @@ function blendBeam(a: LookState["beam"], b: LookState["beam"], k: number): Pick<
   if (!a && !b) return {};
   const out: NonNullable<LookState["beam"]> = {};
   for (const key of new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]) as Set<keyof NonNullable<LookState["beam"]>>) {
-    const x = a?.[key], y = b?.[key];
+    // Framing blades missing on one side mean "out / straight", so they glide there instead of jumping.
+    const home = /^Blade\dRot$|^ShaperRot$/.test(key) ? 0.5 : /^Blade\d[AB]$/.test(key) ? 0 : undefined;
+    const x = a?.[key] ?? home, y = b?.[key] ?? home;
     const v = x !== undefined && y !== undefined ? lerp(x, y, k) : k < 0.5 ? x : y;
     if (v !== undefined) out[key] = v;
   }
@@ -128,7 +130,7 @@ export function statesAt(rec: Recording, fixtures: PatchedFixture[], origin: Map
       // an outgoing cue without its own fade-out hands over across the incoming fade
       const fromLevel = prev.fadeOut > 0 ? from.intensity : from.intensity * (1 - p);
       const mixFrom = { ...from, intensity: from.on === false ? 0 : fromLevel, on: true };
-      const inc = { ...target, intensity: (target.on === false ? 0 : target.intensity) * p, on: true };
+      const inc = { ...target, intensity: (target.on === false ? 0 : target.intensity) * p, on: true, ...blendBeam(from.beam, target.beam, p) };
       return { ...inc, mix: { from: mixFrom, mode: step.mixMode ?? "hue" } };
     }
     return { ...stepState(step, target, strip(before ?? { ...target, intensity: 0 }), local), mix: undefined };
