@@ -143,3 +143,5 @@
 - [x] Grid: placing lights simple and fast — "Add light" tool, one tap drops the next light, tool stays on for the next one (browser verified: 2 taps → 2 lights)
 - [x] Macros table: button named "Macros table"; dragging it carries only macros, never fixtures (browser verified)
 - [x] Macros table: dragging a table carries only macros, never fixtures
+
+- [ ] Add light: the picker must also offer groups, so a whole group of lights can be placed at once.
