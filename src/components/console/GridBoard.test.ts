@@ -95,3 +95,11 @@ describe("resizeBoxes", () => {
     expect(a).toEqual({ id: "a", x: 0, y: 3, w: 4, h: 1 });
   });
 });
+
+describe("resizeBoxes keeps fixture proportions", () => {
+  it("a lone fixture box scales uniformly, never stretches", () => {
+    const [a] = resizeBoxes([{ id: "f", x: 0, y: 0, w: 4, h: 1 }], "br", 8, 1, 0.3, new Set(["f"]));
+    expect(a!.w / a!.h).toBeCloseTo(4);
+    expect(a!.w).toBeCloseTo(8);
+  });
+});
