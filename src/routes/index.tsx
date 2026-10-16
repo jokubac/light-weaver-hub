@@ -992,6 +992,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
 
   return (
     <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
+      {!windowOpen && (<>
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
         <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
         <div className="min-w-0">
@@ -1017,16 +1018,17 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         </Button>
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
-        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
+        <Button variant="secondary" onClick={() => setFixturesOpen(true)} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
         {tab("control", "GRID")}
         {tab("fx", "FX")}
         {tab("pixels", "PIXEL")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => setPlotOpen(true)} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
-        {tab("patch", "PATCH")}
+        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">PATCH</Button>
         {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
+      )}
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
         onSave={(name) => { onSetups([{ ...structuredClone(currentScene()), id: uid(), name, createdAt: Date.now() }, ...(project.setups ?? [])]); save(); setSavedFlash(true); }}
@@ -1037,6 +1039,22 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
           levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
+      )}
+      {fixturesOpen && (
+        <div className="fixed inset-0 z-40 flex flex-col bg-background">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3">
+            <button onClick={() => setFixturesOpen(false)} aria-label="Back to console" className="mr-auto rounded-lg bg-surface-elevated p-3 text-primary active:scale-95"><ArrowLeft className="h-5 w-5" /></button>
+            <span className="font-display text-base font-semibold uppercase tracking-wider">Fixtures</span>
+            <span className="text-xs text-muted-foreground">{fixtures.length} fixtures</span>
+          </div>
+          <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
+            {fixtures.length === 0 ? (
+              <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Open PATCH to add them." />
+            ) : (
+              fixtureBoard()
+            )}
+          </div>
+        </div>
       )}
       {patchOpen && (
         <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}
@@ -1071,10 +1089,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           )}
         </div>
 
-        {panelOpen && <aside className={`max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:border-l lg:border-t-0 ${panel === "patch" ? "lg:w-[34rem]" : "lg:w-96"}`}>
-          {panel === "patch" ? (
-            <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
-          ) : panel === "fx" ? (
+        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:border-l lg:border-t-0 lg:w-96">
+          {panel === "fx" ? (
             <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
               if (!activePixel) return;
               const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
