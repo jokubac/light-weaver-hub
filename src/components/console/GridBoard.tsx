@@ -274,6 +274,12 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           <label className="flex cursor-pointer items-center gap-1.5 rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-bold text-muted-foreground"><ImagePlus className="h-3.5 w-3.5" />Import picture or PDF
             <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importBg(f); e.target.value = ""; }} />
           </label>
+          {grid.bg && (<div className="flex flex-wrap gap-1.5">
+            <button onClick={() => setGrid({ ...grid, bgT: { ...{ x: 0, y: 0, scale: 1, invert: false }, ...grid.bgT, scale: Math.max(0.5, (grid.bgT?.scale ?? 1) - 0.25) } })} className="rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-bold text-muted-foreground">−</button>
+            <button onClick={() => setGrid({ ...grid, bgT: { ...{ x: 0, y: 0, scale: 1, invert: false }, ...grid.bgT, scale: Math.min(4, (grid.bgT?.scale ?? 1) + 0.25) } })} className="rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-bold text-muted-foreground">+</button>
+            <button onClick={() => setGrid({ ...grid, bgT: { ...{ x: 0, y: 0, scale: 1, invert: false }, ...grid.bgT, invert: !(grid.bgT?.invert ?? false) } })} aria-pressed={grid.bgT?.invert ?? false} className={`rounded-full px-3 py-1.5 text-xs font-bold ${grid.bgT?.invert ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>Invert</button>
+            <button onClick={() => setMode(mode === "bgmove" ? "select" : "bgmove")} aria-pressed={mode === "bgmove"} className={`rounded-full px-3 py-1.5 text-xs font-bold ${mode === "bgmove" ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>Move</button>
+          </div>)}
           {grid.bg && <button onClick={() => setGrid({ ...grid, bg: undefined })} className="flex items-center gap-1.5 rounded-full bg-surface-elevated px-3 py-1.5 text-xs font-bold text-destructive"><Trash2 className="h-3.5 w-3.5" />Remove picture</button>}
         </div>
         <div className="min-h-0 flex-1 overflow-auto bg-background p-3">
@@ -311,11 +317,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               if (drag.moved) setGrid({ ...grid, items: grid.items.map((i) => { const m = drag.group.find((g) => g.id === i.id); return m ? { ...i, x: m.x + drag.x, y: m.y + drag.y } : i; }) });
               else if (it?.kind === "fixture") onToggle(it.uid!);
               else if (it?.kind === "macro") onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount });
-              else if (it) setEditing(it.id);
+              else if (it?.kind === "text") { const now = Date.now(); if (lastTap.current?.id === it.id && now - lastTap.current.t < 400) { setEditing(it.id); lastTap.current = null; } else lastTap.current = { id: it.id, t: now }; }
               setDrag(null);
             }
           }}>
-          {grid.bg && <img src={grid.bg} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />}
+          {grid.bg && <img src={grid.bg} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ transform: `translate(${grid.bgT?.x ?? 0}%, ${grid.bgT?.y ?? 0}%) scale(${grid.bgT?.scale ?? 1})`, transformOrigin: "center", filter: grid.bgT?.invert ? "invert(1)" : undefined }} />}
           <svg className="absolute inset-0" width={COLS * CELL} height={ROWS * CELL}>
             {[...grid.walls, ...(wall ? [wall] : [])].map((w, i) => (
               <line key={i} x1={w.x1 * CELL} y1={w.y1 * CELL} x2={w.x2 * CELL} y2={w.y2 * CELL} strokeWidth={8} strokeLinecap="round"
