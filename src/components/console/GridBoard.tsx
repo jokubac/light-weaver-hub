@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
-import { GELS, GEL_BY_ID } from "@/lib/gels";
+import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
 import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -250,6 +250,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
   const [esel, setEsel] = useState<string[]>([]);
   const lastTap = useRef<{ id: string; t: number } | null>(null);
+  const faderTap = useRef<{ id: string; t: number } | null>(null);
+  const faderPress = useRef<{ x: number; t: number } | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number; w: number; h: number }[] } | null>(null);
   const [rs, setRs] = useState<{ corner: Corner; orig: Box[]; out: Box[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
@@ -265,7 +267,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [label, setLabel] = useState("");
   const [param, setParam] = useState("");
   const [gelQ, setGelQ] = useState("");
-  const [gelCat, setGelCat] = useState<"All" | "Correction" | "Effect" | "LEE" | "Rosco">("All");
+  const [gelBrand, setGelBrand] = useState<"All" | "Rosco" | "LEE">("All");
+  const [gelKind, setGelKind] = useState<"All" | "Correction" | "Effect">("All");
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
@@ -664,11 +667,24 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                     const [min, max, step, val, show] = a.id === "int_fader" ? [0, 100, 1, Math.round((f0?.intensity ?? 0) * 100), (v: number) => `${v}%`]
                       : a.id === "cct_fader" ? [2000, 10000, 50, Math.round(kelvin(f0?.cct ?? 0.45)), (v: number) => `${v}K`]
                       : [-100, 100, 1, Math.round((f0?.gm ?? 0) * 100), (v: number) => (v > 0 ? `G${v}` : v < 0 ? `M${-v}` : "0")];
-                    return <div className="flex flex-1 flex-col justify-center gap-0.5 px-1">
+                    const reset = () => onRun({ id: it.id, key: null, action: a.id, amount: a.id === "int_fader" ? 50 : a.id === "cct_fader" ? 5600 : 0 });
+                    // Double tap anywhere on the fader (mouse or touch) returns it to Intensity 50%, CCT 5600K, G/M 0.
+                    const tapUp = (e: { stopPropagation: () => void; clientX: number }) => {
+                      e.stopPropagation();
+                      const p = faderPress.current, now = Date.now();
+                      faderPress.current = null;
+                      if (!p || now - p.t > 300 || Math.abs(e.clientX - p.x) > 12) return;
+                      const prev = faderTap.current;
+                      if (prev && prev.id === it.id && now - prev.t < 450) { faderTap.current = null; if (live && f0) reset(); }
+                      else faderTap.current = { id: it.id, t: now };
+                    };
+                    return <div className="flex flex-1 flex-col justify-center gap-0.5 px-1"
+                      onPointerDown={(e) => { faderPress.current = { x: e.clientX, t: Date.now() }; }} onPointerUp={tapUp}>
                       <div className="nox-outline-2 flex justify-between text-[10px] font-bold text-foreground"><span className="truncate">{it.macro!.label || a.label}</span><span className="font-mono">{show(val)}</span></div>
                       <input type="range" aria-label={a.label} min={min} max={max} step={step} value={val} disabled={!live || !f0}
-                        onPointerDown={(e) => e.stopPropagation()} onChange={(e) => onRun({ id: it.id, key: null, action: a.id, amount: +e.target.value })}
-                        onDoubleClick={(e) => { e.stopPropagation(); onRun({ id: it.id, key: null, action: a.id, amount: a.id === "int_fader" ? 50 : a.id === "cct_fader" ? 5600 : 0 }); }}
+                        onPointerDown={(e) => { e.stopPropagation(); faderPress.current = { x: e.clientX, t: Date.now() }; }}
+                        onChange={(e) => onRun({ id: it.id, key: null, action: a.id, amount: +e.target.value })}
+                        onDoubleClick={(e) => { e.stopPropagation(); if (live && f0) reset(); }}
                         className="w-full accent-primary" />
                     </div>;
                   })()}
@@ -727,24 +743,32 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               {meta?.pick === "group" && (<div className="flex flex-wrap gap-1.5 text-xs">
                 {groups.length ? groups.map((g) => <button key={g} onClick={() => setParam(g)} aria-pressed={param === g} className={`rounded-md border px-2 py-1 ${param === g ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{g}</button>) : <span className="text-muted-foreground">No groups yet — make one in Groups first.</span>}
               </div>)}
-              {meta?.pick === "gel" && (<div className="space-y-1.5">
-                <div className="flex flex-wrap gap-1 text-xs">
-                  {(["All", "Correction", "Effect", "LEE", "Rosco"] as const).map((c) => (
-                    <button key={c} onClick={() => setGelCat(c)} aria-pressed={gelCat === c} className={`rounded-md border px-2 py-1 ${gelCat === c ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{c}</button>))}
-                </div>
-                <input aria-label="Search filters" placeholder="Search filter (e.g. 1/2 CTO, 201)" value={gelQ} onChange={(e) => setGelQ(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-                <div className="grid max-h-64 grid-cols-2 gap-1 overflow-auto text-xs sm:grid-cols-3">
-                  {GELS.filter((g) => {
-                    const corr = g.kelvin !== undefined || g.gm !== undefined;
-                    if (gelCat === "Correction" && !corr) return false;
-                    if (gelCat === "Effect" && corr) return false;
-                    if (gelCat === "LEE" && g.brand !== "LEE") return false;
-                    if (gelCat === "Rosco" && g.brand !== "Rosco") return false;
-                    return `${g.brand} ${g.code} ${g.name}`.toLowerCase().includes(gelQ.toLowerCase());
-                  }).map((g) => (
-                    <button key={g.id} onClick={() => setParam(g.id)} aria-pressed={param === g.id} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-left ${param === g.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: g.hex }} /><span className="truncate">{g.brand} {g.code} {g.name}</span></button>))}
-                </div>
-              </div>)}
+              {meta?.pick === "gel" && (() => {
+                const brands = ["All", ...Array.from(new Set(GELS.map((g) => g.brand)))];
+                const kind = (g: Gel) => (g.kelvin !== undefined || g.gm !== undefined ? "Correction" : "Effect");
+                const list = GELS.filter((g) => {
+                  if (gelBrand !== "All" && g.brand !== gelBrand) return false;
+                  if (gelKind !== "All" && kind(g) !== gelKind) return false;
+                  return `${g.brand} ${g.code} ${g.name}`.toLowerCase().includes(gelQ.toLowerCase());
+                });
+                const chip = (on: boolean) => `rounded-md border px-2 py-1 ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`;
+                return (<div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1 text-xs">
+                    <span className="w-20 shrink-0 text-[11px] font-bold uppercase text-muted-foreground">Manufacturer</span>
+                    {brands.map((b) => <button key={b} onClick={() => setGelBrand(b as "All" | "Rosco" | "LEE")} aria-pressed={gelBrand === b} className={chip(gelBrand === b)}>{b}</button>)}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1 text-xs">
+                    <span className="w-20 shrink-0 text-[11px] font-bold uppercase text-muted-foreground">Type</span>
+                    {(["All", "Correction", "Effect"] as const).map((k) => <button key={k} onClick={() => setGelKind(k)} aria-pressed={gelKind === k} className={chip(gelKind === k)}>{k}</button>)}
+                    <span className="ml-auto font-mono text-[11px] text-muted-foreground">{list.length}</span>
+                  </div>
+                  <input aria-label="Search filters" placeholder="Search filter (e.g. 1/2 CTO, 201)" value={gelQ} onChange={(e) => setGelQ(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                  <div className="grid max-h-64 grid-cols-2 gap-1 overflow-auto text-xs sm:grid-cols-3">
+                    {list.map((g) => (
+                      <button key={g.id} onClick={() => setParam(g.id)} aria-pressed={param === g.id} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-left ${param === g.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: g.hex }} /><span className="truncate">{g.brand} {g.code} {g.name}</span></button>))}
+                  </div>
+                </div>);
+              })()}
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
                 <span className="text-muted-foreground">Box span</span>
                 {[[1, 1], [2, 1], [3, 1], [4, 1], [1, 2], [2, 2], [3, 2], [4, 2]].map(([c, r]) => { const on = (pick.cs ?? 1) === c && (pick.rs ?? 1) === r; return (
