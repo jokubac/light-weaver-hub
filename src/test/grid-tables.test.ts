@@ -1,46 +1,52 @@
 import { describe, expect, it } from "vitest";
-import { MACRO_CELL, applySize, boxOf, fixtureBox, layoutTables, spanOf, type GridItem } from "@/components/console/GridBoard";
+import { MACRO_CELL, applySize, boxOf, fixtureBox, layoutTables, resizeTable, spanOf, TABLE_HEADER, type GridItem } from "@/components/console/GridBoard";
 
 const SZ = 0.92;
 const table = (over: Partial<GridItem> = {}): GridItem => ({ id: "t1", kind: "table", text: "Macros", cols: 4, rows: 3, x: 0, y: 0, w: 4 * MACRO_CELL, h: 3 * MACRO_CELL + 0.4, ...over });
 const macro = (over: Partial<GridItem> = {}): GridItem => ({ id: "m1", kind: "macro", tbl: "t1", x: 0.1, y: 0.5, macro: { action: "cct_up", amount: 100, label: "CCT +" }, ...over });
 
 describe("macro table resizing", () => {
-  it("keeps its column count when dragged narrower — cells shrink instead of collapsing to one column", () => {
-    const t = table();
-    const laid = layoutTables([t, macro({ x: 0.1, y: 0.5 })], SZ);
-    const cols = laid.find((i) => i.id === "t1")!.cols;
-    expect(cols).toBe(4);
-    const narrow = layoutTables(laid.map((i) => (i.id === "t1" ? { ...i, w: 2.2 } : i)), SZ);
-    const nt = narrow.find((i) => i.id === "t1")!;
-    expect(nt.cols).toBe(4);
-    // cell width follows the narrower table
-    expect(nt.w! / nt.cols!).toBeCloseTo(2.2 / 4, 5);
+  const box = (i: GridItem) => ({ id: i.id, x: i.x, y: i.y, w: i.w!, h: i.h! });
+  it("buttons keep their size when the table is resized", () => {
+    const laid = layoutTables([table(), macro()], SZ);
+    const before = laid.find((i) => i.id === "m1")!;
+    const t = laid.find((i) => i.id === "t1")!;
+    const nb = resizeTable(box(t), "br", t.x + 10 * MACRO_CELL, t.y + 8 * MACRO_CELL, [box(before)]);
+    const after = layoutTables(laid.map((i) => (i.id === "t1" ? { ...i, ...nb } : i)), SZ).find((i) => i.id === "m1")!;
+    expect(after.w).toBeCloseTo(before.w!, 5);
+    expect(after.h).toBeCloseTo(before.h!, 5);
+    expect(after.x).toBeCloseTo(before.x, 5);
   });
-
-  it("gains columns when dragged wider", () => {
-    const t = table({ w: 6.6 });
-    const laid = layoutTables([t, macro({ x: 5, y: 0.5 })], SZ);
-    expect(laid.find((i) => i.id === "t1")!.cols).toBe(6);
+  it("an empty table shrinks from every side down to one cell", () => {
+    const t = box(table());
+    for (const c of ["tl", "tr", "bl", "br"] as const) {
+      const nb = resizeTable(t, c, c[1] === "l" ? 99 : -99, c[0] === "t" ? 99 : -99, []);
+      expect(nb.w).toBeCloseTo(MACRO_CELL, 5);
+      expect(nb.h).toBeCloseTo(MACRO_CELL + TABLE_HEADER, 5);
+    }
   });
-
-  it("shrinks its height when the bottom edge is dragged up", () => {
-    const t = table();
-    const laid = layoutTables([t, macro({ x: 0.1, y: 0.5 })], SZ);
-    const before = laid.find((i) => i.id === "t1")!.h!;
-    const shrunk = layoutTables(laid.map((i) => (i.id === "t1" ? { ...i, h: 2.0 } : i)), SZ);
-    const after = shrunk.find((i) => i.id === "t1")!.h!;
-    expect(after).toBeLessThan(before);
+  it("shrinks from the bottom and right until it reaches the macros", () => {
+    const laid = layoutTables([table(), macro()], SZ);
+    const t = laid.find((i) => i.id === "t1")!, m = laid.find((i) => i.id === "m1")!;
+    const nb = resizeTable(box(t), "br", -99, -99, [box(m)]);
+    expect(nb.w).toBeCloseTo(MACRO_CELL, 5);
+    expect(nb.h).toBeCloseTo(MACRO_CELL + TABLE_HEADER, 5);
   });
-
-  it("never grows taller than the macros need", () => {
-    const t = table();
-    const laid = layoutTables([t, macro({ x: 0.1, y: 0.5 })], SZ);
-    const nt = laid.find((i) => i.id === "t1")!;
-    const m = laid.find((i) => i.id === "m1")!;
-    expect(nt.h!).toBeLessThanOrEqual(3 * MACRO_CELL + 0.4 + 0.01);
-    // the macro sits inside the table
-    expect(m.x!).toBeGreaterThan(nt.x!);
+  it("shrinks from the top and left until it reaches the macros", () => {
+    const t0 = table();
+    const laid = layoutTables([t0, macro({ x: 3 * MACRO_CELL + 0.1, y: 2 * MACRO_CELL + 0.5 })], SZ);
+    const t = laid.find((i) => i.id === "t1")!, m = laid.find((i) => i.id === "m1")!;
+    const nb = resizeTable(box(t), "tl", 99, 99, [box(m)]);
+    expect(nb.x).toBeCloseTo(3 * MACRO_CELL, 5);
+    expect(nb.y).toBeCloseTo(2 * MACRO_CELL, 5);
+    expect(nb.w).toBeCloseTo(MACRO_CELL, 5);
+    const after = layoutTables(laid.map((i) => (i.id === "t1" ? { ...i, ...nb } : i)), SZ).find((i) => i.id === "m1")!;
+    expect(after.x).toBeCloseTo(m.x, 5);
+    expect(after.y).toBeCloseTo(m.y, 5);
+  });
+  it("grows without limit", () => {
+    const nb = resizeTable(box(table()), "br", 500 * MACRO_CELL, 300 * MACRO_CELL, []);
+    expect(Math.round(nb.w / MACRO_CELL)).toBe(500);
   });
 });
 

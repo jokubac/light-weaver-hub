@@ -163,8 +163,30 @@ export const MACRO_CELL = 1.1;
 const SIZE_STOPS: [number, string][] = [[1 / 8, "1/8"], [1 / 4, "1/4"], [1 / 2, "1/2"], [1, "1"], [2, "2"], [3, "3"], [4, "4"]];
 /** Turns a corner-resized macro box into a whole-cell span inside its table (at least 1×1, never wider than the table); the size stops reset to full cells. */
 export function spanOf(w: number, h: number, table: GridItem, sz = SIZE) {
-  const tb = boxOf(table, sz), cols = Math.max(1, table.cols ?? 0, Math.round(tb.w / MACRO_CELL)), cw = tb.w / cols;
+  const tb = boxOf(table, sz), cols = Math.max(1, Math.round(tb.w / MACRO_CELL)), cw = MACRO_CELL;
   return { cs: Math.min(cols, Math.max(1, Math.round(w / cw))), rs: Math.max(1, Math.round(h / cw)), sk: 1 as const };
+}
+export const TABLE_HEADER = 0.4;
+/**
+ * Edge/corner resize of one macro table. Cells keep a fixed size (MACRO_CELL), so buttons never change size —
+ * every edge moves in whole cells, grows without limit and shrinks until it reaches the macros inside
+ * (an empty table shrinks to a single cell). Macros keep their place on the grid.
+ */
+export function resizeTable(t: Box, corner: Corner, px: number, py: number, members: Box[]): Box {
+  const C = MACRO_CELL, e = 0.02;
+  const cols0 = Math.max(1, Math.round(t.w / C)), rows0 = Math.max(1, Math.round((t.h - TABLE_HEADER) / C));
+  const oy = t.y + TABLE_HEADER;
+  const has = members.length > 0;
+  const cMin = has ? Math.min(...members.map((m) => Math.floor((m.x + e - t.x) / C))) : 0;
+  const cMax = has ? Math.max(...members.map((m) => Math.ceil((m.x + m.w - e - t.x) / C))) : 0;
+  const rMin = has ? Math.min(...members.map((m) => Math.floor((m.y + e - oy) / C))) : 0;
+  const rMax = has ? Math.max(...members.map((m) => Math.ceil((m.y + m.h - e - oy) / C))) : 0;
+  let L = 0, R = cols0, T = 0, B = rows0;
+  if (corner === "tl" || corner === "bl") L = Math.min(Math.round((px - t.x) / C), has ? cMin : R - 1);
+  else R = Math.max(Math.round((px - t.x) / C), has ? cMax : L + 1);
+  if (corner === "tl" || corner === "tr") T = Math.min(Math.round((py - t.y) / C), has ? rMin : B - 1);
+  else B = Math.max(Math.round((py - oy) / C), has ? rMax : T + 1);
+  return { id: t.id, x: t.x + L * C, y: t.y + T * C, w: (R - L) * C, h: (B - T) * C + TABLE_HEADER };
 }
 const isMacroBox = (i: GridItem) => i.kind === "macro" || i.kind === "empty";
 /** After a drag: moved macro squares join the table under their centre; dropped outside every table they go back to the table they came from. */
@@ -181,10 +203,10 @@ export function dropIntoTables(items: GridItem[], moved: Set<string>, sz = SIZE)
 export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
   const out = new Map(items.map((i) => [i.id, i]));
   for (const t of items.filter((i) => i.kind === "table")) {
-    // Columns follow the table width (one cell ≈ MACRO_CELL) but never drop below the table's current count — a narrower table shrinks its cells instead of collapsing to one column; rows follow its height and grow when macros need more room.
-    const tb = boxOf(t, sz), cols = Math.max(1, t.cols ?? 0, Math.round(tb.w / MACRO_CELL));
+    // Cells have a fixed size (MACRO_CELL) so buttons never change size when the table is resized; columns/rows follow the table's width/height.
+    const tb = boxOf(t, sz), cols = Math.max(1, Math.round(tb.w / MACRO_CELL));
     const members = items.filter((i) => isMacroBox(i) && i.tbl === t.id).sort((a, b) => a.y - b.y || a.x - b.x);
-    const cw = tb.w / cols, ch = cw;
+    const cw = MACRO_CELL, ch = cw;
     const pad = cw * 0.06;
     // First-fit packing: each macro takes cs × rs cells (1×1 by default), placed in reading order.
     const used: boolean[][] = [];
@@ -211,7 +233,7 @@ export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
       place(m, r, c, w, h);
     }
     const rows = Math.max(1, Math.round((tb.h - 0.4) / ch), rowsUsed);
-    out.set(t.id, { ...t, cols, rows, h: rows * ch + 0.4 });
+    out.set(t.id, { ...t, cols, rows, w: cols * cw, h: rows * ch + 0.4 });
   }
   return items.map((i) => out.get(i.id)!);
 }
@@ -584,7 +606,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (pinch.current && touches.current.size === 2) { const [p1, p2] = [...touches.current.values()]; const d = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y), cx = (p1!.x + p2!.x) / 2, cy = (p1!.y + p2!.y) / 2; const r = vp.current!.getBoundingClientRect(); const pc = pinch.current; setView((v) => ({ ...v, x: v.x + cx - pc.cx, y: v.y + cy - pc.cy })); viewRef.current = { ...viewRef.current, x: viewRef.current.x + cx - pc.cx, y: viewRef.current.y + cy - pc.cy }; zoomAt(cx - r.left, cy - r.top, viewRef.current.z * (d / pc.d)); pinch.current = { d, cx, cy }; return; }
             if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
             const p = pt(e);
-            if (rs) setRs({ ...rs, out: resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) });
+            if (rs) { const lone = rs.orig.length === 1 ? grid.items.find((i) => i.id === rs.orig[0]!.id && i.kind === "table") : undefined;
+              setRs({ ...rs, out: lone ? [resizeTable(rs.orig[0]!, rs.corner, p.x, p.y, grid.items.filter((m) => isMacroBox(m) && m.tbl === lone.id).map((m) => ({ id: m.id, x: m.x, y: m.y, w: W(m), h: H(m) })))] : resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) }); }
             else if (wEnd) { const w0 = grid.walls[wEnd.i]!; const o = wEnd.e === 1 ? { x: w0.x2, y: w0.y2 } : { x: w0.x1, y: w0.y1 }; const sn = snapToEnds(grid.walls, p.x, p.y, wEnd); const q = sn.x !== p.x || sn.y !== p.y ? sn : (() => { const k = snapWall(o.x, o.y, p.x, p.y); return { x: k.x2, y: k.y2 }; })(); setGrid({ ...grid, walls: grid.walls.map((w, k) => (k !== wEnd.i ? w : wEnd.e === 1 ? { ...w, x1: q.x, y1: q.y } : { ...w, x2: q.x, y2: q.y })) }); }
             else if (wall) setWall(wallRect ? { ...wall, x2: Math.round(p.x * 4) / 4, y2: Math.round(p.y * 4) / 4 } : (() => { const sn = snapToEnds(grid.walls, p.x, p.y); return sn.x !== p.x || sn.y !== p.y ? { ...wall, x2: sn.x, y2: sn.y } : { ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) }; })());
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
@@ -692,9 +715,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   <img src={it.src} alt="" draggable={false} className="pointer-events-none h-full w-full object-fill" style={{ opacity: it.opacity ?? 1, filter: it.invert ? "invert(1)" : undefined }} />
                 ) : it.kind === "table" ? (<>
                   <div className="h-[30px] shrink-0 truncate px-1 text-xs font-bold uppercase text-muted-foreground" style={it.color ? { color: it.color } : undefined}>{it.text}</div>
-                  {!live && <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `repeat(${it.cols ?? 4}, 1fr)`, gridTemplateRows: `repeat(${it.rows ?? 3}, 1fr)` }}>
-                    {Array.from({ length: (it.cols ?? 4) * (it.rows ?? 3) }, (_, k) => {
-                      const cols = it.cols ?? 4, cw = W(it) / cols, cx = it.x + (k % cols) * cw, cy = it.y + 0.4 + Math.floor(k / cols) * cw;
+                  {!live && (() => { const tc = Math.max(1, Math.round(pos.w / MACRO_CELL)), tr = Math.max(1, Math.round((pos.h - TABLE_HEADER) / MACRO_CELL)); return <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `repeat(${tc}, 1fr)`, gridTemplateRows: `repeat(${tr}, 1fr)` }}>
+                    {Array.from({ length: tc * tr }, (_, k) => {
+                      const cols = tc, cw = MACRO_CELL, cx = pos.x + (k % cols) * cw, cy = pos.y + TABLE_HEADER + Math.floor(k / cols) * cw;
                       // Any overlap with a macro box hides the cell — a partially covered cell must never peek out from under a fader.
                       const taken = grid.items.some((m) => m.macro && m.x < cx + cw - 0.001 && m.x + W(m) > cx + 0.001 && m.y < cy + cw - 0.001 && m.y + H(m) > cy + 0.001);
                       if (taken) return <div key={k} />;
@@ -702,11 +725,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                       <button key={k} type="button" aria-label="Add macro here" disabled={mode !== "select"}
                         className="m-0.5 flex items-center justify-center rounded-md border border-border/60 bg-surface-elevated/55 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                         onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); const cols = it.cols ?? 4, cw = W(it) / cols; addSquare(it.id, it.x + (k % cols) * cw, it.y + 0.4 + Math.floor(k / cols) * cw, cw); }}>
+                        onClick={(e) => { e.stopPropagation(); addSquare(it.id, cx, cy, cw); }}>
                         <Plus className="h-4 w-4" />
                       </button>
                     ); })}
-                  </div>}
+                  </div>; })()}
                 </>) : f ? (<>
                   <span className="font-mono font-semibold text-foreground/80">#{n}</span>
                   {(() => { const px = pixelsOf?.(f); if (!px?.cells || px.cells.length < 2) return <div className="my-0.5 min-h-0 flex-1 rounded" style={{ background: colorOf(f) }} />;
