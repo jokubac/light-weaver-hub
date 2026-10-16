@@ -256,6 +256,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const faderTap = useRef<{ id: string; t: number } | null>(null);
   const faderPress = useRef<{ x: number; y: number; t: number } | null>(null);
   const faderMoved = useRef(false);
+  // A text label placed by the Text tool opens its editor once the press is over.
+  const justAdded = useRef<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number; w: number; h: number }[] } | null>(null);
   const [rs, setRs] = useState<{ corner: Corner; orig: Box[]; out: Box[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
@@ -347,7 +349,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     items = [...items, { id, kind: "empty", tbl: t.id, x: atX ?? t.x + 999, y: atY ?? t.y + 999, w: cell, h: cell }];
     setGrid({ ...grid, items: layoutTables(items, sz) }); setEsel([id]); setPicker(id); setLabel("");
   };
-  const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); setEditText(id); };
+  const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); justAdded.current = id; };
   /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
   const addLight = (x: number, y: number) => {
     if (pickGroup) {
@@ -585,7 +587,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 else if (!box.add) onSelect([]);
               } else {
                 const hit = big ? grid.items.filter((i) => i.x < r && i.x + W(i) > l && i.y < b && i.y + H(i) > t && !(i.kind === "image" && (i.x < l || i.x + W(i) > r))).map((i) => i.id) : [];
-                setEsel(box.add ? [...new Set([...esel, ...hit])] : hit);
+                if (!justAdded.current) setEsel(box.add ? [...new Set([...esel, ...hit])] : hit);
               }
               setBox(null);
             }
@@ -610,6 +612,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               }
               setDrag(null);
             }
+            if (justAdded.current) { setEditText(justAdded.current); justAdded.current = null; }
           }}>
         <div ref={area} className="absolute left-0 top-0 z-[2]" style={{ width: COLS * CELL, height: ROWS * CELL, transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, transformOrigin: "0 0" }}>
           {grid.bg && <img src={grid.bg} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ transform: `translate(${grid.bgT?.x ?? 0}%, ${grid.bgT?.y ?? 0}%) scale(${grid.bgT?.scale ?? 1})`, transformOrigin: "center", filter: grid.bgT?.invert ? "invert(1)" : undefined }} />}
