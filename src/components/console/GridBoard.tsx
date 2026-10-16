@@ -691,7 +691,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   {!live && <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `repeat(${it.cols ?? 4}, 1fr)`, gridTemplateRows: `repeat(${it.rows ?? 3}, 1fr)` }}>
                     {Array.from({ length: (it.cols ?? 4) * (it.rows ?? 3) }, (_, k) => {
                       const cols = it.cols ?? 4, cw = W(it) / cols, cx = it.x + (k % cols) * cw, cy = it.y + 0.4 + Math.floor(k / cols) * cw;
-                      const taken = grid.items.some((m) => m.macro && m.x + W(m) / 2 > cx && m.x + W(m) / 2 < cx + cw + 0.001 && m.y + H(m) / 2 > cy && m.y + H(m) / 2 < cy + cw + 0.001 && m.x < cx + cw - 0.001 && m.x + W(m) > cx + 0.001);
+                      // Any overlap with a macro box hides the cell — a partially covered cell must never peek out from under a fader.
+                      const taken = grid.items.some((m) => m.macro && m.x < cx + cw - 0.001 && m.x + W(m) > cx + 0.001 && m.y < cy + cw - 0.001 && m.y + H(m) > cy + 0.001);
                       if (taken) return <div key={k} />;
                       return (
                       <button key={k} type="button" aria-label="Add macro here" disabled={mode !== "select"}
