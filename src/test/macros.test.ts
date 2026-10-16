@@ -62,4 +62,9 @@ describe("new macro set", () => {
     expect(MACRO_ACTIONS.filter((a) => a.fader).map((a) => a.id)).toEqual(["int_fader", "cct_fader", "gm_fader"]);
     expect(MACRO_ACTIONS.filter((a) => a.hold).map((a) => a.id)).toEqual(["checkout", "locate"]);
   });
+  it("+ Group macro exists alongside the Group picker", () => {
+    const ids: string[] = MACRO_ACTIONS.map((a) => a.id);
+    expect(ids).toContain("group_new");
+    expect(ids).toContain("group");
+  });
 });
