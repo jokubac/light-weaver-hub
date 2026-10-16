@@ -311,12 +311,13 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   };
   const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); } else setLabel(""); };
   /** New macro square: it always lands in a macro table (the selected one, else the first, else a new one) and lines up there. */
-  const addSquare = () => {
+  const addSquare = (tableId?: string, atX?: number, atY?: number) => {
     let items = grid.items;
-    let t = items.find((i) => i.kind === "table" && esel.includes(i.id)) ?? items.find((i) => i.kind === "table");
+    let t = (tableId ? items.find((i) => i.id === tableId) : undefined) ?? items.find((i) => i.kind === "table" && esel.includes(i.id)) ?? items.find((i) => i.kind === "table");
     if (!t) { t = newTable(items); items = [...items, t]; }
     const id = nid();
-    items = [...items, { id, kind: "empty", tbl: t.id, x: t.x + 999, y: t.y + 999 }];
+    // A tapped cell keeps its reading-order spot; otherwise the macro goes to the end.
+    items = [...items, { id, kind: "empty", tbl: t.id, x: atX ?? t.x + 999, y: atY ?? t.y + 999 }];
     setGrid({ ...grid, items: layoutTables(items, sz) }); setEsel([id]); setPicker(id); setLabel("");
   };
   const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); };
@@ -434,7 +435,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         );
       })()}
       <div className="grid grid-cols-2 gap-1.5">
-        <Button size="sm" onClick={addSquare}><Plus />Macro</Button>
+        <Button size="sm" onClick={() => addSquare()}><Plus />Macro</Button>
         <Button variant="secondary" size="sm" onClick={addTable}><Table2 />Macros table</Button>
         <Button variant="secondary" size="sm" className="col-span-2" disabled={fixtures.every((f) => placed.has(f.uid))}
           onClick={() => { let items = grid.items; for (const f of fixtures) if (!placed.has(f.uid)) items = [...items, { id: nid(), kind: "fixture", uid: f.uid, ...freeSpot(items) }]; setGrid({ ...grid, items }); }}>All lights</Button>
@@ -611,7 +612,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 ) : it.kind === "table" ? (<>
                   <div className="h-[30px] shrink-0 truncate px-1 text-xs font-bold uppercase text-muted-foreground">{it.text}</div>
                   {!live && <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `repeat(${it.cols ?? 4}, 1fr)`, gridTemplateRows: `repeat(${it.rows ?? 3}, 1fr)` }}>
-                    {Array.from({ length: (it.cols ?? 4) * (it.rows ?? 3) }, (_, k) => <div key={k} className="border border-dashed border-border/60" />)}
+                    {Array.from({ length: (it.cols ?? 4) * (it.rows ?? 3) }, (_, k) => (
+                      <button key={k} type="button" aria-label="Add macro here" disabled={mode !== "select"}
+                        className="flex items-center justify-center border border-dashed border-border/60 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); const cols = it.cols ?? 4, cw = W(it) / cols; addSquare(it.id, it.x + (k % cols) * cw + cw / 2 - 0.01, it.y + 0.4 + Math.floor(k / cols) * cw + cw / 2 - 0.01); }}>
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    ))}
                   </div>}
                 </>) : f ? (<>
                   <span className="font-mono font-semibold text-foreground/80">#{n}</span>
