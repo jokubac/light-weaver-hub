@@ -168,3 +168,6 @@
 - [x] Filter picker for macros has separate Manufacturer (All/Rosco/LEE) and Type (All/Correction/Effect) rows that combine, plus a live result count.
 - [x] "Add light" button removed from the GRID toolbar — lights are placed straight from the light picker that is always visible in Edit mode.
 - [x] Text boxes in GRID are edited on the box itself: the Text tool opens typing straight away, one tap on a placed label reopens it; the right panel no longer holds the text field (colour only).
+- [x] Text labels in GRID have a font size control (slider + −/+ steps, 8–96 px) in the right panel; it also appears when several labels are selected and applies to all of them.
+- [x] FX tab removed from the top console bar (effects stay in the Groups · Looks · Effects · REC panel).
+- [x] FADERS tab no longer shows the ▾/▸ arrows (same as the other top tabs); its pressed state still shows whether the bank is open.

@@ -1186,10 +1186,10 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
         <Button variant="secondary" onClick={() => openWin("fixtures")} aria-pressed={fixturesOpen} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
         <Button variant="secondary" onClick={() => openWin("grid")} aria-pressed={gridOpen} className="h-11 px-5 text-sm font-bold">GRID</Button>
-        {tab("fx", "FX")}
         {tab("pixels", "PIXEL")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
-          className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
+          className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS</Button>
+
         <Button variant="secondary" onClick={() => openWin("plot")} aria-pressed={plotOpen} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
         <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} className="h-11 px-5 text-sm font-bold">PATCH</Button>
         {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen && !gridOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && (!windowOpen || gridOpen) ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen && (!windowOpen || gridOpen) ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && (!windowOpen || gridOpen) ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
