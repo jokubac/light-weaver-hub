@@ -164,5 +164,5 @@
 - [x] Remove ▾/▸ arrows from top tabs (FX etc.)
 - [x] GRID toolbar has a Hide/Show controls button that tucks the fixture controls panel away for a full-width grid and brings it back; Edit mode always keeps its tools.
 
-- [x] GRID faders reset on double tap anywhere on the box (mouse or touch): Intensity 50%, CCT 5600K, G/M 0; a single tap never resets.
+- [x] GRID fader reset triggers on a double tap anywhere on the whole box (label, value, slider, padding; mouse or touch): Intensity 50%, CCT 5600K, G/M 0. Single taps and drags never reset.
 - [x] Filter picker for macros has separate Manufacturer (All/Rosco/LEE) and Type (All/Correction/Effect) rows that combine, plus a live result count.
