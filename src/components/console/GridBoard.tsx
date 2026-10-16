@@ -22,7 +22,7 @@ export function snapWall(x1: number, y1: number, x2: number, y2: number) {
   return { x2: x1 + Math.cos(s) * len, y2: y1 + Math.sin(s) * len };
 }
 
-export type Arrange = "hcenter" | "vcenter" | "hspace" | "vspace" | "row" | "column" | "grid" | "circle" | "triangle" | "rotate";
+export type Arrange = "hcenter" | "vcenter" | "hspace" | "vspace" | "row" | "column" | "grid" | "triangle" | "pentagon" | "circle" | "rotate";
 
 /** Arranges squares (top-left positions, cell units). `gap` is free space between squares; squares never end up stacked on each other. */
 export function arrange(pts: { id: string; x: number; y: number }[], how: Arrange, gap = 0.2, size = SIZE): { id: string; x: number; y: number }[] {
@@ -50,11 +50,30 @@ export function arrange(pts: { id: string; x: number; y: number }[], how: Arrang
     case "vspace": { const s = Math.max((maxY - minY) / (n - 1), step); return fit(byY.map((p, i) => ({ ...p, y: minY + s * i }))); }
     case "row": return fit(byX.map((p, i) => ({ ...p, x: minX + i * step, y: minY })));
     case "column": return fit(byY.map((p, i) => ({ ...p, x: minX, y: minY + i * step })));
-    case "grid": { const c = Math.ceil(Math.sqrt(n)); return fit(byY.map((p, i) => ({ ...p, x: minX + (i % c) * step, y: minY + Math.floor(i / c) * step }))); }
-    case "triangle": {
-      let rows = 1; while ((rows * (rows + 1)) / 2 < n) rows++;
-      let i = 0; const out: { id: string; x: number; y: number }[] = [];
-      for (let r = 0; r < rows && i < n; r++) { const k = Math.min(r + 1, n - i); for (let j = 0; j < k; j++, i++) out.push({ ...byY[i]!, x: minX + ((rows - k) * step) / 2 + j * step, y: minY + r * step }); }
+    case "grid":
+    case "triangle":
+    case "pentagon": {
+      // shapes place squares only around the outside (perimeter), evenly spaced
+      const unit: Record<string, [number, number][]> = {
+        grid: [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]],
+        triangle: [[0, -0.5774], [0.5, 0.2887], [-0.5, 0.2887]],
+        pentagon: Array.from({ length: 5 }, (_, i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5; return [Math.cos(a), Math.sin(a)] as [number, number]; }),
+      };
+      const P = unit[how]!;
+      const per1 = P.reduce((s, v, i) => { const w = P[(i + 1) % P.length]!; return s + Math.hypot(w[0] - v[0], w[1] - v[1]); }, 0);
+      const r = Math.max(step / 2, (n * step) / per1);
+      const lens: number[] = []; let per = 0;
+      for (let i = 0; i < P.length; i++) { const v = P[i]!, w = P[(i + 1) % P.length]!; const l = Math.hypot(w[0] - v[0], w[1] - v[1]) * r; lens.push(l); per += l; }
+      const order = [...pts].sort((a, b) => angle(a) - angle(b));
+      const out: { id: string; x: number; y: number }[] = [];
+      let edge = 0, acc = 0;
+      for (let i = 0; i < n; i++) {
+        const target = (i * per) / n;
+        while (edge < P.length - 1 && acc + lens[edge]! < target) { acc += lens[edge]!; edge++; }
+        const t = lens[edge]! > 0 ? (target - acc) / lens[edge]! : 0;
+        const v = P[edge]!, w = P[(edge + 1) % P.length]!;
+        out.push({ ...order[i]!, x: cx + (v[0] + (w[0] - v[0]) * t) * r - size / 2, y: cy + (v[1] + (w[1] - v[1]) * t) * r - size / 2 });
+      }
       return fit(out);
     }
     case "circle": {
