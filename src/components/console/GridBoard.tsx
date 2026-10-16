@@ -22,6 +22,44 @@ export function snapWall(x1: number, y1: number, x2: number, y2: number) {
   return { x2: x1 + Math.cos(s) * len, y2: y1 + Math.sin(s) * len };
 }
 
+export type Arrange = "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter" | "hspace" | "vspace" | "row" | "column" | "circle" | "square";
+
+/** Arranges squares (top-left positions, cell units). `gap` is free space between squares for row/column/square/circle. */
+export function arrange(pts: { id: string; x: number; y: number }[], how: Arrange, gap = 0.2): { id: string; x: number; y: number }[] {
+  if (pts.length < 2) return pts;
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, step = SIZE + gap;
+  const byX = [...pts].sort((a, b) => a.x - b.x || a.y - b.y), byY = [...pts].sort((a, b) => a.y - b.y || a.x - b.x);
+  const n = pts.length;
+  const fit = (r: { id: string; x: number; y: number }[]) => {
+    const dx = Math.max(0, -Math.min(...r.map((p) => p.x))) - Math.max(0, Math.max(...r.map((p) => p.x)) - (COLS - SIZE));
+    const dy = Math.max(0, -Math.min(...r.map((p) => p.y))) - Math.max(0, Math.max(...r.map((p) => p.y)) - (ROWS - SIZE));
+    return r.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy }));
+  };
+  switch (how) {
+    case "left": return pts.map((p) => ({ ...p, x: minX }));
+    case "right": return pts.map((p) => ({ ...p, x: maxX }));
+    case "top": return pts.map((p) => ({ ...p, y: minY }));
+    case "bottom": return pts.map((p) => ({ ...p, y: maxY }));
+    case "hcenter": return pts.map((p) => ({ ...p, y: cy }));
+    case "vcenter": return pts.map((p) => ({ ...p, x: cx }));
+    case "hspace": return byX.map((p, i) => ({ ...p, x: minX + ((maxX - minX) * i) / (n - 1) }));
+    case "vspace": return byY.map((p, i) => ({ ...p, y: minY + ((maxY - minY) * i) / (n - 1) }));
+    case "row": return fit(byX.map((p, i) => ({ ...p, x: minX + i * step, y: minY })));
+    case "column": return fit(byY.map((p, i) => ({ ...p, x: minX, y: minY + i * step })));
+    case "square": { const c = Math.ceil(Math.sqrt(n)); return fit(byY.map((p, i) => ({ ...p, x: minX + (i % c) * step, y: minY + Math.floor(i / c) * step }))); }
+    case "circle": {
+      const r = Math.max(step / (2 * Math.sin(Math.PI / n)), step);
+      const ox = cx + SIZE / 2, oy = cy + SIZE / 2;
+      const order = [...pts].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+      return fit(order.map((p, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return { ...p, x: ox + r * Math.cos(a) - SIZE / 2, y: oy + r * Math.sin(a) - SIZE / 2 }; }));
+    }
+  }
+}
+
+const ARRANGE: [Arrange, string][] = [["left", "Left"], ["vcenter", "Centre ↕"], ["right", "Right"], ["top", "Top"], ["hcenter", "Middle ↔"], ["bottom", "Bottom"], ["hspace", "Space ↔"], ["vspace", "Space ↕"], ["row", "Line"], ["column", "Column"], ["square", "Square"], ["circle", "Circle"]];
+
 export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf }: {
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string;
@@ -34,6 +72,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [action, setAction] = useState<MacroAction>("cct_up");
   const [amount, setAmount] = useState(100);
   const [label, setLabel] = useState("");
+  const [gap, setGap] = useState(0.2);
+  const selItems = grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!));
+  const doArrange = (how: Arrange) => { const r = arrange(selItems, how, gap); setGrid({ ...grid, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y } : i; }) }); };
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
@@ -63,6 +104,18 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             onClick={() => { let items = grid.items; for (const f of fixtures) if (!placed.has(f.uid)) items = [...items, { id: nid(), kind: "fixture", uid: f.uid, ...freeSpot(items) }]; setGrid({ ...grid, items }); }}>All lights</Button>
         </div>
 
+        {selItems.length > 1 && (
+          <section className="space-y-2">
+            <h3 className="text-xs font-bold uppercase text-muted-foreground">Arrange {selItems.length} selected</h3>
+            <div className="grid grid-cols-3 gap-1">
+              {ARRANGE.map(([k, l]) => <button key={k} onClick={() => doArrange(k)} className="rounded-md bg-surface-elevated px-1 py-1.5 text-[11px] font-semibold active:scale-95">{l}</button>)}
+            </div>
+            <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
+              <input type="range" min={0} max={2} step={0.05} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
+              <span className="w-8 text-right font-mono">{Math.round(gap * 100)}%</span>
+            </label>
+          </section>
+        )}
         {edit && (
           <section className="space-y-2 rounded-lg border border-primary/50 p-2">
             <div className="flex items-center justify-between">
