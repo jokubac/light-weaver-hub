@@ -8,7 +8,7 @@ import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Tab
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
-export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined }
+export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
@@ -416,6 +416,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   };
   const images = grid.items.filter((i) => i.kind === "image");
   const tables = grid.items.filter((i) => i.kind === "table");
+  const selText = grid.items.filter((i) => esel.includes(i.id) && i.kind === "text");
+
   // Dragging a table carries only macro squares whose centre sits inside it — fixtures never stick to a table.
   const groupFor = (it: GridItem, sel: string[]) => {
     let base = sel.includes(it.id) ? grid.items.filter((i) => sel.includes(i.id)) : [it];
@@ -478,13 +480,17 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <p className="text-[11px] text-muted-foreground">{one.cols ?? 4} × {one.rows ?? 3} cells — drag the table corner to change; the cells follow automatically.</p>
             <Button size="sm" className="w-full" onClick={() => fillTable(one)}>Put macros in table</Button>
           </>)}
+          {one.kind === "text" && <FontSizeRow value={one.fs} onPick={(px) => patch(one.id, { fs: px })} />}
           <ColourRow value={one.color} onPick={(c) => patch(one.id, { color: c || undefined })} />
+
         </section>
       )}
       {esel.length > 1 && (
         <section className="space-y-2">
           <h3 className="text-xs font-bold uppercase text-muted-foreground">{esel.length} selected</h3>
           <ColourRow value={undefined} onPick={(c) => setGrid({ ...grid, items: grid.items.map((i) => (esel.includes(i.id) ? { ...i, color: c || undefined } : i)) })} />
+          {selText.length > 0 && <FontSizeRow value={selText.find((i) => i.fs != null)?.fs} onPick={(px) => setGrid({ ...grid, items: grid.items.map((i) => (esel.includes(i.id) && i.kind === "text" ? { ...i, fs: px } : i)) })} />}
+
           {tables.length > 0 && <div className="flex flex-wrap gap-1">{tables.map((t) => <Button key={t.id} variant="secondary" size="sm" onClick={() => fillTable(t)}>Into {t.text || "table"}</Button>)}</div>}
           <div className="grid grid-cols-3 gap-1">
             {ARRANGE.map(([k, l]) => <button key={k} onClick={() => doArrange(k)} aria-pressed={last === k} className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[10px] font-semibold active:scale-95 ${last === k ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
@@ -712,9 +718,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                       onChange={(e) => patch(it.id, { text: e.target.value })}
                       onBlur={() => setEditText(null)}
                       onKeyDown={(e) => { if (e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)) { e.preventDefault(); setEditText(null); } }}
-                      className="h-full w-full resize-none rounded bg-background/80 px-1 text-center text-xs font-bold leading-tight text-foreground outline-none" />
+                      style={{ fontSize: it.fs ?? 12 }}
+                      className="h-full w-full resize-none rounded bg-background/80 px-1 text-center font-bold leading-tight text-foreground outline-none" />
+
                   ) : (
-                    <div className="flex flex-1 items-center justify-center overflow-hidden text-center text-xs font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
+                    <div style={{ fontSize: it.fs ?? 12 }} className="flex flex-1 items-center justify-center overflow-hidden text-center font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
                   )
                 ) : (
                   <div className="flex flex-1 items-center justify-center text-muted-foreground"><Plus className="h-4 w-4" /></div>
@@ -822,3 +830,18 @@ function ColourRow({ value, onPick }: { value: string | undefined; onPick: (c: s
     </div>
   );
 }
+
+const FS_MIN = 8, FS_MAX = 96;
+/** Font size of a text label in px: slider plus −/+ steps, so a label can be made as big as the box needs. */
+function FontSizeRow({ value, onPick }: { value: number | undefined; onPick: (px: number) => void }) {
+  const v = Math.round(value ?? 12);
+  return (
+    <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Font size
+      <button onClick={() => onPick(Math.max(FS_MIN, v - 2))} aria-label="Smaller text" className="rounded bg-surface-elevated px-2 text-xs font-bold">−</button>
+      <input type="range" aria-label="Font size" min={FS_MIN} max={FS_MAX} step={1} value={v} onChange={(e) => onPick(+e.target.value)} className="flex-1" />
+      <button onClick={() => onPick(Math.min(FS_MAX, v + 2))} aria-label="Bigger text" className="rounded bg-surface-elevated px-2 text-xs font-bold">+</button>
+      <span className="w-8 text-right font-mono">{v}</span>
+    </label>
+  );
+}
+
