@@ -172,9 +172,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
-  const aspects = new Map(pixelsOf ? fixtures.map((f) => [f.uid, Math.max(0.2, Math.min(5, pixelsOf(f).aspect))] as const) : []);
-  const auto = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? (aspects.get(i.uid!) ?? 1) : 1);
-  const W = (i: GridItem) => { const a = auto(i); return a === 1 ? ISW(i, sz) : sz * 1.2 * Math.sqrt(a); }, H = (i: GridItem) => { const a = auto(i); return a === 1 ? ISH(i, sz) : (sz * 1.2) / Math.sqrt(a); };
+  // Fixtures default to a 2×-scaled 2:3 (w:h) rectangle; tube/bar elongation is ignored — every light renders the same box shape.
+  const fxAuto = (i: GridItem) => i.kind === "fixture" && i.w == null && i.s == null;
+  const FXW = sz * 2 * Math.sqrt(2 / 3), FXH = sz * 2 * Math.sqrt(3 / 2);
+  const W = (i: GridItem) => (fxAuto(i) ? FXW : ISW(i, sz)), H = (i: GridItem) => (fxAuto(i) ? FXH : ISH(i, sz));
   const selItems = live ? grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!)) : grid.items.filter((i) => esel.includes(i.id));
   const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, size); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
   const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
