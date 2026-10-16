@@ -185,3 +185,15 @@ describe("group drop", () => {
     expect(new Set(s.map((p) => `${p.x},${p.y}`)).size).toBe(3);
   });
 });
+
+import { layoutTables as lt2 } from "./GridBoard";
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+d2("macro table gaps", () => {
+  i2("a macro dropped in a far cell stays there, leaving gaps", () => {
+    const t = { id: "t", kind: "table" as const, x: 0, y: 0, w: 4.4, h: 3.7 };
+    const m = { id: "m", kind: "macro" as const, tbl: "t", x: 3 * 1.1 + 0.2, y: 0.4 + 2 * 1.1 + 0.2, w: 0.7, h: 0.7, macro: { action: "undo" as never, amount: 0, label: "U" } };
+    const out = lt2([t, m]).find((i) => i.id === "m")!;
+    e2(Math.floor(out.x / 1.1)).toBe(3);
+    e2(Math.floor((out.y - 0.4) / 1.1)).toBe(2);
+  });
+});
