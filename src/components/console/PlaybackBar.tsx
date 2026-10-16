@@ -126,7 +126,7 @@ function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave 
           ) : <p className="text-muted-foreground">No looks saved yet.</p>)}
           {kind === "fixtures" && <p className="text-muted-foreground">{uids.length ? `${uids.length} lights: ${fixtures.filter((f) => uids.includes(f.uid)).map((f) => f.name).slice(0, 6).join(", ")}` : "Select lights on the console first."}</p>}
           <p className="text-muted-foreground">{kind === "look" ? "Pushing the fader fades the look in over what's on stage." : "The fader scales these lights' intensity (100% = as set on the console)."}</p>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name, e.g. Key, Fill, Police" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name, e.g. Key, Fill, Police" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <div className="flex gap-2">
             {fd && <Button variant="destructive" onClick={() => onSave(null)}><Trash2 />Clear</Button>}
             <Button className="flex-1" onClick={save} disabled={(kind !== "fixtures" && !ref) || (kind === "fixtures" && !uids.length)}>Save</Button>
@@ -147,7 +147,7 @@ function CueDialog({ open, onOpenChange, cues, setCues, activeCue, onGoto, onRec
         <DialogHeader><DialogTitle>Cue list</DialogTitle></DialogHeader>
         <p className="text-xs text-muted-foreground">Each cue stores {selected.length ? `the ${selected.length} selected lights` : `all ${fixtures.length} lights`}. GO fades to the next cue. Insert adds a point cue (e.g. 2.5).</p>
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); onRecordCue(name.trim()); setName(""); }}>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Cue name, e.g. Setup" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Cue name, e.g. Setup" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <Button type="submit"><Plus />Record cue</Button>
         </form>
         <div className="space-y-1.5">
@@ -155,8 +155,8 @@ function CueDialog({ open, onOpenChange, cues, setCues, activeCue, onGoto, onRec
             <div key={c.id} className={`grid grid-cols-[4rem_1fr_4.5rem_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-xs ${c.id === activeCue ? "bg-primary/15 ring-1 ring-primary" : "bg-surface-elevated"}`}>
               <NumberField aria-label="Cue number" value={c.number} min={0} step={0.1} onChange={(v) => v != null && upd(c.id, { number: v })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-mono" />
               <div className="min-w-0 space-y-1">
-                <input value={c.name} onChange={(e) => upd(c.id, { name: e.target.value })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-semibold" />
-                <input value={c.note ?? ""} onChange={(e) => upd(c.id, { note: e.target.value })} placeholder="Note — e.g. actor enters, lamp on" className="w-full rounded border border-input bg-background px-1.5 py-1 text-muted-foreground" />
+                <input value={c.name} onChange={(e) => upd(c.id, { name: e.target.value })} className="w-full font-semibold rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                <input value={c.note ?? ""} onChange={(e) => upd(c.id, { note: e.target.value })} placeholder="Note — e.g. actor enters, lamp on" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
               <label className="text-[10px] text-muted-foreground">Fade s
                 <NumberField aria-label="Fade seconds" value={c.fade} min={0} step={0.5} onChange={(v) => v != null && upd(c.id, { fade: v })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-mono text-foreground" />

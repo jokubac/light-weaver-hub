@@ -82,7 +82,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
           </div>
           {!direct && (
             <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Bridge address
-              <input value={conn.bridge} onChange={(e) => setConn({ ...conn, bridge: e.target.value.trim() })} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 font-mono text-sm text-foreground" />
+              <input value={conn.bridge} onChange={(e) => setConn({ ...conn, bridge: e.target.value.trim() })} className="w-full font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
             </label>
           )}
           <button onClick={scan} disabled={scanning} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-glow py-3 text-sm font-bold text-primary-foreground disabled:opacity-50">
@@ -96,7 +96,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
             </button>
           ))}
           <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (manual.trim()) { pick({ name: "Manual transmitter", ip: manual.trim() }); setManual(""); } }}>
-            <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Transmitter IP, e.g. 2.0.0.10" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 font-mono text-sm" />
+            <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Transmitter IP, e.g. 2.0.0.10" className="min-w-0 flex-1 font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
             <button type="submit" className="flex items-center gap-1 rounded-md bg-surface-elevated px-3 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add</button>
           </form>
           </div>

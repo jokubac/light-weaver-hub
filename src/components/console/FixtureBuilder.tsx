@@ -29,7 +29,7 @@ const ATTR_OPTIONS: { label: string; attr: ChannelAttr; fine?: boolean }[] = [
 const attrLabel = (e: ChannelEntry) => ATTR_OPTIONS.find((o) => o.attr === e.attr && !!o.fine === !!e.fine)?.label ?? e.attr;
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-const inputCls = "w-full rounded-md border border-input bg-surface px-3 py-2 text-sm outline-none focus:border-primary";
+const inputCls = "w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary";
 
 export function FixtureBuilder({ onClose, onCreated }: { onClose: () => void; onCreated: (def: FixtureDef) => void }) {
   const [manufacturer, setManufacturer] = useState("");

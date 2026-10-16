@@ -23,10 +23,9 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
 
   return (
     <div className="space-y-4">
-      <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Groups</h2>
       <form onSubmit={(e) => { e.preventDefault(); if (name.trim() && selected.length) { onCreate(name.trim()); setName(""); } }} className="space-y-1.5" aria-label="Create group">
         <div className="flex gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" aria-label="Group name" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" aria-label="Group name" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <Button variant="ghost" type="submit" disabled={!name.trim() || !selected.length} className="flex items-center gap-1 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-40"><Plus className="h-3.5 w-3.5" />Group</Button>
         </div>
         <p className="text-[10px] text-muted-foreground">{selected.length ? `${selected.length} selected lights will be grouped.` : "Select lights first, then name the group."}</p>
@@ -48,7 +47,7 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
               </Button>
               {editing?.g === g ? (
                 <form className="flex min-w-0 flex-1 gap-1" onSubmit={(e) => { e.preventDefault(); if (editing.v.trim()) onRename(g, editing.v.trim()); setEditing(null); }}>
-                   <input autoFocus aria-label="Rename group" value={editing.v} onChange={(e) => setEditing({ g, v: e.target.value })} className="min-w-0 flex-1 rounded border border-input bg-surface px-2 py-1 text-sm" />
+                   <input autoFocus aria-label="Rename group" value={editing.v} onChange={(e) => setEditing({ g, v: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
                   <Button variant="ghost" type="submit" aria-label="Save name"><Check className="h-4 w-4 text-success" /></Button>
                 </form>
               ) : (

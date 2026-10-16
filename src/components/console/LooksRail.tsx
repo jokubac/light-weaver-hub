@@ -5,8 +5,8 @@ import type { PatchedFixture } from "@/lib/dmx";
 import { uid, type Look } from "@/lib/store";
 
 /** Compact looks list for the side rail (same strip as groups). */
-export function LooksRail({ fixtures, selected, looks, setLooks, onRecall, lastLook }: {
-  fixtures: PatchedFixture[]; selected: string[]; looks: Look[]; setLooks: (l: Look[]) => void; onRecall: (l: Look) => void; lastLook: string | null;
+export function LooksRail({ fixtures, selected, looks, setLooks, onRecall, lastLook, hideTitle }: {
+  fixtures: PatchedFixture[]; selected: string[]; looks: Look[]; setLooks: (l: Look[]) => void; onRecall: (l: Look) => void; lastLook: string | null; hideTitle?: boolean;
 }) {
   const save = (onlySel: boolean) => {
     const src = onlySel ? fixtures.filter((f) => selected.includes(f.uid)) : fixtures;
@@ -18,7 +18,7 @@ export function LooksRail({ fixtures, selected, looks, setLooks, onRecall, lastL
 
   return (
     <>
-      <p className="w-full shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:mt-3 lg:border-t lg:border-border lg:pt-3">Looks</p>
+      {!hideTitle && <p className="w-full shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:mt-3 lg:border-t lg:border-border lg:pt-3">Looks</p>}
       <div className="flex shrink-0 gap-1.5">
         <button disabled={!selected.length} onClick={() => save(true)} title="Save a look from the selected lights"
           className="flex items-center gap-1 rounded-lg bg-surface px-3 py-2 text-[11px] font-semibold active:scale-95 disabled:opacity-40">

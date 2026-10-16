@@ -1164,7 +1164,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                 </div>
                 <Button size="sm" className="w-full" variant={camViewOpen ? "default" : "secondary"} onClick={() => setCamViewOpen(!camViewOpen)}><Video />{camViewOpen ? "Hide camera view" : "Camera view"}</Button>
                 {camViewOpen && <CameraView cam={cam} size={plot.size} strokes={plot.strokes} openings={plot.openings ?? []} objects={plot.objects ?? []} floorZ={floors[cam.floor]?.z ?? 0} lights={camLights} />}
-                <input aria-label="Camera name" value={cam.name} onChange={(e) => editCam({ name: e.target.value })} className="w-full rounded border border-input bg-surface-elevated p-2 text-xs" />
+                <input aria-label="Camera name" value={cam.name} onChange={(e) => editCam({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
                 {pick("Lens", cam.lens, LENSES, (n) => `${n} mm`, (lens) => editCam({ lens }))}
                 <Slider label="Focal length" value={cam.lens} min={8} max={300} step={1} unit=" mm" onChange={(lens) => editCam({ lens })} />
                 {pick("Iris", cam.fstop, FSTOPS, (n) => `f/${n}`, (fstop) => editCam({ fstop }))}
@@ -1259,7 +1259,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           {objectId && (() => {
             const o = plot.objects?.find((o) => o.id === objectId); if (!o) return null;
             const edit = (patch: Partial<SetObject>) => setPlot({...plot,objects:(plot.objects ?? []).map((x) => x.id === o.id ? {...x,...patch}:x)});
-            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded border border-input bg-surface-elevated p-2" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} unbounded={key === "x" || key === "y"} min={key === "x" || key === "y" ? o[key] - 50 : key === "rot" ? -180:0} max={key === "x" || key === "y" ? o[key] + 50 : max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
+            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} unbounded={key === "x" || key === "y"} min={key === "x" || key === "y" ? o[key] - 50 : key === "rot" ? -180:0} max={key === "x" || key === "y" ? o[key] + 50 : max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
           })()}
           {first && firstItem ? (
             <div className="space-y-3">
@@ -1351,7 +1351,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
 
           <div className="space-y-2 rounded-lg border border-border p-3">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Floor</p>
-            <input value={floors[fl]!.name} onChange={(e) => setFloor({ name: e.target.value })} className="w-full rounded-md bg-surface-elevated px-2 py-1.5 text-xs" aria-label="Floor name" />
+            <input value={floors[fl]!.name} onChange={(e) => setFloor({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label="Floor name" />
             {fl > 0 && <Slider label="Height above ground" value={floors[fl]!.z} min={0.5} max={60} step={0.1} unit=" m" onChange={(v) => setFloor({ z: v })} />}
             <div className="flex gap-2">
               <button onClick={addFloor} className="flex-1 rounded-md bg-surface-elevated py-1.5 text-xs font-semibold">+ Add floor</button>

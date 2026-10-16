@@ -45,6 +45,7 @@ import { MacroTimeline } from "@/components/console/MacroTimeline";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
 import { RecRail, RecDialog, RecEditor } from "@/components/console/RecRail";
+import { CollapsibleSection } from "@/components/console/CollapsibleSection";
 import { PatchPage } from "@/components/console/PatchPage";
 import { mixFrames, statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
@@ -282,7 +283,7 @@ function NewItemForm({ placeholder, onCreate }: { placeholder: string; onCreate:
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={placeholder}
-        className="min-w-0 flex-1 rounded-lg border border-input bg-surface-elevated px-4 py-3 text-sm outline-none focus:border-primary"
+        className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
       />
       <button type="submit" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground active:scale-95">
         <Plus className="h-4 w-4" /> Create
@@ -432,7 +433,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [fadersOpen, setFadersOpen] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
-  const [railTab, setRailTab] = useState<"looks" | "effects" | "rec">("looks");
   const [gearOpen, setGearOpen] = useState(false);
   const [pulses, setPulses] = useState<Record<string, { at: number; base: number; target: number }>>({});
   const [activePixelId, setActivePixelId] = useState(scene.pixelLayers?.[0]?.id ?? "");
@@ -1108,7 +1108,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => openWin("plot")} aria-pressed={plotOpen} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
         <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} className="h-11 px-5 text-sm font-bold">PATCH</Button>
-        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && !windowOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen && !windowOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && !windowOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && !windowOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen && !windowOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && !windowOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
@@ -1185,7 +1185,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           {controlPanel()}
         </aside>}
         {groupsOpen && (
-          <aside aria-label="Groups and looks" className="max-h-[45vh] w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
+          <aside aria-label="Groups, looks, effects and REC" className="max-h-[45vh] w-full shrink-0 space-y-3 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
+            <CollapsibleSection title="Groups">
             <GroupsPanel fixtures={fixtures} selected={selected} onRemoveMember={(id) => setFixtures((fs) => fs.map((x) => { if (x.uid !== id) return x; const { group: _g, ...rest } = x; return rest as typeof x; }))} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
               onSelect={(g) => { const ids = fixtures.filter((f) => f.group === g).map((f) => f.uid); setSelected((s) => ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])]); }} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
               onCopy={(from, to) => setFixtures((fs) => {
@@ -1195,13 +1196,14 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
-            <section className="space-y-2 border-t border-border pt-3"><h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Looks</h3><LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} /></section>
-            <section className="space-y-2 border-t border-border pt-3"><h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Effects</h3><EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+            </CollapsibleSection>
+            <CollapsibleSection title="Looks"><LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} /></CollapsibleSection>
+            <CollapsibleSection title="Effects"><EffectsRail hideTitle fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
               if (!activePixel) return;
               const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
               setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
-            }} /></section>
-            <section className="space-y-2 border-t border-border pt-3"><h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">REC</h3><RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></section>
+            }} /></CollapsibleSection>
+            <CollapsibleSection title="REC"><RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></CollapsibleSection>
           </aside>
         )}
       </div>

@@ -14,7 +14,7 @@ export function SetupLibrary({ open, onOpenChange, setups, onSave, onRestore, on
       <DialogTitle>Project setups</DialogTitle>
       <DialogDescription className="sr-only">Save or restore a complete lighting setup in this project.</DialogDescription>
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; onSave(name.trim()); setName(""); }}>
-        <input aria-label="Setup name" placeholder="Setup name" value={name} onChange={(e) => setName(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface px-3 py-2 text-sm" />
+        <input aria-label="Setup name" placeholder="Setup name" value={name} onChange={(e) => setName(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
         <Button type="submit" disabled={!name.trim()}><Save />Save</Button>
       </form>
       {setups.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No saved setups.</p>}

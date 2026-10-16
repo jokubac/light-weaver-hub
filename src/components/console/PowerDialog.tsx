@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { BATTERY_PRESETS, batteryStatus, fixtureWatts, fmtHours, type PowerKind, type PowerSource } from "@/lib/power";
 
-const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground";
+const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary";
 
 export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
   f: PatchedFixture; open: boolean; onOpenChange: (o: boolean) => void; level: number;

@@ -154,3 +154,6 @@
 - [x] GRID: a selected macro table can change its colour (Colour row for selected tables)
 - [x] Look visada išsaugo visas lempas su visais parametrais
 - [x] Groups · Looks · Effects · REC skydelis ne visada atsidaro
+- [x] Side panel: Groups / Looks / Effects / REC unified under one collapsible heading style (CollapsibleSection) with chevron expand/collapse; All four start expanded. Browser check pending.
+- [x] Unify every search / text input across the app to the Groups "Group name" field style (rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm); NumberField keeps only width/alignment from callers.
+- [x] Outline all text with a thin black line via --text-outline on body (readable on any surface); print output resets it.

@@ -123,7 +123,7 @@ export function GelPicker({ value, update }: { value?: string; update: Upd }) {
       </div>
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Number or name (e.g. 201, CTO, 3202)" className="w-full rounded-md border border-input bg-surface-elevated py-2 pl-9 pr-3 text-sm" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Number or name (e.g. 201, CTO, 3202)" className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
       </div>
       <div className="max-h-56 space-y-1 overflow-auto">
         {hits.map((g) => (

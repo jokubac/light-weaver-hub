@@ -111,7 +111,7 @@ export function FixtureControls({
 
       {sel.length === 1 && (
         <div className="space-y-2">
-          <input value={first.name} aria-label="Fixture name" onChange={(e) => update({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-2 py-1 text-xs" />
+          <input value={first.name} aria-label="Fixture name" onChange={(e) => update({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <div className="grid grid-cols-2 gap-2 text-[9px] uppercase text-muted-foreground">
             <label>Universe<NumberField integer min={1} max={64} disabled={locked} value={first.universe} onChange={(v) => v && update({ universe: v })} className="mt-0.5 w-full rounded-md border border-input bg-surface-elevated px-2 py-1 text-xs text-foreground" /></label>
             <label>Address<NumberField integer min={1} max={512} disabled={locked} value={first.address} onChange={(v) => v && update({ address: v })} className="mt-0.5 w-full rounded-md border border-input bg-surface-elevated px-2 py-1 text-xs text-foreground" /></label>

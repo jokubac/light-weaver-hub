@@ -14,6 +14,11 @@ export function NumberField({ value, onChange, min, max, step, integer, classNam
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const shown = value === undefined || value === null ? "" : String(value);
+  /** All typed fields share one look; callers only pass width / alignment / font. */
+  const narrow = /\bw-(6|8|10|12|14|16|20|24)\b/.test(className ?? "");
+  const fieldCls = `rounded-md border border-input bg-surface-elevated ${narrow ? "px-2" : "px-3"} py-2 text-sm text-foreground outline-none focus:border-primary`;
+  const drop = /^(sm:|md:|lg:|print:)?(rounded(-|$)|border(?!-input)|bg-|(px|py|p)-|text-(xs|sm|base|lg|xl|\[[^\]]+\])$|outline-none$|focus:)/;
+  const cls = [...new Set([fieldCls, ...(className ?? "").split(" ").filter((t) => t && !drop.test(t))])].join(" ");
   const commit = () => {
     if (draft === null) return;
     const t = draft.trim().replace(",", ".");
@@ -39,7 +44,7 @@ export function NumberField({ value, onChange, min, max, step, integer, classNam
       onChange={(e) => setDraft(e.target.value.replace(/[^\d.,-]/g, ""))}
       onBlur={commit}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); } }}
-      className={className}
+      className={cls}
     />
   );
 }

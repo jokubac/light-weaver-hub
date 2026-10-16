@@ -9,7 +9,7 @@ import { LABEL_COLORS } from "./PatchPanel";
 import { PowerDialog } from "./PowerDialog";
 import type { PowerSource } from "@/lib/power";
 
-const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground";
+const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary";
 
 export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, onJoin, onGroup, onPower, level }: {
   onPower: (p: PowerSource | null) => void; level: number;
@@ -92,7 +92,7 @@ export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, on
             </div>
           )}
           <form onSubmit={(e) => { e.preventDefault(); if (groupName.trim()) onGroup(groupName.trim()); setGrouping(false); }} className="flex gap-2">
-            <input autoFocus value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="New group name (e.g. Key lights)" className="min-w-0 flex-1 rounded-lg border border-input bg-surface-elevated px-3 py-2 text-sm" />
+            <input autoFocus value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="New group name (e.g. Key lights)" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
             <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Save</button>
           </form>
         </DialogContent>
