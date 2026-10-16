@@ -158,3 +158,4 @@
 - [x] Unify every search / text input across the app to the Groups "Group name" field style (rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm); NumberField keeps only width/alignment from callers.
 - [x] Outline all text with a thin black line via --text-outline on body (readable on any surface); print output resets it.
 - [x] A fixture may belong to several groups at once (`groups` list beside the legacy `group`); groups panel, light menu, patch sheet, faders, pixel panel and grid placement all read the list.
+- [x] Thin the text outline: global line 1.7 px → 0.9 px hairline, macro labels 2 px → 0.7 px, so macro button text reads as clean as the "Add light" toolbar text; print output still resets it.
