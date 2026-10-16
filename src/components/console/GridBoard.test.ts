@@ -155,7 +155,7 @@ import { spanOf } from "./GridBoard";
 describe("macro spans", () => {
   const t = { id: "t", kind: "table" as const, x: 0, y: 0, w: 4.4, h: 3.7 };
   it("table columns follow width and spans stay inside", () => {
-    expect(spanOf(2.2, 1.1, t)).toEqual({ cs: 2, rs: 1 });
+    expect(spanOf(2.2, 1.1, t)).toEqual({ cs: 2, rs: 1, sk: 1 });
     expect(spanOf(20, 2.2, t)).toEqual({ cs: 4, rs: 2 });
     expect(spanOf(0.1, 0.1, t)).toEqual({ cs: 1, rs: 1 });
   });
