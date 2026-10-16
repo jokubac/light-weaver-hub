@@ -341,6 +341,13 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     return a?.unit ? `${a.label} ${m.amount}${a.unit}` : (a?.label ?? m.action);
   };
   const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); setParam(it.macro.param ?? ""); } else { setLabel(""); setParam(""); } };
+  const newGroup = () => {
+    if (!onCreateGroup) return null;
+    if (!selected.length) { window.alert("Select the lights for the new group first."); return null; }
+    const n = window.prompt(`New group name (${selected.length} selected light${selected.length > 1 ? "s" : ""}):`)?.trim();
+    if (!n) return null;
+    onCreateGroup(n); return n;
+  };
   /** New macro square: it always lands in a macro table (the selected one, else the first, else a new one) and lines up there. */
   const addSquare = (tableId?: string, atX?: number, atY?: number, cell?: number) => {
     let items = grid.items;
