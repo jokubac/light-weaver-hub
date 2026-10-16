@@ -236,7 +236,9 @@ export function resizeBoxes(boxes: Box[], corner: Corner, px: number, py: number
 
 const COLORS = ["", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#f5f5f4", "#57534e"];
 
-export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf, groups = [] }: {
+export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf, groups = [], onCreateGroup }: {
+  /** Creates a group from the currently selected lights. */
+  onCreateGroup?: (name: string) => void;
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string; controls: React.ReactNode;
   /** Live pixel colours + layout for pixel fixtures; `long` marks elongated (tube/bar) lights, which default to a wide box. */
@@ -444,13 +446,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         return (
           <div className="space-y-1.5">
             {mode !== "light" && <p className="text-[10px] text-muted-foreground">Pick a light or a group below, then tap the grid to place it there.</p>}
-            {groups.length > 0 && (
+            {(groups.length > 0 || onCreateGroup) && (
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Groups</p>
                 <div className="flex flex-wrap gap-1">
                   {groups.map((g) => { const ms = membersOf(fixtures, g); const left = ms.filter((f) => !placed.has(f.uid)).length; return (
                     <button key={g} onClick={() => { setMode("light"); setPickGroup(pickGroup === g ? null : g); }} aria-pressed={pickGroup === g}
                       className={`${chip(pickGroup === g)} disabled:opacity-40`}>{g}<span className="font-mono opacity-70">{left}/{ms.length}</span></button>); })}
+                  {onCreateGroup && <button onClick={() => newGroup()} className="rounded-md border border-dashed border-primary px-2 py-1 text-xs font-semibold text-primary">+ Group</button>}
                 </div>
                 {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop all {membersOf(fixtures, pickGroup).length} lights of “{pickGroup}” together (lights already on the grid move here). Tap the group again to stop.</p>}
               </div>
@@ -606,7 +609,15 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               }
               else if (live) {
                 if (it?.kind === "fixture") onToggle(it.uid!);
-                else if (it?.kind === "macro" && !MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.fader) onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount, param: it.macro!.param, release: MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.hold || undefined });
+                else if (it?.kind === "macro" && !MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.fader) {
+                  onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount, param: it.macro!.param, release: MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.hold || undefined });
+                  // Double-tap a group macro in Live to switch which group it targets.
+                  if (MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.pick === "group") {
+                    const now = Date.now();
+                    if (lastTap.current?.id === it.id && now - lastTap.current.t < 400) { lastTap.current = null; openPicker(it); }
+                    else lastTap.current = { id: it.id, t: now };
+                  }
+                }
               } else if (it) {
                 // A text label is edited on the box itself: one tap (without dragging) opens its editor.
                 if (it.kind === "text" && !e.shiftKey) { setEditText(it.id); lastTap.current = null; }
@@ -775,7 +786,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim(), ...(meta?.pick && param ? { param } : {}) }, ...(meta?.fader && !pick.macro ? { cs: 3, rs: 1 } : {}) }); setPicker(null); }}>Set macro</Button>
               </div>
               {meta?.pick === "group" && (<div className="flex flex-wrap gap-1.5 text-xs">
-                {groups.length ? groups.map((g) => <button key={g} onClick={() => setParam(g)} aria-pressed={param === g} className={`rounded-md border px-2 py-1 ${param === g ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{g}</button>) : <span className="text-muted-foreground">No groups yet — make one in Groups first.</span>}
+                {groups.map((g) => <button key={g} onClick={() => setParam(g)} aria-pressed={param === g} className={`rounded-md border px-2 py-1 ${param === g ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{g}</button>)}
+                {onCreateGroup && <button onClick={() => { const n = newGroup(); if (n) setParam(n); }} className="rounded-md border border-dashed border-primary px-2 py-1 font-semibold text-primary">+ Group</button>}
               </div>)}
               {meta?.pick === "gel" && (() => {
                 const brands = ["All", ...Array.from(new Set(GELS.map((g) => g.brand)))];
