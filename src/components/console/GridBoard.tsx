@@ -250,8 +250,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
   const [esel, setEsel] = useState<string[]>([]);
   const lastTap = useRef<{ id: string; t: number } | null>(null);
+  // Double-tapping a fader box anywhere on it resets it; the press ref tracks the live gesture so drags never count as taps.
   const faderTap = useRef<{ id: string; t: number } | null>(null);
-  const faderPress = useRef<{ x: number; t: number } | null>(null);
+  const faderPress = useRef<{ x: number; y: number; t: number } | null>(null);
+  const faderMoved = useRef(false);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number; w: number; h: number }[] } | null>(null);
   const [rs, setRs] = useState<{ corner: Corner; orig: Box[]; out: Box[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
@@ -553,6 +555,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             else setBox({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, add: e.shiftKey || e.ctrlKey || e.metaKey });
           }}
           onPointerMove={(e) => {
+            const fp = faderPress.current;
+            if (fp && !faderMoved.current && Math.hypot(e.clientX - fp.x, e.clientY - fp.y) > 8) faderMoved.current = true;
             if (touches.current.has(e.pointerId)) touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (pinch.current && touches.current.size === 2) { const [p1, p2] = [...touches.current.values()]; const d = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y), cx = (p1!.x + p2!.x) / 2, cy = (p1!.y + p2!.y) / 2; const r = vp.current!.getBoundingClientRect(); const pc = pinch.current; setView((v) => ({ ...v, x: v.x + cx - pc.cx, y: v.y + cy - pc.cy })); viewRef.current = { ...viewRef.current, x: viewRef.current.x + cx - pc.cx, y: viewRef.current.y + cy - pc.cy }; zoomAt(cx - r.left, cy - r.top, viewRef.current.z * (d / pc.d)); pinch.current = { d, cx, cy }; return; }
             if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
@@ -563,8 +567,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
             else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; let dx = p.x - drag.sx, dy = p.y - drag.sy; setDrag({ ...drag, moved, x: dx, y: dy }); }
           }}
-          onPointerCancel={(e) => { touches.current.delete(e.pointerId); pinch.current = null; panDrag.current = null; }}
+          onPointerCancel={(e) => { touches.current.delete(e.pointerId); pinch.current = null; panDrag.current = null; faderPress.current = null; }}
           onPointerUp={(e) => {
+            faderPress.current = null;
             touches.current.delete(e.pointerId);
             if (pinch.current) { if (touches.current.size < 2) pinch.current = null; return; }
             if (panDrag.current) { panDrag.current = null; return; }
