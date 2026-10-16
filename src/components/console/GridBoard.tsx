@@ -22,43 +22,69 @@ export function snapWall(x1: number, y1: number, x2: number, y2: number) {
   return { x2: x1 + Math.cos(s) * len, y2: y1 + Math.sin(s) * len };
 }
 
-export type Arrange = "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter" | "hspace" | "vspace" | "row" | "column" | "circle" | "square";
+export type Arrange = "hcenter" | "vcenter" | "hspace" | "vspace" | "row" | "column" | "grid" | "circle" | "triangle" | "rotate";
 
-/** Arranges squares (top-left positions, cell units). `gap` is free space between squares for row/column/square/circle. */
-export function arrange(pts: { id: string; x: number; y: number }[], how: Arrange, gap = 0.2): { id: string; x: number; y: number }[] {
+/** Arranges squares (top-left positions, cell units). `gap` is free space between squares; squares never end up stacked on each other. */
+export function arrange(pts: { id: string; x: number; y: number }[], how: Arrange, gap = 0.2, size = SIZE): { id: string; x: number; y: number }[] {
   if (pts.length < 2) return pts;
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, step = SIZE + gap;
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, step = size + gap;
   const byX = [...pts].sort((a, b) => a.x - b.x || a.y - b.y), byY = [...pts].sort((a, b) => a.y - b.y || a.x - b.x);
   const n = pts.length;
   const fit = (r: { id: string; x: number; y: number }[]) => {
-    const dx = Math.max(0, -Math.min(...r.map((p) => p.x))) - Math.max(0, Math.max(...r.map((p) => p.x)) - (COLS - SIZE));
-    const dy = Math.max(0, -Math.min(...r.map((p) => p.y))) - Math.max(0, Math.max(...r.map((p) => p.y)) - (ROWS - SIZE));
+    const dx = Math.max(0, -Math.min(...r.map((p) => p.x))) - Math.max(0, Math.max(...r.map((p) => p.x)) - (COLS - size));
+    const dy = Math.max(0, -Math.min(...r.map((p) => p.y))) - Math.max(0, Math.max(...r.map((p) => p.y)) - (ROWS - size));
     return r.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy }));
   };
+  // keeps at least one square + gap between neighbours along an axis
+  const spread = (sorted: { id: string; x: number; y: number }[], k: "x" | "y") => {
+    let last = -Infinity;
+    return sorted.map((p) => { const v = Math.max(p[k], last + step); last = v; return { ...p, [k]: v }; });
+  };
+  const angle = (p: { x: number; y: number }) => Math.atan2(p.y - cy, p.x - cx);
   switch (how) {
-    case "left": return pts.map((p) => ({ ...p, x: minX }));
-    case "right": return pts.map((p) => ({ ...p, x: maxX }));
-    case "top": return pts.map((p) => ({ ...p, y: minY }));
-    case "bottom": return pts.map((p) => ({ ...p, y: maxY }));
-    case "hcenter": return pts.map((p) => ({ ...p, y: cy }));
-    case "vcenter": return pts.map((p) => ({ ...p, x: cx }));
-    case "hspace": return byX.map((p, i) => ({ ...p, x: minX + ((maxX - minX) * i) / (n - 1) }));
-    case "vspace": return byY.map((p, i) => ({ ...p, y: minY + ((maxY - minY) * i) / (n - 1) }));
+    case "hcenter": return fit(spread(byX.map((p) => ({ ...p, y: cy })), "x"));
+    case "vcenter": return fit(spread(byY.map((p) => ({ ...p, x: cx })), "y"));
+    case "hspace": { const s = Math.max((maxX - minX) / (n - 1), step); return fit(byX.map((p, i) => ({ ...p, x: minX + s * i }))); }
+    case "vspace": { const s = Math.max((maxY - minY) / (n - 1), step); return fit(byY.map((p, i) => ({ ...p, y: minY + s * i }))); }
     case "row": return fit(byX.map((p, i) => ({ ...p, x: minX + i * step, y: minY })));
     case "column": return fit(byY.map((p, i) => ({ ...p, x: minX, y: minY + i * step })));
-    case "square": { const c = Math.ceil(Math.sqrt(n)); return fit(byY.map((p, i) => ({ ...p, x: minX + (i % c) * step, y: minY + Math.floor(i / c) * step }))); }
+    case "grid": { const c = Math.ceil(Math.sqrt(n)); return fit(byY.map((p, i) => ({ ...p, x: minX + (i % c) * step, y: minY + Math.floor(i / c) * step }))); }
+    case "triangle": {
+      let rows = 1; while ((rows * (rows + 1)) / 2 < n) rows++;
+      let i = 0; const out: { id: string; x: number; y: number }[] = [];
+      for (let r = 0; r < rows && i < n; r++) { const k = Math.min(r + 1, n - i); for (let j = 0; j < k; j++, i++) out.push({ ...byY[i], x: minX + ((rows - k) * step) / 2 + j * step, y: minY + r * step }); }
+      return fit(out);
+    }
     case "circle": {
       const r = Math.max(step / (2 * Math.sin(Math.PI / n)), step);
-      const ox = cx + SIZE / 2, oy = cy + SIZE / 2;
-      const order = [...pts].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-      return fit(order.map((p, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return { ...p, x: ox + r * Math.cos(a) - SIZE / 2, y: oy + r * Math.sin(a) - SIZE / 2 }; }));
+      const ox = cx + size / 2, oy = cy + size / 2;
+      const order = [...pts].sort((a, b) => angle(a) - angle(b));
+      return fit(order.map((p, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return { ...p, x: ox + r * Math.cos(a) - size / 2, y: oy + r * Math.sin(a) - size / 2 }; }));
+    }
+    case "rotate": {
+      // screen y points down, so increasing angle is clockwise: each light takes the next light's spot
+      const order = [...pts].sort((a, b) => angle(a) - angle(b));
+      return order.map((p, i) => { const t = order[(i + 1) % n]; return { ...p, x: t.x, y: t.y }; });
     }
   }
 }
 
-const ARRANGE: [Arrange, string][] = [["left", "Left"], ["vcenter", "Centre ↕"], ["right", "Right"], ["top", "Top"], ["hcenter", "Middle ↔"], ["bottom", "Bottom"], ["hspace", "Space ↔"], ["vspace", "Space ↕"], ["row", "Line"], ["column", "Column"], ["square", "Square"], ["circle", "Circle"]];
+const ICON: Record<Arrange, React.ReactNode> = {
+  hcenter: <><rect x="2" y="9" width="5" height="6" /><rect x="9.5" y="9" width="5" height="6" /><rect x="17" y="9" width="5" height="6" /><line x1="1" y1="12" x2="23" y2="12" /></>,
+  vcenter: <><rect x="9" y="2" width="6" height="5" /><rect x="9" y="9.5" width="6" height="5" /><rect x="9" y="17" width="6" height="5" /><line x1="12" y1="1" x2="12" y2="23" /></>,
+  hspace: <><rect x="2" y="8" width="4" height="8" /><rect x="10" y="8" width="4" height="8" /><rect x="18" y="8" width="4" height="8" /></>,
+  vspace: <><rect x="8" y="2" width="8" height="4" /><rect x="8" y="10" width="8" height="4" /><rect x="8" y="18" width="8" height="4" /></>,
+  row: <><rect x="1" y="9" width="6" height="6" /><rect x="9" y="9" width="6" height="6" /><rect x="17" y="9" width="6" height="6" /></>,
+  column: <><rect x="9" y="1" width="6" height="6" /><rect x="9" y="9" width="6" height="6" /><rect x="9" y="17" width="6" height="6" /></>,
+  grid: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></>,
+  triangle: <><rect x="9.5" y="3" width="5" height="5" /><rect x="5" y="10" width="5" height="5" /><rect x="14" y="10" width="5" height="5" /><rect x="1" y="17" width="5" height="5" /><rect x="9.5" y="17" width="5" height="5" /><rect x="18" y="17" width="5" height="5" /></>,
+  circle: <>{[0, 1, 2, 3, 4, 5].map((i) => { const a = -Math.PI / 2 + (i * Math.PI) / 3; return <rect key={i} x={10 + 8 * Math.cos(a)} y={10 + 8 * Math.sin(a)} width="4" height="4" />; })}</>,
+  rotate: <><path d="M20 12a8 8 0 1 1-2.3-5.7" /><polyline points="20 3 20 7 16 7" /></>,
+};
+const ARRANGE: [Arrange, string][] = [["hcenter", "Middle ↔"], ["vcenter", "Centre ↕"], ["hspace", "Space ↔"], ["vspace", "Space ↕"], ["row", "Line"], ["column", "Column"], ["grid", "Grid"], ["triangle", "Triangle"], ["circle", "Circle"], ["rotate", "Rotate ↻"]];
+const LIVE: Arrange[] = ["hspace", "vspace", "row", "column", "grid", "triangle", "circle", "hcenter", "vcenter"];
 
 export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf }: {
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
