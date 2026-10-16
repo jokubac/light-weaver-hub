@@ -148,9 +148,11 @@ export function resizeBoxes(boxes: Box[], corner: Corner, px: number, py: number
 
 const COLORS = ["", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#f5f5f4", "#57534e"];
 
-export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls }: {
+export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf }: {
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string; controls: React.ReactNode;
+  /** Live pixel colours + layout for pixel fixtures; `long` marks elongated (tube/bar) lights, which default to a wide box. */
+  pixelsOf?: (f: PatchedFixture) => { cells?: string[] | undefined; cols: number; rows: number; long: boolean };
 }) {
   const [live, setLive] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text">("select");
@@ -167,7 +169,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
-  const W = (i: GridItem) => ISW(i, sz), H = (i: GridItem) => ISH(i, sz);
+  const longIds = new Set(pixelsOf ? fixtures.filter((f) => pixelsOf(f).long).map((f) => f.uid) : []);
+  const isLong = (i: GridItem) => i.kind === "fixture" && i.w == null && i.s == null && longIds.has(i.uid!);
+  const W = (i: GridItem) => (isLong(i) ? sz * 2.6 : ISW(i, sz)), H = (i: GridItem) => (isLong(i) ? sz * 0.7 : ISH(i, sz));
   const selItems = live ? grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!)) : grid.items.filter((i) => esel.includes(i.id));
   const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, size); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
   const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
@@ -449,7 +453,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   </div>}
                 </>) : f ? (<>
                   <span className="font-mono font-semibold text-foreground/80">#{n}</span>
-                  <div className="my-0.5 min-h-0 flex-1 rounded" style={{ background: colorOf(f) }} />
+                  {(() => { const px = pixelsOf?.(f); if (!px?.cells || px.cells.length < 2) return <div className="my-0.5 min-h-0 flex-1 rounded" style={{ background: colorOf(f) }} />;
+                    const wide = pos.w >= pos.h, [c, r] = wide === px.cols >= px.rows ? [px.cols, px.rows] : [px.rows, px.cols];
+                    return <div className="my-0.5 grid min-h-0 flex-1 gap-px overflow-hidden rounded" style={{ gridTemplateColumns: `repeat(${c}, 1fr)`, gridTemplateRows: `repeat(${r}, 1fr)` }}>
+                      {px.cells.map((col, k) => <div key={k} style={{ background: col }} />)}</div>; })()}
                   <div className="flex justify-between gap-1"><span className="truncate">{f.name}</span><span className="font-mono">{Math.round(f.intensity * 100)}%</span></div>
                 </>) : it.macro ? (
                   <div className="flex flex-1 items-center justify-center text-center text-[11px] font-bold leading-tight text-foreground">{macroLabel(it.macro)}</div>
