@@ -1069,7 +1069,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 onPointerCancel={() => { swept.current = null; }}>
                 {fixtures.map((f, i) => {
                   const def = getDef(f.defId);
-                  const of = pulses[f.uid] ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
+                  const of = pulses[f.uid] || locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
                   const color = fixtureColor(of, t, outLevel);
                   const isSel = selected.includes(f.uid);
                   const pix = frame.get(f.uid);
@@ -1197,7 +1197,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       {gridOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected} groups={groups}
-            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => fixtureColor(f, t, outLevel)} controls={controlPanel()}
+            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => fixtureColor(locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f, t, outLevel)} controls={controlPanel()}
             pixelsOf={(f) => { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const pv = of.on === false ? 0 : of.intensity * outLevel; const pix = frame.get(f.uid); const [cols, rows] = pixelGrid(f); const m = getDef(f.defId).model.toLowerCase();
               const tube = f.icon && f.icon !== "auto" ? f.icon.startsWith("tube-") : /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip|batten|\bbar\b|dotline|pixel ?line|rr50|rr100|rainbow/.test(m);
               const n = cols * rows; let gc = cols, gr = rows; if (!getMode(f).grid && !tube && n > 2) { gc = Math.ceil(Math.sqrt(n)); gr = Math.ceil(n / gc); }
