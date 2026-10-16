@@ -729,7 +729,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                         <Plus className="h-4 w-4" />
                       </button>
                     ); })}
-                  </div>}
+                  </div>; })()}
                 </>) : f ? (<>
                   <span className="font-mono font-semibold text-foreground/80">#{n}</span>
                   {(() => { const px = pixelsOf?.(f); if (!px?.cells || px.cells.length < 2) return <div className="my-0.5 min-h-0 flex-1 rounded" style={{ background: colorOf(f) }} />;
