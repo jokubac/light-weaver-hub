@@ -945,9 +945,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         </Button>
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
-        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">PATCH</Button>
-        {tab("control", "CONTROL")}
-        {tab("pixels", "PIXELS")}
+        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
+        {tab("control", "GRID")}
+        {tab("pixels", "PIXEL")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => setPlotOpen(true)} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
