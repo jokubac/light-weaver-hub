@@ -608,6 +608,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const isSel = live ? !!f && selected.includes(f.uid) : esel.includes(it.id);
             const back = it.kind === "image" || it.kind === "table";
             if (live && it.kind === "empty") return null;
+            // Empty boxes inside a macro table duplicate the table's own "+" cells and never line up — hide them.
+            if (it.kind === "empty" && grid.items.some((t) => t.kind === "table" && it.x + W(it) / 2 > t.x && it.x + W(it) / 2 < t.x + W(t) && it.y + H(it) / 2 > t.y && it.y + H(it) / 2 < t.y + H(t))) return null;
             return (
               <div key={it.id} role="button" tabIndex={0} aria-label={f ? `Select fixture ${n}, ${f.name}` : it.macro ? `Run ${macroLabel(it.macro)}` : it.kind === "text" ? "Text label" : it.kind === "image" ? "Picture" : it.kind === "table" ? "Table" : "Empty box"} aria-pressed={f ? isSel : undefined}
                 className={`absolute flex flex-col overflow-hidden ${it.kind === "image" ? "" : "rounded-lg border p-1"} text-[10px] ${(!live && mode === "walls") || (live && back) ? "pointer-events-none" : live ? "cursor-pointer active:scale-[0.97]" : "cursor-grab"} ${!live && mode === "walls" ? "opacity-60" : ""} ${isSel ? "border-primary ring-2 ring-primary" : it.kind === "empty" ? "border-dashed border-border" : it.kind === "text" ? "border-transparent" : it.kind === "table" ? "border-2 border-border" : "border-border"} ${it.kind === "text" ? "bg-transparent" : it.kind === "table" ? "bg-muted" : f ? "bg-card" : "bg-surface-elevated"} ${gm || rr ? "z-30 shadow-lg" : back ? "z-0" : "z-10"}`}
