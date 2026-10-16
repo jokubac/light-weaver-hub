@@ -38,3 +38,4 @@
 - offline-bundle.mjs strips the hosting "Edit with Lovable" badge so installed apps stay standalone.
 - Verified manufacturer profiles live in src/lib/verified-fixtures.ts; gdtf-curate replaces same-model GDTF entries with them (or appends VERIFIED_EXTRA_MODES to keep saved mode indices) and drops 1-channel modes.
 - GDTF pixel modes expand GeometryReference templates (incl. child geometries); one-cell "Pixel N" modes and numbered Astera mode names derive pixel layouts at getMode time so stored library data stays compatible.
+- Pixel modes without an explicit grid get a physical layout from src/lib/pixel-layout.ts at deriveMode time, so effects and GRID previews follow real cell order without regenerating library data.
