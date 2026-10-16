@@ -175,3 +175,4 @@
 - [ ] Tušti langeliai po faderiais — pataisyta (overlap check); patikrinti naršyklėje
 - [ ] Playwright: patikrinti „+ Group" assign dialoge (GRID mygtukas nerandamas — pirmiausia atidaryti projektą)
 - [ ] Prie makro pasirinkimų (assign dialog) pridėti lempos dydžio mygtuką su stopais 1/8 1/4 1/2 1 2 3 4 (Jokubas)
+- [ ] Macro table: plotis susitraukia iki 1 langelio (per daug), aukštis iš apačios nesitraukia — pataisyti (Jokubas)
