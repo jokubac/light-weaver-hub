@@ -417,7 +417,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               setDrag(null);
             }
           }}>
-        <div ref={area} className="absolute left-0 top-0" style={{ width: COLS * CELL, height: ROWS * CELL, transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, transformOrigin: "0 0" }}>
+        <div ref={area} className="absolute left-0 top-0 z-[2]" style={{ width: COLS * CELL, height: ROWS * CELL, transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, transformOrigin: "0 0" }}>
           {grid.bg && <img src={grid.bg} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ transform: `translate(${grid.bgT?.x ?? 0}%, ${grid.bgT?.y ?? 0}%) scale(${grid.bgT?.scale ?? 1})`, transformOrigin: "center", filter: grid.bgT?.invert ? "invert(1)" : undefined }} />}
           <svg className="absolute left-0 top-0 z-[5] overflow-visible" width={1} height={1} style={{ pointerEvents: "none" }}>
             {[...grid.walls, ...(wall ? [wall] : [])].map((w, i) => (
