@@ -435,7 +435,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         );
       })()}
       <div className="grid grid-cols-2 gap-1.5">
-        <Button size="sm" onClick={addSquare}><Plus />Macro</Button>
+        <Button size="sm" onClick={() => addSquare()}><Plus />Macro</Button>
         <Button variant="secondary" size="sm" onClick={addTable}><Table2 />Macros table</Button>
         <Button variant="secondary" size="sm" className="col-span-2" disabled={fixtures.every((f) => placed.has(f.uid))}
           onClick={() => { let items = grid.items; for (const f of fixtures) if (!placed.has(f.uid)) items = [...items, { id: nid(), kind: "fixture", uid: f.uid, ...freeSpot(items) }]; setGrid({ ...grid, items }); }}>All lights</Button>
