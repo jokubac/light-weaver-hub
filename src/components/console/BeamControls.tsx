@@ -1,5 +1,6 @@
 import { BEAM_ATTRS, getMode, type BeamAttr, type ChannelMapEntry, type PatchedFixture } from "@/lib/dmx";
 import { Control } from "./FixtureControls";
+import { FramingPad } from "./FramingPad";
 
 type UpdEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => void;
 
