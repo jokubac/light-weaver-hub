@@ -44,6 +44,21 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
     if (kind === "rot") return { kind, A, B, R, I, ...endsFromRotation(value(I), value(R)) };
     return { kind, A, B, R, I, a: value(I), b: value(I) };
   };
+  /** Drag the blade's cutting line: the whole blade slides in or out, keeping its angle. */
+  const slide = (n: number) => (e: React.PointerEvent<SVGElement>) => {
+    if (e.type === "pointermove" && e.buttons === 0) return;
+    const svg = (e.currentTarget as SVGElement).ownerSVGElement;
+    if (!svg) return;
+    const r = svg.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * 120 - 10, py = ((e.clientY - r.top) / r.height) * 120 - 10;
+    const ed = EDGES[n - 1]!;
+    const depth = ((px - ed.a[0]) * ed.d[0] + (py - ed.a[1]) * ed.d[1]) / DEPTH;
+    const b = info(n);
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    if (b.kind !== "ab") { set(b.I, clamp(depth)); return; }
+    const shift = depth - (b.a + b.b) / 2;
+    set(b.A, clamp(b.a + shift)); set(b.B, clamp(b.b + shift));
+  };
   const drag = (n: number, end: "a" | "b") => (e: React.PointerEvent<SVGElement>) => {
     if (e.type === "pointermove" && e.buttons === 0) return;
     const svg = (e.currentTarget as SVGElement).ownerSVGElement;
@@ -82,7 +97,15 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
           const ed = EDGES[n - 1]!; const { a, b } = info(n);
           const at = (s: number, depth: number): [number, number] => [ed.a[0] + (ed.b[0] - ed.a[0]) * s + ed.d[0] * depth * DEPTH, ed.a[1] + (ed.b[1] - ed.a[1]) * s + ed.d[1] * depth * DEPTH];
           const pa = at(T, a * (1 - T) + b * T), pb = at(1 - T, b * (1 - T) + a * T);
-          return (["a", "b"] as const).map((end) => {
+          const la = at(0, a), lb = at(1, b);
+          const line = (
+            <g key={`${n}line`} aria-label={`Blade ${n} edge`} className={n % 2 ? "cursor-ns-resize" : "cursor-ew-resize"}
+              onPointerDown={(e) => { e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); slide(n)(e); }} onPointerMove={slide(n)}>
+              <line x1={la[0]} y1={la[1]} x2={lb[0]} y2={lb[1]} stroke="transparent" strokeWidth="9" />
+              <line x1={la[0]} y1={la[1]} x2={lb[0]} y2={lb[1]} className="stroke-foreground" strokeWidth="1.4" />
+            </g>
+          );
+          return [line, ...(["a", "b"] as const).map((end) => {
             const p = end === "a" ? pa : pb;
             return (
               <g key={`${n}${end}`} className="cursor-grab" aria-label={`Blade ${n} ${end.toUpperCase()}`}
@@ -91,10 +114,10 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
                 <circle cx={p[0]} cy={p[1]} r="3.5" className="fill-foreground stroke-primary" strokeWidth="1.2" />
               </g>
             );
-          });
+          })];
         })}
       </svg>
-      <p className="text-[10px] text-muted-foreground">Drag the dots to cut each corner of the beam.</p>
+      <p className="text-[10px] text-muted-foreground">Drag a blade edge to slide it, or a dot to cut a corner.</p>
     </div>
   );
 }
