@@ -76,7 +76,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onRun, 
         </section>
       </aside>
 
-      <div className="min-h-0 flex-1 overflow-auto bg-background p-3">
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto bg-background p-3">
         <div ref={area} className="relative select-none" style={{ width: COLS * CELL, height: ROWS * CELL, touchAction: mode === "use" ? "auto" : "none",
           backgroundImage: "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)", backgroundSize: `${CELL}px ${CELL}px` }}
           onPointerDown={(e) => { if (mode !== "walls" || (e.target as HTMLElement).dataset["wall"]) return; const p = pt(e, "corner"); setWall({ x1: p.x, y1: p.y, x2: p.x, y2: p.y }); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
