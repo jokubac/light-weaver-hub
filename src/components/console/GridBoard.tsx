@@ -6,7 +6,7 @@ import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Tab
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
-export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; macro?: { action: MacroAction; amount: number; label: string } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined }
+export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; macro?: { action: MacroAction; amount: number; label: string } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
@@ -164,10 +164,21 @@ export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
     const tb = boxOf(t, sz), cols = Math.max(1, t.cols ?? 4);
     const members = items.filter((i) => isMacroBox(i) && i.tbl === t.id).sort((a, b) => a.y - b.y || a.x - b.x);
     const cw = tb.w / cols, ch = cw;
-    const rows = Math.max(t.rows ?? 3, Math.ceil(members.length / cols));
     const pad = cw * 0.06;
+    // First-fit packing: each macro takes cs × rs cells (1×1 by default), placed in reading order.
+    const used: boolean[][] = [];
+    const free = (r: number, c: number, w: number, h: number) => { for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) if (used[y]?.[x]) return false; return true; };
+    let rowsUsed = 0;
+    for (const m of members) {
+      const w = Math.min(cols, Math.max(1, m.cs ?? 1)), h = Math.max(1, m.rs ?? 1);
+      let r = 0, c = 0;
+      for (;; r++) { let ok = false; for (c = 0; c + w <= cols; c++) if (free(r, c, w, h)) { ok = true; break; } if (ok) break; }
+      for (let y = r; y < r + h; y++) { used[y] ??= []; for (let x = c; x < c + w; x++) used[y]![x] = true; }
+      rowsUsed = Math.max(rowsUsed, r + h);
+      out.set(m.id, { ...m, x: t.x + c * cw + pad, y: t.y + 0.4 + r * ch + pad, w: w * cw - 2 * pad, h: h * ch - 2 * pad, s: undefined });
+    }
+    const rows = Math.max(t.rows ?? 3, rowsUsed);
     out.set(t.id, { ...t, rows, h: rows * ch + 0.4 });
-    members.forEach((m, k) => { const c = k % cols, r = Math.floor(k / cols); out.set(m.id, { ...m, x: t.x + c * cw + pad, y: t.y + 0.4 + r * ch + pad, w: cw - 2 * pad, h: ch - 2 * pad, s: undefined }); });
   }
   return items.map((i) => out.get(i.id)!);
 }
@@ -241,7 +252,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     }) });
   };
   const onGap = (g: number) => { if (selItems.length > 1) rescale(g, sz); setGap(g); };
-  const onSize = (v: number) => { if (selItems.length) setGrid({ ...grid, items: applySize(grid.items, selItems.map((i) => i.id), v, sz, 1e6, 1e6).map((i, k) => (selItems.some((x) => x.id === i.id) ? i : grid.items[k]!)) }); else rescale(gap, v); };
+  const onSize = (v: number) => { const sizable = selItems.filter((i) => i.kind !== "macro" && i.kind !== "empty" && i.kind !== "table"); if (selItems.length) { if (sizable.length) setGrid({ ...grid, items: applySize(grid.items, sizable.map((i) => i.id), v, sz, 1e6, 1e6).map((i, k) => (sizable.some((x) => x.id === i.id) ? i : grid.items[k]!)) }); } else rescale(gap, v); };
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
@@ -621,6 +632,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 {meta?.unit && <label className="flex items-center gap-2 text-xs">Amount<input type="number" value={amount} onChange={(e) => setAmount(+e.target.value)} className="w-20 rounded border border-input bg-surface-elevated px-1 py-1 text-right font-mono" />{meta.unit}</label>}
                 <input aria-label="Button name" placeholder="Name (optional)" value={label} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-2 py-1.5 text-xs text-foreground" />
                 <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim() } }); setPicker(null); }}>Set macro</Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-muted-foreground">Box span</span>
+                {[[1, 1], [2, 1], [3, 1], [4, 1], [1, 2], [2, 2], [3, 2], [4, 2]].map(([c, r]) => { const on = (pick.cs ?? 1) === c && (pick.rs ?? 1) === r; return (
+                  <button key={`${c}x${r}`} onClick={() => patch(pick.id, { cs: c, rs: r })} aria-pressed={on} className={`rounded-md border px-2 py-1 font-mono ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{c}×{r}</button>); })}
               </div>
             </section>)}
             {pick.kind === "macro" && <Button variant="ghost" size="sm" onClick={() => { patch(pick.id, { kind: "empty", macro: undefined }); setPicker(null); }}>Clear macro</Button>}
