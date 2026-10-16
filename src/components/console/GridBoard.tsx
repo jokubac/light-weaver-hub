@@ -323,18 +323,22 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
   const addLight = (x: number, y: number) => {
     if (pickGroup) {
-      const members = fixtures.filter((g) => g.group === pickGroup && !placed.has(g.uid));
+      // Every member lands here; lights already somewhere on the board are moved, not duplicated
+      const members = fixtures.filter((g) => g.group === pickGroup);
       if (!members.length) return;
+      const ids = new Set(members.map((m) => m.uid));
       const slots = groupSlots(members.length, x, y, FXW, FXH, sz * 0.3);
-      const added = members.map((f, i) => { const s = slots[i] ?? { x: x - FXW / 2, y: y - FXH / 2 }; return { id: nid(), kind: "fixture" as const, uid: f.uid, x: Math.round(s.x * 4) / 4, y: Math.round(s.y * 4) / 4 }; });
-      setGrid({ ...grid, items: [...grid.items, ...added] });
+      const added = members.map((f, i) => { const s = slots[i] ?? { x: x - FXW / 2, y: y - FXH / 2 }; const old = grid.items.find((it) => it.kind === "fixture" && it.uid === f.uid); return { ...(old ?? {}), id: old?.id ?? nid(), kind: "fixture" as const, uid: f.uid, x: Math.round(s.x * 4) / 4, y: Math.round(s.y * 4) / 4 }; });
+      setGrid({ ...grid, items: [...grid.items.filter((it) => !(it.kind === "fixture" && it.uid && ids.has(it.uid))), ...added] });
       setEsel(added.map((a) => a.id));
       return;
     }
-    const f = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
+    const f = fixtures.find((g) => g.uid === nextUid) ?? fixtures.find((g) => !placed.has(g.uid));
     if (!f) return;
-    const id = nid();
-    setGrid({ ...grid, items: [...grid.items, { id, kind: "fixture", uid: f.uid, x: Math.round((x - FXW / 2) * 4) / 4, y: Math.round((y - FXH / 2) * 4) / 4 }] });
+    const old = grid.items.find((it) => it.kind === "fixture" && it.uid === f.uid);
+    const id = old?.id ?? nid();
+    const item = { ...(old ?? {}), id, kind: "fixture" as const, uid: f.uid, x: Math.round((x - FXW / 2) * 4) / 4, y: Math.round((y - FXH / 2) * 4) / 4 };
+    setGrid({ ...grid, items: [...grid.items.filter((it) => it.id !== id), item] });
     setEsel([id]);
     const idx = fixtures.indexOf(f);
     const nx = [...fixtures.slice(idx + 1), ...fixtures.slice(0, idx)].find((g) => !placed.has(g.uid) && g.uid !== f.uid);
