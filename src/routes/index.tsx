@@ -387,7 +387,7 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "pixels";
+type Panel = "patch" | "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
@@ -947,10 +947,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
         <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
         {tab("control", "GRID")}
+        {tab("fx", "FX")}
         {tab("pixels", "PIXEL")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => setPlotOpen(true)} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
+        {tab("patch", "PATCH")}
         {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
@@ -1063,9 +1065,15 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           )}
         </div>
 
-        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
+        {panelOpen && <aside className={`max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:border-l lg:border-t-0 ${panel === "patch" ? "lg:w-[34rem]" : "lg:w-96"}`}>
           {panel === "patch" ? (
             <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
+          ) : panel === "fx" ? (
+            <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+              if (!activePixel) return;
+              const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
+              setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
+            }} />
           ) : panel === "pixels" ? (
             <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
               const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
