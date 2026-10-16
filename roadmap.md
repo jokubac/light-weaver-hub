@@ -135,8 +135,8 @@
 
 - [done] Remove GRID tab; move fixture controls into the FIXTURES window, pinned on the right and always visible
 
-- [ ] Grid: tap on empty grid deselects everything; Fixture size slider changes only selected squares (all when nothing selected)
-- [ ] Grid: toolbar above canvas — Select, Walls, Text (free text labels), Import picture or PDF as grid background
+- [x] Grid: tap on empty grid deselects everything (empty box-select clears the selection); fixture size slider resizes only selected squares, nothing selected leaves them untouched — covered by applySize tests
+- [x] Grid: toolbar above canvas with Select, Walls, Text and Import pictures or PDF (PDF first pages read with pdfjs) as grid background
 - [x] GRID bg picture: drag to move, zoom in/out, invert colours (image + PDF)
 - [x] GRID text labels: type immediately after placing, double-tap to re-edit
 - [x] Arrange: add Pentagon; all shapes (square/grid, triangle, circle, pentagon) place fixtures on the outline only
