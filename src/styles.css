@@ -127,18 +127,18 @@ input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius
 /* Every glyph carries a thin black outline so text stays readable on any surface. */
 :root {
   --text-outline:
-    1.7px 0 0 #000, -1.7px 0 0 #000, 0 1.7px 0 #000, 0 -1.7px 0 #000,
-    1.3px 1.3px 0 #000, -1.3px 1.3px 0 #000,
-    1.3px -1.3px 0 #000, -1.3px -1.3px 0 #000;
+    0.9px 0 0 #000, -0.9px 0 0 #000, 0 0.9px 0 #000, 0 -0.9px 0 #000,
+    0.65px 0.65px 0 #000, -0.65px 0.65px 0 #000,
+    0.65px -0.65px 0 #000, -0.65px 0.65px 0 #000;
 }
 body { text-shadow: var(--text-outline); }
 
-/* Macro labels use a heavier 2px outline so they stay readable on any tile colour. */
+/* Macro labels use a slightly firmer hairline so they stay readable on any tile colour. */
 :root {
   --text-outline-2:
-    2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000,
-    1.5px 1.5px 0 #000, -1.5px 1.5px 0 #000,
-    1.5px -1.5px 0 #000, -1.5px -1.5px 0 #000;
+    0.7px 0 0 #000, -0.7px 0 0 #000, 0 0.7px 0 #000, 0 -0.7px 0 #000,
+    0.5px 0.5px 0 #000, -0.5px 0.5px 0 #000,
+    0.5px -0.5px 0 #000, -0.5px 0.5px 0 #000;
 }
 .nox-outline-2 { text-shadow: var(--text-outline-2); }
 
