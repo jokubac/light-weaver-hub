@@ -104,8 +104,21 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const selItems = grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!));
   const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, size); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y } : i; }) }); };
   const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
-  const onGap = (g: number) => { setGap(g); if (last && selItems.length > 1) apply(last, g, sz); };
-  const onSize = (v: number) => { if (last && selItems.length > 1) apply(last, gap, v); else setGrid({ ...grid, size: v }); };
+  // Scales the selected group about its centre so order and layout are kept; with no group, each square grows about its own centre.
+  const rescale = (g: number, size: number) => {
+    const grp = selItems.length > 1 ? selItems : [];
+    const k = (size + g) / (sz + gap);
+    const ox = grp.length ? grp.reduce((a, i) => a + i.x + sz / 2, 0) / grp.length : 0;
+    const oy = grp.length ? grp.reduce((a, i) => a + i.y + sz / 2, 0) / grp.length : 0;
+    const ids = new Set(grp.map((i) => i.id));
+    setGrid({ ...grid, size, items: grid.items.map((i) => {
+      const c = { x: i.x + sz / 2, y: i.y + sz / 2 };
+      const n = ids.has(i.id) ? { x: ox + (c.x - ox) * k, y: oy + (c.y - oy) * k } : c;
+      return { ...i, x: Math.max(0, Math.min(COLS - size, n.x - size / 2)), y: Math.max(0, Math.min(ROWS - size, n.y - size / 2)) };
+    }) });
+  };
+  const onGap = (g: number) => { if (selItems.length > 1) rescale(g, sz); setGap(g); };
+  const onSize = (v: number) => rescale(gap, v);
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
