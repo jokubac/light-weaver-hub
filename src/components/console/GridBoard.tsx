@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
-import type { PatchedFixture } from "@/lib/dmx";
+import { kelvin, type PatchedFixture } from "@/lib/dmx";
+import { GELS, GEL_BY_ID } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
 import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
-export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; macro?: { action: MacroAction; amount: number; label: string } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined }
+export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
@@ -260,6 +261,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [action, setAction] = useState<MacroAction>("cct_up");
   const [amount, setAmount] = useState(100);
   const [label, setLabel] = useState("");
+  const [param, setParam] = useState("");
+  const [gelQ, setGelQ] = useState("");
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
@@ -314,12 +317,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const pick = grid.items.find((i) => i.id === picker);
   const one = esel.length === 1 ? grid.items.find((i) => i.id === esel[0]) : undefined;
   const meta = MACRO_ACTIONS.find((a) => a.id === action);
-  const macroLabel = (m: { action: MacroAction; amount: number; label: string }) => {
+  const macroLabel = (m: { action: MacroAction; amount: number; label: string; param?: string | undefined }) => {
     if (m.label) return m.label;
     const a = MACRO_ACTIONS.find((x) => x.id === m.action);
+    if (a?.pick === "gel") return m.param && GEL_BY_ID[m.param] ? `${GEL_BY_ID[m.param]!.brand} ${GEL_BY_ID[m.param]!.code}` : a.label;
+    if (a?.pick === "group") return m.param ? `Group ${m.param}` : a.label;
     return a?.unit ? `${a.label} ${m.amount}${a.unit}` : (a?.label ?? m.action);
   };
-  const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); } else setLabel(""); };
+  const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); setParam(it.macro.param ?? ""); } else { setLabel(""); setParam(""); } };
   /** New macro square: it always lands in a macro table (the selected one, else the first, else a new one) and lines up there. */
   const addSquare = (tableId?: string, atX?: number, atY?: number, cell?: number) => {
     let items = grid.items;
@@ -500,7 +505,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     </div>
   );
 
-  const sortedActions = [...MACRO_ACTIONS].sort((a, b) => a.label.localeCompare(b.label));
+  const sortedActions = MACRO_ACTIONS;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
@@ -576,7 +581,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               }
               else if (live) {
                 if (it?.kind === "fixture") onToggle(it.uid!);
-                else if (it?.kind === "macro") onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount });
+                else if (it?.kind === "macro" && !MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.fader) onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount, param: it.macro!.param, release: MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.hold || undefined });
               } else if (it) {
                 const now = Date.now();
                 if (lastTap.current?.id === it.id && now - lastTap.current.t < 400) { lastTap.current = null; if (it.kind !== "image" && it.kind !== "text" && it.kind !== "table") openPicker(it); }
@@ -642,7 +647,22 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   <div className="flex justify-between gap-1"><span className="truncate">{it.text || f.name}</span><span className="font-mono">{Math.round(f.intensity * 100)}%</span></div>
                 </>) : it.macro ? (<>
                   {!live && mode === "select" && <button type="button" aria-label="Delete macro" className="absolute right-0.5 top-0.5 z-20 rounded bg-background/80 p-0.5 text-muted-foreground hover:text-destructive" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeIds([it.id]); }}><X className="h-3 w-3" /></button>}
-                  <div className="nox-outline-2 flex flex-1 items-center justify-center text-center text-[11px] font-bold leading-tight text-foreground">{macroLabel(it.macro)}</div>
+                  {(() => {
+                    const a = MACRO_ACTIONS.find((x) => x.id === it.macro!.action);
+                    if (!a?.fader) return <div className="nox-outline-2 flex flex-1 items-center justify-center text-center text-[11px] font-bold leading-tight text-foreground"
+                      onPointerDown={() => { if (live && a?.hold) onRun({ id: it.id, key: null, action: a.id, amount: it.macro!.amount }); }}>{macroLabel(it.macro!)}</div>;
+                    // Fader: drives the selected lights; shows the first selected light's value.
+                    const f0 = fixtures.find((f) => selected.includes(f.uid));
+                    const [min, max, step, val, show] = a.id === "int_fader" ? [0, 100, 1, Math.round((f0?.intensity ?? 0) * 100), (v: number) => `${v}%`]
+                      : a.id === "cct_fader" ? [2000, 10000, 50, Math.round(kelvin(f0?.cct ?? 0.45)), (v: number) => `${v}K`]
+                      : [-100, 100, 1, Math.round((f0?.gm ?? 0) * 100), (v: number) => (v > 0 ? `G${v}` : v < 0 ? `M${-v}` : "0")];
+                    return <div className="flex flex-1 flex-col justify-center gap-0.5 px-1">
+                      <div className="nox-outline-2 flex justify-between text-[10px] font-bold text-foreground"><span className="truncate">{it.macro!.label || a.label}</span><span className="font-mono">{show(val)}</span></div>
+                      <input type="range" aria-label={a.label} min={min} max={max} step={step} value={val} disabled={!live || !f0}
+                        onPointerDown={(e) => e.stopPropagation()} onChange={(e) => onRun({ id: it.id, key: null, action: a.id, amount: +e.target.value })}
+                        className="w-full accent-primary" />
+                    </div>;
+                  })()}
                 </>) : it.kind === "text" ? (
                   <div className="flex flex-1 items-center justify-center overflow-hidden text-center text-xs font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
                 ) : (
@@ -693,8 +713,18 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <div className="flex flex-wrap items-center gap-2">
                 {meta?.unit && <label className="flex items-center gap-2 text-xs">Amount<input type="number" value={amount} onChange={(e) => setAmount(+e.target.value)} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{meta.unit}</label>}
                 <input aria-label="Button name" placeholder="Name (optional)" value={label} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-                <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim() } }); setPicker(null); }}>Set macro</Button>
+                <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim(), ...(meta?.pick && param ? { param } : {}) }, ...(meta?.fader && !pick.macro ? { cs: 3, rs: 1 } : {}) }); setPicker(null); }}>Set macro</Button>
               </div>
+              {meta?.pick === "group" && (<div className="flex flex-wrap gap-1.5 text-xs">
+                {groups.length ? groups.map((g) => <button key={g} onClick={() => setParam(g)} aria-pressed={param === g} className={`rounded-md border px-2 py-1 ${param === g ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{g}</button>) : <span className="text-muted-foreground">No groups yet — make one in Groups first.</span>}
+              </div>)}
+              {meta?.pick === "gel" && (<div className="space-y-1.5">
+                <input aria-label="Search filters" placeholder="Search filter (e.g. 1/2 CTO, 201)" value={gelQ} onChange={(e) => setGelQ(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                <div className="grid max-h-40 grid-cols-2 gap-1 overflow-auto text-xs sm:grid-cols-3">
+                  {GELS.filter((g) => `${g.brand} ${g.code} ${g.name}`.toLowerCase().includes(gelQ.toLowerCase())).slice(0, 60).map((g) => (
+                    <button key={g.id} onClick={() => setParam(g.id)} aria-pressed={param === g.id} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-left ${param === g.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: g.hex }} /><span className="truncate">{g.brand} {g.code} {g.name}</span></button>))}
+                </div>
+              </div>)}
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
                 <span className="text-muted-foreground">Box span</span>
                 {[[1, 1], [2, 1], [3, 1], [4, 1], [1, 2], [2, 2], [3, 2], [4, 2]].map(([c, r]) => { const on = (pick.cs ?? 1) === c && (pick.rs ?? 1) === r; return (
