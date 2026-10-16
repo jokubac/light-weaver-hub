@@ -61,7 +61,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
           onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}><GripVertical className="h-5 w-5" /></button>
         <input aria-label="Command line" value={cmd} onChange={(e) => { setCmd(e.target.value); setMsg(null); }}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); run(); } }}
-          placeholder="1 + 3 @ 80 CCT 3200" className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-2 font-mono text-sm" />
+          placeholder="1 + 3 @ 80 CCT 3200" className="min-w-0 flex-1 font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
         <button onClick={() => { setMsg(null); setCmd((c) => (c.endsWith(" ") ? c.trimEnd().replace(/\S+$/, "") : c.slice(0, -1)).replace(/^\s+/, "")); }} aria-label="Backspace" title="Delete last" className="rounded-md bg-surface-elevated p-2 text-foreground active:scale-95"><Delete className="h-4 w-4" /></button>
         <button onClick={onClose} aria-label="Close keypad" className="rounded-md p-2 text-muted-foreground"><X className="h-4 w-4" /></button>
       </div>

@@ -196,7 +196,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                           <div className="text-[10px] font-semibold uppercase text-muted-foreground">Colour</div>
                           <div className="flex flex-wrap gap-1.5">{LABEL_COLORS.map((c) => <button key={c} onClick={() => onUpdate(f.uid, { label: c })} aria-label={`Colour ${c}`} className={`h-7 w-7 rounded-full border-2 ${f.label === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
                           <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Group
-                            <input list="patch-groups" value={f.group ?? ""} onChange={(e) => onUpdate(f.uid, { group: e.target.value || undefined } as never)} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm normal-case text-foreground" /></label>
+                            <input list="patch-groups" value={f.group ?? ""} onChange={(e) => onUpdate(f.uid, { group: e.target.value || undefined } as never)} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
                         </div>
                       </div>
                     </td></tr>}</Frag>

@@ -39,7 +39,7 @@ export function LooksPanel({ fixtures, selected, looks, setLooks, onRecall, last
     <div className="space-y-4">
       <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Looks</h2>
       <div className="space-y-2 rounded-lg bg-surface-elevated p-3">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Look name (e.g. Scene 1 — wide)" className="w-full rounded-md border border-input bg-surface px-3 py-2 text-sm outline-none focus:border-primary" />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Look name (e.g. Scene 1 — wide)" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
         <div className="flex gap-2">
           <button disabled={!selected.length} onClick={() => save(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-surface py-2.5 text-xs font-semibold disabled:opacity-40"><Camera className="h-3.5 w-3.5" />Save selected ({selected.length})</button>
           <button disabled={!fixtures.length} onClick={() => save(false)} className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"><Camera className="h-3.5 w-3.5" />Save all lights</button>

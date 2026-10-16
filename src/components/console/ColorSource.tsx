@@ -29,7 +29,7 @@ export function ColorSource({ onPick, compact, noCct }: { onPick: (hex: string, 
       </div>
       {mode === "cct" && (
         <form onSubmit={(e) => { e.preventDefault(); const n = Math.min(10000, Math.max(1700, parseInt(k, 10) || 0)); if (n) { onPick(kelvinHex(n), `${n}K`); setMode("none"); } }} className="flex items-center gap-1.5">
-          <input inputMode="numeric" value={k} onChange={(e) => setK(e.target.value.replace(/\D/g, ""))} className="w-20 rounded-md border border-input bg-surface-elevated px-2 py-1.5 font-mono text-xs" />
+          <input inputMode="numeric" value={k} onChange={(e) => setK(e.target.value.replace(/\D/g, ""))} className="w-20 font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <span className="text-xs">K</span>
           <span className="h-6 w-6 rounded border border-border" style={{ background: kelvinHex(Math.min(10000, Math.max(1700, +k || 3200))) }} />
           {[2700, 3200, 4300, 5600].map((n) => <button key={n} type="button" onClick={() => { onPick(kelvinHex(n), `${n}K`); setMode("none"); }} className="rounded bg-surface-elevated px-1.5 py-1 font-mono text-[10px]">{n}</button>)}
@@ -38,7 +38,7 @@ export function ColorSource({ onPick, compact, noCct }: { onPick: (hex: string, 
       )}
       {mode === "gel" && (
         <div className="space-y-1">
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Gel number or name (★ favourites shown)" className="w-full rounded-md border border-input bg-surface-elevated px-2 py-1.5 text-xs" />
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Gel number or name (★ favourites shown)" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <div className="max-h-40 space-y-0.5 overflow-auto">
             {hits.map((g) => (
               <div key={g.id} className="flex items-center gap-1.5 rounded bg-surface-elevated px-1.5 py-1 text-[11px]">

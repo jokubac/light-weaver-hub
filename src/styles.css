@@ -121,11 +121,20 @@ input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius
 @container (min-width: 600px) { .fixture-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @container (min-width: 760px) { .fixture-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
 
-.nox-wordmark { letter-spacing: 0; text-shadow: var(--wordmark-glow); }
+.nox-wordmark { letter-spacing: 0; text-shadow: var(--text-outline), var(--wordmark-glow); }
 .bulb-lit { fill: color-mix(in oklab, var(--primary) 25%, transparent); filter: drop-shadow(var(--bulb-glow)); }
+
+/* Every glyph carries a thin black outline so text stays readable on any surface. */
+:root {
+  --text-outline:
+    1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000,
+    0.75px 0.75px 0 #000, -0.75px -0.75px 0 #000,
+    0.75px -0.75px 0 #000, -0.75px 0.75px 0 #000;
+}
+body { text-shadow: var(--text-outline); }
 
 @media print {
   body * { visibility: hidden; }
-  .patch-print, .patch-print * { visibility: visible; color: #000 !important; }
+  .patch-print, .patch-print * { visibility: visible; color: #000 !important; text-shadow: none !important; }
   .patch-print { position: absolute; inset: 0; overflow: visible !important; background: #fff; }
 }

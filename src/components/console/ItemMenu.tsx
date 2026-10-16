@@ -85,7 +85,7 @@ export function ItemMenu({
             }}
             className="space-y-4"
           >
-            <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} className="w-full rounded-lg border border-input bg-surface-elevated px-4 py-3 text-sm outline-none focus:border-primary" />
+            <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
             <DialogFooter>
               <button type="submit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">Save</button>
             </DialogFooter>

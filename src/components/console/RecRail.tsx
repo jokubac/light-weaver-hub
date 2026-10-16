@@ -55,7 +55,7 @@ export function RecDialog({ open, onOpenChange, selected, all, recordings, setRe
             <button onClick={() => setNaming(true)} className="w-full rounded-lg bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground">+ Create new REC</button>
           ) : <div className="flex gap-2">
             <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} placeholder={`REC ${recordings.length + 1}`}
-              className="min-w-0 flex-1 rounded-lg border border-input bg-surface-elevated px-3 py-2 text-sm outline-none focus:border-primary" aria-label="Recording name" />
+              className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label="Recording name" />
             <button onClick={create} className="rounded-lg bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground">Save</button>
           </div>}
           {recordings.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Add as next cue to</p>}
@@ -108,7 +108,7 @@ export function RecEditor({ open, onOpenChange, ...rail }: RailProps & { open: b
   );
 }
 
-export function RecRail({ recordings, setRecordings, selectedFixtures, playing, paused, progress, waiting, onGo, onPlay, onPause, onStop, large }: RailProps & { large?: boolean }) {
+export function RecRail({ recordings, setRecordings, selectedFixtures, playing, paused, progress, waiting, onGo, onPlay, onPause, onStop, large, hideTitle }: RailProps & { large?: boolean; hideTitle?: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
   const [stepOpen, setStepOpen] = useState<string | null>(null);
   const upd = (id: string, fn: (r: Recording) => Recording) => setRecordings(recordings.map((r) => (r.id === id ? fn(r) : r)));
@@ -117,7 +117,7 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
 
   return (
     <>
-      {!large && <p className="w-full shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:mt-3 lg:border-t lg:border-border lg:pt-3">REC</p>}
+      {!large && !hideTitle && <p className="w-full shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:mt-3 lg:border-t lg:border-border lg:pt-3">REC</p>}
       {recordings.length === 0 && <p className="text-[11px] text-muted-foreground">Select lights and press REC to record.</p>}
       {recordings.map((r) => {
         const total = recLength(r) || 1;

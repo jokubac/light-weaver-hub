@@ -21,7 +21,7 @@ export function SpeedControl({ label, value, unit, onChange }: { label: string; 
         <input id={`speed-${label}`} aria-label={`${label} value`} inputMode="decimal" value={draft ?? String(+value.toFixed(5))}
           onFocus={(e) => { setDraft(String(value)); e.target.select(); }} onChange={(e) => setDraft(e.target.value)} onBlur={commit}
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setDraft(null); e.currentTarget.blur(); } }}
-          className="w-20 rounded border border-input bg-surface-elevated px-2 py-1 text-right" />
+          className="w-20 text-right rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
         <span>{unit}</span>
       </div>
     </div>

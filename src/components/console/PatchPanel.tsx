@@ -167,7 +167,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         <div className="space-y-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
           </div>
         </div>
       )}
@@ -206,7 +206,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         <List>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full rounded-lg border border-input bg-surface-elevated py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary" />
+            <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
           </div>
           <div className="flex flex-wrap gap-1.5">
             {CAP_FILTERS.filter((c) => caps.includes(c.id) || def.modes.some((_, i) => modeHasCap(def, i, c.id))).map((c) => (
@@ -354,7 +354,7 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
   );
 }
 
-const inputCls = "w-full rounded-md border border-input bg-surface px-3 py-2 text-sm outline-none focus:border-primary";
+const inputCls = "w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -525,7 +525,7 @@ function GdtfLibrarySearch({ onPick }: { onPick: (d: FixtureDef) => void }) {
     <div className="space-y-1.5 rounded-md bg-surface p-2">
       <div className="flex items-center gap-1.5">
         <Search className="h-3.5 w-3.5 text-muted-foreground" />
-        <input value={q} onFocus={open} onChange={(e) => setQ(e.target.value)} placeholder={list ? `Search ${list.length} GDTF fixtures…` : "Search GDTF library…"} className="min-w-0 flex-1 rounded border border-input bg-surface-elevated px-2 py-1 text-[11px]" aria-label="Search GDTF library" />
+        <input value={q} onFocus={open} onChange={(e) => setQ(e.target.value)} placeholder={list ? `Search ${list.length} GDTF fixtures…` : "Search GDTF library…"} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label="Search GDTF library" />
       </div>
       {err && <p className="text-[11px] text-destructive">{err}</p>}
       {q && list && hits.length === 0 && <p className="text-[11px] text-muted-foreground">No match.</p>}

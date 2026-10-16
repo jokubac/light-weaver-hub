@@ -36,7 +36,7 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
           <div className="font-semibold uppercase tracking-wide text-muted-foreground">New {kind.toLowerCase()}</div>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={fallback}
             onKeyDown={(e) => { if (e.key === "Enter" && canCreate) { onCreate(name.trim() || fallback, color); setName(""); } }}
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5" />
+            className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <div className="flex gap-1.5">
             {SAVE_COLOURS.map((c) => (
               <button key={c} aria-label={`Colour ${c}`} onClick={() => setColor(c)} style={{ background: c }}
@@ -59,7 +59,7 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
                   {editing === it.id
                     ? <input autoFocus defaultValue={it.name} onBlur={(e) => { patch(it.id, { name: e.target.value.trim() || it.name }); setEditing(null); }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                        className="min-w-0 flex-1 rounded border border-border bg-background px-1 py-0.5" />
+                        className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
                     : <button className="min-w-0 flex-1 truncate text-left font-semibold" onClick={() => onPick?.(it.id)} title={onPick ? "Select" : undefined}>{it.name}{it.info && <span className="ml-1 font-normal text-muted-foreground">{it.info}</span>}</button>}
                   <button aria-label="Move up" onClick={() => move(i, -1)} className="p-0.5 disabled:opacity-30" disabled={i === 0}><ArrowUp className="h-3.5 w-3.5" /></button>
                   <button aria-label="Move down" onClick={() => move(i, 1)} className="p-0.5 disabled:opacity-30" disabled={i === items.length - 1}><ArrowDown className="h-3.5 w-3.5" /></button>

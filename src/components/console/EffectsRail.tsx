@@ -5,16 +5,16 @@ import { useFxLibrary } from "@/lib/fxlib";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { PixelLayer } from "@/lib/pixels";
 
-export function EffectsRail({ fixture, layer, onFixture, onPixel }: {
+export function EffectsRail({ fixture, layer, onFixture, onPixel, hideTitle }: {
   fixture: PatchedFixture | undefined; layer: PixelLayer | undefined;
-  onFixture: (fx: PatchedFixture["fx"]) => void; onPixel: (layer: PixelLayer) => void;
+  onFixture: (fx: PatchedFixture["fx"]) => void; onPixel: (layer: PixelLayer) => void; hideTitle?: boolean;
 }) {
   const library = useFxLibrary();
   const [kind, setKind] = useState<"fx" | "pixel">("fx");
   const [name, setName] = useState("");
   const available = kind === "fx" ? fixture && fixture.fx.kind !== "none" : layer;
-  return <section aria-label="Saved effects" className="space-y-2 border-t border-border pt-3">
-    <h3 className="text-[10px] font-semibold uppercase text-muted-foreground">Effects</h3>
+  return <section aria-label="Saved effects" className={`space-y-2 ${hideTitle ? "" : "border-t border-border pt-3"}`}>
+    {!hideTitle && <h3 className="text-[10px] font-semibold uppercase text-muted-foreground">Effects</h3>}
     <div className="flex gap-1" role="tablist" aria-label="Effect type">
       <Button size="sm" role="tab" aria-selected={kind === "fx"} variant={kind === "fx" ? "default" : "secondary"} onClick={() => setKind("fx")}>Fixture</Button>
       <Button size="sm" role="tab" aria-selected={kind === "pixel"} variant={kind === "pixel" ? "default" : "secondary"} onClick={() => setKind("pixel")}>Pixel</Button>
@@ -26,7 +26,7 @@ export function EffectsRail({ fixture, layer, onFixture, onPixel }: {
       else if (kind === "pixel" && layer) library.savePixel(name.trim(), layer);
       setName("");
     }}>
-      <input aria-label="Effect name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Effect name" className="min-w-0 flex-1 rounded border border-input bg-surface-elevated px-2 py-2 text-xs" />
+      <input aria-label="Effect name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Effect name" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
       <Button type="submit" size="icon" disabled={!available || !name.trim()} title="Save effect" aria-label="Save effect"><Save className="h-4 w-4" /></Button>
     </form>
     {library.lib[kind].map((item) => <div key={item.id} className="flex items-center gap-1 rounded bg-surface-elevated">

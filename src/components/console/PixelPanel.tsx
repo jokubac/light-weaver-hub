@@ -96,7 +96,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       </div>
 
       <div className="flex gap-2">
-        <input value={layer.name} onChange={(e) => set({ name: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm" aria-label="Layer name" />
+        <input value={layer.name} onChange={(e) => set({ name: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label="Layer name" />
         <button onClick={copyEffect} title="Copy this pixel effect" aria-label="Copy pixel effect" className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
         <button onClick={pasteEffect} disabled={!effectClip} title="Paste the copied effect onto the selected lights" aria-label="Paste pixel effect" className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><ClipboardPaste className="h-4 w-4" /></button>
         {layers.length > 1 && (
@@ -141,7 +141,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
 
       {layer.kind === "text" && (
         <div className="space-y-1">
-          <input value={layer.text} onChange={(e) => set({ text: e.target.value.slice(0, 60) })} placeholder="Type text to scroll…" className="w-full rounded-lg border border-input bg-surface-elevated px-3 py-2.5 font-mono text-sm uppercase" />
+          <input value={layer.text} onChange={(e) => set({ text: e.target.value.slice(0, 60) })} placeholder="Type text to scroll…" className="w-full font-mono uppercase rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <p className="text-[10px] text-muted-foreground">Text is {H} pixels tall. Use "Upright" with several tubes side by side for readable letters.</p>
         </div>
       )}
