@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Zap, AlertTriangle, Play, Square, Power, TrendingUp } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Zap, AlertTriangle, Play, Square, Power, TrendingUp } from "lucide-react";
 import {
   CURVES,
   DEFAULT_CCT,
@@ -355,11 +355,15 @@ function ColorPick({ value, onChange }: { value: string; onChange: (c: string) =
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="space-y-3 border-t border-border pt-4">
-      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
-      {children}
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
+        {title}
+        <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open ? "" : "-rotate-90"}`} />
+      </button>
+      {open && children}
     </div>
   );
 }
