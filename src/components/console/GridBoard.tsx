@@ -701,7 +701,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   <button key={`${c}x${r}`} onClick={() => patch(pick.id, { cs: c, rs: r })} aria-pressed={on} className={`rounded-md border px-2 py-1 font-mono ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{c}×{r}</button>); })}
               </div>
             </section>)}
-            {pick.kind === "macro" && <Button variant="ghost" size="sm" onClick={() => { patch(pick.id, { kind: "empty", macro: undefined }); setPicker(null); }}>Clear macro</Button>}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+              {pick.kind === "macro" ? <Button variant="ghost" size="sm" onClick={() => patch(pick.id, { kind: "empty", macro: undefined })}>Clear macro</Button> : <span />}
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { const ids = [pick.id, ...(pick.kind === "table" ? tableCarry(grid.items, { id: pick.id, x: pick.x, y: pick.y, w: W(pick), h: H(pick) }, sz).map((i) => i.id) : [])]; removeIds(ids); setPicker(null); }}><Trash2 className="h-3.5 w-3.5" />Remove</Button>
+            </div>
+
           </div>)}
         </DialogContent>
       </Dialog>
