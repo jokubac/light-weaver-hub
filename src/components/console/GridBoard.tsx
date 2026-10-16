@@ -163,8 +163,30 @@ export const MACRO_CELL = 1.1;
 const SIZE_STOPS: [number, string][] = [[1 / 8, "1/8"], [1 / 4, "1/4"], [1 / 2, "1/2"], [1, "1"], [2, "2"], [3, "3"], [4, "4"]];
 /** Turns a corner-resized macro box into a whole-cell span inside its table (at least 1×1, never wider than the table); the size stops reset to full cells. */
 export function spanOf(w: number, h: number, table: GridItem, sz = SIZE) {
-  const tb = boxOf(table, sz), cols = Math.max(1, table.cols ?? 0, Math.round(tb.w / MACRO_CELL)), cw = tb.w / cols;
+  const tb = boxOf(table, sz), cols = Math.max(1, Math.round(tb.w / MACRO_CELL)), cw = MACRO_CELL;
   return { cs: Math.min(cols, Math.max(1, Math.round(w / cw))), rs: Math.max(1, Math.round(h / cw)), sk: 1 as const };
+}
+export const TABLE_HEADER = 0.4;
+/**
+ * Edge/corner resize of one macro table. Cells keep a fixed size (MACRO_CELL), so buttons never change size —
+ * every edge moves in whole cells, grows without limit and shrinks until it reaches the macros inside
+ * (an empty table shrinks to a single cell). Macros keep their place on the grid.
+ */
+export function resizeTable(t: Box, corner: Corner, px: number, py: number, members: Box[]): Box {
+  const C = MACRO_CELL, e = 0.02;
+  const cols0 = Math.max(1, Math.round(t.w / C)), rows0 = Math.max(1, Math.round((t.h - TABLE_HEADER) / C));
+  const oy = t.y + TABLE_HEADER;
+  const has = members.length > 0;
+  const cMin = has ? Math.min(...members.map((m) => Math.floor((m.x + e - t.x) / C))) : 0;
+  const cMax = has ? Math.max(...members.map((m) => Math.ceil((m.x + m.w - e - t.x) / C))) : 0;
+  const rMin = has ? Math.min(...members.map((m) => Math.floor((m.y + e - oy) / C))) : 0;
+  const rMax = has ? Math.max(...members.map((m) => Math.ceil((m.y + m.h - e - oy) / C))) : 0;
+  let L = 0, R = cols0, T = 0, B = rows0;
+  if (corner === "tl" || corner === "bl") L = Math.min(Math.round((px - t.x) / C), has ? cMin : R - 1);
+  else R = Math.max(Math.round((px - t.x) / C), has ? cMax : L + 1);
+  if (corner === "tl" || corner === "tr") T = Math.min(Math.round((py - t.y) / C), has ? rMin : B - 1);
+  else B = Math.max(Math.round((py - oy) / C), has ? rMax : T + 1);
+  return { id: t.id, x: t.x + L * C, y: t.y + T * C, w: (R - L) * C, h: (B - T) * C + TABLE_HEADER };
 }
 const isMacroBox = (i: GridItem) => i.kind === "macro" || i.kind === "empty";
 /** After a drag: moved macro squares join the table under their centre; dropped outside every table they go back to the table they came from. */
@@ -181,10 +203,10 @@ export function dropIntoTables(items: GridItem[], moved: Set<string>, sz = SIZE)
 export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
   const out = new Map(items.map((i) => [i.id, i]));
   for (const t of items.filter((i) => i.kind === "table")) {
-    // Columns follow the table width (one cell ≈ MACRO_CELL) but never drop below the table's current count — a narrower table shrinks its cells instead of collapsing to one column; rows follow its height and grow when macros need more room.
-    const tb = boxOf(t, sz), cols = Math.max(1, t.cols ?? 0, Math.round(tb.w / MACRO_CELL));
+    // Cells have a fixed size (MACRO_CELL) so buttons never change size when the table is resized; columns/rows follow the table's width/height.
+    const tb = boxOf(t, sz), cols = Math.max(1, Math.round(tb.w / MACRO_CELL));
     const members = items.filter((i) => isMacroBox(i) && i.tbl === t.id).sort((a, b) => a.y - b.y || a.x - b.x);
-    const cw = tb.w / cols, ch = cw;
+    const cw = MACRO_CELL, ch = cw;
     const pad = cw * 0.06;
     // First-fit packing: each macro takes cs × rs cells (1×1 by default), placed in reading order.
     const used: boolean[][] = [];
