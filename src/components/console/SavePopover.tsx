@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const SAVE_COLOURS = ["#f5a524", "#ef4444", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#14b8a6", "#e5e7eb"];
 
@@ -18,15 +17,21 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(SAVE_COLOURS[0]!);
   const [editing, setEditing] = useState<string | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => { if (root.current && !root.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", close); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", esc); };
+  }, [open]);
   const fallback = `${kind} ${items.length + 1}`;
   const move = (i: number, d: number) => { const n = [...items]; const j = i + d; if (j < 0 || j >= n.length) return; const t = n[i]!; n[i] = n[j]!; n[j] = t; onChange(n); };
   const patch = (id: string, p: Partial<SaveItem>) => onChange(items.map((x) => (x.id === id ? { ...x, ...p } : x)));
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) { setName(""); setEditing(null); } }}>
-      <PopoverTrigger asChild>
-        <button disabled={disabled} className="rounded-md bg-surface-elevated px-3 py-1.5 font-semibold disabled:opacity-40">{label}</button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-80 space-y-3 p-3 text-xs">
+    <div ref={root} className="relative">
+      <button disabled={disabled} onClick={() => { setOpen((o) => !o); setName(""); setEditing(null); }} className="rounded-md bg-surface-elevated px-3 py-1.5 font-semibold disabled:opacity-40">{label}</button>
+      {open && <div className="absolute left-0 top-full z-50 mt-1 w-80 space-y-3 rounded-md border border-border bg-popover p-3 text-xs text-popover-foreground shadow-lg">
         <div className="space-y-2">
           <div className="font-semibold uppercase tracking-wide text-muted-foreground">New {kind.toLowerCase()}</div>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={fallback}
@@ -73,7 +78,7 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
             ))}
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      </div>}
+    </div>
   );
 }
