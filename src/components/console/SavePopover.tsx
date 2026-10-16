@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 export const SAVE_COLOURS = ["#f5a524", "#ef4444", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#14b8a6", "#e5e7eb"];
 
-export interface SaveItem { id: string; name: string; color?: string; info?: string }
+export interface SaveItem { id: string; name: string; color?: string | undefined; info?: string }
 
 /** "+ Group" / "+ Look" dropdown: name + colour for a new item, plus list to reorder, rename, recolour and delete. */
 export function SavePopover({ label, kind, items, disabled, canCreate, onCreate, onChange, onDelete, onPick }: {
@@ -16,10 +16,10 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [color, setColor] = useState(SAVE_COLOURS[0]);
+  const [color, setColor] = useState<string>(SAVE_COLOURS[0]!);
   const [editing, setEditing] = useState<string | null>(null);
   const fallback = `${kind} ${items.length + 1}`;
-  const move = (i: number, d: number) => { const n = [...items]; const j = i + d; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j], n[i]]; onChange(n); };
+  const move = (i: number, d: number) => { const n = [...items]; const j = i + d; if (j < 0 || j >= n.length) return; const t = n[i]!; n[i] = n[j]!; n[j] = t; onChange(n); };
   const patch = (id: string, p: Partial<SaveItem>) => onChange(items.map((x) => (x.id === id ? { ...x, ...p } : x)));
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) { setName(""); setEditing(null); } }}>
