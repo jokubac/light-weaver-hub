@@ -265,7 +265,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [label, setLabel] = useState("");
   const [param, setParam] = useState("");
   const [gelQ, setGelQ] = useState("");
-  const [gelCat, setGelCat] = useState<"All" | "Correction" | "Effect" | "LEE" | "Rosco">("All");
+  const [gelBrand, setGelBrand] = useState<"All" | "Rosco" | "LEE">("All");
+  const [gelKind, setGelKind] = useState<"All" | "Correction" | "Effect">("All");
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
