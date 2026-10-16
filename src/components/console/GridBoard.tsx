@@ -137,7 +137,33 @@ export function boxOf(i: GridItem, sz = SIZE) {
 }
 /** Squares that stick to a table when it is dragged: macros whose centre sits inside the table. Fixtures never stick. */
 export function tableCarry(items: GridItem[], table: { x: number; y: number; w: number; h: number }, sz = SIZE) {
-  return items.filter((i) => { const b = boxOf(i, sz); const cx = i.x + b.w / 2, cy = i.y + b.h / 2; return i.kind === "macro" && cx > table.x && cx < table.x + table.w && cy > table.y && cy < table.y + table.h; });
+  const id = (table as { id?: string }).id;
+  return items.filter((i) => { if (i.kind !== "macro" && i.kind !== "empty") return false; if (id && i.tbl === id) return true; const b = boxOf(i, sz); const cx = i.x + b.w / 2, cy = i.y + b.h / 2; return cx > table.x && cx < table.x + table.w && cy > table.y && cy < table.y + table.h; });
+}
+const isMacroBox = (i: GridItem) => i.kind === "macro" || i.kind === "empty";
+/** After a drag: moved macro squares join the table under their centre; dropped outside every table they go back to the table they came from. */
+export function dropIntoTables(items: GridItem[], moved: Set<string>, sz = SIZE): GridItem[] {
+  const tables = items.filter((i) => i.kind === "table");
+  return items.map((i) => {
+    if (!moved.has(i.id) || !isMacroBox(i)) return i;
+    const b = boxOf(i, sz), cx = i.x + b.w / 2, cy = i.y + b.h / 2;
+    const t = tables.find((t) => { const tb = boxOf(t, sz); return cx > t.x && cx < t.x + tb.w && cy > t.y && cy < t.y + tb.h; });
+    return t ? { ...i, tbl: t.id } : i;
+  });
+}
+/** Lines every table's macro squares up in reading order (by current position, so drop location sets the order); tables grow rows to fit. */
+export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
+  const out = new Map(items.map((i) => [i.id, i]));
+  for (const t of items.filter((i) => i.kind === "table")) {
+    const tb = boxOf(t, sz), cols = Math.max(1, t.cols ?? 4);
+    const members = items.filter((i) => isMacroBox(i) && i.tbl === t.id).sort((a, b) => a.y - b.y || a.x - b.x);
+    const cw = tb.w / cols, ch = cw;
+    const rows = Math.max(t.rows ?? 3, Math.ceil(members.length / cols));
+    const pad = cw * 0.06;
+    out.set(t.id, { ...t, rows, h: rows * ch + 0.4 });
+    members.forEach((m, k) => { const c = k % cols, r = Math.floor(k / cols); out.set(m.id, { ...m, x: t.x + c * cw + pad, y: t.y + 0.4 + r * ch + pad, w: cw - 2 * pad, h: ch - 2 * pad, s: undefined }); });
+  }
+  return items.map((i) => out.get(i.id)!);
 }
 type Box = { id: string; x: number; y: number; w: number; h: number };
 export type Corner = "tl" | "tr" | "bl" | "br";
