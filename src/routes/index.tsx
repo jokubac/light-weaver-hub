@@ -846,6 +846,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     else if (m.action === "back") goRef.current(-1);
     else if (m.action === "play") { if (play && play.pausedAt != null) { if (play.waiting != null) goRec(); else setPlay({ ...play, start: performance.now() - play.pausedAt * 1000, pausedAt: undefined }); } else goRef.current(1); }
     else if (m.action === "pause") pauseRec();
+    else if (m.action === "cue_reset") stopRec();
+    else if (m.action === "fx_toggle") { const on = sel.some((f) => f.fx.kind !== "none" && f.fxPlaying === false); setFixtures((fs) => fs.map((f) => selected.includes(f.uid) && f.fx.kind !== "none" ? { ...f, fxPlaying: on } : f)); }
+    else if (m.action === "pixel_toggle") { const on = !layers.some((l) => l.playing); setLayers(layers.map((l) => ({ ...l, playing: on }))); }
     else if (m.action === "blackout") toggleBlackout();
     else if (m.action === "undo") undo();
     else if (m.action === "redo") redo();

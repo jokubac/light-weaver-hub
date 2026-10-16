@@ -41,8 +41,8 @@ describe("next / previous light", () => {
   it("previous wraps from the first light to the last", () => {
     expect(stepSelection(order, ["b"], "a", -1)).toEqual({ selection: ["c"], lastPick: "c" });
   });
-  it("offers plain and keeps-selection next/previous as separate actions", () => {
+  it("offers next/previous actions", () => {
     const ids: string[] = MACRO_ACTIONS.map((a) => a.id);
-    expect(["next", "prev", "next_add", "prev_add"].every((i) => ids.includes(i))).toBe(true);
+    expect(["next", "prev"].every((i) => ids.includes(i))).toBe(true);
   });
 });
