@@ -629,7 +629,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                         onClick={(e) => { e.stopPropagation(); const cols = it.cols ?? 4, cw = W(it) / cols; addSquare(it.id, it.x + (k % cols) * cw, it.y + 0.4 + Math.floor(k / cols) * cw, cw); }}>
                         <Plus className="h-4 w-4" />
                       </button>
-                    ))}
+                    ); })}
                   </div>}
                 </>) : f ? (<>
                   <span className="font-mono font-semibold text-foreground/80">#{n}</span>
