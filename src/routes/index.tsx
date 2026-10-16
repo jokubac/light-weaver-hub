@@ -918,6 +918,78 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   );
   const outputEnabled = bo.target === 0;
 
+
+  // Fixture tiles with their selection toolbar — shared by the console area and the Fixtures window
+  const fixtureBoard = () => (
+            <>
+              <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-2 text-xs text-muted-foreground backdrop-blur">
+                <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
+                <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
+                 <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
+                  className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
+                 <Button variant="secondary" size="icon" aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
+                   onClick={() => setKeypadOpen((o) => !o)} className={keypadOpen ? "bg-primary text-primary-foreground" : ""}><Keyboard className="h-4 w-4" /></Button>
+                 <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
+                   onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
+                   onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
+                   onContextMenu={(e) => e.preventDefault()}
+                   onClick={() => { if (!recHold.current.fired) setRecOpen(true); }} className="gap-1.5 px-3 text-xs font-bold select-none">
+                   <span className={`h-2.5 w-2.5 rounded-full bg-destructive ${play ? "animate-pulse" : ""}`} />REC
+                 </Button>
+                 <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={locked ? "" : "bg-amber-glow text-primary-foreground"}>
+                   {locked ? <Lock /> : <Unlock />}
+                 </Button>
+                 <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
+                   onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
+                   className={swapping ? "bg-primary text-primary-foreground" : ""}><ArrowLeftRight className="h-4 w-4" /></Button>
+                <span>{selected.length} selected</span>
+              </div>
+              <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
+                onPointerDown={(e) => { if (!sweep) return; e.preventDefault(); swept.current = new Set(); sweepAt(e.clientX, e.clientY); }}
+                onPointerMove={(e) => { if (sweep && swept.current && (e.buttons || e.pointerType === "touch")) sweepAt(e.clientX, e.clientY); }}
+                onPointerUp={() => { swept.current = null; }}
+                onPointerCancel={() => { swept.current = null; }}>
+                {fixtures.map((f, i) => {
+                  const def = getDef(f.defId);
+                  const of = pulses[f.uid] ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
+                  const color = fixtureColor(of, t, outLevel);
+                  const isSel = selected.includes(f.uid);
+                  const pix = frame.get(f.uid);
+                  const pv = of.on === false ? 0 : of.intensity * outLevel;
+                  const [gc, gr] = pixelGrid(f);
+                  return (
+                     <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`${swapping ? "Swap" : "Select"} fixture ${i + 1}, ${f.name}`} aria-pressed={swapping ? swapSource === f.uid : isSel} tabIndex={0} onPointerDown={() => { if (!sweep && !swapping) tileDown(f.uid); }} onPointerUp={() => tileUp(f.uid)} onPointerCancel={() => tileUp(f.uid)} onClick={(e) => { if (swapping) swapTile(f.uid); else if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (swapping) swapTile(f.uid); else toggleSelect(f.uid); } if (e.key === "Escape") { setSwapSource(null); setSwapping(false); } }}
+                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"} ${cursor === f.uid && browsing.current ? "ring-2 ring-foreground/70 ring-offset-1 ring-offset-background bg-foreground/5" : ""}`}>
+                      {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
+                      <span aria-hidden="true" className="pointer-events-none absolute left-1 top-1.5 z-10 rounded bg-surface-elevated/90 px-1 font-mono text-[9px] font-semibold leading-tight text-foreground/80">#{i + 1}</span>
+
+                      <FixtureGlyph className="min-h-0 w-full flex-1" model={def.model} icon={f.icon} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
+                      <div className="flex shrink-0 items-center gap-1">
+                        <div title={f.name} className="flex min-w-0 flex-1 items-center gap-1 truncate text-[11px] font-semibold">
+                          {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
+                          {f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}
+                        </div>
+                        <FixtureMenu f={f} fixtures={fixtures} locked={locked} groups={groups}
+                          onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g) => setGroup(f, g)}
+                          level={outLevel} onPower={(p) => setFixtures((fs) => fs.map((x) => { if (x.uid !== f.uid) return x; const { power: _p, ...rest } = x; return p ? { ...rest, power: p } : rest; }))} />
+                      </div>
+                      <div className="flex shrink-0 justify-between gap-1 text-[9px] text-muted-foreground">
+                        <span className="truncate">U{f.universe}.{f.address}</span>
+                        <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
+                      </div>
+                      {f.group && <div className="shrink-0 truncate text-[9px] text-primary">{f.group}</div>}
+                      {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
+                        <div title={`${fmtHours(b.hours)} left`} className={`flex shrink-0 items-center gap-1 text-[9px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
+                          <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)}
+                        </div>); })()}
+                      {f.fx.kind !== "none" && <div className={`shrink-0 truncate text-[9px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+  );
+
   return (
     <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
@@ -995,73 +1067,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           {fixtures.length === 0 ? (
             <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
           ) : (
-            <>
-              <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-2 text-xs text-muted-foreground backdrop-blur">
-                <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
-                <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
-                 <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
-                  className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
-                 <Button variant="secondary" size="icon" aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
-                   onClick={() => setKeypadOpen((o) => !o)} className={keypadOpen ? "bg-primary text-primary-foreground" : ""}><Keyboard className="h-4 w-4" /></Button>
-                 <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
-                   onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
-                   onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
-                   onContextMenu={(e) => e.preventDefault()}
-                   onClick={() => { if (!recHold.current.fired) setRecOpen(true); }} className="gap-1.5 px-3 text-xs font-bold select-none">
-                   <span className={`h-2.5 w-2.5 rounded-full bg-destructive ${play ? "animate-pulse" : ""}`} />REC
-                 </Button>
-                 <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={locked ? "" : "bg-amber-glow text-primary-foreground"}>
-                   {locked ? <Lock /> : <Unlock />}
-                 </Button>
-                 <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
-                   onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
-                   className={swapping ? "bg-primary text-primary-foreground" : ""}><ArrowLeftRight className="h-4 w-4" /></Button>
-                <span>{selected.length} selected</span>
-              </div>
-              <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
-                onPointerDown={(e) => { if (!sweep) return; e.preventDefault(); swept.current = new Set(); sweepAt(e.clientX, e.clientY); }}
-                onPointerMove={(e) => { if (sweep && swept.current && (e.buttons || e.pointerType === "touch")) sweepAt(e.clientX, e.clientY); }}
-                onPointerUp={() => { swept.current = null; }}
-                onPointerCancel={() => { swept.current = null; }}>
-                {fixtures.map((f, i) => {
-                  const def = getDef(f.defId);
-                  const of = pulses[f.uid] ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
-                  const color = fixtureColor(of, t, outLevel);
-                  const isSel = selected.includes(f.uid);
-                  const pix = frame.get(f.uid);
-                  const pv = of.on === false ? 0 : of.intensity * outLevel;
-                  const [gc, gr] = pixelGrid(f);
-                  return (
-                     <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`${swapping ? "Swap" : "Select"} fixture ${i + 1}, ${f.name}`} aria-pressed={swapping ? swapSource === f.uid : isSel} tabIndex={0} onPointerDown={() => { if (!sweep && !swapping) tileDown(f.uid); }} onPointerUp={() => tileUp(f.uid)} onPointerCancel={() => tileUp(f.uid)} onClick={(e) => { if (swapping) swapTile(f.uid); else if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (swapping) swapTile(f.uid); else toggleSelect(f.uid); } if (e.key === "Escape") { setSwapSource(null); setSwapping(false); } }}
-                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"} ${cursor === f.uid && browsing.current ? "ring-2 ring-foreground/70 ring-offset-1 ring-offset-background bg-foreground/5" : ""}`}>
-                      {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
-                      <span aria-hidden="true" className="pointer-events-none absolute left-1 top-1.5 z-10 rounded bg-surface-elevated/90 px-1 font-mono text-[9px] font-semibold leading-tight text-foreground/80">#{i + 1}</span>
-
-                      <FixtureGlyph className="min-h-0 w-full flex-1" model={def.model} icon={f.icon} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
-                      <div className="flex shrink-0 items-center gap-1">
-                        <div title={f.name} className="flex min-w-0 flex-1 items-center gap-1 truncate text-[11px] font-semibold">
-                          {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
-                          {f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}
-                        </div>
-                        <FixtureMenu f={f} fixtures={fixtures} locked={locked} groups={groups}
-                          onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g) => setGroup(f, g)}
-                          level={outLevel} onPower={(p) => setFixtures((fs) => fs.map((x) => { if (x.uid !== f.uid) return x; const { power: _p, ...rest } = x; return p ? { ...rest, power: p } : rest; }))} />
-                      </div>
-                      <div className="flex shrink-0 justify-between gap-1 text-[9px] text-muted-foreground">
-                        <span className="truncate">U{f.universe}.{f.address}</span>
-                        <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
-                      </div>
-                      {f.group && <div className="shrink-0 truncate text-[9px] text-primary">{f.group}</div>}
-                      {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
-                        <div title={`${fmtHours(b.hours)} left`} className={`flex shrink-0 items-center gap-1 text-[9px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
-                          <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)}
-                        </div>); })()}
-                      {f.fx.kind !== "none" && <div className={`shrink-0 truncate text-[9px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+              {fixtureBoard()}
           )}
         </div>
 
