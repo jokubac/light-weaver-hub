@@ -23,3 +23,17 @@ export function loadLog(): MacroLogEntry[] {
   return [];
 }
 export function saveLog(l: MacroLogEntry[]) { try { localStorage.setItem(KEY, JSON.stringify(l)); } catch { /* ignore */ } }
+
+/** Saved takes: a named copy of logged macros that can be replayed and edited later. */
+export interface MacroTake { id: string; name: string; saved: number; entries: MacroLogEntry[] }
+const TAKES = "nox-macro-takes-v1";
+export function loadTakes(): MacroTake[] {
+  try { const r = localStorage.getItem(TAKES); if (r) return JSON.parse(r); } catch { /* ignore */ }
+  return [];
+}
+export function saveTakes(t: MacroTake[]) { try { localStorage.setItem(TAKES, JSON.stringify(t)); } catch { /* ignore */ } }
+/** Moves one entry to a new offset (seconds from the first entry) and keeps the list in time order. */
+export function retime(entries: MacroLogEntry[], id: string, offsetSec: number): MacroLogEntry[] {
+  const t0 = Math.min(...entries.map((e) => e.at));
+  return entries.map((e) => (e.id === id ? { ...e, at: t0 + Math.max(0, offsetSec) * 1000 } : e)).sort((a, b) => a.at - b.at);
+}

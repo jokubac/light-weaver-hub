@@ -17,3 +17,12 @@ describe("macro timeline", () => {
     expect(log[0]!.id).toBe("3");
   });
 });
+
+import { retime } from "@/lib/macro-log";
+describe("macro take editing", () => {
+  const m = { id: "m", key: null, action: "int_up" as const, amount: 5 };
+  it("moving an entry to +3 s puts it 3 s after the first and re-sorts", () => {
+    const out = retime([{ id: "a", at: 1000, source: "key", macro: m }, { id: "b", at: 2000, source: "key", macro: m }, { id: "c", at: 6000, source: "key", macro: m }], "b", 3);
+    expect(out.map((e) => [e.id, e.at])).toEqual([["a", 1000], ["b", 4000], ["c", 6000]]);
+  });
+});
