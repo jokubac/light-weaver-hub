@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
-import type { PatchedFixture } from "@/lib/fixtures";
+import type { PatchedFixture } from "@/lib/dmx";
 import { Move, PenLine, Trash2, X, Plus } from "lucide-react";
 
 /** Free layout of fixture squares, user-programmed macro buttons and drawn walls (cell units). */
@@ -78,7 +78,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onRun, 
 
       <div className="min-h-0 flex-1 overflow-auto bg-background p-3">
         <div ref={area} className="relative select-none" style={{ width: COLS * CELL, height: ROWS * CELL, touchAction: mode === "use" ? "auto" : "none",
-          backgroundImage: "linear-gradient(to right, hsl(var(--border) / .5) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / .5) 1px, transparent 1px)", backgroundSize: `${CELL}px ${CELL}px` }}
+          backgroundImage: "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)", backgroundSize: `${CELL}px ${CELL}px` }}
           onPointerDown={(e) => { if (mode !== "walls" || (e.target as HTMLElement).dataset.wall) return; const p = pt(e, "corner"); setWall({ x1: p.x, y1: p.y, x2: p.x, y2: p.y }); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
           onPointerMove={(e) => { if (wall) { const p = pt(e, "corner"); setWall({ ...wall, x2: p.x, y2: p.y }); } else if (drag) { const p = pt(e, "cell"); setDrag({ ...drag, ...p }); } }}
           onPointerUp={() => {
