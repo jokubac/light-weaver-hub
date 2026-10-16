@@ -117,14 +117,18 @@ describe("default fixture box", () => {
 });
 
 describe("macros table", () => {
-  const table = { x: 0, y: 0, w: 8, h: 6 };
+  const t1 = { id: "t1", kind: "table" as const, x: 0, y: 0, w: 8, h: 6 };
   const items: GridItem[] = [
-    { id: "m1", kind: "macro", x: 1, y: 1, macro: { action: "cct_up", amount: 100, label: "" } },
-    { id: "m2", kind: "macro", x: 9, y: 9, macro: { action: "cct_up", amount: 100, label: "" } },
+    { id: "m1", kind: "macro", tbl: "t1", x: 1, y: 1, macro: { action: "cct_up", amount: 100, label: "" } },
+    { id: "m2", kind: "macro", tbl: "t2", x: 9, y: 9, macro: { action: "cct_up", amount: 100, label: "" } },
     { id: "f1", kind: "fixture", uid: "f1", x: 2, y: 2 },
   ];
-  it("a dragged table carries only the macro inside it — a fixture standing in the table never sticks", () => {
-    expect(tableCarry(items, table, 0.92).map((i) => i.id)).toEqual(["m1"]);
+  it("a dragged table carries only its own macros — a fixture standing in the table never sticks", () => {
+    expect(tableCarry(items, t1, 0.92).map((i) => i.id)).toEqual(["m1"]);
+  });
+  it("dragging one table over another steals nothing", () => {
+    // t1 dragged on top of t2: m2 now sits inside t1 but belongs to t2, so it must not stick.
+    expect(tableCarry(items, { ...t1, x: 8, y: 8 }, 0.92).map((i) => i.id)).toEqual(["m1"]);
   });
 });
 
