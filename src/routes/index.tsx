@@ -978,6 +978,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                  <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
                    onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
                    className={swapping ? "bg-primary text-primary-foreground" : ""}><ArrowLeftRight className="h-4 w-4" /></Button>
+                <button disabled={!selected.length} title="Create a group from the selected lights"
+                  onClick={() => { const fb = `Group ${groups.length + 1}`; const g = prompt("Group name", fb)?.trim(); if (g === undefined) return; const name = g || fb; setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: name } : x))); }}
+                  className="rounded-md bg-surface-elevated px-3 py-1.5 font-semibold disabled:opacity-40">+ Group</button>
+                <button title="Save a look (selected lights, or all if none selected)"
+                  onClick={() => { const src = selected.length ? fixtures.filter((f) => selected.includes(f.uid)) : fixtures; if (!src.length) return; const looks = project.looks ?? []; const fb = `Look ${looks.length + 1}`; const n = prompt("Look name", fb); if (n === null) return; onLooks([{ id: uid(), name: n.trim() || fb, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...looks]); }}
+                  className="rounded-md bg-surface-elevated px-3 py-1.5 font-semibold">+ Look</button>
                 <span>{selected.length} selected</span>
               </div>
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
