@@ -27,7 +27,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string;
 }) {
   const [mode, setMode] = useState<"select" | "walls">("select");
-  const [drag, setDrag] = useState<{ id: string; ox: number; oy: number; x: number; y: number; sx: number; sy: number; moved: boolean } | null>(null);
+  const [drag, setDrag] = useState<{ id: string; ox: number; oy: number; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number }[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [box, setBox] = useState<{ x1: number; y1: number; x2: number; y2: number; add: boolean } | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={`flex items-center justify-center gap-1 rounded-md py-2 text-xs font-bold ${mode === "select" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><MousePointer2 className="h-3.5 w-3.5" />Select</button>
           <button onClick={() => setMode("walls")} aria-pressed={mode === "walls"} className={`flex items-center justify-center gap-1 rounded-md py-2 text-xs font-bold ${mode === "walls" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><PenLine className="h-3.5 w-3.5" />Walls</button>
         </div>
-        <p className="text-[11px] text-muted-foreground">{mode === "select" ? "Drag squares anywhere. Tap to select or run. Drag on empty space to box-select lights. ⋯ edits a square." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Tap a wall to delete it."}</p>
+        <p className="text-[11px] text-muted-foreground">{mode === "select" ? "Drag squares anywhere — dragging a selected light moves all selected lights. Tap to select or run. Drag on empty space to box-select lights. ⋯ edits a square." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Tap a wall to delete it."}</p>
         <div className="grid grid-cols-2 gap-1.5">
           <Button size="sm" onClick={addSquare}><Plus />Square</Button>
           <Button variant="secondary" size="sm" disabled={fixtures.every((f) => placed.has(f.uid))}
@@ -108,7 +108,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const p = pt(e);
             if (wall) setWall({ ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) });
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
-            else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; setDrag({ ...drag, moved, x: clamp(p.x - drag.ox, COLS - SIZE), y: clamp(p.y - drag.oy, ROWS - SIZE) }); }
+            else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; const g0 = drag.group; let dx = p.x - drag.sx, dy = p.y - drag.sy; for (const m of g0) { dx = Math.max(-m.x, Math.min(COLS - SIZE - m.x, dx)); dy = Math.max(-m.y, Math.min(ROWS - SIZE - m.y, dy)); } setDrag({ ...drag, moved, x: dx, y: dy }); }
           }}
           onPointerUp={() => {
             if (wall) { if (Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, wall] }); setWall(null); }
@@ -122,7 +122,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             }
             if (drag) {
               const it = grid.items.find((i) => i.id === drag.id);
-              if (drag.moved) patch(drag.id, { x: drag.x, y: drag.y });
+              if (drag.moved) setGrid({ ...grid, items: grid.items.map((i) => { const m = drag.group.find((g) => g.id === i.id); return m ? { ...i, x: m.x + drag.x, y: m.y + drag.y } : i; }) });
               else if (it?.kind === "fixture") onToggle(it.uid!);
               else if (it?.kind === "macro") onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount });
               else if (it) setEditing(it.id);
@@ -137,15 +137,16 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             ))}
           </svg>
           {grid.items.map((it) => {
-            const pos = drag?.id === it.id && drag.moved ? drag : it;
+            const gm = drag?.moved ? drag.group.find((g) => g.id === it.id) : undefined;
+            const pos = gm && drag ? { x: gm.x + drag.x, y: gm.y + drag.y } : it;
             const f = it.kind === "fixture" ? fixtures.find((x) => x.uid === it.uid) : undefined;
             const n = f ? fixtures.indexOf(f) + 1 : 0;
             const isSel = !!f && selected.includes(f.uid);
             return (
               <div key={it.id} role="button" tabIndex={0} aria-label={f ? `Select fixture ${n}, ${f.name}` : it.macro ? `Run ${macroLabel(it.macro)}` : "Empty square"} aria-pressed={f ? isSel : undefined}
-                className={`absolute flex flex-col overflow-hidden rounded-lg border p-1 text-[10px] ${mode === "walls" ? "pointer-events-none opacity-60" : "cursor-grab"} ${isSel ? "border-primary ring-2 ring-primary" : editing === it.id ? "border-primary/70 border-dashed" : it.kind === "empty" ? "border-dashed border-border" : "border-border"} ${f ? "bg-card" : "bg-surface-elevated"} ${drag?.id === it.id && drag.moved ? "z-30 shadow-lg" : "z-10"}`}
+                className={`absolute flex flex-col overflow-hidden rounded-lg border p-1 text-[10px] ${mode === "walls" ? "pointer-events-none opacity-60" : "cursor-grab"} ${isSel ? "border-primary ring-2 ring-primary" : editing === it.id ? "border-primary/70 border-dashed" : it.kind === "empty" ? "border-dashed border-border" : "border-border"} ${f ? "bg-card" : "bg-surface-elevated"} ${gm ? "z-30 shadow-lg" : "z-10"}`}
                 style={{ left: pos.x * CELL, top: pos.y * CELL, width: SIZE * CELL, height: SIZE * CELL }}
-                onPointerDown={(e) => { if (mode !== "select") return; e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); const p = pt(e); setDrag({ id: it.id, ox: p.x - it.x, oy: p.y - it.y, x: it.x, y: it.y, sx: p.x, sy: p.y, moved: false }); }}>
+                onPointerDown={(e) => { if (mode !== "select") return; e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); const p = pt(e); const inSel = it.kind === "fixture" && selected.includes(it.uid!); const group = (inSel ? grid.items.filter((i) => i.id === it.id || (i.kind === "fixture" && selected.includes(i.uid!))) : [it]).map((i) => ({ id: i.id, x: i.x, y: i.y })); setDrag({ id: it.id, ox: p.x - it.x, oy: p.y - it.y, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group }); }}>
                 <button aria-label="Edit square" onPointerDown={(e) => e.stopPropagation()} onClick={() => { setEditing(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); } }}
                   className="absolute right-0.5 top-0.5 z-10 rounded bg-surface/80 p-0.5 text-muted-foreground hover:text-foreground"><MoreHorizontal className="h-3 w-3" /></button>
                 {f ? (<>
