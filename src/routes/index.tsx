@@ -1117,9 +1117,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected}
             onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => fixtureColor(f, t, outLevel)} controls={controlPanel()}
             pixelsOf={(f) => { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const pv = of.on === false ? 0 : of.intensity * outLevel; const pix = frame.get(f.uid); const [cols, rows] = pixelGrid(f); const m = getDef(f.defId).model.toLowerCase();
-              const tube = f.icon && f.icon !== "auto" ? f.icon.startsWith("tube-") : /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip|batten|rr50|rr100|rainbow/.test(m);
+              const tube = f.icon && f.icon !== "auto" ? f.icon.startsWith("tube-") : /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip|batten|\bbar\b|dotline|pixel ?line|rr50|rr100|rainbow/.test(m);
               const n = cols * rows; let gc = cols, gr = rows; if (!getMode(f).grid && !tube && n > 2) { gc = Math.ceil(Math.sqrt(n)); gr = Math.ceil(n / gc); }
-              const aspect = !getMode(f).grid && !tube ? 1 : cols > 1 || rows > 1 ? (tube && cols === 1 && rows > cols ? rows / cols : cols / Math.max(1, rows)) : tube ? 4 : 1;
+              const aspect = !tube ? 1 : cols > 1 || rows > 1 ? (tube && cols === 1 && rows > cols ? rows / cols : cols / Math.max(1, rows)) : tube ? 4 : 1;
               return { cells: pix?.map((c) => `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})`), cols: tube && cols === 1 && rows > cols ? rows : gc, rows: tube && cols === 1 && rows > cols ? cols : gr, aspect }; }} />
         </div>
       )}
