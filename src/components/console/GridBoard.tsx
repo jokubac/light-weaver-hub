@@ -54,7 +54,7 @@ export function arrange(pts: { id: string; x: number; y: number }[], how: Arrang
     case "triangle": {
       let rows = 1; while ((rows * (rows + 1)) / 2 < n) rows++;
       let i = 0; const out: { id: string; x: number; y: number }[] = [];
-      for (let r = 0; r < rows && i < n; r++) { const k = Math.min(r + 1, n - i); for (let j = 0; j < k; j++, i++) out.push({ ...byY[i], x: minX + ((rows - k) * step) / 2 + j * step, y: minY + r * step }); }
+      for (let r = 0; r < rows && i < n; r++) { const k = Math.min(r + 1, n - i); for (let j = 0; j < k; j++, i++) out.push({ ...byY[i]!, x: minX + ((rows - k) * step) / 2 + j * step, y: minY + r * step }); }
       return fit(out);
     }
     case "circle": {
@@ -66,7 +66,7 @@ export function arrange(pts: { id: string; x: number; y: number }[], how: Arrang
     case "rotate": {
       // screen y points down, so increasing angle is clockwise: each light takes the next light's spot
       const order = [...pts].sort((a, b) => angle(a) - angle(b));
-      return order.map((p, i) => { const t = order[(i + 1) % n]; return { ...p, x: t.x, y: t.y }; });
+      return order.map((p, i) => { const t = order[(i + 1) % n]!; return { ...p, x: t.x, y: t.y }; });
     }
   }
 }
