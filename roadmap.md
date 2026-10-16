@@ -132,3 +132,5 @@
 - [x] FIXTURES opens a full-screen window with the fixture tiles grid (same tiles, selection toolbar and gestures as the console area); PATCH opens the patch sheet
 - [x] Console top bar and view tabs are hidden while FIXTURES, PATCH or PLOT is open (browser verified)
 - [x] PATCH button opens the patch sheet with addresses/universes — browser verified
+
+- Remove GRID tab; move fixture controls into the FIXTURES window, pinned on the right and always visible
