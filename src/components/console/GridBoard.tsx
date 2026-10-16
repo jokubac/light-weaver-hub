@@ -159,6 +159,8 @@ export function tableCarry(items: GridItem[], table: { id?: string; x: number; y
   return id ? items.filter((i) => isMacroBox(i) && i.tbl === id) : [];
 }
 export const MACRO_CELL = 1.1;
+/** Size stops for boxes: fractions shrink inside the cell block, whole numbers take that many cells (macro buttons) or scale the light. */
+const SIZE_STOPS: [number, string][] = [[1 / 8, "1/8"], [1 / 4, "1/4"], [1 / 2, "1/2"], [1, "1"], [2, "2"], [3, "3"], [4, "4"]];
 /** Turns a corner-resized macro box into a whole-cell span inside its table (at least 1×1, never wider than the table); the size stops reset to full cells. */
 export function spanOf(w: number, h: number, table: GridItem, sz = SIZE) {
   const tb = boxOf(table, sz), cols = Math.max(1, table.cols ?? 0, Math.round(tb.w / MACRO_CELL)), cw = tb.w / cols;
@@ -777,6 +779,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             {pick.kind === "fixture" ? (<>
               <input aria-label="Box name" placeholder={fixtures.find((f) => f.uid === pick.uid)?.name ?? "Name"} value={pick.text ?? ""} onChange={(e) => patch(pick.id, { text: e.target.value || undefined })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
               <section>
+                <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">Size</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {SIZE_STOPS.map(([v, lbl]) => { const cur = (pick.s ?? fixtureBox(sz).w) / fixtureBox(sz).w; return (
+                    <button key={lbl} aria-pressed={Math.abs(cur - v) < 0.06} onClick={() => patch(pick.id, { s: v === 1 ? undefined : fixtureBox(sz).w * v, w: undefined, h: undefined })}
+                      className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${Math.abs(cur - v) < 0.06 ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{lbl}</button>); })}
+                </div>
+              </section>
+              <section>
                 <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">Swap to another fixture</h3>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                   {fixtures.map((f, i) => { const on = pick.uid === f.uid; const taken = placed.has(f.uid) && !on; return (
@@ -790,6 +800,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                 {sortedActions.map((a) => <button key={a.id} onClick={() => { setAction(a.id); setAmount(a.def ?? 0); }} className={`rounded-md border px-2 py-1.5 text-left text-xs font-semibold ${action === a.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{a.label}</button>)}
               </div>
+              <section>
+                <h3 className="text-xs font-bold uppercase text-muted-foreground">Size</h3>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {SIZE_STOPS.map(([v, lbl]) => { const cur = pick.sk ?? (pick.cs != null && pick.cs >= 1 && pick.cs <= 4 ? pick.cs : 1); return (
+                    <button key={lbl} aria-pressed={Math.abs(cur - v) < 0.06} onClick={() => patch(pick.id, v >= 1 ? { sk: undefined, cs: v, rs: pick.rs ?? 1 } : { sk: v })}
+                      className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${Math.abs(cur - v) < 0.06 ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{lbl}</button>); })}
+                </div>
+              </section>
               <div className="flex flex-wrap items-center gap-2">
                 {meta?.unit && <label className="flex items-center gap-2 text-xs">Amount<input type="number" value={amount} onChange={(e) => setAmount(+e.target.value)} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{meta.unit}</label>}
                 <input aria-label="Button name" placeholder="Name (optional)" value={label} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
