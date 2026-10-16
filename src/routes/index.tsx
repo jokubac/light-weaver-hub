@@ -1195,18 +1195,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
                 return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
               })} />
-            <div role="tablist" aria-label="Side bar" className="grid grid-cols-3 gap-1 rounded-lg bg-surface-elevated p-1">
-              {(["looks", "effects", "rec"] as const).map((k) => (
-                <button key={k} role="tab" aria-selected={railTab === k} onClick={() => setRailTab(k)} className={`rounded-md py-2 text-xs font-bold uppercase ${railTab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{k === "rec" ? "REC" : k}</button>
-              ))}
-            </div>
-            {railTab === "looks" && <LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} />}
-            {railTab === "effects" && <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+            <section className="space-y-2 border-t border-border pt-3"><h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Looks</h3><LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} /></section>
+            <section className="space-y-2 border-t border-border pt-3"><h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Effects</h3><EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
               if (!activePixel) return;
               const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
               setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
-            }} />}
-            {railTab === "rec" && <RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />}
+            }} /></section>
+            <section className="space-y-2 border-t border-border pt-3"><h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">REC</h3><RecRail recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></section>
           </aside>
         )}
       </div>
