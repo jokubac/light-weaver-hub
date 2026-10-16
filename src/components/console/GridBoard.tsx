@@ -250,6 +250,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
   const [esel, setEsel] = useState<string[]>([]);
   const lastTap = useRef<{ id: string; t: number } | null>(null);
+  const faderTap = useRef<{ id: string; t: number } | null>(null);
+  const faderPress = useRef<{ x: number; t: number } | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number; w: number; h: number }[] } | null>(null);
   const [rs, setRs] = useState<{ corner: Corner; orig: Box[]; out: Box[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
@@ -665,11 +667,24 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                     const [min, max, step, val, show] = a.id === "int_fader" ? [0, 100, 1, Math.round((f0?.intensity ?? 0) * 100), (v: number) => `${v}%`]
                       : a.id === "cct_fader" ? [2000, 10000, 50, Math.round(kelvin(f0?.cct ?? 0.45)), (v: number) => `${v}K`]
                       : [-100, 100, 1, Math.round((f0?.gm ?? 0) * 100), (v: number) => (v > 0 ? `G${v}` : v < 0 ? `M${-v}` : "0")];
-                    return <div className="flex flex-1 flex-col justify-center gap-0.5 px-1">
+                    const reset = () => onRun({ id: it.id, key: null, action: a.id, amount: a.id === "int_fader" ? 50 : a.id === "cct_fader" ? 5600 : 0 });
+                    // Double tap anywhere on the fader (mouse or touch) returns it to Intensity 50%, CCT 5600K, G/M 0.
+                    const tapUp = (e: { stopPropagation: () => void; clientX: number }) => {
+                      e.stopPropagation();
+                      const p = faderPress.current, now = Date.now();
+                      faderPress.current = null;
+                      if (!p || now - p.t > 300 || Math.abs(e.clientX - p.x) > 12) return;
+                      const prev = faderTap.current;
+                      if (prev && prev.id === it.id && now - prev.t < 450) { faderTap.current = null; if (live && f0) reset(); }
+                      else faderTap.current = { id: it.id, t: now };
+                    };
+                    return <div className="flex flex-1 flex-col justify-center gap-0.5 px-1"
+                      onPointerDown={(e) => { faderPress.current = { x: e.clientX, t: Date.now() }; }} onPointerUp={tapUp}>
                       <div className="nox-outline-2 flex justify-between text-[10px] font-bold text-foreground"><span className="truncate">{it.macro!.label || a.label}</span><span className="font-mono">{show(val)}</span></div>
                       <input type="range" aria-label={a.label} min={min} max={max} step={step} value={val} disabled={!live || !f0}
-                        onPointerDown={(e) => e.stopPropagation()} onChange={(e) => onRun({ id: it.id, key: null, action: a.id, amount: +e.target.value })}
-                        onDoubleClick={(e) => { e.stopPropagation(); onRun({ id: it.id, key: null, action: a.id, amount: a.id === "int_fader" ? 50 : a.id === "cct_fader" ? 5600 : 0 }); }}
+                        onPointerDown={(e) => { e.stopPropagation(); faderPress.current = { x: e.clientX, t: Date.now() }; }}
+                        onChange={(e) => onRun({ id: it.id, key: null, action: a.id, amount: +e.target.value })}
+                        onDoubleClick={(e) => { e.stopPropagation(); if (live && f0) reset(); }}
                         className="w-full accent-primary" />
                     </div>;
                   })()}
