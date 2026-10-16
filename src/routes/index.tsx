@@ -24,7 +24,6 @@ import {
 import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel";
 import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
-import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
 import { FixtureGlyph } from "@/components/console/FixtureGlyph";
 import { copyFixtureSettings, type FixtureSettings } from "@/lib/fixture-settings";
@@ -387,7 +386,7 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "pixels" | "fx";
+type Panel = "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
@@ -416,6 +415,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [locked, setLocked] = useState(true);
   const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
   const [plotOpen, setPlotOpen] = useState(false);
+  const [fixturesOpen, setFixturesOpen] = useState(false);
   const [lastLook, setLastLook] = useState<string | null>(null);
   const [conn, setConnState] = useState<Connection>(() => loadConnection());
   const [connOpen, setConnOpen] = useState(false);
@@ -917,6 +917,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</Button>
   );
   const outputEnabled = bo.target === 0;
+  const windowOpen = plotOpen || patchOpen || fixturesOpen;
 
 
   // Fixture tiles with their selection toolbar — shared by the console area and the Fixtures window
