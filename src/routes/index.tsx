@@ -531,6 +531,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const holdSaved = useRef<{ checkout: Record<string, { intensity: number; cct: number }>; locate: Record<string, { intensity: number; cct: number }> }>({ checkout: {}, locate: {} });
   const fadeTimer = useRef<number | null>(null);
   const [locate, setLocate] = useState<{ ids: string[]; on: number; off?: number } | null>(null);
+  useEffect(() => { if (locate?.off == null) return; const id = setTimeout(() => setLocate((l) => (l?.off != null && performance.now() - l.off >= 250 ? null : l)), 300); return () => clearTimeout(id); }, [locate]);
   /** 0.25 s fade of intensity + CCT from each light's start values to its target. */
   const fadeTo = (from: Record<string, { intensity: number; cct: number }>, to: (id: string) => { intensity: number; cct: number }) => {
     if (fadeTimer.current) cancelAnimationFrame(fadeTimer.current);
