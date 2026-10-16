@@ -1067,7 +1067,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           {fixtures.length === 0 ? (
             <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
           ) : (
-              {fixtureBoard()}
+              fixtureBoard()
           )}
         </div>
 
