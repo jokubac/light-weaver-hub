@@ -13,6 +13,7 @@ export interface Scene {
   pixelLayers?: PixelLayer[];
   pixelMaster?: number;
   plot?: import("@/components/console/PlotPanel").Plot;
+  grid?: import("@/components/console/GridBoard").GridLayout;
 }
 
 /** A saved snapshot of fixture settings, recallable from any scene in the project. */

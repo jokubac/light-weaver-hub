@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel";
+import { GridBoard, emptyGrid, type GridLayout } from "@/components/console/GridBoard";
 import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { FixtureControls } from "@/components/console/FixtureControls";
@@ -416,6 +417,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
   const [plotOpen, setPlotOpen] = useState(false);
   const [fixturesOpen, setFixturesOpen] = useState(false);
+  const [gridOpen, setGridOpen] = useState(false);
+  const [grid, setGrid] = useState<GridLayout>(() => scene.grid ?? emptyGrid());
   const [lastLook, setLastLook] = useState<string | null>(null);
   const [conn, setConnState] = useState<Connection>(() => loadConnection());
   const [connOpen, setConnOpen] = useState(false);
@@ -446,11 +449,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const latest = useRef({ fixtures, master, layers, plot, pixelMaster });
-  latest.current = { fixtures, master, layers, plot, pixelMaster };
+  const latest = useRef({ fixtures, master, layers, plot, pixelMaster, grid });
+  latest.current = { fixtures, master, layers, plot, pixelMaster, grid };
   const currentScene = (): Scene => {
     const { pixelMap: _legacy, ...rest } = scene;
-    return { ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot, pixelMaster: latest.current.pixelMaster };
+    return { ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot, pixelMaster: latest.current.pixelMaster, grid: latest.current.grid };
   };
   const save = () => onSave(currentScene());
   const restoreSetup = (setup: Scene) => {
@@ -910,6 +913,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     if (skipClick.current.has(id)) { skipClick.current.delete(id); held.current = false; return; }
     if (held.current) { held.current = false; return; }
     if (e.shiftKey) selectRange(id); else toggleSelect(id);
+    setPanel("control"); setPanelOpen(true);
   };
   // tapping the active tab again collapses / expands the side panel
   const tab = (p: Panel, label: string) => (
@@ -917,10 +921,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</Button>
   );
   const outputEnabled = bo.target === 0;
-  const windowOpen = plotOpen || patchOpen || fixturesOpen;
+  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen;
   // One window at a time; tapping its tab again closes it and returns to the console
-  const openWin = (k: "plot" | "patch" | "fixtures") => {
-    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : fixturesOpen;
+  const openWin = (k: "plot" | "patch" | "fixtures" | "grid") => {
+    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : k === "grid" ? gridOpen : fixturesOpen;
+    setGridOpen(k === "grid" && !on);
+    if (!on && (k === "fixtures" || k === "grid")) { setPanel("control"); setPanelOpen(true); }
     setPlotOpen(k === "plot" && !on);
     setPatchOpen(k === "patch" && !on);
     setFixturesOpen(k === "fixtures" && !on);
@@ -1050,6 +1056,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
         <Button variant="secondary" onClick={() => openWin("fixtures")} aria-pressed={fixturesOpen} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
+        <Button variant="secondary" onClick={() => openWin("grid")} aria-pressed={gridOpen} className="h-11 px-5 text-sm font-bold">GRID</Button>
         {tab("fx", "FX")}
         {tab("pixels", "PIXEL")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
@@ -1078,6 +1085,15 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
               fixtureBoard()
             )}
           </div>
+          <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
+            {controlPanel()}
+          </aside>
+        </div>
+      )}
+      {gridOpen && (
+        <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
+          <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected}
+            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.run?.(m)} colorOf={(f) => fixtureColor(f, t, outLevel)} />
           <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
             {controlPanel()}
           </aside>
