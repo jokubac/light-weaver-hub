@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import type { PatchedFixture } from "@/lib/dmx";
 import { membersOf } from "@/lib/fixture-groups";
-import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
@@ -196,7 +196,7 @@ export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
     const rest: GridItem[] = [];
     for (const m of members) {
       const w = Math.min(cols, Math.max(1, m.cs ?? 1)), h = Math.max(1, m.rs ?? 1);
-      const c = Math.floor((m.x - t.x + cw * 0.3) / cw), r = Math.floor((m.y - t.y - 0.4 + ch * 0.3) / ch);
+      const mb = boxOf(m, sz), c = Math.floor((m.x + mb.w / 2 - t.x) / cw - (w - 1) / 2), r = Math.floor((m.y + mb.h / 2 - t.y - 0.4) / ch - (h - 1) / 2);
       if (c >= 0 && r >= 0 && c + w <= cols && r < 200 && free(r, c, w, h)) place(m, r, c, w, h); else rest.push(m);
     }
     for (const m of rest) {
@@ -321,13 +321,13 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   };
   const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); } else setLabel(""); };
   /** New macro square: it always lands in a macro table (the selected one, else the first, else a new one) and lines up there. */
-  const addSquare = (tableId?: string, atX?: number, atY?: number) => {
+  const addSquare = (tableId?: string, atX?: number, atY?: number, cell?: number) => {
     let items = grid.items;
     let t = (tableId ? items.find((i) => i.id === tableId) : undefined) ?? items.find((i) => i.kind === "table" && esel.includes(i.id)) ?? items.find((i) => i.kind === "table");
     if (!t) { t = newTable(items); items = [...items, t]; }
     const id = nid();
     // A tapped cell keeps its reading-order spot; otherwise the macro goes to the end.
-    items = [...items, { id, kind: "empty", tbl: t.id, x: atX ?? t.x + 999, y: atY ?? t.y + 999 }];
+    items = [...items, { id, kind: "empty", tbl: t.id, x: atX ?? t.x + 999, y: atY ?? t.y + 999, w: cell, h: cell }];
     setGrid({ ...grid, items: layoutTables(items, sz) }); setEsel([id]); setPicker(id); setLabel("");
   };
   const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); };
@@ -611,7 +611,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             return (
               <div key={it.id} role="button" tabIndex={0} aria-label={f ? `Select fixture ${n}, ${f.name}` : it.macro ? `Run ${macroLabel(it.macro)}` : it.kind === "text" ? "Text label" : it.kind === "image" ? "Picture" : it.kind === "table" ? "Table" : "Empty box"} aria-pressed={f ? isSel : undefined}
                 className={`absolute flex flex-col overflow-hidden ${it.kind === "image" ? "" : "rounded-lg border p-1"} text-[10px] ${(!live && mode === "walls") || (live && back) ? "pointer-events-none" : live ? "cursor-pointer active:scale-[0.97]" : "cursor-grab"} ${!live && mode === "walls" ? "opacity-60" : ""} ${isSel ? "border-primary ring-2 ring-primary" : it.kind === "empty" ? "border-dashed border-border" : it.kind === "text" ? "border-transparent" : it.kind === "table" ? "border-2 border-border" : "border-border"} ${it.kind === "text" ? "bg-transparent" : it.kind === "table" ? "bg-muted" : f ? "bg-card" : "bg-surface-elevated"} ${gm || rr ? "z-30 shadow-lg" : back ? "z-0" : "z-10"}`}
-                style={{ left: pos.x * CELL, top: pos.y * CELL, width: pos.w * CELL, height: pos.h * CELL, ...(it.kind === "table" ? (it.color ? { borderColor: it.color, background: `color-mix(in srgb, ${it.color} 22%, transparent)` } : {}) : f ? (it.color ? { borderColor: it.color, borderWidth: 2 } : {}) : pal(it.color)) }}
+                style={{ left: pos.x * CELL, top: pos.y * CELL, width: pos.w * CELL, height: pos.h * CELL, ...(it.kind === "table" ? (it.color ? { borderColor: it.color, background: `color-mix(in srgb, ${it.color} 22%, var(--muted))` } : {}) : f ? (it.color ? { borderColor: it.color, borderWidth: 2 } : {}) : pal(it.color)) }}
                 onPointerDown={(e) => { if (!live && mode !== "select") return; e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); const p = pt(e); if (live) { setDrag({ id: it.id, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group: [] }); return; } const sel = esel.includes(it.id) ? esel : e.shiftKey ? [...esel, it.id] : [it.id]; setEsel(sel); setDrag({ id: it.id, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group: groupFor(it, sel) });}}>
                 {it.kind === "image" ? (
                   <img src={it.src} alt="" draggable={false} className="pointer-events-none h-full w-full object-fill" style={{ opacity: it.opacity ?? 1, filter: it.invert ? "invert(1)" : undefined }} />
@@ -622,7 +622,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                       <button key={k} type="button" aria-label="Add macro here" disabled={mode !== "select"}
                         className="m-0.5 flex items-center justify-center rounded-md border border-border/60 bg-surface-elevated/55 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                         onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); const cols = it.cols ?? 4, cw = W(it) / cols; addSquare(it.id, it.x + (k % cols) * cw + cw / 2 - 0.01, it.y + 0.4 + Math.floor(k / cols) * cw + cw / 2 - 0.01); }}>
+                        onClick={(e) => { e.stopPropagation(); const cols = it.cols ?? 4, cw = W(it) / cols; addSquare(it.id, it.x + (k % cols) * cw, it.y + 0.4 + Math.floor(k / cols) * cw, cw); }}>
                         <Plus className="h-4 w-4" />
                       </button>
                     ))}
@@ -634,9 +634,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                     return <div className={`my-0.5 grid min-h-0 flex-1 overflow-hidden rounded ${px.cells.length > 48 ? "" : "gap-px"}`} style={{ gridTemplateColumns: `repeat(${c}, 1fr)`, gridTemplateRows: `repeat(${r}, 1fr)` }}>
                       {px.cells.map((col, k) => <div key={k} style={{ background: col }} />)}</div>; })()}
                   <div className="flex justify-between gap-1"><span className="truncate">{it.text || f.name}</span><span className="font-mono">{Math.round(f.intensity * 100)}%</span></div>
-                </>) : it.macro ? (
+                </>) : it.macro ? (<>
+                  {!live && mode === "select" && <button type="button" aria-label="Delete macro" className="absolute right-0.5 top-0.5 z-20 rounded bg-background/80 p-0.5 text-muted-foreground hover:text-destructive" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeIds([it.id]); }}><X className="h-3 w-3" /></button>}
                   <div className="nox-outline-2 flex flex-1 items-center justify-center text-center text-[11px] font-bold leading-tight text-foreground">{macroLabel(it.macro)}</div>
-                ) : it.kind === "text" ? (
+                </>) : it.kind === "text" ? (
                   <div className="flex flex-1 items-center justify-center overflow-hidden text-center text-xs font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
                 ) : (
                   <div className="flex flex-1 items-center justify-center text-muted-foreground"><Plus className="h-4 w-4" /></div>
