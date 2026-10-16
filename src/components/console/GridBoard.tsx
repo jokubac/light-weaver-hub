@@ -265,6 +265,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [label, setLabel] = useState("");
   const [param, setParam] = useState("");
   const [gelQ, setGelQ] = useState("");
+  const [gelCat, setGelCat] = useState<"All" | "Correction" | "Effect" | "LEE" | "Rosco">("All");
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
@@ -726,9 +727,20 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 {groups.length ? groups.map((g) => <button key={g} onClick={() => setParam(g)} aria-pressed={param === g} className={`rounded-md border px-2 py-1 ${param === g ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{g}</button>) : <span className="text-muted-foreground">No groups yet — make one in Groups first.</span>}
               </div>)}
               {meta?.pick === "gel" && (<div className="space-y-1.5">
+                <div className="flex flex-wrap gap-1 text-xs">
+                  {(["All", "Correction", "Effect", "LEE", "Rosco"] as const).map((c) => (
+                    <button key={c} onClick={() => setGelCat(c)} aria-pressed={gelCat === c} className={`rounded-md border px-2 py-1 ${gelCat === c ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{c}</button>))}
+                </div>
                 <input aria-label="Search filters" placeholder="Search filter (e.g. 1/2 CTO, 201)" value={gelQ} onChange={(e) => setGelQ(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-                <div className="grid max-h-40 grid-cols-2 gap-1 overflow-auto text-xs sm:grid-cols-3">
-                  {GELS.filter((g) => `${g.brand} ${g.code} ${g.name}`.toLowerCase().includes(gelQ.toLowerCase())).slice(0, 60).map((g) => (
+                <div className="grid max-h-64 grid-cols-2 gap-1 overflow-auto text-xs sm:grid-cols-3">
+                  {GELS.filter((g) => {
+                    const corr = g.kelvin !== undefined || g.gm !== undefined;
+                    if (gelCat === "Correction" && !corr) return false;
+                    if (gelCat === "Effect" && corr) return false;
+                    if (gelCat === "LEE" && g.brand !== "LEE") return false;
+                    if (gelCat === "Rosco" && g.brand !== "Rosco") return false;
+                    return `${g.brand} ${g.code} ${g.name}`.toLowerCase().includes(gelQ.toLowerCase());
+                  }).map((g) => (
                     <button key={g.id} onClick={() => setParam(g.id)} aria-pressed={param === g.id} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-left ${param === g.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: g.hex }} /><span className="truncate">{g.brand} {g.code} {g.name}</span></button>))}
                 </div>
               </div>)}
