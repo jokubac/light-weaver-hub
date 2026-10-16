@@ -145,3 +145,7 @@
 - [x] Macros table: dragging a table carries only macros, never fixtures
 
 - [x] Add light: the picker also offers groups — tapping the grid drops the whole group together, so a whole group of lights can be placed at once.
+
+- [x] GRID: Add light group drops all members (moves ones already on grid)
+- [x] Framing shutter visual pad in beam controls
+- [x] Fixture toolbar: + Group / + Look buttons
