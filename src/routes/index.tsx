@@ -998,7 +998,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                   onPick={(id) => setSelected(fixtures.filter((f) => f.group === id).map((f) => f.uid))} />
                 <SavePopover label="+ Look" kind="Look" canCreate={fixtures.length > 0}
                   items={(project.looks ?? []).map((l) => ({ id: l.id, name: l.name, color: l.color, info: `${l.states.length}` }))}
-                  onCreate={(name, color) => { const src = selected.length ? fixtures.filter((f) => selected.includes(f.uid)) : fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
+                  onCreate={(name, color) => { const src = fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
                   onChange={(items) => { const looks = project.looks ?? []; onLooks(items.map((it) => ({ ...looks.find((l) => l.id === it.id)!, name: it.name, ...(it.color ? { color: it.color } : {}) }))); }}
                   onDelete={(id) => onLooks((project.looks ?? []).filter((l) => l.id !== id))} />
                 <span>{selected.length} selected</span>

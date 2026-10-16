@@ -152,3 +152,4 @@
 - [x] GRID: light picker (groups, search, fixture list, Macros table, All lights) always visible in Edit mode, whatever tool is active; picking a light switches to placing
 - [x] GRID: dragging a macro table over another macro table must NOT steal its macros — only dragging a macro itself moves it into a cell
 - [x] GRID: a selected macro table can change its colour (Colour row for selected tables)
+- [x] Look visada išsaugo visas lempas su visais parametrais
