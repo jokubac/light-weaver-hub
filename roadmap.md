@@ -137,6 +137,6 @@
 
 - [ ] Grid: tap on empty grid deselects everything; Fixture size slider changes only selected squares (all when nothing selected)
 - [ ] Grid: toolbar above canvas — Select, Walls, Text (free text labels), Import picture or PDF as grid background
-- [ ] GRID bg picture: drag to move, zoom in/out, invert colours (image + PDF)
-- [ ] GRID text labels: type immediately after placing, double-tap to re-edit
-- [ ] Arrange: add Pentagon; all shapes (square/grid, triangle, circle, pentagon) place fixtures on the outline only
+- [x] GRID bg picture: drag to move, zoom in/out, invert colours (image + PDF)
+- [x] GRID text labels: type immediately after placing, double-tap to re-edit
+- [x] Arrange: add Pentagon; all shapes (square/grid, triangle, circle, pentagon) place fixtures on the outline only
