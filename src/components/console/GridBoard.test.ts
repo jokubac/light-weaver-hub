@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySize, arrange, fixtureBox } from "./GridBoard";
+import { applySize, arrange, fixtureBox, tableCarry } from "./GridBoard";
 import type { GridItem } from "./GridBoard";
 
 const pts = [{ id: "a", x: 1, y: 1 }, { id: "b", x: 5, y: 3 }, { id: "c", x: 3, y: 6 }];
@@ -113,5 +113,17 @@ describe("default fixture box", () => {
     const { w, h } = fixtureBox(0.92);
     expect(w / h).toBeCloseTo(1.5, 9);
     expect(w).toBeGreaterThan(h);
+  });
+});
+
+describe("macros table", () => {
+  const table = { x: 0, y: 0, w: 8, h: 6 };
+  const items: GridItem[] = [
+    { id: "m1", kind: "macro", x: 1, y: 1, macro: { action: "cct_up", amount: 100, label: "" } },
+    { id: "m2", kind: "macro", x: 9, y: 9, macro: { action: "cct_up", amount: 100, label: "" } },
+    { id: "f1", kind: "fixture", uid: "f1", x: 2, y: 2 },
+  ];
+  it("a dragged table carries only the macro inside it — a fixture standing in the table never sticks", () => {
+    expect(tableCarry(items, table, 0.92).map((i) => i.id)).toEqual(["m1"]);
   });
 });
