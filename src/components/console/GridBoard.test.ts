@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { arrange } from "./GridBoard";
+import { applySize, arrange } from "./GridBoard";
+import type { GridItem } from "./GridBoard";
 
 const pts = [{ id: "a", x: 1, y: 1 }, { id: "b", x: 5, y: 3 }, { id: "c", x: 3, y: 6 }];
 describe("grid arrange", () => {
@@ -19,4 +20,44 @@ describe("grid arrange", () => {
     expect(Math.max(...d) - Math.min(...d)).toBeLessThan(1e-9);
   });
   it("packs into a square block", () => expect(arrange([...pts, { id: "d", x: 0, y: 0 }], "grid", 0.08).map((p) => [p.x, p.y])).toEqual([[0, 0], [1, 0], [0, 1], [1, 1]]));
+});
+
+describe("fixture size slider", () => {
+  const items: GridItem[] = [
+    { id: "a", kind: "fixture", uid: "f1", x: 2, y: 2 },
+    { id: "b", kind: "fixture", uid: "f2", x: 6, y: 4 },
+    { id: "m", kind: "macro", x: 3, y: 8, macro: { action: "cct_up", amount: 100, label: "" } },
+  ];
+  it("changes size only of the selected squares — others keep size and position", () => {
+    const r = applySize(items, ["a"], 1.5, 0.92);
+    expect(r.find((i) => i.id === "a")!.s).toBe(1.5);
+    const b = r.find((i) => i.id === "b")!;
+    expect(b.s).toBeUndefined();
+    expect(b.x).toBe(6); expect(b.y).toBe(4);
+  });
+  it("a lone selected square grows about its own centre", () => {
+    const r = applySize(items, ["a"], 1.4, 0.92);
+    const a = r.find((i) => i.id === "a")!;
+    expect(a.x + a.s! / 2).toBeCloseTo(2 + 0.92 / 2, 9);
+    expect(a.y + a.s! / 2).toBeCloseTo(2 + 0.92 / 2, 9);
+  });
+  it("a selected group keeps its layout when resized together", () => {
+    const base: GridItem[] = [{ id: "a", kind: "fixture", uid: "f1", x: 4, y: 4 }, { id: "b", kind: "fixture", uid: "f2", x: 8, y: 6 }];
+    const r = applySize(base, ["a", "b"], 1.84, 0.92); // exactly ×2
+    const a = r.find((i) => i.id === "a")!, b = r.find((i) => i.id === "b")!;
+    const ca = { x: a.x + a.s! / 2, y: a.y + a.s! / 2 }, cb = { x: b.x + b.s! / 2, y: b.y + b.s! / 2 };
+    const o = { x: (4 + 0.92 / 2 + 8 + 0.92 / 2) / 2, y: (4 + 0.92 / 2 + 6 + 0.92 / 2) / 2 };
+    expect(Math.hypot(cb.x - ca.x, cb.y - ca.y)).toBeCloseTo(2 * Math.hypot(6 - 2, 4 - 2), 9);
+    expect((ca.x + cb.x) / 2).toBeCloseTo(o.x, 9);
+    expect((ca.y + cb.y) / 2).toBeCloseTo(o.y, 9);
+  });
+  it("never pushes a square outside the board", () => {
+    const r = applySize([{ id: "a", kind: "fixture", uid: "f1", x: 0, y: 0 }], ["a"], 2, 0.92);
+    const a = r[0]!;
+    expect(a.x).toBeGreaterThanOrEqual(0); expect(a.y).toBeGreaterThanOrEqual(0);
+    expect(a.x + a.s!).toBeLessThanOrEqual(24); expect(a.y + a.s!).toBeLessThanOrEqual(16);
+  });
+  it("with nothing selected the squares are untouched (global size changes instead)", () => {
+    expect(applySize(items, [], 1.5, 0.92)).toBe(items);
+  });
 });

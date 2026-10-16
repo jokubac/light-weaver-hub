@@ -134,3 +134,6 @@
 - [x] PATCH button opens the patch sheet with addresses/universes — browser verified
 
 - [done] Remove GRID tab; move fixture controls into the FIXTURES window, pinned on the right and always visible
+
+- [ ] Grid: tap on empty grid deselects everything; Fixture size slider changes only selected squares (all when nothing selected)
+- [ ] Grid: toolbar above canvas — Select, Walls, Text (free text labels), Import picture or PDF as grid background
