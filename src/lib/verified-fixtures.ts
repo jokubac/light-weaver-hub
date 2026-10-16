@@ -86,6 +86,9 @@ const V_RGBW: Slot[] = ["Dimmer", "Red", "Green", "Blue", "White"];
 const V_HS: Slot[] = ["Dimmer", "Hue", "Saturation"];
 const V_XY: Slot[] = ["Dimmer", ...XY];
 const V_CCTXY: Slot[] = ["Dimmer", "CCT", GM, "Crossfade", ...XY];
+const VORTEX_GRID: Record<number, [number, number]> = { 4: [2, 2], 8: [4, 2], 24: [6, 4] };
+// Zone order matches the panel: zone 1 top-left, left→right, then next row (Creamsource zoning photo).
+const vz = (m: FixtureMode, zones: number): FixtureMode => ({ ...m, pixels: zones, grid: VORTEX_GRID[zones] ?? [zones, 1] });
 const vortexModes = (zones: number): FixtureMode[] => [
   mm("1 CCT RGBW 8-bit", [[V_CCTRGBW, false], [V_TAIL, false]]),
   mm("2 CCT 8-bit", [[V_CCT, false], [V_TAIL, false]]),
@@ -103,8 +106,8 @@ const vortexModes = (zones: number): FixtureMode[] => [
   mm("14 CCT xy 16-bit", [[V_CCTXY, true], [V_TAIL, false]]),
   ...(zones > 1
     ? [
-        mm(`32 Multi-Zone CCT RGBW 8-bit (${zones} zones)`, [[Array.from({ length: zones }, () => V_CCTRGBW).flat(), false], [[SP], false]]),
-        mm(`38 Multi-Zone CCT HS 8-bit (${zones} zones)`, [[Array.from({ length: zones }, () => V_CCTHS).flat(), false], [[SP], false]]),
+        vz(mm(`32 Multi-Zone CCT RGBW 8-bit (${zones} zones)`, [[Array.from({ length: zones }, () => V_CCTRGBW).flat(), false], [[SP], false]]), zones),
+        vz(mm(`38 Multi-Zone CCT HS 8-bit (${zones} zones)`, [[Array.from({ length: zones }, () => V_CCTHS).flat(), false], [[SP], false]]), zones),
       ]
     : []),
 ];
