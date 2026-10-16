@@ -82,3 +82,16 @@ describe("fixture size slider", () => {
     expect(applySize(items, [], 1.5, 0.92)).toBe(items);
   });
 });
+
+import { resizeBoxes } from "./GridBoard";
+describe("resizeBoxes", () => {
+  it("stretches a group only on X from the bottom-right corner (circle → oval), top-left stays", () => {
+    const r = resizeBoxes([{ id: "a", x: 1, y: 1, w: 1, h: 1 }, { id: "b", x: 3, y: 1, w: 1, h: 1 }], "br", 7, 2);
+    expect(r[0]).toEqual({ id: "a", x: 1, y: 1, w: 2, h: 1 });
+    expect(r[1]).toEqual({ id: "b", x: 5, y: 1, w: 2, h: 1 });
+  });
+  it("top-left corner keeps the bottom-right fixed", () => {
+    const [a] = resizeBoxes([{ id: "a", x: 2, y: 2, w: 2, h: 2 }], "tl", 0, 3);
+    expect(a).toEqual({ id: "a", x: 0, y: 3, w: 4, h: 1 });
+  });
+});
