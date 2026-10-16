@@ -26,7 +26,7 @@
 - REC steps reuse LookState snapshots (Project.recordings); src/lib/recordings.ts blends them by fade/hold timing.
 - Playback bank and cues live in Project.bank/Project.cues; applyBank (src/lib/playback.ts) changes output only, never live fixture state, so faders can't overwrite programming.
 - Imported fixtures (GDTF/builder/RDM/built-in library) live in localStorage custom-fixtures with FixtureMode.channelMap; the GDTF library (public/gdtf-library, built by scripts/gdtf-library.ts) loads only on search.
-- Installed apps crawl the published site into offline-app and reject release mismatches; public/app-release.json is the shared UI/native version source. iOS icon catalogs are rendered from the brand SVG by scripts/ios-icons.mjs so stale PNGs cannot ship.
+- Installed apps crawl the published site into offline-app and reject release mismatches; public/app-release.json is the shared UI/native version source. iOS icon catalogs are rendered from the brand SVG by scripts/ios-icons.mjs so stale PNGs cannot ship. offline-bundle.mjs strips the hosting badge.
 - console-command.ts applies per-fixture relative command values and inverse FLASH envelopes; keeping these pure makes normalized CCT and restored output testable.
 - Keep NoxLogo.tsx and public/nox-logo.svg identical; rasterise the SVG for favicon/app icons so all NOX marks match.
 - Plot edits share a browser-session unlock gate in plot-edit-session.ts; camera lens rendering and plotted view edges share the Z-up camera basis and tested projection helpers.
@@ -35,7 +35,5 @@
 - Bundled GDTF definitions remain locally cached for offline output but are excluded from user-created fixture lists; manufacturer favourites share the existing account-synced favourite store.
 - Windows app (electron/) loads the crawled offline bundle via app:// and exposes window.noxDesktop for UDP; native-udp.ts prefers it so DMX code stays shared across web, Capacitor and desktop.
 - iPad MIDI uses NOX's own CoreMIDI plugin in ios-native/, installed into the generated iOS project by ios-native/install.rb in CI; iOS builds need Xcode 16+ (macos-15) because Capacitor 8 plugins fail on older Swift.
-- offline-bundle.mjs strips the hosting "Edit with Lovable" badge so installed apps stay standalone.
 - Verified manufacturer profiles live in src/lib/verified-fixtures.ts; gdtf-curate replaces same-model GDTF entries with them (or appends VERIFIED_EXTRA_MODES to keep saved mode indices) and drops 1-channel modes.
-- GDTF pixel modes expand GeometryReference templates (incl. child geometries); one-cell "Pixel N" modes and numbered Astera mode names derive pixel layouts at getMode time so stored library data stays compatible.
-- Pixel modes without an explicit grid get a physical layout from src/lib/pixel-layout.ts at deriveMode time, so effects and GRID previews follow real cell order without regenerating library data.
+- Pixel layouts resolve at deriveMode time (GDTF GeometryReference expansion, "Pixel N"/Astera names, src/lib/pixel-layout.ts grids) so stored library data stays compatible.
