@@ -214,11 +214,13 @@ export function resizeBoxes(boxes: Box[], corner: Corner, px: number, py: number
 
 const COLORS = ["", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#f5f5f4", "#57534e"];
 
-export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf }: {
+export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf, groups = [] }: {
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string; controls: React.ReactNode;
   /** Live pixel colours + layout for pixel fixtures; `long` marks elongated (tube/bar) lights, which default to a wide box. */
   pixelsOf?: (f: PatchedFixture) => { cells?: string[] | undefined; cols: number; rows: number; aspect: number };
+  /** Group names the user has made, so the Add light tool can drop a whole group at once. */
+  groups?: string[];
 }) {
   const [live, setLive] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
@@ -230,6 +232,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [wallRect, setWallRect] = useState(false);
   const [wEnd, setWEnd] = useState<{ i: number; e: 1 | 2 } | null>(null);
   const [nextUid, setNextUid] = useState<string | null>(null);
+  const [pickGroup, setPickGroup] = useState<string | null>(null);
   const [lq, setLq] = useState("");
   const [box, setBox] = useState<{ x1: number; y1: number; x2: number; y2: number; add: boolean } | null>(null);
   const [picker, setPicker] = useState<string | null>(null);
