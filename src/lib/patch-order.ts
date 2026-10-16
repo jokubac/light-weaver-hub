@@ -1,4 +1,5 @@
 import { getDef, type PatchedFixture } from "./dmx";
+import { groupsOf } from "./fixture-groups";
 
 export type PatchSortKey = "number" | "name" | "fixture" | "mode" | "univ" | "dmx" | "ch" | "group";
 
@@ -16,7 +17,7 @@ export function patchRows(fixtures: PatchedFixture[], sort: { k: PatchSortKey; d
       case "univ": return f.universe;
       case "dmx": return f.address;
       case "ch": return m?.channels ?? 1;
-      case "group": return f.group ?? "\uffff";
+      case "group": return groupsOf(f)[0] ?? "\uffff";
     }
   };
   return rows.sort((a, b) => {

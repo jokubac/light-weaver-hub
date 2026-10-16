@@ -157,3 +157,4 @@
 - [x] Side panel: Groups / Looks / Effects / REC unified under one collapsible heading style (CollapsibleSection) with chevron expand/collapse; All four start expanded. Browser check pending.
 - [x] Unify every search / text input across the app to the Groups "Group name" field style (rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm); NumberField keeps only width/alignment from callers.
 - [x] Outline all text with a thin black line via --text-outline on body (readable on any surface); print output resets it.
+- [ ] A fixture may belong to several groups at once (group list, not one string); patch/group UI, filters and group placement must follow.
