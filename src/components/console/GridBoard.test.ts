@@ -5,7 +5,14 @@ import type { GridItem } from "./GridBoard";
 const pts = [{ id: "a", x: 1, y: 1 }, { id: "b", x: 5, y: 3 }, { id: "c", x: 3, y: 6 }];
 describe("grid arrange", () => {
   it("middle alignment never stacks squares", () => { const r = arrange([{ id: "a", x: 1, y: 1 }, { id: "b", x: 1.2, y: 5 }], "hcenter", 0.1, 1); expect(r[1]!.x - r[0]!.x).toBeGreaterThanOrEqual(1.1 - 1e-9); });
-  it("triangle puts 1 then 2 squares per row", () => expect(arrange(pts, "triangle", 0, 1).map((p) => p.y)).toEqual([1, 2, 2]));
+  it("triangle places squares on the outside corners", () => {
+    const r = arrange(pts, "triangle", 0, 1);
+    expect(r).toHaveLength(3);
+    const d = (p: typeof r[0], q: typeof r[0]) => Math.hypot(p.x - q.x, p.y - q.y);
+    const ds = [d(r[0]!, r[1]!), d(r[1]!, r[2]!), d(r[2]!, r[0]!)];
+    expect(Math.max(...ds) - Math.min(...ds)).toBeLessThan(1e-9);
+    expect(Math.min(...ds)).toBeGreaterThan(0);
+  });
   it("rotate moves each light to the next clockwise spot", () => { const r = arrange(pts, "rotate"); expect(new Set(r.map((p) => `${p.x},${p.y}`))).toEqual(new Set(pts.map((p) => `${p.x},${p.y}`))); expect(r.every((p) => { const o = pts.find((q) => q.id === p.id)!; return o.x !== p.x || o.y !== p.y; })).toBe(true); });
   it("lines up in one row with equal steps", () => {
     const r = arrange(pts, "row", 0.08);
@@ -19,7 +26,21 @@ describe("grid arrange", () => {
     const d = r.map((p) => Math.hypot(p.x - cx, p.y - cy));
     expect(Math.max(...d) - Math.min(...d)).toBeLessThan(1e-9);
   });
-  it("packs into a square block", () => expect(arrange([...pts, { id: "d", x: 0, y: 0 }], "grid", 0.08).map((p) => [p.x, p.y])).toEqual([[0, 0], [1, 0], [0, 1], [1, 1]]));
+  it("square grid places squares around the outside only", () => {
+    const r = arrange([{ id: "a", x: 0, y: 0 }, { id: "b", x: 5, y: 5 }, { id: "c", x: 2, y: 9 }, { id: "d", x: 7, y: 1 }], "grid", 0.08);
+    expect(r).toHaveLength(4);
+    const d = (p: typeof r[0], q: typeof r[0]) => Math.hypot(p.x - q.x, p.y - q.y);
+    const ds = [d(r[0]!, r[1]!), d(r[1]!, r[2]!), d(r[2]!, r[3]!), d(r[3]!, r[0]!), d(r[0]!, r[2]!), d(r[1]!, r[3]!)].sort((a, b) => a - b);
+    expect(ds[3]! - ds[0]!).toBeLessThan(1e-9); // four equal sides
+    expect(ds[5]! / ds[0]!).toBeCloseTo(Math.SQRT2, 6); // diagonals
+  });
+  it("pentagon places squares around the outside at equal distance from the centre", () => {
+    const five = [{ id: "a", x: 0, y: 0 }, { id: "b", x: 5, y: 5 }, { id: "c", x: 2, y: 9 }, { id: "d", x: 7, y: 1 }, { id: "e", x: 4, y: 4 }];
+    const r = arrange(five, "pentagon");
+    const cx = r.reduce((a, p) => a + p.x, 0) / 5, cy = r.reduce((a, p) => a + p.y, 0) / 5;
+    const d = r.map((p) => Math.hypot(p.x - cx, p.y - cy));
+    expect(Math.max(...d) - Math.min(...d)).toBeLessThan(1e-9);
+  });
 });
 
 describe("fixture size slider", () => {
