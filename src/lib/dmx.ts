@@ -1,5 +1,6 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
 import { asteraModes, asteraSpec, asteraSpecFromName } from "./astera";
+import { pixelLayout } from "./pixel-layout";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";
@@ -301,15 +302,22 @@ export function namedPixelCells(mo: FixtureMode): FixtureMode | undefined {
 }
 const derivedModes = new WeakMap<FixtureMode, FixtureMode>();
 /** Mode with its pixel layout resolved (Astera name specs, repeated colour cells, "Pixel N" modes). Works for any def, installed or not. */
-export const deriveMode = (d: { brand?: string }, mo: FixtureMode): FixtureMode => {
-  if (mo.pixels || mo.astera || !mo.channelMap) return mo;
+export const deriveMode = (d: { brand?: string; model?: string }, mo: FixtureMode): FixtureMode => {
   let out = derivedModes.get(mo);
-  if (!out) {
+  if (out) return out;
+  out = deriveCells(d, mo);
+  if ((out.pixels ?? 0) > 1 && !out.grid && !out.astera) { const g = pixelLayout(d.model ?? "", out.name, out.pixels!); if (g) out = { ...out, grid: g }; }
+  derivedModes.set(mo, out);
+  return out;
+};
+const deriveCells = (d: { brand?: string }, mo: FixtureMode): FixtureMode => {
+  if (mo.pixels || mo.astera || !mo.channelMap) return mo;
+  let out: FixtureMode | undefined;
+  {
     const spec = /astera/i.test(d.brand ?? "") ? asteraSpecFromName(mo.name, mo.channels) : undefined;
     const px = spec ? spec.px : channelMapPixels(mo.channelMap);
     const cell = !spec && !px ? namedPixelCells(mo) : undefined;
     out = spec ? { ...mo, pixels: px, astera: spec } : px ? { ...mo, pixels: px } : cell ?? mo;
-    derivedModes.set(mo, out);
   }
   return out;
 };
