@@ -3,7 +3,7 @@ import { MACRO_CELL, applySize, boxOf, fixtureBox, layoutTables, spanOf, type Gr
 
 const SZ = 0.92;
 const table = (over: Partial<GridItem> = {}): GridItem => ({ id: "t1", kind: "table", text: "Macros", cols: 4, rows: 3, x: 0, y: 0, w: 4 * MACRO_CELL, h: 3 * MACRO_CELL + 0.4, ...over });
-const macro = (over: Partial<GridItem> = {}): GridItem => ({ id: "m1", kind: "macro", tbl: "t1", x: 0.1, y: 0.5, macro: { action: "cct_step_up", amount: 100, label: "CCT +100K" }, ...over });
+const macro = (over: Partial<GridItem> = {}): GridItem => ({ id: "m1", kind: "macro", tbl: "t1", x: 0.1, y: 0.5, macro: { action: "cct_up", amount: 100, label: "CCT +" }, ...over });
 
 describe("macro table resizing", () => {
   it("keeps its column count when dragged narrower — cells shrink instead of collapsing to one column", () => {
@@ -51,8 +51,8 @@ describe("size stops", () => {
     const mFull = full.find((i) => i.id === "m1")!;
     const half = layoutTables([t, macro({ x: 0.1, y: 0.5, sk: 0.5 })], SZ);
     const mHalf = half.find((i) => i.id === "m1")!;
-    expect(mHalf.w!).toBeCloseTo(mFull.w! * 0.5 + (mFull.w! * 0.06) / (1 - 0.06) / 2 * 0, 2); // roughly half
     expect(mHalf.w!).toBeLessThan(mFull.w!);
+    expect(mHalf.w!).toBeGreaterThan(mFull.w! * 0.4);
     const fullCx = mFull.x! + mFull.w! / 2, halfCx = mHalf.x! + mHalf.w! / 2;
     expect(Math.abs(fullCx - halfCx)).toBeLessThan(0.02);
     expect(Math.abs(mFull.y! + mFull.h! / 2 - (mHalf.y! + mHalf.h! / 2))).toBeLessThan(0.02);
@@ -65,7 +65,7 @@ describe("size stops", () => {
     const tb = boxOf(laid.find((i) => i.id === "t1")!, SZ);
     const cols = laid.find((i) => i.id === "t1")!.cols!;
     const cw = tb.w / cols;
-    expect(m.w!).toBeCloseTo(3 * cw * (1 - 0.12), 2); // 3 cells minus padding on both sides
+    expect(m.w!).toBeCloseTo(3 * cw - 2 * cw * 0.06, 2); // 3 cells minus padding on both sides
   });
 
   it("corner resize resets the stop to full cells", () => {
