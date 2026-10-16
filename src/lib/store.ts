@@ -22,6 +22,7 @@ export interface Look {
   id: string;
   name: string;
   createdAt: number;
+  color?: string;
   states: { uid: string; name: string; state: LookState }[];
 }
 

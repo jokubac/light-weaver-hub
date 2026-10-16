@@ -37,6 +37,7 @@ import { SettingsDialog } from "@/components/console/SettingsDialog";
 import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
+import { SavePopover } from "@/components/console/SavePopover";
 import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil, History } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
@@ -632,7 +633,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     setSelected([]);
   };
 
-  const groups = Array.from(new Set(fixtures.map((f) => f.group).filter((g): g is string => !!g)));
+  const [groupMeta, setGroupMeta] = useState<{ order: string[]; colors: Record<string, string> }>({ order: [], colors: {} });
+  useEffect(() => { try { const r = localStorage.getItem("nox-group-meta"); if (r) setGroupMeta(JSON.parse(r)); } catch { /* ignore */ } }, []);
+  const saveGroupMeta = (m: { order: string[]; colors: Record<string, string> }) => { setGroupMeta(m); try { localStorage.setItem("nox-group-meta", JSON.stringify(m)); } catch { /* ignore */ } };
+  const groups = Array.from(new Set(fixtures.map((f) => f.group).filter((g): g is string => !!g)))
+    .sort((a, b) => { const ia = groupMeta.order.indexOf(a), ib = groupMeta.order.indexOf(b); return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib); });
   const setGroup = (f: PatchedFixture, g: string | null) => {
     const targets = selected.includes(f.uid) ? selected : [f.uid];
     setFixtures((fs) => fs.map((x) => {
@@ -981,12 +986,21 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                  <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
                    onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
                    className={swapping ? "bg-primary text-primary-foreground" : ""}><ArrowLeftRight className="h-4 w-4" /></Button>
-                <button disabled={!selected.length} title="Create a group from the selected lights"
-                  onClick={() => { const fb = `Group ${groups.length + 1}`; const g = prompt("Group name", fb)?.trim(); if (g === undefined) return; const name = g || fb; setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: name } : x))); }}
-                  className="rounded-md bg-surface-elevated px-3 py-1.5 font-semibold disabled:opacity-40">+ Group</button>
-                <button title="Save a look (selected lights, or all if none selected)"
-                  onClick={() => { const src = selected.length ? fixtures.filter((f) => selected.includes(f.uid)) : fixtures; if (!src.length) return; const looks = project.looks ?? []; const fb = `Look ${looks.length + 1}`; const n = prompt("Look name", fb); if (n === null) return; onLooks([{ id: uid(), name: n.trim() || fb, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...looks]); }}
-                  className="rounded-md bg-surface-elevated px-3 py-1.5 font-semibold">+ Look</button>
+                <SavePopover label="+ Group" kind="Group" canCreate={selected.length > 0}
+                  items={groups.map((g) => ({ id: g, name: g, color: groupMeta.colors[g], info: `${fixtures.filter((f) => f.group === g).length}` }))}
+                  onCreate={(name, color) => { setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: name } : x))); saveGroupMeta({ order: [...groupMeta.order.filter((o) => o !== name), name], colors: { ...groupMeta.colors, [name]: color } }); }}
+                  onChange={(items) => {
+                    const ren = Object.fromEntries(items.filter((it) => it.id !== it.name).map((it) => [it.id, it.name]));
+                    if (Object.keys(ren).length) setFixtures((fs) => fs.map((x) => (x.group && ren[x.group] ? { ...x, group: ren[x.group]! } : x)));
+                    saveGroupMeta({ order: items.map((it) => it.name), colors: Object.fromEntries(items.filter((it) => it.color).map((it) => [it.name, it.color!])) });
+                  }}
+                  onDelete={(id) => setFixtures((fs) => fs.map((x) => { if (x.group !== id) return x; const { group: _g, ...rest } = x; return rest; }))}
+                  onPick={(id) => setSelected(fixtures.filter((f) => f.group === id).map((f) => f.uid))} />
+                <SavePopover label="+ Look" kind="Look" canCreate={fixtures.length > 0}
+                  items={(project.looks ?? []).map((l) => ({ id: l.id, name: l.name, color: l.color, info: `${l.states.length}` }))}
+                  onCreate={(name, color) => { const src = fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
+                  onChange={(items) => { const looks = project.looks ?? []; onLooks(items.map((it) => ({ ...looks.find((l) => l.id === it.id)!, name: it.name, ...(it.color ? { color: it.color } : {}) }))); }}
+                  onDelete={(id) => onLooks((project.looks ?? []).filter((l) => l.id !== id))} />
                 <span>{selected.length} selected</span>
               </div>
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
@@ -1094,7 +1108,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => openWin("plot")} aria-pressed={plotOpen} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
         <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} className="h-11 px-5 text-sm font-bold">PATCH</Button>
-        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && !windowOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen && !windowOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && !windowOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
