@@ -95,13 +95,16 @@ export function arrange(pts: { id: string; x: number; y: number }[], how: Arrang
 export function applySize(items: GridItem[], selIds: string[], v: number, def: number, cols = COLS, rows = ROWS): GridItem[] {
   const sel = items.filter((i) => selIds.includes(i.id));
   if (!sel.length) return items;
+  // A fixture without an explicit size occupies the default 2:3 box; the slider sets a square of `v`.
+  const bw = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? def * 2 * Math.sqrt(2 / 3) : ISW(i, def));
+  const bh = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? def * 2 * Math.sqrt(3 / 2) : ISH(i, def));
   const grp = sel.length > 1 ? sel : [];
-  const ox = grp.reduce((a, i) => a + i.x + (i.s ?? def) / 2, 0) / grp.length;
-  const oy = grp.reduce((a, i) => a + i.y + (i.s ?? def) / 2, 0) / grp.length;
+  const ox = grp.reduce((a, i) => a + i.x + bw(i) / 2, 0) / grp.length;
+  const oy = grp.reduce((a, i) => a + i.y + bh(i) / 2, 0) / grp.length;
   const ids = new Set(sel.map((i) => i.id));
   return items.map((i) => {
     if (!ids.has(i.id)) return i;
-    const o = i.s ?? def, c = { x: i.x + o / 2, y: i.y + o / 2 };
+    const o = bw(i), c = { x: i.x + o / 2, y: i.y + bh(i) / 2 };
     const n = grp.length ? { x: ox + (c.x - ox) * (v / o), y: oy + (c.y - oy) * (v / o) } : c;
     return { ...i, s: v, w: undefined, h: undefined, x: Math.max(0, Math.min(cols - v, n.x - v / 2)), y: Math.max(0, Math.min(rows - v, n.y - v / 2)) };
   });
@@ -172,23 +175,24 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
-  const aspects = new Map(pixelsOf ? fixtures.map((f) => [f.uid, Math.max(0.2, Math.min(5, pixelsOf(f).aspect))] as const) : []);
-  const auto = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? (aspects.get(i.uid!) ?? 1) : 1);
-  const W = (i: GridItem) => { const a = auto(i); return a === 1 ? ISW(i, sz) : sz * 1.2 * Math.sqrt(a); }, H = (i: GridItem) => { const a = auto(i); return a === 1 ? ISH(i, sz) : (sz * 1.2) / Math.sqrt(a); };
+  // Fixtures default to a 2×-scaled 2:3 (w:h) rectangle; tube/bar elongation is ignored — every light renders the same box shape.
+  const fxAuto = (i: GridItem) => i.kind === "fixture" && i.w == null && i.s == null;
+  const FXW = sz * 2 * Math.sqrt(2 / 3), FXH = sz * 2 * Math.sqrt(3 / 2);
+  const W = (i: GridItem) => (fxAuto(i) ? FXW : ISW(i, sz)), H = (i: GridItem) => (fxAuto(i) ? FXH : ISH(i, sz));
   const selItems = live ? grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!)) : grid.items.filter((i) => esel.includes(i.id));
-  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, size); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
+  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, Math.max(size, FXH)); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
   const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
   const rescale = (g: number, size: number) => {
     const grp = selItems.length > 1 ? selItems : [];
     const k = (size + g) / (sz + gap);
-    const ox = grp.length ? grp.reduce((a, i) => a + i.x + sz / 2, 0) / grp.length : 0;
-    const oy = grp.length ? grp.reduce((a, i) => a + i.y + sz / 2, 0) / grp.length : 0;
+    const ox = grp.length ? grp.reduce((a, i) => a + i.x + W(i) / 2, 0) / grp.length : 0;
+    const oy = grp.length ? grp.reduce((a, i) => a + i.y + H(i) / 2, 0) / grp.length : 0;
     const ids = new Set(grp.map((i) => i.id));
     setGrid({ ...grid, size, items: grid.items.map((i) => {
       if (i.w != null || i.kind === "image" || i.kind === "table") return i;
-      const c = { x: i.x + sz / 2, y: i.y + sz / 2 };
+      const c = { x: i.x + W(i) / 2, y: i.y + H(i) / 2 };
       const n = ids.has(i.id) ? { x: ox + (c.x - ox) * k, y: oy + (c.y - oy) * k } : c;
-      return { ...i, x: n.x - size / 2, y: n.y - size / 2 };
+      return { ...i, x: n.x - W(i) / 2, y: n.y - H(i) / 2 };
     }) });
   };
   const onGap = (g: number) => { if (selItems.length > 1) rescale(g, sz); setGap(g); };
@@ -196,7 +200,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
-  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => i.kind !== "image" && i.kind !== "table" && Math.abs(i.x - x) < W(i) && Math.abs(i.y - y) < H(i))) return { x, y }; return { x: 0, y: 0 }; };
+  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => i.kind !== "image" && i.kind !== "table" && Math.abs(i.x - x) < (W(i) + FXW) / 2 && Math.abs(i.y - y) < (H(i) + FXH) / 2)) return { x, y }; return { x: 0, y: 0 }; };
   const pt = (e: { clientX: number; clientY: number }) => { const r = vp.current!.getBoundingClientRect(); return { x: (e.clientX - r.left - view.x) / (CELL * view.z), y: (e.clientY - r.top - view.y) / (CELL * view.z) }; };
   // Endless canvas: wheel pans, ctrl/pinch-wheel zooms about the cursor; middle/right drag pans; two fingers pinch-zoom and pan.
   const HOME = { x: 12, y: 12, z: 1 };
