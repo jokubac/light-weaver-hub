@@ -1008,6 +1008,31 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     <Button variant="secondary" onClick={() => { if (panel === p) setPanelOpen((o) => !o); else { setPanel(p); setPanelOpen(true); } }}
       className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label}</Button>
   );
+  const groupsAside = () => (
+          <aside aria-label="Groups, looks, effects and REC" className="max-h-[45vh] w-full shrink-0 space-y-3 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
+            <CollapsibleSection title="Groups">
+            <GroupsPanel fixtures={fixtures} selected={selected} onRemoveMember={(id, g) => setFixtures((fs) => fs.map((x) => (x.uid === id ? removeFromGroup(x, g) : x)))} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, g) : x)))}
+              onSelect={(g) => { const ids = membersOf(fixtures, g).map((f) => f.uid); setSelected((s) => ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])]); }} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
+              onCopy={(from, to) => setFixtures((fs) => {
+                const src = membersOf(fs, from)[0];
+                if (!src) return fs;
+                const exists = fs.some((x) => inGroup(x, to));
+                const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
+                return fs.map((x) => {
+                  const hit = exists ? inGroup(x, to) : selected.includes(x.uid) && !inGroup(x, from);
+                  return hit ? (exists ? { ...x, ...copy } : addToGroup({ ...x, ...copy }, to)) : x;
+                });
+              })} />
+            </CollapsibleSection>
+            <CollapsibleSection title="Looks"><LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} /></CollapsibleSection>
+            <CollapsibleSection title="Effects"><EffectsRail hideTitle fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+              if (!activePixel) return;
+              const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
+              setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
+            }} /></CollapsibleSection>
+            <CollapsibleSection title="REC"><RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></CollapsibleSection>
+          </aside>
+  );
   const outputEnabled = bo.target === 0;
   const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen;
   // One window at a time; tapping its tab again closes it and returns to the console
@@ -1167,7 +1192,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
         <Button variant="secondary" onClick={() => openWin("plot")} aria-pressed={plotOpen} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
         <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} className="h-11 px-5 text-sm font-bold">PATCH</Button>
-        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && !windowOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen && !windowOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && !windowOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen && !gridOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && (!windowOpen || gridOpen) ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen && (!windowOpen || gridOpen) ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && (!windowOpen || gridOpen) ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
@@ -1203,6 +1228,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
               const n = cols * rows; let gc = cols, gr = rows; if (!getMode(f).grid && !tube && n > 2) { gc = Math.ceil(Math.sqrt(n)); gr = Math.ceil(n / gc); }
               const aspect = !tube ? 1 : cols > 1 || rows > 1 ? (tube && cols === 1 && rows > cols ? rows / cols : cols / Math.max(1, rows)) : tube ? 4 : 1;
               return { cells: pix?.map((c) => `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})`), cols: tube && cols === 1 && rows > cols ? rows : gc, rows: tube && cols === 1 && rows > cols ? cols : gr, aspect }; }} />
+          {groupsOpen && groupsAside()}
         </div>
       )}
       {patchOpen && (
@@ -1243,31 +1269,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:border-l lg:border-t-0 lg:w-96">
           {controlPanel()}
         </aside>}
-        {groupsOpen && (
-          <aside aria-label="Groups, looks, effects and REC" className="max-h-[45vh] w-full shrink-0 space-y-3 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
-            <CollapsibleSection title="Groups">
-            <GroupsPanel fixtures={fixtures} selected={selected} onRemoveMember={(id, g) => setFixtures((fs) => fs.map((x) => (x.uid === id ? removeFromGroup(x, g) : x)))} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, g) : x)))}
-              onSelect={(g) => { const ids = membersOf(fixtures, g).map((f) => f.uid); setSelected((s) => ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])]); }} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
-              onCopy={(from, to) => setFixtures((fs) => {
-                const src = membersOf(fs, from)[0];
-                if (!src) return fs;
-                const exists = fs.some((x) => inGroup(x, to));
-                const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
-                return fs.map((x) => {
-                  const hit = exists ? inGroup(x, to) : selected.includes(x.uid) && !inGroup(x, from);
-                  return hit ? (exists ? { ...x, ...copy } : addToGroup({ ...x, ...copy }, to)) : x;
-                });
-              })} />
-            </CollapsibleSection>
-            <CollapsibleSection title="Looks"><LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} /></CollapsibleSection>
-            <CollapsibleSection title="Effects"><EffectsRail hideTitle fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
-              if (!activePixel) return;
-              const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
-              setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
-            }} /></CollapsibleSection>
-            <CollapsibleSection title="REC"><RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></CollapsibleSection>
-          </aside>
-        )}
+        {groupsOpen && groupsAside()}
       </div>
       )}
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
