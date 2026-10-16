@@ -140,3 +140,6 @@
 - [x] GRID bg picture: drag to move, zoom in/out, invert colours (image + PDF)
 - [x] GRID text labels: type immediately after placing, double-tap to re-edit
 - [x] Arrange: add Pentagon; all shapes (square/grid, triangle, circle, pentagon) place fixtures on the outline only
+- [x] Grid: placing lights simple and fast — "Add light" tool, one tap drops the next light, tool stays on for the next one (browser verified: 2 taps → 2 lights)
+- [x] Macros table: button named "Macros table"; dragging it carries only macros, never fixtures (browser verified)
+- [x] Macros table: dragging a table carries only macros, never fixtures

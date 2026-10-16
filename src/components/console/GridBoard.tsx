@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import type { PatchedFixture } from "@/lib/dmx";
-import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
@@ -95,9 +95,9 @@ export function arrange(pts: { id: string; x: number; y: number }[], how: Arrang
 export function applySize(items: GridItem[], selIds: string[], v: number, def: number, cols = COLS, rows = ROWS): GridItem[] {
   const sel = items.filter((i) => selIds.includes(i.id));
   if (!sel.length) return items;
-  // A fixture without an explicit size occupies the default 2:3 box; the slider sets a square of `v`.
-  const bw = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? def * 2 * Math.sqrt(2 / 3) : ISW(i, def));
-  const bh = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? def * 2 * Math.sqrt(3 / 2) : ISH(i, def));
+  // A fixture without an explicit size occupies the default 3:2 box; the slider sets a square of `v`.
+  const bw = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? def * 2 * Math.sqrt(3 / 2) : ISW(i, def));
+  const bh = (i: GridItem) => (i.kind === "fixture" && i.w == null && i.s == null ? def * 2 * Math.sqrt(2 / 3) : ISH(i, def));
   const grp = sel.length > 1 ? sel : [];
   const ox = grp.reduce((a, i) => a + i.x + bw(i) / 2, 0) / grp.length;
   const oy = grp.reduce((a, i) => a + i.y + bh(i) / 2, 0) / grp.length;
@@ -129,6 +129,16 @@ const LIVE: Arrange[] = ["hspace", "vspace", "row", "column", "grid", "triangle"
 
 const ISW = (i: GridItem, d: number) => i.w ?? i.s ?? d;
 const ISH = (i: GridItem, d: number) => i.h ?? i.s ?? d;
+/** Default fixture box on the board: a 2×-scaled 3:2 (w:h) rectangle — wider than tall. */
+export const fixtureBox = (sz = SIZE) => ({ w: sz * 2 * Math.sqrt(3 / 2), h: sz * 2 * Math.sqrt(2 / 3) });
+/** Box of one grid item at base size `sz` — a fixture that was never resized takes the default 3:2 rectangle. */
+export function boxOf(i: GridItem, sz = SIZE) {
+  return i.kind === "fixture" && i.w == null && i.s == null ? fixtureBox(sz) : { w: ISW(i, sz), h: ISH(i, sz) };
+}
+/** Squares that stick to a table when it is dragged: macros whose centre sits inside the table. Fixtures never stick. */
+export function tableCarry(items: GridItem[], table: { x: number; y: number; w: number; h: number }, sz = SIZE) {
+  return items.filter((i) => { const b = boxOf(i, sz); const cx = i.x + b.w / 2, cy = i.y + b.h / 2; return i.kind === "macro" && cx > table.x && cx < table.x + table.w && cy > table.y && cy < table.y + table.h; });
+}
 type Box = { id: string; x: number; y: number; w: number; h: number };
 export type Corner = "tl" | "tr" | "bl" | "br";
 
@@ -161,7 +171,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   pixelsOf?: (f: PatchedFixture) => { cells?: string[] | undefined; cols: number; rows: number; aspect: number };
 }) {
   const [live, setLive] = useState(true);
-  const [mode, setMode] = useState<"select" | "walls" | "text">("select");
+  const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
   const [esel, setEsel] = useState<string[]>([]);
   const lastTap = useRef<{ id: string; t: number } | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number; w: number; h: number }[] } | null>(null);
@@ -175,12 +185,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
   const sz = grid.size ?? SIZE;
-  // Fixtures default to a 2×-scaled 2:3 (w:h) rectangle; tube/bar elongation is ignored — every light renders the same box shape.
-  const fxAuto = (i: GridItem) => i.kind === "fixture" && i.w == null && i.s == null;
-  const FXW = sz * 2 * Math.sqrt(2 / 3), FXH = sz * 2 * Math.sqrt(3 / 2);
-  const W = (i: GridItem) => (fxAuto(i) ? FXW : ISW(i, sz)), H = (i: GridItem) => (fxAuto(i) ? FXH : ISH(i, sz));
+  // Fixtures default to a 2×-scaled 3:2 (w:h) rectangle; tube/bar elongation is ignored — every light renders the same box shape.
+  const FXW = fixtureBox(sz).w, FXH = fixtureBox(sz).h;
+  const W = (i: GridItem) => boxOf(i, sz).w, H = (i: GridItem) => boxOf(i, sz).h;
   const selItems = live ? grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!)) : grid.items.filter((i) => esel.includes(i.id));
-  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, Math.max(size, FXH)); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
+  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, Math.max(size, FXW, FXH)); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
   const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
   const rescale = (g: number, size: number) => {
     const grp = selItems.length > 1 ? selItems : [];
@@ -236,6 +245,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); } else setLabel(""); };
   const addSquare = () => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "empty", ...freeSpot(grid.items) }] }); setEsel([id]); };
   const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); };
+  /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
+  const addLight = (x: number, y: number) => {
+    const f = fixtures.find((g) => !placed.has(g.uid));
+    if (!f) return;
+    const id = nid();
+    setGrid({ ...grid, items: [...grid.items, { id, kind: "fixture", uid: f.uid, x: Math.max(0, Math.round(x - FXW / 2)), y: Math.max(0, Math.round(y - FXH / 2)) }] });
+    setEsel([id]);
+  };
   const addTable = () => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "table", text: "Macros", cols: 4, rows: 3, x: 1, y: 1, w: 4 * 1.1, h: 3 * 1.1 + 0.4 }] }); setEsel([id]); };
   /** Packs macro squares (selected ones, or all) into the table's cells in reading order. */
   const fillTable = (t: GridItem) => {
@@ -275,10 +292,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   };
   const images = grid.items.filter((i) => i.kind === "image");
   const tables = grid.items.filter((i) => i.kind === "table");
-  // Dragging a table carries every square whose centre sits inside it.
+  // Dragging a table carries only macro squares whose centre sits inside it — fixtures never stick to a table.
   const groupFor = (it: GridItem, sel: string[]) => {
     let base = sel.includes(it.id) ? grid.items.filter((i) => sel.includes(i.id)) : [it];
-    for (const t of base.filter((b) => b.kind === "table")) for (const i of grid.items) { const cx = i.x + W(i) / 2, cy = i.y + H(i) / 2; if (i.kind !== "image" && i.kind !== "table" && cx > t.x && cx < t.x + W(t) && cy > t.y && cy < t.y + H(t) && !base.includes(i)) base = [...base, i]; }
+    for (const t of base.filter((b) => b.kind === "table")) for (const i of tableCarry(grid.items, { x: t.x, y: t.y, w: W(t), h: H(t) }, sz)) if (!base.includes(i)) base = [...base, i];
     return base.map((i) => ({ id: i.id, x: i.x, y: i.y, w: W(i), h: H(i) }));
   };
   const pal = (c?: string) => (c ? { background: c } : undefined);
@@ -287,10 +304,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
 
   const editPanel = (
     <div className="space-y-4">
-      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? "Drag to draw a wall at any angle — it snaps straight or 45° when close. Tap a wall to delete it." : mode === "text" ? "Tap the grid to drop a text label." : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a box to pick a macro or fixture and its colour. Drag on empty space to box-select."}</p>
+      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? "Drag to draw a wall at any angle — it snaps straight or 45° when close. Tap a wall to delete it." : mode === "text" ? "Tap the grid to drop a text label." : mode === "light" ? "Tap the grid to drop the next light, one at a time. Tap Select when you are done." : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a box to pick a macro or fixture and its colour. Drag on empty space to box-select."}</p>
       <div className="grid grid-cols-2 gap-1.5">
         <Button size="sm" onClick={addSquare}><Plus />Box</Button>
-        <Button variant="secondary" size="sm" onClick={addTable}><Table2 />Table</Button>
+        <Button variant="secondary" size="sm" onClick={addTable}><Table2 />Macros table</Button>
         <Button variant="secondary" size="sm" className="col-span-2" disabled={fixtures.every((f) => placed.has(f.uid))}
           onClick={() => { let items = grid.items; for (const f of fixtures) if (!placed.has(f.uid)) items = [...items, { id: nid(), kind: "fixture", uid: f.uid, ...freeSpot(items) }]; setGrid({ ...grid, items }); }}>All lights</Button>
       </div>
@@ -367,6 +384,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={chip(mode === "select")}><MousePointer2 className="h-3.5 w-3.5" />Select</button>
             <button onClick={() => setMode("walls")} aria-pressed={mode === "walls"} className={chip(mode === "walls")}><PenLine className="h-3.5 w-3.5" />Walls</button>
             <button onClick={() => setMode("text")} aria-pressed={mode === "text"} className={chip(mode === "text")}><Type className="h-3.5 w-3.5" />Text</button>
+            <button onClick={() => setMode("light")} aria-pressed={mode === "light"} disabled={fixtures.every((f) => placed.has(f.uid))} className={chip(mode === "light")}><Lightbulb className="h-3.5 w-3.5" />Add light</button>
             <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />Import pictures or PDF
               <input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
             </label>
@@ -383,6 +401,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const p = pt(e); area_.current!.setPointerCapture(e.pointerId);
             if (!live && mode === "walls") setWall({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
             else if (!live && mode === "text") addText(p.x, p.y);
+            else if (!live && mode === "light") addLight(p.x, p.y);
             else setBox({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, add: e.shiftKey || e.ctrlKey || e.metaKey });
           }}
           onPointerMove={(e) => {

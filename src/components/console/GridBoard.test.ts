@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySize, arrange } from "./GridBoard";
+import { applySize, arrange, fixtureBox, tableCarry } from "./GridBoard";
 import type { GridItem } from "./GridBoard";
 
 const pts = [{ id: "a", x: 1, y: 1 }, { id: "b", x: 5, y: 3 }, { id: "c", x: 3, y: 6 }];
@@ -59,7 +59,7 @@ describe("fixture size slider", () => {
   it("a lone selected square grows about its own centre", () => {
     const r = applySize(items, ["a"], 1.4, 0.92);
     const a = r.find((i) => i.id === "a")!;
-    const FXW = 0.92 * 2 * Math.sqrt(2 / 3), FXH = 0.92 * 2 * Math.sqrt(3 / 2);
+    const FXW = 0.92 * 2 * Math.sqrt(3 / 2), FXH = 0.92 * 2 * Math.sqrt(2 / 3);
     expect(a.x + a.s! / 2).toBeCloseTo(2 + FXW / 2, 9);
     expect(a.y + a.s! / 2).toBeCloseTo(2 + FXH / 2, 9);
   });
@@ -68,7 +68,7 @@ describe("fixture size slider", () => {
     const r = applySize(base, ["a", "b"], 1.84, 0.92);
     const a = r.find((i) => i.id === "a")!, b = r.find((i) => i.id === "b")!;
     const ca = { x: a.x + a.s! / 2, y: a.y + a.s! / 2 }, cb = { x: b.x + b.s! / 2, y: b.y + b.s! / 2 };
-    const FXW = 0.92 * 2 * Math.sqrt(2 / 3), FXH = 0.92 * 2 * Math.sqrt(3 / 2);
+    const FXW = 0.92 * 2 * Math.sqrt(3 / 2), FXH = 0.92 * 2 * Math.sqrt(2 / 3);
     const oa = { x: 4 + FXW / 2, y: 4 + FXH / 2 }, ob = { x: 8 + FXW / 2, y: 6 + FXH / 2 };
     const o = { x: (oa.x + ob.x) / 2, y: (oa.y + ob.y) / 2 };
     const k = 1.84 / FXW;
@@ -105,5 +105,25 @@ describe("resizeBoxes keeps fixture proportions", () => {
     const [a] = resizeBoxes([{ id: "f", x: 0, y: 0, w: 4, h: 1 }], "br", 8, 1, 0.3, new Set(["f"]));
     expect(a!.w / a!.h).toBeCloseTo(4);
     expect(a!.w).toBeCloseTo(8);
+  });
+});
+
+describe("default fixture box", () => {
+  it("is a 3:2 rectangle — wider than tall", () => {
+    const { w, h } = fixtureBox(0.92);
+    expect(w / h).toBeCloseTo(1.5, 9);
+    expect(w).toBeGreaterThan(h);
+  });
+});
+
+describe("macros table", () => {
+  const table = { x: 0, y: 0, w: 8, h: 6 };
+  const items: GridItem[] = [
+    { id: "m1", kind: "macro", x: 1, y: 1, macro: { action: "cct_up", amount: 100, label: "" } },
+    { id: "m2", kind: "macro", x: 9, y: 9, macro: { action: "cct_up", amount: 100, label: "" } },
+    { id: "f1", kind: "fixture", uid: "f1", x: 2, y: 2 },
+  ];
+  it("a dragged table carries only the macro inside it — a fixture standing in the table never sticks", () => {
+    expect(tableCarry(items, table, 0.92).map((i) => i.id)).toEqual(["m1"]);
   });
 });
