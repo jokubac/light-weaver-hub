@@ -127,8 +127,8 @@
 - [x] Rename any remaining Kroma naming to NOX (user-visible)
 - [ ] Nanlux official DMX charts (nanlux.com download id=97) — verify Evoke/Dyno modes against manufacturer tables
 
-- [ ] Console toolbar: FIXTURES, GRID, FX, PIXEL, FADERS, PLOT, PATCH — FX opens the effects rail, PATCH opens the patch library; browser verify each tab opens and collapses.
-- [ ] Change FIXTURES tab action: it opens a window built from the fixture glyph tiles (FixtureGlyph) — exact behaviour awaiting user confirmation
-- [ ] FIXTURES button: open a full-screen window with the fixture tiles grid (same tiles and selection as the console area), not the patch sheet
-- [ ] Full-screen windows (PLOT, PATCH, FIXTURES): the console top bar and view tabs must not stay visible while a window is open
-- [ ] PATCH button opens the patch sheet with addresses/universes — verify in browser
+- [x] Console toolbar: FIXTURES, GRID, FX, PIXEL, FADERS, PLOT, PATCH — GRID/FX/PIXEL open the side rail, FIXTURES/PATCH/PLOT open full-screen windows
+- [x] FIXTURES tab action changed to the fixture tiles window
+- [x] FIXTURES opens a full-screen window with the fixture tiles grid (same tiles, selection toolbar and gestures as the console area); PATCH opens the patch sheet
+- [x] Console top bar and view tabs are hidden while FIXTURES, PATCH or PLOT is open (browser verified)
+- [x] PATCH button opens the patch sheet with addresses/universes — browser verified
