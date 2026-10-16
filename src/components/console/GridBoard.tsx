@@ -137,6 +137,16 @@ const ISW = (i: GridItem, d: number) => i.w ?? i.s ?? d;
 const ISH = (i: GridItem, d: number) => i.h ?? i.s ?? d;
 /** Default fixture box on the board: a 2×-scaled 3:2 (w:h) rectangle — wider than tall. */
 export const fixtureBox = (sz = SIZE) => ({ w: sz * 2 * Math.sqrt(3 / 2), h: sz * 2 * Math.sqrt(2 / 3) });
+/** Slots for dropping n lights around a tap point: a near-square block centred on the tap, so a whole group lands together. */
+export const groupSlots = (n: number, cx: number, cy: number, w: number, h: number, gap = 0.3) => {
+  const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
+  const rows = Math.max(1, Math.ceil(n / cols));
+  const px = w + gap, py = h + gap;
+  return Array.from({ length: n }, (_, k) => ({
+    x: cx + ((k % cols) - (cols - 1) / 2) * px - w / 2,
+    y: cy + (Math.floor(k / cols) - (rows - 1) / 2) * py - h / 2,
+  }));
+};
 /** Box of one grid item at base size `sz` — a fixture that was never resized takes the default 3:2 rectangle. */
 export function boxOf(i: GridItem, sz = SIZE) {
   return i.kind === "fixture" && i.w == null && i.s == null ? fixtureBox(sz) : { w: ISW(i, sz), h: ISH(i, sz) };
