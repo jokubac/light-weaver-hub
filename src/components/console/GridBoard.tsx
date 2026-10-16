@@ -618,14 +618,18 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 ) : it.kind === "table" ? (<>
                   <div className="h-[30px] shrink-0 truncate px-1 text-xs font-bold uppercase text-muted-foreground" style={it.color ? { color: it.color } : undefined}>{it.text}</div>
                   {!live && <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: `repeat(${it.cols ?? 4}, 1fr)`, gridTemplateRows: `repeat(${it.rows ?? 3}, 1fr)` }}>
-                    {Array.from({ length: (it.cols ?? 4) * (it.rows ?? 3) }, (_, k) => (
+                    {Array.from({ length: (it.cols ?? 4) * (it.rows ?? 3) }, (_, k) => {
+                      const cols = it.cols ?? 4, cw = W(it) / cols, cx = it.x + (k % cols) * cw, cy = it.y + 0.4 + Math.floor(k / cols) * cw;
+                      const taken = grid.items.some((m) => m.macro && m.x + W(m) / 2 > cx && m.x + W(m) / 2 < cx + cw + 0.001 && m.y + H(m) / 2 > cy && m.y + H(m) / 2 < cy + cw + 0.001 && m.x < cx + cw - 0.001 && m.x + W(m) > cx + 0.001);
+                      if (taken) return <div key={k} />;
+                      return (
                       <button key={k} type="button" aria-label="Add macro here" disabled={mode !== "select"}
                         className="m-0.5 flex items-center justify-center rounded-md border border-border/60 bg-surface-elevated/55 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => { e.stopPropagation(); const cols = it.cols ?? 4, cw = W(it) / cols; addSquare(it.id, it.x + (k % cols) * cw, it.y + 0.4 + Math.floor(k / cols) * cw, cw); }}>
                         <Plus className="h-4 w-4" />
                       </button>
-                    ))}
+                    ); })}
                   </div>}
                 </>) : f ? (<>
                   <span className="font-mono font-semibold text-foreground/80">#{n}</span>
