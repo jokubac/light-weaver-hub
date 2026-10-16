@@ -43,6 +43,7 @@ export function BeamControls({ first, updateEach }: { first: PatchedFixture; upd
               <button onClick={() => updateEach((f) => { const beam = { ...f.beam }; attrs.forEach((a) => delete beam[a]); return { beam }; })} className="rounded bg-surface-elevated px-2 py-0.5 normal-case">Reset</button>
             </div>
             {g.title === "Position" && <PanTiltPad pan={value("Pan")} tilt={value("Tilt")} hasPan={chans.has("Pan")} hasTilt={chans.has("Tilt")} set={set} />}
+            {g.title === "Framing" && <FramingPad has={(a) => chans.has(a)} value={value} set={set} />}
             {attrs.map((a) => {
               const slots = chans.get(a)?.slots ?? [];
               const v = value(a);
