@@ -200,7 +200,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
-  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => i.kind !== "image" && i.kind !== "table" && Math.abs(i.x - x) < W(i) && Math.abs(i.y - y) < H(i))) return { x, y }; return { x: 0, y: 0 }; };
+  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => i.kind !== "image" && i.kind !== "table" && Math.abs(i.x - x) < (W(i) + FXW) / 2 && Math.abs(i.y - y) < (H(i) + FXH) / 2)) return { x, y }; return { x: 0, y: 0 }; };
   const pt = (e: { clientX: number; clientY: number }) => { const r = vp.current!.getBoundingClientRect(); return { x: (e.clientX - r.left - view.x) / (CELL * view.z), y: (e.clientY - r.top - view.y) / (CELL * view.z) }; };
   // Endless canvas: wheel pans, ctrl/pinch-wheel zooms about the cursor; middle/right drag pans; two fingers pinch-zoom and pan.
   const HOME = { x: 12, y: 12, z: 1 };
