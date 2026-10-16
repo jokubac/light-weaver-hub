@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keyName, macroCommand, MACRO_ACTIONS, stepSelection } from "@/lib/macros";
+import { colourStep, keyName, macroCommand, MACRO_ACTIONS, stepSelection } from "@/lib/macros";
 
 describe("macro pad", () => {
   it("intensity +5 raises selected lights by 5%", () => {
@@ -44,5 +44,22 @@ describe("next / previous light", () => {
   it("offers next/previous actions", () => {
     const ids: string[] = MACRO_ACTIONS.map((a) => a.id);
     expect(["next", "prev"].every((i) => ids.includes(i))).toBe(true);
+  });
+});
+
+describe("new macro set", () => {
+  it("hue +5% turns the wheel 18° and wraps", () => {
+    expect(colourStep({ id: "a", key: null, action: "hue_up", amount: 5 }, { hue: 350, saturation: 0.5 })).toEqual({ hue: 8 });
+  });
+  it("saturation -5% clamps at 0", () => {
+    expect(colourStep({ id: "a", key: null, action: "sat_down", amount: 5 }, { hue: 0, saturation: 0.02 })).toEqual({ saturation: 0 });
+  });
+  it("intensity fader sets the level, CCT fader sets kelvin", () => {
+    expect(macroCommand({ id: "a", key: null, action: "int_fader", amount: 40 })).toEqual({ level: 0.4 });
+    expect(macroCommand({ id: "a", key: null, action: "cct_fader", amount: 3200 })).toEqual({ cct: 3200 });
+  });
+  it("faders default to a 3×1 box; Check out! and Locate! are hold buttons", () => {
+    expect(MACRO_ACTIONS.filter((a) => a.fader).map((a) => a.id)).toEqual(["int_fader", "cct_fader", "gm_fader"]);
+    expect(MACRO_ACTIONS.filter((a) => a.hold).map((a) => a.id)).toEqual(["checkout", "locate"]);
   });
 });

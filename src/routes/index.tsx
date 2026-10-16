@@ -33,13 +33,14 @@ import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
 import { FixtureMenu } from "@/components/console/FixtureMenu";
+import { GEL_BY_ID, hexToHs } from "@/lib/gels";
 import { addToGroup, groupNamesOf, groupText, groupsOf, inGroup, membersOf, removeFromGroup, renameGroupsOn } from "@/lib/fixture-groups";
 import { SettingsDialog } from "@/components/console/SettingsDialog";
 import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { SavePopover } from "@/components/console/SavePopover";
-import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
+import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil, History } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
@@ -527,6 +528,19 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [macroLearn, setMacroLearn] = useState<string | null>(null);
   const lastDeselect = useRef(0);
   const toggleLevels = useRef<Record<string, number>>({});
+  const holdSaved = useRef<{ checkout: Record<string, { intensity: number; cct: number }>; locate: Record<string, { intensity: number; cct: number }> }>({ checkout: {}, locate: {} });
+  const fadeTimer = useRef<number | null>(null);
+  /** 0.25 s fade of intensity + CCT from each light's start values to its target. */
+  const fadeTo = (from: Record<string, { intensity: number; cct: number }>, to: (id: string) => { intensity: number; cct: number }) => {
+    if (fadeTimer.current) cancelAnimationFrame(fadeTimer.current);
+    const t0 = performance.now();
+    const step = () => {
+      const k = Math.min(1, (performance.now() - t0) / 250);
+      setFixtures((fs) => fs.map((f) => { const a = from[f.uid]; if (!a) return f; const b = to(f.uid); return { ...f, intensity: a.intensity + (b.intensity - a.intensity) * k, cct: a.cct + (b.cct - a.cct) * k }; }));
+      fadeTimer.current = k < 1 ? requestAnimationFrame(step) : null;
+    };
+    step();
+  };
   const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {}, fire: (_m: Macro, _src: string) => {} });
   const [macroLog, setMacroLog] = useState<MacroLogEntry[]>(() => (typeof window === "undefined" ? [] : loadLog()));
   const [macroLogging, setMacroLogging] = useState(true);
@@ -753,12 +767,18 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
       const hit = name ? r.macros.filter((m) => m.key === name) : [];
-      if (hit.length) { e.preventDefault(); hit.forEach((m) => r.fire(m, "key")); return; }
+      if (hit.length) { e.preventDefault(); if (!e.repeat) hit.forEach((m) => r.fire(m, "key")); return; }
       if (e.code === "Space") { e.preventDefault(); goRef.current(1); }
       else if (e.key === "b" || e.key === "B") goRef.current(-1);
     };
+    // hold macros (Check out!, Locate!) let go when the key is released
+    const up = (e: KeyboardEvent) => {
+      const name = keyName(e); const r = macroRef.current;
+      if (name) r.macros.filter((m) => m.key === name && (m.action === "checkout" || m.action === "locate")).forEach((m) => r.run({ ...m, release: true }));
+    };
     window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
+    window.addEventListener("keyup", up);
+    return () => { window.removeEventListener("keydown", h); window.removeEventListener("keyup", up); };
   }, []);
   const outFixtures = useMemo(() => {
     const out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
@@ -814,6 +834,40 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   macroRef.current.run = (m: Macro) => {
     const c = macroCommand(m);
     if (c) return runCommand(undefined, c.level, c.cct, c.levelDelta, c.cctDelta);
+    if (colourStep(m, { hue: 0, saturation: 0 })) return updateEach((f) => ({ ...colourStep(m, f), cctOnly: false, ...(f.crossfade < 1 ? { crossfade: 1 } : {}) }));
+    if (m.action === "gm_fader") return updateSelected({ gm: Math.max(-1, Math.min(1, m.amount / 100)) });
+    if (m.action === "filter") {
+      const g = m.param ? GEL_BY_ID[m.param] : undefined;
+      if (!g) return updateSelected({ gel: "" });
+      if (g.kelvin) return updateSelected({ cct: Math.max(0, Math.min(1, cctFromKelvin(g.kelvin))), crossfade: 0, gel: g.id });
+      if (g.gm !== undefined) return updateSelected({ gm: g.gm, gel: g.id });
+      const { h, s: sat } = hexToHs(g.hex); return updateSelected({ hue: h, saturation: sat, crossfade: 1, cctOnly: false, gel: g.id });
+    }
+    if (m.action === "group") { const ids = m.param ? membersOf(fixtures, m.param).map((f) => f.uid) : []; setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; return; }
+    if (m.action === "checkout") {
+      // hold: selected lights go dark; release: they come back to where they were
+      if (!m.release) { holdSaved.current.checkout = Object.fromEntries(sel.map((f) => [f.uid, { intensity: f.intensity, cct: f.cct }])); setFixtures((fs) => fs.map((f) => selected.includes(f.uid) ? { ...f, intensity: 0 } : f)); }
+      else { const sv = holdSaved.current.checkout; setFixtures((fs) => fs.map((f) => sv[f.uid] ? { ...f, intensity: sv[f.uid]!.intensity } : f)); holdSaved.current.checkout = {}; }
+      return;
+    }
+    if (m.action === "locate") {
+      // hold: 100% @ 5600K with a 0.25 s fade in; release: 0.25 s fade back to what it was
+      if (!m.release) { const sv = Object.fromEntries(sel.map((f) => [f.uid, { intensity: f.intensity, cct: f.cct }])); holdSaved.current.locate = sv; fadeTo(sv, () => ({ intensity: 1, cct: cctFromKelvin(5600) })); }
+      else { const sv = holdSaved.current.locate; const now = Object.fromEntries(fixtures.filter((f) => sv[f.uid]).map((f) => [f.uid, { intensity: f.intensity, cct: f.cct }])); fadeTo(now, (id) => sv[id]!); holdSaved.current.locate = {}; }
+      return;
+    }
+    if (m.action === "wrap") {
+      if (!window.confirm("Wrap! Set ALL lights to 100% at 5600K?")) return;
+      setFixtures((fs) => fs.map((f) => ({ ...f, ...commandPatch(f, { level: 1, cct: 5600 }) })));
+      return;
+    }
+    if (m.action === "strike") {
+      // lamp reset: switch selected lights off, then back on to their level after 1.5 s
+      const sv = Object.fromEntries(sel.map((f) => [f.uid, f.intensity || 1]));
+      setFixtures((fs) => fs.map((f) => sv[f.uid] != null ? { ...f, intensity: 0 } : f));
+      window.setTimeout(() => setFixtures((fs) => fs.map((f) => sv[f.uid] != null ? { ...f, intensity: sv[f.uid]! } : f)), 1500);
+      return;
+    }
     const pulse = (target: number) => { const now = performance.now(); setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => selected.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target }])) })); };
     // Plain Next/Previous move the selection to one light; the "_add" versions keep earlier picks.
     if (m.action === "next") stepLight(1);
