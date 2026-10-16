@@ -248,6 +248,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
   const [panelOpen, setPanelOpen] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
+  // Which text label is being typed into right now, edited on the box itself.
+  const [editText, setEditText] = useState<string | null>(null);
   const [esel, setEsel] = useState<string[]>([]);
   const lastTap = useRef<{ id: string; t: number } | null>(null);
   // Double-tapping a fader box anywhere on it resets it; the press ref tracks the live gesture so drags never count as taps.
@@ -345,7 +347,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     items = [...items, { id, kind: "empty", tbl: t.id, x: atX ?? t.x + 999, y: atY ?? t.y + 999, w: cell, h: cell }];
     setGrid({ ...grid, items: layoutTables(items, sz) }); setEsel([id]); setPicker(id); setLabel("");
   };
-  const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); };
+  const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); setEditText(id); };
   /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
   const addLight = (x: number, y: number) => {
     if (pickGroup) {
@@ -469,7 +471,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         <section className="space-y-2 rounded-lg border border-primary/50 p-2">
           <div className="flex items-center justify-between"><h3 className="text-xs font-bold uppercase">{one.kind === "table" ? "Table" : one.kind === "text" ? "Text" : "Box"}</h3>
             {one.kind !== "table" && one.kind !== "text" && <button onClick={() => openPicker(one)} className="text-xs font-semibold text-primary">Macro / fixture…</button>}</div>
-          {(one.kind === "text" || one.kind === "table") && <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder={one.kind === "table" ? "Table name" : "Type…"} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />}
+          {one.kind === "table" && <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder="Table name" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />}
           {one.kind === "table" && (<>
             <p className="text-[11px] text-muted-foreground">{one.cols ?? 4} × {one.rows ?? 3} cells — drag the table corner to change; the cells follow automatically.</p>
             <Button size="sm" className="w-full" onClick={() => fillTable(one)}>Put macros in table</Button>
@@ -598,9 +600,13 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 if (it?.kind === "fixture") onToggle(it.uid!);
                 else if (it?.kind === "macro" && !MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.fader) onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount, param: it.macro!.param, release: MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.hold || undefined });
               } else if (it) {
-                const now = Date.now();
-                if (lastTap.current?.id === it.id && now - lastTap.current.t < 400) { lastTap.current = null; if (it.kind !== "image" && it.kind !== "text" && it.kind !== "table") openPicker(it); }
-                else lastTap.current = { id: it.id, t: now };
+                // A text label is edited on the box itself: one tap (without dragging) opens its editor.
+                if (it.kind === "text" && !e.shiftKey) { setEditText(it.id); lastTap.current = null; }
+                else {
+                  const now = Date.now();
+                  if (lastTap.current?.id === it.id && now - lastTap.current.t < 400) { lastTap.current = null; if (it.kind !== "image" && it.kind !== "text" && it.kind !== "table") openPicker(it); }
+                  else lastTap.current = { id: it.id, t: now };
+                }
               }
               setDrag(null);
             }
@@ -697,7 +703,16 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                     </div>;
                   })()}
                 </>) : it.kind === "text" ? (
-                  <div className="flex flex-1 items-center justify-center overflow-hidden text-center text-xs font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
+                  editText === it.id ? (
+                    <textarea autoFocus aria-label="Edit text label" placeholder="Type…" value={it.text ?? ""}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onChange={(e) => patch(it.id, { text: e.target.value })}
+                      onBlur={() => setEditText(null)}
+                      onKeyDown={(e) => { if (e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)) { e.preventDefault(); setEditText(null); } }}
+                      className="h-full w-full resize-none rounded bg-background/80 px-1 text-center text-xs font-bold leading-tight text-foreground outline-none" />
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center overflow-hidden text-center text-xs font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
+                  )
                 ) : (
                   <div className="flex flex-1 items-center justify-center text-muted-foreground"><Plus className="h-4 w-4" /></div>
                 )}
