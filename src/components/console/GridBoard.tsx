@@ -275,7 +275,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const addTable = () => { const t = newTable(grid.items); setGrid({ ...grid, items: [...grid.items, t] }); setEsel([t.id]); };
   /** Moves macro squares (selected ones, or all loose ones) into the table; they line up automatically. */
   const fillTable = (t: GridItem) => {
-    const pick = new Set(grid.items.filter((i) => (i.kind === "macro" || i.kind === "empty") && (esel.length > 1 ? esel.includes(i.id) : !i.tbl)).map((i) => i.id));
+    const ids = new Set(grid.items.filter((i) => (i.kind === "macro" || i.kind === "empty") && (esel.length > 1 ? esel.includes(i.id) : !i.tbl)).map((i) => i.id));
+    setGrid({ ...grid, items: layoutTables(grid.items.map((i) => (ids.has(i.id) ? { ...i, tbl: t.id, y: t.y + 999 } : i)), sz) });
   };
   const toJpeg = async (file: File): Promise<{ src: string; ratio: number }> => {
     let c: HTMLCanvasElement;
