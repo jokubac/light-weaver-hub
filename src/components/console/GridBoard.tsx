@@ -408,10 +408,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             {one.kind !== "table" && one.kind !== "text" && <button onClick={() => openPicker(one)} className="text-xs font-semibold text-primary">Macro / fixture…</button>}</div>
           {(one.kind === "text" || one.kind === "table") && <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder={one.kind === "table" ? "Table name" : "Type…"} className="w-full rounded-md border border-input bg-surface-elevated px-2 py-1.5 text-sm text-foreground" />}
           {one.kind === "table" && (<>
-            <div className="flex gap-2 text-[11px] text-muted-foreground">
-              <label className="flex items-center gap-1">Cols<input type="number" min={1} max={12} value={one.cols ?? 4} onChange={(e) => patch(one.id, { cols: Math.max(1, Math.min(12, +e.target.value || 1)) })} className="w-12 rounded border border-input bg-surface-elevated px-1 py-1 text-right font-mono text-foreground" /></label>
-              <label className="flex items-center gap-1">Rows<input type="number" min={1} max={12} value={one.rows ?? 3} onChange={(e) => patch(one.id, { rows: Math.max(1, Math.min(12, +e.target.value || 1)) })} className="w-12 rounded border border-input bg-surface-elevated px-1 py-1 text-right font-mono text-foreground" /></label>
-            </div>
+            <p className="text-[11px] text-muted-foreground">{one.cols ?? 4} × {one.rows ?? 3} cells — drag the table corner to change; the cells follow automatically.</p>
             <Button size="sm" className="w-full" onClick={() => fillTable(one)}>Put macros in table</Button>
           </>)}
           <ColourRow value={one.color} onPick={(c) => patch(one.id, { color: c || undefined })} />
