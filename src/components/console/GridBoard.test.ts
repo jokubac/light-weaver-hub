@@ -127,3 +127,22 @@ describe("macros table", () => {
     expect(tableCarry(items, table, 0.92).map((i) => i.id)).toEqual(["m1"]);
   });
 });
+
+import { dropIntoTables, layoutTables } from "./GridBoard";
+describe("macro tables", () => {
+  const t1 = { id: "t1", kind: "table" as const, x: 0, y: 0, w: 4.4, h: 3.7, cols: 4, rows: 3 };
+  const t2 = { id: "t2", kind: "table" as const, x: 10, y: 0, w: 4.4, h: 3.7, cols: 4, rows: 3 };
+  it("macro dropped on another table moves there and lines up", () => {
+    const m = { id: "m", kind: "macro" as const, tbl: "t1", x: 11, y: 1, w: 1, h: 1 };
+    const out = layoutTables(dropIntoTables([t1, t2, m], new Set(["m"])));
+    const r = out.find((i) => i.id === "m")!;
+    expect(r.tbl).toBe("t2");
+    expect(r.x).toBeGreaterThanOrEqual(10);
+  });
+  it("macro dropped outside every table returns to its table", () => {
+    const m = { id: "m", kind: "macro" as const, tbl: "t1", x: 30, y: 30, w: 1, h: 1 };
+    const r = layoutTables(dropIntoTables([t1, t2, m], new Set(["m"]))).find((i) => i.id === "m")!;
+    expect(r.tbl).toBe("t1");
+    expect(r.x).toBeLessThan(4.4);
+  });
+});
