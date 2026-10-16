@@ -1045,7 +1045,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   const quick = firstItem && visible(firstItem) ? headOf(V, firstItem) : null;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-background" onPointerDownCapture={() => { gesture.current = { active: true, recorded: false }; }} onPointerUp={() => { gesture.current.active = false; }} onPointerCancel={() => { gesture.current.active = false; }}>
+    <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerDownCapture={() => { gesture.current = { active: true, recorded: false }; }} onPointerUp={() => { gesture.current.active = false; }} onPointerCancel={() => { gesture.current.active = false; }}>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2.5">
         <h2 className="mr-2 font-display text-lg font-semibold">Live plot</h2>
