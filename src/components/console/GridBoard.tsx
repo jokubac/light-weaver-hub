@@ -15,6 +15,12 @@ const nid = () => Math.random().toString(36).slice(2, 10);
 const clamp = (v: number, max: number) => Math.max(0, Math.min(max, v));
 
 /** Wall end snaps to straight or 45° lines when within 6°, otherwise stays free at any angle. */
+/** Snaps a point onto the nearest wall end within `r` cells so walls can be joined; `skip` excludes the end being dragged. */
+export function snapToEnds(walls: { x1: number; y1: number; x2: number; y2: number }[], x: number, y: number, skip?: { i: number; e: 1 | 2 }, r = 0.35) {
+  let best: { x: number; y: number } | null = null, bd = r;
+  walls.forEach((w, i) => { for (const e of [1, 2] as const) { if (skip && skip.i === i && skip.e === e) continue; const px = e === 1 ? w.x1 : w.x2, py = e === 1 ? w.y1 : w.y2; const d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = { x: px, y: py }; } } });
+  return best ?? { x, y };
+}
 export function snapWall(x1: number, y1: number, x2: number, y2: number) {
   const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
   if (!len) return { x2, y2 };
@@ -204,6 +210,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [rs, setRs] = useState<{ corner: Corner; orig: Box[]; out: Box[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [wallRect, setWallRect] = useState(false);
+  const [wEnd, setWEnd] = useState<{ i: number; e: 1 | 2 } | null>(null);
   const [nextUid, setNextUid] = useState<string | null>(null);
   const [lq, setLq] = useState("");
   const [box, setBox] = useState<{ x1: number; y1: number; x2: number; y2: number; add: boolean } | null>(null);
@@ -347,7 +354,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
 
   const editPanel = (
     <div className="space-y-4">
-      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? "Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Tap a wall to delete it.") : mode === "text" ? "Tap the grid to drop a text label." : mode === "light" ? "Pick a light below, then tap the grid to place it. The next free light is picked automatically." : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select."}</p>
+      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? "Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Drag a wall end to lengthen it; drop it on another end to join them. Tap a wall to delete it.") : mode === "text" ? "Tap the grid to drop a text label." : mode === "light" ? "Pick a light below, then tap the grid to place it. The next free light is picked automatically." : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select."}</p>
       {mode === "walls" && (
         <div className="grid grid-cols-2 gap-1.5">
           <button onClick={() => setWallRect(false)} aria-pressed={!wallRect} className={chip(!wallRect)}><PenLine className="h-3.5 w-3.5" />Line</button>
@@ -465,7 +472,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (tg !== e.currentTarget && tg !== area.current && tg.getAttribute("data-grid-bg") == null && !tg.closest("svg")) return;
             const area_ = vp;
             const p = pt(e); area_.current!.setPointerCapture(e.pointerId);
-            if (!live && mode === "walls") setWall({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
+            if (!live && mode === "walls") { const q = snapToEnds(grid.walls, p.x, p.y); setWall({ x1: q.x, y1: q.y, x2: q.x, y2: q.y }); }
             else if (!live && mode === "text") addText(p.x, p.y);
             else if (!live && mode === "light") addLight(p.x, p.y);
             else setBox({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, add: e.shiftKey || e.ctrlKey || e.metaKey });
@@ -476,7 +483,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
             const p = pt(e);
             if (rs) setRs({ ...rs, out: resizeBoxes(rs.orig, rs.corner, p.x, p.y, 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) });
-            else if (wall) setWall(wallRect ? { ...wall, x2: Math.round(p.x * 4) / 4, y2: Math.round(p.y * 4) / 4 } : { ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) });
+            else if (wEnd) { const w0 = grid.walls[wEnd.i]!; const o = wEnd.e === 1 ? { x: w0.x2, y: w0.y2 } : { x: w0.x1, y: w0.y1 }; const sn = snapToEnds(grid.walls, p.x, p.y, wEnd); const q = sn.x !== p.x || sn.y !== p.y ? sn : (() => { const k = snapWall(o.x, o.y, p.x, p.y); return { x: k.x2, y: k.y2 }; })(); setGrid({ ...grid, walls: grid.walls.map((w, k) => (k !== wEnd.i ? w : wEnd.e === 1 ? { ...w, x1: q.x, y1: q.y } : { ...w, x2: q.x, y2: q.y })) }); }
+            else if (wall) setWall(wallRect ? { ...wall, x2: Math.round(p.x * 4) / 4, y2: Math.round(p.y * 4) / 4 } : (() => { const sn = snapToEnds(grid.walls, p.x, p.y); return sn.x !== p.x || sn.y !== p.y ? { ...wall, x2: sn.x, y2: sn.y } : { ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) }; })());
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
             else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; let dx = p.x - drag.sx, dy = p.y - drag.sy; setDrag({ ...drag, moved, x: dx, y: dy }); }
           }}
@@ -486,6 +494,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (pinch.current) { if (touches.current.size < 2) pinch.current = null; return; }
             if (panDrag.current) { panDrag.current = null; return; }
             if (rs) { setGrid({ ...grid, items: layoutTables(grid.items.map((i) => { const m = rs.out.find((o) => o.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: m.w, h: m.h, s: undefined } : i; }), sz) }); setRs(null); return; }
+            if (wEnd) { setWEnd(null); return; }
             if (wall) { if (wallRect) { if (Math.abs(wall.x2 - wall.x1) > 0.2 && Math.abs(wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, ...rectWalls(wall)] }); } else if (Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, wall] }); setWall(null); }
             if (box) {
               const [l, r, t, b] = [Math.min(box.x1, box.x2), Math.max(box.x1, box.x2), Math.min(box.y1, box.y2), Math.max(box.y1, box.y2)];
@@ -525,6 +534,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 className={`stroke-foreground/70 ${!live && mode === "walls" ? "cursor-pointer hover:stroke-destructive" : ""}`}
                 onPointerDown={(e) => { if (live || mode !== "walls" || i >= grid.walls.length) return; e.stopPropagation(); setGrid({ ...grid, walls: grid.walls.filter((_, k) => k !== i) }); }} />
             ))}
+            {!live && mode === "walls" && !wall && grid.walls.flatMap((w, i) => ([1, 2] as const).map((en) => (
+              <circle key={`${i}-${en}`} cx={(en === 1 ? w.x1 : w.x2) * CELL} cy={(en === 1 ? w.y1 : w.y2) * CELL} r={9} aria-label="Drag wall end"
+                className="cursor-move fill-background stroke-primary" strokeWidth={3} style={{ pointerEvents: "auto" }}
+                onPointerDown={(e) => { e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); setWEnd({ i, e: en }); }} />
+            )))}
           </svg>
           {grid.items.map((it) => {
             const gm = drag?.moved ? drag.group.find((g) => g.id === it.id) : undefined;
