@@ -171,3 +171,6 @@
 - [x] Text labels in GRID have a font size control (slider + −/+ steps, 8–96 px) in the right panel; it also appears when several labels are selected and applies to all of them.
 - [x] FX tab removed from the top console bar (effects stay in the Groups · Looks · Effects · REC panel).
 - [x] FADERS tab no longer shows the ▾/▸ arrows (same as the other top tabs); its pressed state still shows whether the bank is open.
+- [ ] Makro lentelė resize iš kampo neleidžia sumažinti — rasti ir pataisyti ribojimą (Jokubas)
+- [ ] Tušti langeliai po faderiais — pataisyta (overlap check); patikrinti naršyklėje
+- [ ] Playwright: patikrinti „+ Group" assign dialoge (GRID mygtukas nerandamas — pirmiausia atidaryti projektą)
