@@ -4,7 +4,7 @@ import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
-import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
@@ -245,6 +245,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   groups?: string[];
 }) {
   const [live, setLive] = useState(true);
+  // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
+  const [panelOpen, setPanelOpen] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
   const [esel, setEsel] = useState<string[]>([]);
   const lastTap = useRef<{ id: string; t: number } | null>(null);
@@ -525,9 +527,12 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <button onClick={() => setMode("text")} aria-pressed={mode === "text"} className={chip(mode === "text")}><Type className="h-3.5 w-3.5" />Text</button>
             <button onClick={() => setMode("light")} aria-pressed={mode === "light"} disabled={fixtures.every((f) => placed.has(f.uid))} className={chip(mode === "light")}><Lightbulb className="h-3.5 w-3.5" />Add light</button>
             <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />Import pictures or PDF
-              <input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
+            <input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
             </label>
           </>)}
+          {live && <button onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} aria-label={panelOpen ? "Hide fixture controls" : "Show fixture controls"} title={panelOpen ? "Hide fixture controls" : "Show fixture controls"} className={`${chip(false)} ml-auto`}>
+            {panelOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}<span className="hidden sm:inline">{panelOpen ? "Hide controls" : "Show controls"}</span>
+          </button>}
         </div>
         <div ref={vp} data-grid-bg="" className="relative min-h-0 flex-1 select-none overflow-hidden bg-background" style={{ touchAction: "none" }}
           onContextMenu={(e) => e.preventDefault()}
@@ -687,9 +692,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]" style={{ backgroundImage: "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)", backgroundSize: `${CELL * view.z}px ${CELL * view.z}px`, backgroundPosition: `${view.x}px ${view.y}px` }} />
         </div>
       </div>
-      <aside aria-label={live ? "Fixture controls" : "Grid editor"} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
+      {(!live || panelOpen) && <aside aria-label={live ? "Fixture controls" : "Grid editor"} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
         {live ? controls : editPanel}
-      </aside>
+      </aside>}
 
       <Dialog open={!!pick} onOpenChange={(o) => !o && setPicker(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-auto">
