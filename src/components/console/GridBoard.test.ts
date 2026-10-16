@@ -146,3 +146,21 @@ describe("macro tables", () => {
     expect(r.x).toBeLessThan(4.4);
   });
 });
+
+import { spanOf } from "./GridBoard";
+describe("macro spans", () => {
+  const t = { id: "t", kind: "table" as const, x: 0, y: 0, w: 4.4, h: 3.7 };
+  it("table columns follow width and spans stay inside", () => {
+    expect(spanOf(2.2, 1.1, t)).toEqual({ cs: 2, rs: 1 });
+    expect(spanOf(20, 2.2, t)).toEqual({ cs: 4, rs: 2 });
+    expect(spanOf(0.1, 0.1, t)).toEqual({ cs: 1, rs: 1 });
+  });
+  it("spanned macros never overlap", () => {
+    const a = { id: "a", kind: "macro" as const, tbl: "t", x: 0, y: 0, cs: 2, rs: 2 };
+    const b = { id: "b", kind: "macro" as const, tbl: "t", x: 0.1, y: 0.1 };
+    const out = layoutTables([t, a, b]);
+    const A = out.find((i) => i.id === "a")!, B = out.find((i) => i.id === "b")!;
+    const overlap = A.x < B.x + B.w! && B.x < A.x + A.w! && A.y < B.y + B.h! && B.y < A.y + A.h!;
+    expect(overlap).toBe(false);
+  });
+});
