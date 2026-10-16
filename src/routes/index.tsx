@@ -24,7 +24,6 @@ import {
 import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel";
 import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
-import { PatchPanel } from "@/components/console/PatchPanel";
 import { FixtureControls } from "@/components/console/FixtureControls";
 import { FixtureGlyph } from "@/components/console/FixtureGlyph";
 import { copyFixtureSettings, type FixtureSettings } from "@/lib/fixture-settings";
@@ -387,7 +386,7 @@ function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 /* ---------------- Console ---------------- */
 
-type Panel = "patch" | "control" | "pixels" | "fx";
+type Panel = "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
@@ -416,6 +415,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [locked, setLocked] = useState(true);
   const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
   const [plotOpen, setPlotOpen] = useState(false);
+  const [fixturesOpen, setFixturesOpen] = useState(false);
   const [lastLook, setLastLook] = useState<string | null>(null);
   const [conn, setConnState] = useState<Connection>(() => loadConnection());
   const [connOpen, setConnOpen] = useState(false);
@@ -917,84 +917,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label} {panel === p ? (panelOpen ? "▾" : "▸") : ""}</Button>
   );
   const outputEnabled = bo.target === 0;
+  const windowOpen = plotOpen || patchOpen || fixturesOpen;
 
-  return (
-    <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
-      <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
-        <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
-        <div className="min-w-0">
-          <div className="truncate font-display text-lg font-semibold">{scene.name}</div>
-          <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
-        </div>
-        <div className="flex-1" />
-        <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-amber-glow">MASTER</span>
-          <input aria-label="Master" type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
-          <NumberField aria-label="Master percent" min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
-          <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
-            {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
-            {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
-          </Button>
-        </div>
-        <Button variant="secondary" onClick={() => setGearOpen(true)} title="Equipment list & call sheet" className="text-xs font-bold"><ClipboardList />GEAR</Button>
-        <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
-        <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
-          className={`text-xs font-bold ${conn.node && bridge === "ok" ? "bg-success text-primary-foreground" : conn.node && bridge === "slow" ? "bg-warning text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
-          <Radio />CONNECT
-        </Button>
-      </div>
-      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
-        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
-        {tab("control", "GRID")}
-        {tab("fx", "FX")}
-        {tab("pixels", "PIXEL")}
-        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
-          className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
-        <Button variant="secondary" onClick={() => setPlotOpen(true)} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
-        {tab("patch", "PATCH")}
-        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
-      </div>
 
-      <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
-        onSave={(name) => { onSetups([{ ...structuredClone(currentScene()), id: uid(), name, createdAt: Date.now() }, ...(project.setups ?? [])]); save(); setSavedFlash(true); }}
-        onRestore={restoreSetup} onDelete={(id) => onSetups((project.setups ?? []).filter((s) => s.id !== id))} />
-      {plotOpen && (
-        <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
-          copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
-          colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
-          levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
-          onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
-      )}
-      {patchOpen && (
-        <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}
-          onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
-          onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
-      )}
-      {gearOpen && <CallSheet title={`${project.name} · ${scene.name}`} data={project.callSheet} onData={onCallSheet} fixtures={fixtures} onClose={() => setGearOpen(false)} />}
-      <RecEditor open={recEditor} onOpenChange={setRecEditor} recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel}
-        playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
-      <RecDialog open={recOpen} onOpenChange={setRecOpen} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
-      <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} discovery={discovery} />
-      <SettingsDialog macros={macros} setMacros={setMacros} macroLearn={macroLearn} setMacroLearn={setMacroLearn} onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} midi={midi} setMidi={setMidi}
-        onNanoKontrol={() => { const ch = (n: number) => `CC 1/${n}`; const keep = midi.maps.filter((m) => !m.key.startsWith("CC 1/")); setMidi({ ...midi, enabled: true, maps: [...keep, ...NANOKONTROL2.faders.map((n, i) => ({ key: ch(n), target: `bank:${i}`, label: `Fader ${i + 1}` })), { key: ch(NANOKONTROL2.master), target: "master", label: "Master" }, { key: ch(NANOKONTROL2.go), target: "cue:go", label: "GO" }, { key: ch(NANOKONTROL2.back), target: "cue:back", label: "Back" }, { key: ch(NANOKONTROL2.blackout), target: "blackout", label: "Blackout" }] }); }}
-        learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
-        targets={[
-          { id: "master", label: "Master fader" }, { id: "blackout", label: "Blackout" },
-          { id: "cue:go", label: "Cue GO" }, { id: "cue:back", label: "Cue Back" },
-          ...(project.bank ?? []).map((b, i) => ({ id: `bank:${i}`, label: `Fader ${i + 1}${b.name ? ` — ${b.name}` : ""}` })),
-          { id: "trig:lightning", label: "Trigger: lightning" }, { id: "trig:flash", label: "Trigger: flash" },
-          ...groups.map((g) => ({ id: `group:${g}`, label: `Group "${g}" intensity` })),
-          ...(project.looks ?? []).map((l) => ({ id: `look:${l.id}`, label: `Look: ${l.name}` })),
-          ...fixtures.flatMap((f) => [
-            { id: `int:${f.uid}`, label: `${f.name} — intensity` }, { id: `on:${f.uid}`, label: `${f.name} — on/off` }, { id: `fx:${f.uid}`, label: `${f.name} — play/stop effect` },
-          ]),
-        ]} />
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
-          {fixtures.length === 0 ? (
-            <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
-          ) : (
+  // Fixture tiles with their selection toolbar — shared by the console area and the Fixtures window
+  const fixtureBoard = () => (
             <>
               <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-2 text-xs text-muted-foreground backdrop-blur">
                 <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
@@ -1062,13 +989,110 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                 })}
               </div>
             </>
+  );
+
+  return (
+    <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
+      {!windowOpen && (<>
+      <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
+        <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
+        <div className="min-w-0">
+          <div className="truncate font-display text-lg font-semibold">{scene.name}</div>
+          <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
+        </div>
+        <div className="flex-1" />
+        <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-amber-glow">MASTER</span>
+          <input aria-label="Master" type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
+          <NumberField aria-label="Master percent" min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
+          <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
+            {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
+            {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
+          </Button>
+        </div>
+        <Button variant="secondary" onClick={() => setGearOpen(true)} title="Equipment list & call sheet" className="text-xs font-bold"><ClipboardList />GEAR</Button>
+        <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
+        <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
+          className={`text-xs font-bold ${conn.node && bridge === "ok" ? "bg-success text-primary-foreground" : conn.node && bridge === "slow" ? "bg-warning text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+          <Radio />CONNECT
+        </Button>
+      </div>
+      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
+        <Button variant="secondary" onClick={() => setFixturesOpen(true)} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
+        {tab("control", "GRID")}
+        {tab("fx", "FX")}
+        {tab("pixels", "PIXEL")}
+        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
+          className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
+        <Button variant="secondary" onClick={() => setPlotOpen(true)} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
+        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">PATCH</Button>
+        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+      </div>
+      </>
+      )}
+
+      <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
+        onSave={(name) => { onSetups([{ ...structuredClone(currentScene()), id: uid(), name, createdAt: Date.now() }, ...(project.setups ?? [])]); save(); setSavedFlash(true); }}
+        onRestore={restoreSetup} onDelete={(id) => onSetups((project.setups ?? []).filter((s) => s.id !== id))} />
+      {plotOpen && (
+        <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
+          copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
+          colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
+          levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
+          onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
+      )}
+      {fixturesOpen && (
+        <div className="fixed inset-0 z-40 flex flex-col bg-background">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3">
+            <button onClick={() => setFixturesOpen(false)} aria-label="Back to console" className="mr-auto rounded-lg bg-surface-elevated p-3 text-primary active:scale-95"><ArrowLeft className="h-5 w-5" /></button>
+            <span className="font-display text-base font-semibold uppercase tracking-wider">Fixtures</span>
+            <span className="text-xs text-muted-foreground">{fixtures.length} fixtures</span>
+          </div>
+          <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
+            {fixtures.length === 0 ? (
+              <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Open PATCH to add them." />
+            ) : (
+              fixtureBoard()
+            )}
+          </div>
+        </div>
+      )}
+      {patchOpen && (
+        <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}
+          onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
+          onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
+      )}
+      {gearOpen && <CallSheet title={`${project.name} · ${scene.name}`} data={project.callSheet} onData={onCallSheet} fixtures={fixtures} onClose={() => setGearOpen(false)} />}
+      <RecEditor open={recEditor} onOpenChange={setRecEditor} recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel}
+        playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
+      <RecDialog open={recOpen} onOpenChange={setRecOpen} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
+      <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} discovery={discovery} />
+      <SettingsDialog macros={macros} setMacros={setMacros} macroLearn={macroLearn} setMacroLearn={setMacroLearn} onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} midi={midi} setMidi={setMidi}
+        onNanoKontrol={() => { const ch = (n: number) => `CC 1/${n}`; const keep = midi.maps.filter((m) => !m.key.startsWith("CC 1/")); setMidi({ ...midi, enabled: true, maps: [...keep, ...NANOKONTROL2.faders.map((n, i) => ({ key: ch(n), target: `bank:${i}`, label: `Fader ${i + 1}` })), { key: ch(NANOKONTROL2.master), target: "master", label: "Master" }, { key: ch(NANOKONTROL2.go), target: "cue:go", label: "GO" }, { key: ch(NANOKONTROL2.back), target: "cue:back", label: "Back" }, { key: ch(NANOKONTROL2.blackout), target: "blackout", label: "Blackout" }] }); }}
+        learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
+        targets={[
+          { id: "master", label: "Master fader" }, { id: "blackout", label: "Blackout" },
+          { id: "cue:go", label: "Cue GO" }, { id: "cue:back", label: "Cue Back" },
+          ...(project.bank ?? []).map((b, i) => ({ id: `bank:${i}`, label: `Fader ${i + 1}${b.name ? ` — ${b.name}` : ""}` })),
+          { id: "trig:lightning", label: "Trigger: lightning" }, { id: "trig:flash", label: "Trigger: flash" },
+          ...groups.map((g) => ({ id: `group:${g}`, label: `Group "${g}" intensity` })),
+          ...(project.looks ?? []).map((l) => ({ id: `look:${l.id}`, label: `Look: ${l.name}` })),
+          ...fixtures.flatMap((f) => [
+            { id: `int:${f.uid}`, label: `${f.name} — intensity` }, { id: `on:${f.uid}`, label: `${f.name} — on/off` }, { id: `fx:${f.uid}`, label: `${f.name} — play/stop effect` },
+          ]),
+        ]} />
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
+          {fixtures.length === 0 ? (
+            <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
+          ) : (
+              fixtureBoard()
           )}
         </div>
 
-        {panelOpen && <aside className={`max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:border-l lg:border-t-0 ${panel === "patch" ? "lg:w-[34rem]" : "lg:w-96"}`}>
-          {panel === "patch" ? (
-            <PatchPanel fixtures={fixtures} onUpdate={updateOne} onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
-          ) : panel === "fx" ? (
+        {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:border-l lg:border-t-0 lg:w-96">
+          {panel === "fx" ? (
             <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
               if (!activePixel) return;
               const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
