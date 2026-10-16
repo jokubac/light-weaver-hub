@@ -991,15 +991,15 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                   onCreate={(name, color) => { setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: name } : x))); saveGroupMeta({ order: [...groupMeta.order.filter((o) => o !== name), name], colors: { ...groupMeta.colors, [name]: color } }); }}
                   onChange={(items) => {
                     const ren = Object.fromEntries(items.filter((it) => it.id !== it.name).map((it) => [it.id, it.name]));
-                    if (Object.keys(ren).length) setFixtures((fs) => fs.map((x) => (x.group && ren[x.group] ? { ...x, group: ren[x.group] } : x)));
+                    if (Object.keys(ren).length) setFixtures((fs) => fs.map((x) => (x.group && ren[x.group] ? { ...x, group: ren[x.group]! } : x)));
                     saveGroupMeta({ order: items.map((it) => it.name), colors: Object.fromEntries(items.filter((it) => it.color).map((it) => [it.name, it.color!])) });
                   }}
-                  onDelete={(id) => setFixtures((fs) => fs.map((x) => (x.group === id ? { ...x, group: undefined } : x)))}
+                  onDelete={(id) => setFixtures((fs) => fs.map((x) => { if (x.group !== id) return x; const { group: _g, ...rest } = x; return rest; }))}
                   onPick={(id) => setSelected(fixtures.filter((f) => f.group === id).map((f) => f.uid))} />
                 <SavePopover label="+ Look" kind="Look" canCreate={fixtures.length > 0}
                   items={(project.looks ?? []).map((l) => ({ id: l.id, name: l.name, color: l.color, info: `${l.states.length}` }))}
                   onCreate={(name, color) => { const src = selected.length ? fixtures.filter((f) => selected.includes(f.uid)) : fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
-                  onChange={(items) => { const looks = project.looks ?? []; onLooks(items.map((it) => ({ ...looks.find((l) => l.id === it.id)!, name: it.name, color: it.color }))); }}
+                  onChange={(items) => { const looks = project.looks ?? []; onLooks(items.map((it) => ({ ...looks.find((l) => l.id === it.id)!, name: it.name, ...(it.color ? { color: it.color } : {}) }))); }}
                   onDelete={(id) => onLooks((project.looks ?? []).filter((l) => l.id !== id))} />
                 <span>{selected.length} selected</span>
               </div>
