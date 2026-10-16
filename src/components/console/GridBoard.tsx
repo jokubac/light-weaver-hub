@@ -323,18 +323,22 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
   const addLight = (x: number, y: number) => {
     if (pickGroup) {
-      const members = fixtures.filter((g) => g.group === pickGroup && !placed.has(g.uid));
+      // Every member lands here; lights already somewhere on the board are moved, not duplicated
+      const members = fixtures.filter((g) => g.group === pickGroup);
       if (!members.length) return;
+      const ids = new Set(members.map((m) => m.uid));
       const slots = groupSlots(members.length, x, y, FXW, FXH, sz * 0.3);
-      const added = members.map((f, i) => { const s = slots[i] ?? { x: x - FXW / 2, y: y - FXH / 2 }; return { id: nid(), kind: "fixture" as const, uid: f.uid, x: Math.round(s.x * 4) / 4, y: Math.round(s.y * 4) / 4 }; });
-      setGrid({ ...grid, items: [...grid.items, ...added] });
+      const added = members.map((f, i) => { const s = slots[i] ?? { x: x - FXW / 2, y: y - FXH / 2 }; const old = grid.items.find((it) => it.kind === "fixture" && it.uid === f.uid); return { ...(old ?? {}), id: old?.id ?? nid(), kind: "fixture" as const, uid: f.uid, x: Math.round(s.x * 4) / 4, y: Math.round(s.y * 4) / 4 }; });
+      setGrid({ ...grid, items: [...grid.items.filter((it) => !(it.kind === "fixture" && it.uid && ids.has(it.uid))), ...added] });
       setEsel(added.map((a) => a.id));
       return;
     }
-    const f = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
+    const f = fixtures.find((g) => g.uid === nextUid) ?? fixtures.find((g) => !placed.has(g.uid));
     if (!f) return;
-    const id = nid();
-    setGrid({ ...grid, items: [...grid.items, { id, kind: "fixture", uid: f.uid, x: Math.round((x - FXW / 2) * 4) / 4, y: Math.round((y - FXH / 2) * 4) / 4 }] });
+    const old = grid.items.find((it) => it.kind === "fixture" && it.uid === f.uid);
+    const id = old?.id ?? nid();
+    const item = { ...(old ?? {}), id, kind: "fixture" as const, uid: f.uid, x: Math.round((x - FXW / 2) * 4) / 4, y: Math.round((y - FXH / 2) * 4) / 4 };
+    setGrid({ ...grid, items: [...grid.items.filter((it) => it.id !== id), item] });
     setEsel([id]);
     const idx = fixtures.indexOf(f);
     const nx = [...fixtures.slice(idx + 1), ...fixtures.slice(0, idx)].find((g) => !placed.has(g.uid) && g.uid !== f.uid);
@@ -402,10 +406,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         </div>
       )}
       {mode === "light" && (() => {
-        const cur = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
+        const cur = fixtures.find((g) => g.uid === nextUid) ?? fixtures.find((g) => !placed.has(g.uid));
         const q = lq.trim().toLowerCase();
         const list = fixtures.map((f, i) => ({ f, n: i + 1 })).filter(({ f, n }) => !q || f.name.toLowerCase().includes(q) || String(n) === q);
-        const inGroup = pickGroup ? fixtures.filter((f) => f.group === pickGroup && !placed.has(f.uid)) : [];
         return (
           <div className="space-y-1.5">
             {groups.length > 0 && (
@@ -413,16 +416,16 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Groups</p>
                 <div className="flex flex-wrap gap-1">
                   {groups.map((g) => { const ms = fixtures.filter((f) => f.group === g); const left = ms.filter((f) => !placed.has(f.uid)).length; return (
-                    <button key={g} disabled={!left} onClick={() => setPickGroup(pickGroup === g ? null : g)} aria-pressed={pickGroup === g}
+                    <button key={g} onClick={() => setPickGroup(pickGroup === g ? null : g)} aria-pressed={pickGroup === g}
                       className={`${chip(pickGroup === g)} disabled:opacity-40`}>{g}<span className="font-mono opacity-70">{left}/{ms.length}</span></button>); })}
                 </div>
-                {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop the {inGroup.length} remaining light{inGroup.length === 1 ? "" : "s"} of “{pickGroup}” together. Tap the group again to stop.</p>}
+                {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop all {fixtures.filter((f) => f.group === pickGroup).length} lights of “{pickGroup}” together (lights already on the grid move here). Tap the group again to stop.</p>}
               </div>
             )}
             <input value={lq} onChange={(e) => setLq(e.target.value)} placeholder="Search light name or #" className="w-full rounded-md border border-border bg-surface-elevated px-2 py-1.5 text-xs" />
             <div className="max-h-72 space-y-1 overflow-y-auto">
               {list.map(({ f, n }) => { const done = placed.has(f.uid); const on = !pickGroup && cur?.uid === f.uid; return (
-                <button key={f.uid} disabled={done || !!pickGroup} onClick={() => { setPickGroup(null); setNextUid(f.uid); }} aria-pressed={on}
+                <button key={f.uid} onClick={() => { setPickGroup(null); setNextUid(f.uid); }} aria-pressed={on}
                   className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"} disabled:opacity-40`}>
                   <span className="font-mono font-bold">#{n}</span><span className="flex-1 truncate">{f.name}</span>{done && <span className="text-[10px]">on grid</span>}
                 </button>); })}
