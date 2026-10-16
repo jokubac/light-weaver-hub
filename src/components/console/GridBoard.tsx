@@ -326,7 +326,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
       const members = fixtures.filter((g) => g.group === pickGroup && !placed.has(g.uid));
       if (!members.length) return;
       const slots = groupSlots(members.length, x, y, FXW, FXH, sz * 0.3);
-      const added = members.map((f, i) => ({ id: nid(), kind: "fixture" as const, uid: f.uid, x: Math.round(slots[i].x * 4) / 4, y: Math.round(slots[i].y * 4) / 4 }));
+      const added = members.map((f, i) => { const s = slots[i] ?? { x: x - FXW / 2, y: y - FXH / 2 }; return { id: nid(), kind: "fixture" as const, uid: f.uid, x: Math.round(s.x * 4) / 4, y: Math.round(s.y * 4) / 4 }; });
       setGrid({ ...grid, items: [...grid.items, ...added] });
       setEsel(added.map((a) => a.id));
       return;
