@@ -41,7 +41,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onRun, 
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
       <aside aria-label="Grid library" className="max-h-[40vh] w-full shrink-0 space-y-4 overflow-auto border-b border-border bg-surface p-3 lg:max-h-none lg:w-64 lg:border-b-0 lg:border-r">
         <div className="grid grid-cols-3 gap-1 rounded-lg bg-surface-elevated p-1">
           {([["use", "Use"], ["move", "Move"], ["walls", "Walls"]] as const).map(([k, l]) => (
