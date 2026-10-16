@@ -305,7 +305,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     const f = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
     if (!f) return;
     const id = nid();
-    setGrid({ ...grid, items: [...grid.items, { id, kind: "fixture", uid: f.uid, x: Math.max(0, Math.round(x - FXW / 2)), y: Math.max(0, Math.round(y - FXH / 2)) }] });
+    setGrid({ ...grid, items: [...grid.items, { id, kind: "fixture", uid: f.uid, x: Math.round((x - FXW / 2) * 4) / 4, y: Math.round((y - FXH / 2) * 4) / 4 }] });
     setEsel([id]);
     const idx = fixtures.indexOf(f);
     const nx = [...fixtures.slice(idx + 1), ...fixtures.slice(0, idx)].find((g) => !placed.has(g.uid) && g.uid !== f.uid);
