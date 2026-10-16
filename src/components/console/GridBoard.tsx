@@ -4,7 +4,7 @@ import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
-import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
@@ -531,7 +531,6 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={chip(mode === "select")}><MousePointer2 className="h-3.5 w-3.5" />Select</button>
             <button onClick={() => setMode("walls")} aria-pressed={mode === "walls"} className={chip(mode === "walls")}><PenLine className="h-3.5 w-3.5" />Walls</button>
             <button onClick={() => setMode("text")} aria-pressed={mode === "text"} className={chip(mode === "text")}><Type className="h-3.5 w-3.5" />Text</button>
-            <button onClick={() => setMode("light")} aria-pressed={mode === "light"} disabled={fixtures.every((f) => placed.has(f.uid))} className={chip(mode === "light")}><Lightbulb className="h-3.5 w-3.5" />Add light</button>
             <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />Import pictures or PDF
             <input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
             </label>
