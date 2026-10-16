@@ -4,7 +4,7 @@ import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
-import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb, X, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
@@ -241,19 +241,23 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string; controls: React.ReactNode;
   /** Live pixel colours + layout for pixel fixtures; `long` marks elongated (tube/bar) lights, which default to a wide box. */
   pixelsOf?: (f: PatchedFixture) => { cells?: string[] | undefined; cols: number; rows: number; aspect: number };
-  /** Group names the user has made, so the Add light tool can drop a whole group at once. */
+  /** Group names the user has made, so the light picker can drop a whole group at once. */
   groups?: string[];
 }) {
   const [live, setLive] = useState(true);
   // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
   const [panelOpen, setPanelOpen] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
+  // Which text label is being typed into right now, edited on the box itself.
+  const [editText, setEditText] = useState<string | null>(null);
   const [esel, setEsel] = useState<string[]>([]);
   const lastTap = useRef<{ id: string; t: number } | null>(null);
   // Double-tapping a fader box anywhere on it resets it; the press ref tracks the live gesture so drags never count as taps.
   const faderTap = useRef<{ id: string; t: number } | null>(null);
   const faderPress = useRef<{ x: number; y: number; t: number } | null>(null);
   const faderMoved = useRef(false);
+  // A text label placed by the Text tool opens its editor once the press is over.
+  const justAdded = useRef<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number; w: number; h: number }[] } | null>(null);
   const [rs, setRs] = useState<{ corner: Corner; orig: Box[]; out: Box[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
@@ -345,7 +349,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     items = [...items, { id, kind: "empty", tbl: t.id, x: atX ?? t.x + 999, y: atY ?? t.y + 999, w: cell, h: cell }];
     setGrid({ ...grid, items: layoutTables(items, sz) }); setEsel([id]); setPicker(id); setLabel("");
   };
-  const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); };
+  const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); justAdded.current = id; };
   /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
   const addLight = (x: number, y: number) => {
     if (pickGroup) {
@@ -469,7 +473,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         <section className="space-y-2 rounded-lg border border-primary/50 p-2">
           <div className="flex items-center justify-between"><h3 className="text-xs font-bold uppercase">{one.kind === "table" ? "Table" : one.kind === "text" ? "Text" : "Box"}</h3>
             {one.kind !== "table" && one.kind !== "text" && <button onClick={() => openPicker(one)} className="text-xs font-semibold text-primary">Macro / fixture…</button>}</div>
-          {(one.kind === "text" || one.kind === "table") && <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder={one.kind === "table" ? "Table name" : "Type…"} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />}
+          {one.kind === "table" && <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder="Table name" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />}
           {one.kind === "table" && (<>
             <p className="text-[11px] text-muted-foreground">{one.cols ?? 4} × {one.rows ?? 3} cells — drag the table corner to change; the cells follow automatically.</p>
             <Button size="sm" className="w-full" onClick={() => fillTable(one)}>Put macros in table</Button>
@@ -531,7 +535,6 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={chip(mode === "select")}><MousePointer2 className="h-3.5 w-3.5" />Select</button>
             <button onClick={() => setMode("walls")} aria-pressed={mode === "walls"} className={chip(mode === "walls")}><PenLine className="h-3.5 w-3.5" />Walls</button>
             <button onClick={() => setMode("text")} aria-pressed={mode === "text"} className={chip(mode === "text")}><Type className="h-3.5 w-3.5" />Text</button>
-            <button onClick={() => setMode("light")} aria-pressed={mode === "light"} disabled={fixtures.every((f) => placed.has(f.uid))} className={chip(mode === "light")}><Lightbulb className="h-3.5 w-3.5" />Add light</button>
             <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />Import pictures or PDF
             <input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
             </label>
@@ -584,7 +587,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 else if (!box.add) onSelect([]);
               } else {
                 const hit = big ? grid.items.filter((i) => i.x < r && i.x + W(i) > l && i.y < b && i.y + H(i) > t && !(i.kind === "image" && (i.x < l || i.x + W(i) > r))).map((i) => i.id) : [];
-                setEsel(box.add ? [...new Set([...esel, ...hit])] : hit);
+                if (!justAdded.current) setEsel(box.add ? [...new Set([...esel, ...hit])] : hit);
               }
               setBox(null);
             }
@@ -599,12 +602,17 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 if (it?.kind === "fixture") onToggle(it.uid!);
                 else if (it?.kind === "macro" && !MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.fader) onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount, param: it.macro!.param, release: MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.hold || undefined });
               } else if (it) {
-                const now = Date.now();
-                if (lastTap.current?.id === it.id && now - lastTap.current.t < 400) { lastTap.current = null; if (it.kind !== "image" && it.kind !== "text" && it.kind !== "table") openPicker(it); }
-                else lastTap.current = { id: it.id, t: now };
+                // A text label is edited on the box itself: one tap (without dragging) opens its editor.
+                if (it.kind === "text" && !e.shiftKey) { setEditText(it.id); lastTap.current = null; }
+                else {
+                  const now = Date.now();
+                  if (lastTap.current?.id === it.id && now - lastTap.current.t < 400) { lastTap.current = null; if (it.kind !== "image" && it.kind !== "text" && it.kind !== "table") openPicker(it); }
+                  else lastTap.current = { id: it.id, t: now };
+                }
               }
               setDrag(null);
             }
+            if (justAdded.current) { setEditText(justAdded.current); justAdded.current = null; }
           }}>
         <div ref={area} className="absolute left-0 top-0 z-[2]" style={{ width: COLS * CELL, height: ROWS * CELL, transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, transformOrigin: "0 0" }}>
           {grid.bg && <img src={grid.bg} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ transform: `translate(${grid.bgT?.x ?? 0}%, ${grid.bgT?.y ?? 0}%) scale(${grid.bgT?.scale ?? 1})`, transformOrigin: "center", filter: grid.bgT?.invert ? "invert(1)" : undefined }} />}
@@ -698,7 +706,16 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                     </div>;
                   })()}
                 </>) : it.kind === "text" ? (
-                  <div className="flex flex-1 items-center justify-center overflow-hidden text-center text-xs font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
+                  editText === it.id ? (
+                    <textarea autoFocus aria-label="Edit text label" placeholder="Type…" value={it.text ?? ""}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onChange={(e) => patch(it.id, { text: e.target.value })}
+                      onBlur={() => setEditText(null)}
+                      onKeyDown={(e) => { if (e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)) { e.preventDefault(); setEditText(null); } }}
+                      className="h-full w-full resize-none rounded bg-background/80 px-1 text-center text-xs font-bold leading-tight text-foreground outline-none" />
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center overflow-hidden text-center text-xs font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
+                  )
                 ) : (
                   <div className="flex flex-1 items-center justify-center text-muted-foreground"><Plus className="h-4 w-4" /></div>
                 )}
