@@ -767,12 +767,18 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
       const hit = name ? r.macros.filter((m) => m.key === name) : [];
-      if (hit.length) { e.preventDefault(); hit.forEach((m) => r.fire(m, "key")); return; }
+      if (hit.length) { e.preventDefault(); if (!e.repeat) hit.forEach((m) => r.fire(m, "key")); return; }
       if (e.code === "Space") { e.preventDefault(); goRef.current(1); }
       else if (e.key === "b" || e.key === "B") goRef.current(-1);
     };
+    // hold macros (Check out!, Locate!) let go when the key is released
+    const up = (e: KeyboardEvent) => {
+      const name = keyName(e); const r = macroRef.current;
+      if (name) r.macros.filter((m) => m.key === name && (m.action === "checkout" || m.action === "locate")).forEach((m) => r.run({ ...m, release: true }));
+    };
     window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
+    window.addEventListener("keyup", up);
+    return () => { window.removeEventListener("keydown", h); window.removeEventListener("keyup", up); };
   }, []);
   const outFixtures = useMemo(() => {
     const out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
