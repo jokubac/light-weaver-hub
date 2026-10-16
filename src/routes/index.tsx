@@ -1118,25 +1118,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         </div>
 
         {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:border-l lg:border-t-0 lg:w-96">
-          {panel === "fx" ? (
-            <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
-              if (!activePixel) return;
-              const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
-              setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
-            }} />
-          ) : panel === "pixels" ? (
-            <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
-              const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
-              if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
-              setLayers(next);
-            }} />
-          ) : sel.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
-          ) : (
-            <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
-              onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
-              remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
-          )}
+          {controlPanel()}
         </aside>}
         {groupsOpen && (
           <aside aria-label="Groups and looks" className="max-h-[45vh] w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
