@@ -261,7 +261,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ d: number; cx: number; cy: number } | null>(null);
   const panDrag = useRef<{ sx: number; sy: number; x0: number; y0: number } | null>(null);
-  const patch = (id: string, p: Partial<GridItem>) => setGrid({ ...grid, items: grid.items.map((i) => (i.id === id ? { ...i, ...p } : i)) });
+  const patch = (id: string, p: Partial<GridItem>) => setGrid({ ...grid, items: layoutTables(grid.items.map((i) => (i.id === id ? { ...i, ...p } : i)), sz) });
   const removeIds = (ids: string[]) => { setGrid({ ...grid, items: grid.items.filter((i) => !ids.includes(i.id)) }); setEsel((s) => s.filter((x) => !ids.includes(x))); };
   const pick = grid.items.find((i) => i.id === picker);
   const one = esel.length === 1 ? grid.items.find((i) => i.id === esel[0]) : undefined;
@@ -338,7 +338,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   // Dragging a table carries only macro squares whose centre sits inside it — fixtures never stick to a table.
   const groupFor = (it: GridItem, sel: string[]) => {
     let base = sel.includes(it.id) ? grid.items.filter((i) => sel.includes(i.id)) : [it];
-    for (const t of base.filter((b) => b.kind === "table")) for (const i of tableCarry(grid.items, { x: t.x, y: t.y, w: W(t), h: H(t) }, sz)) if (!base.includes(i)) base = [...base, i];
+    for (const t of base.filter((b) => b.kind === "table")) for (const i of tableCarry(grid.items, { id: t.id, x: t.x, y: t.y, w: W(t), h: H(t) } as never, sz)) if (!base.includes(i)) base = [...base, i];
     return base.map((i) => ({ id: i.id, x: i.x, y: i.y, w: W(i), h: H(i) }));
   };
   const pal = (c?: string) => (c ? { background: c } : undefined);
@@ -347,7 +347,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
 
   const editPanel = (
     <div className="space-y-4">
-      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? "Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Tap a wall to delete it.") : mode === "text" ? "Tap the grid to drop a text label." : mode === "light" ? "Pick a light below, then tap the grid to place it. The next free light is picked automatically." : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a box to pick a macro or fixture and its colour. Drag on empty space to box-select."}</p>
+      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? "Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Tap a wall to delete it.") : mode === "text" ? "Tap the grid to drop a text label." : mode === "light" ? "Pick a light below, then tap the grid to place it. The next free light is picked automatically." : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select."}</p>
       {mode === "walls" && (
         <div className="grid grid-cols-2 gap-1.5">
           <button onClick={() => setWallRect(false)} aria-pressed={!wallRect} className={chip(!wallRect)}><PenLine className="h-3.5 w-3.5" />Line</button>
@@ -485,7 +485,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             touches.current.delete(e.pointerId);
             if (pinch.current) { if (touches.current.size < 2) pinch.current = null; return; }
             if (panDrag.current) { panDrag.current = null; return; }
-            if (rs) { setGrid({ ...grid, items: grid.items.map((i) => { const m = rs.out.find((o) => o.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: m.w, h: m.h, s: undefined } : i; }) }); setRs(null); return; }
+            if (rs) { setGrid({ ...grid, items: layoutTables(grid.items.map((i) => { const m = rs.out.find((o) => o.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: m.w, h: m.h, s: undefined } : i; }), sz) }); setRs(null); return; }
             if (wall) { if (wallRect) { if (Math.abs(wall.x2 - wall.x1) > 0.2 && Math.abs(wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, ...rectWalls(wall)] }); } else if (Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, wall] }); setWall(null); }
             if (box) {
               const [l, r, t, b] = [Math.min(box.x1, box.x2), Math.max(box.x1, box.x2), Math.min(box.y1, box.y2), Math.max(box.y1, box.y2)];
