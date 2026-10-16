@@ -246,7 +246,15 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     return a?.unit ? `${a.label} ${m.amount}${a.unit}` : (a?.label ?? m.action);
   };
   const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); } else setLabel(""); };
-  const addSquare = () => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "empty", ...freeSpot(grid.items) }] }); setEsel([id]); };
+  /** New macro square: it always lands in a macro table (the selected one, else the first, else a new one) and lines up there. */
+  const addSquare = () => {
+    let items = grid.items;
+    let t = items.find((i) => i.kind === "table" && esel.includes(i.id)) ?? items.find((i) => i.kind === "table");
+    if (!t) { t = newTable(items); items = [...items, t]; }
+    const id = nid();
+    items = [...items, { id, kind: "empty", tbl: t.id, x: t.x + 999, y: t.y + 999 }];
+    setGrid({ ...grid, items: layoutTables(items, sz) }); setEsel([id]); setPicker(id); setLabel("");
+  };
   const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); };
   /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
   const addLight = (x: number, y: number) => {
@@ -263,13 +271,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y1 }, { x1: w.x2, y1: w.y1, x2: w.x2, y2: w.y2 },
     { x1: w.x2, y1: w.y2, x2: w.x1, y2: w.y2 }, { x1: w.x1, y1: w.y2, x2: w.x1, y2: w.y1 },
   ];
-  const addTable = () => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "table", text: "Macros", cols: 4, rows: 3, x: 1, y: 1, w: 4 * 1.1, h: 3 * 1.1 + 0.4 }] }); setEsel([id]); };
-  /** Packs macro squares (selected ones, or all) into the table's cells in reading order. */
+  const newTable = (items: GridItem[]): GridItem => { const n = items.filter((i) => i.kind === "table").length; const sp = freeSpot(items); return { id: nid(), kind: "table", text: n ? `Macros ${n + 1}` : "Macros", cols: 4, rows: 3, x: sp.x, y: sp.y, w: 4 * 1.1, h: 3 * 1.1 + 0.4 }; };
+  const addTable = () => { const t = newTable(grid.items); setGrid({ ...grid, items: [...grid.items, t] }); setEsel([t.id]); };
+  /** Moves macro squares (selected ones, or all loose ones) into the table; they line up automatically. */
   const fillTable = (t: GridItem) => {
-    const cols = t.cols ?? 4, rows = t.rows ?? 3;
-    const pool = grid.items.filter((i) => i.kind === "macro" && (esel.length > 1 ? esel.includes(i.id) : true)).sort((a, b) => a.y - b.y || a.x - b.x).slice(0, cols * rows);
-    const cw = W(t) / cols, ch = (H(t) - 0.4) / rows, pad = Math.min(cw, ch) * 0.06;
-    setGrid({ ...grid, items: grid.items.map((i) => { const k = pool.findIndex((p) => p.id === i.id); if (k < 0) return i; const c = k % cols, r = Math.floor(k / cols); return { ...i, x: t.x + c * cw + pad, y: t.y + 0.4 + r * ch + pad, w: cw - 2 * pad, h: ch - 2 * pad, s: undefined }; }) });
+    const pick = new Set(grid.items.filter((i) => (i.kind === "macro" || i.kind === "empty") && (esel.length > 1 ? esel.includes(i.id) : !i.tbl)).map((i) => i.id));
   };
   const toJpeg = async (file: File): Promise<{ src: string; ratio: number }> => {
     let c: HTMLCanvasElement;
@@ -339,7 +345,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         );
       })()}
       <div className="grid grid-cols-2 gap-1.5">
-        <Button size="sm" onClick={addSquare}><Plus />Box</Button>
+        <Button size="sm" onClick={addSquare}><Plus />Macro</Button>
         <Button variant="secondary" size="sm" onClick={addTable}><Table2 />Macros table</Button>
         <Button variant="secondary" size="sm" className="col-span-2" disabled={fixtures.every((f) => placed.has(f.uid))}
           onClick={() => { let items = grid.items; for (const f of fixtures) if (!placed.has(f.uid)) items = [...items, { id: nid(), kind: "fixture", uid: f.uid, ...freeSpot(items) }]; setGrid({ ...grid, items }); }}>All lights</Button>
@@ -468,7 +474,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             }
             if (drag) {
               const it = grid.items.find((i) => i.id === drag.id);
-              if (drag.moved) setGrid({ ...grid, items: grid.items.map((i) => { const m = drag.group.find((g) => g.id === i.id); return m ? { ...i, x: m.x + drag.x, y: m.y + drag.y } : i; }) });
+              if (drag.moved) {
+                const moved = grid.items.map((i) => { const m = drag.group.find((g) => g.id === i.id); return m ? { ...i, x: m.x + drag.x, y: m.y + drag.y } : i; });
+                const ids = new Set(drag.group.map((g) => g.id));
+                setGrid({ ...grid, items: layoutTables(dropIntoTables(moved, ids, sz), sz) });
+              }
               else if (live) {
                 if (it?.kind === "fixture") onToggle(it.uid!);
                 else if (it?.kind === "macro") onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount });
@@ -550,14 +560,17 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           <DialogHeader><DialogTitle>Assign box</DialogTitle></DialogHeader>
           {pick && (<div className="space-y-4">
             <ColourRow value={pick.color} onPick={(c) => patch(pick.id, { color: c || undefined })} />
-            <section>
-              <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">Fixtures</h3>
-              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-                {fixtures.map((f, i) => { const on = pick.kind === "fixture" && pick.uid === f.uid; const taken = placed.has(f.uid) && !on; return (
-                  <button key={f.uid} disabled={taken} onClick={() => { patch(pick.id, { kind: "fixture", uid: f.uid, macro: undefined }); setPicker(null); }}
-                    className={`rounded-md border px-2 py-1.5 text-left text-xs ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"} disabled:opacity-40`}><span className="font-mono font-bold">#{i + 1}</span> <span className="truncate">{f.name}</span></button>); })}
-              </div>
-            </section>
+            {pick.kind === "fixture" ? (<>
+              <input aria-label="Box name" placeholder={fixtures.find((f) => f.uid === pick.uid)?.name ?? "Name"} value={pick.text ?? ""} onChange={(e) => patch(pick.id, { text: e.target.value || undefined })} className="w-full rounded-md border border-input bg-surface-elevated px-2 py-1.5 text-xs text-foreground" />
+              <section>
+                <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">Swap to another fixture</h3>
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                  {fixtures.map((f, i) => { const on = pick.uid === f.uid; const taken = placed.has(f.uid) && !on; return (
+                    <button key={f.uid} disabled={taken} onClick={() => { patch(pick.id, { uid: f.uid }); setPicker(null); }}
+                      className={`rounded-md border px-2 py-1.5 text-left text-xs ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"} disabled:opacity-40`}><span className="font-mono font-bold">#{i + 1}</span> <span className="truncate">{f.name}</span></button>); })}
+                </div>
+              </section>
+            </>) : (
             <section className="space-y-2">
               <h3 className="text-xs font-bold uppercase text-muted-foreground">Macros</h3>
               <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
@@ -568,8 +581,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 <input aria-label="Button name" placeholder="Name (optional)" value={label} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-2 py-1.5 text-xs text-foreground" />
                 <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim() } }); setPicker(null); }}>Set macro</Button>
               </div>
-            </section>
-            {pick.kind !== "empty" && <Button variant="ghost" size="sm" onClick={() => { patch(pick.id, { kind: "empty", uid: undefined, macro: undefined }); setPicker(null); }}>Clear box</Button>}
+            </section>)}
+            {pick.kind === "macro" && <Button variant="ghost" size="sm" onClick={() => { patch(pick.id, { kind: "empty", macro: undefined }); setPicker(null); }}>Clear macro</Button>}
           </div>)}
         </DialogContent>
       </Dialog>
