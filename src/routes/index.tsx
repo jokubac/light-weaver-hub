@@ -38,7 +38,9 @@ import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
-import { Settings as SettingsIcon, BatteryMedium, Pencil } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil, History } from "lucide-react";
+import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
+import { MacroTimeline } from "@/components/console/MacroTimeline";
 import { applyLook } from "@/components/console/LooksPanel";
 import { LooksRail } from "@/components/console/LooksRail";
 import { RecRail, RecDialog, RecEditor } from "@/components/console/RecRail";
@@ -523,7 +525,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [macroLearn, setMacroLearn] = useState<string | null>(null);
   const lastDeselect = useRef(0);
   const toggleLevels = useRef<Record<string, number>>({});
-  const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {} });
+  const macroRef = useRef({ macros, learn: macroLearn, setMacros, setLearn: setMacroLearn, run: (_m: Macro) => {}, fire: (_m: Macro, _src: string) => {} });
+  const [macroLog, setMacroLog] = useState<MacroLogEntry[]>(() => (typeof window === "undefined" ? [] : loadLog()));
+  const [macroLogging, setMacroLogging] = useState(true);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [replayId, setReplayId] = useState<string | null>(null);
+  const replayTimers = useRef<number[]>([]);
+  useEffect(() => { saveLog(macroLog); }, [macroLog]);
   Object.assign(macroRef.current, { macros, learn: macroLearn, setMacros });
   const [learning, setLearning] = useState<string | null>(null);
   const [lastMsg, setLastMsg] = useState<string | null>(null);
@@ -545,7 +553,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       else if (kind === "trig" && (!m.isNote || m.on)) fire(id as TriggerKind);
       else if (kind === "bank") onBank((project.bank ?? []).map((b, i) => (String(i) === id ? { ...b, level: m.value } : b)));
       else if (kind === "cue" && (!m.isNote || m.on) && m.value > 0) goRef.current(id === "back" ? -1 : 1);
-      else if (kind === "macro" && (!m.isNote || m.on) && m.value > 0) { const mc = macroRef.current.macros.find((x) => x.id === id); if (mc) macroRef.current.run(mc); }
+      else if (kind === "macro" && (!m.isNote || m.on) && m.value > 0) { const mc = macroRef.current.macros.find((x) => x.id === id); if (mc) macroRef.current.fire(mc, "midi"); }
     }
   };
   useEffect(() => {
@@ -744,7 +752,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
       const hit = name ? r.macros.filter((m) => m.key === name) : [];
-      if (hit.length) { e.preventDefault(); hit.forEach((m) => r.run(m)); return; }
+      if (hit.length) { e.preventDefault(); hit.forEach((m) => r.fire(m, "key")); return; }
       if (e.code === "Space") { e.preventDefault(); goRef.current(1); }
       else if (e.key === "b" || e.key === "B") goRef.current(-1);
     };
@@ -788,6 +796,19 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     const r = stepSelection(ids, selected, lastPick.current, dir, add);
     if (!r) return;
     setSelected(r.selection); lastPick.current = r.lastPick; setCursor(r.lastPick);
+  };
+  macroRef.current.fire = (m: Macro, src: string) => {
+    if (macroLogging) setMacroLog((l) => appendLog(l, { id: uid(), at: Date.now(), source: src, macro: { ...m } }));
+    macroRef.current.run(m);
+  };
+  const stopReplay = () => { replayTimers.current.forEach((x) => clearTimeout(x)); replayTimers.current = []; setReplayId(null); };
+  const replayMacros = (entries: MacroLogEntry[], speed: number) => {
+    stopReplay();
+    const sched = replaySchedule(entries, speed);
+    replayTimers.current = sched.map(({ delay, entry }, i) => window.setTimeout(() => {
+      setReplayId(entry.id); macroRef.current.run(entry.macro);
+      if (i === sched.length - 1) window.setTimeout(() => setReplayId(null), 300);
+    }, delay));
   };
   macroRef.current.run = (m: Macro) => {
     const c = macroCommand(m);
@@ -1048,6 +1069,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </Button>
         </div>
         <Button variant="secondary" onClick={() => setGearOpen(true)} title="Equipment list & call sheet" className="text-xs font-bold"><ClipboardList />GEAR</Button>
+        <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline"><History /></Button>
         <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
         <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
           className={`text-xs font-bold ${conn.node && bridge === "ok" ? "bg-success text-primary-foreground" : conn.node && bridge === "slow" ? "bg-warning text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
@@ -1093,7 +1115,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       {gridOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected}
-            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.run?.(m)} colorOf={(f) => fixtureColor(f, t, outLevel)} />
+            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => fixtureColor(f, t, outLevel)} />
           <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
             {controlPanel()}
           </aside>
@@ -1109,6 +1131,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
       <ConnectDialog open={connOpen} onOpenChange={setConnOpen} conn={conn} setConn={setConn} status={bridge} discovery={discovery} />
+      <MacroTimeline open={timelineOpen} onOpenChange={setTimelineOpen} log={macroLog} recording={macroLogging} setRecording={setMacroLogging} onClear={() => setMacroLog([])} onReplay={replayMacros} onStop={stopReplay} playing={replayId} />
       <SettingsDialog macros={macros} setMacros={setMacros} macroLearn={macroLearn} setMacroLearn={setMacroLearn} onSetups={() => setSetupsOpen(true)} open={settingsOpen} onOpenChange={setSettingsOpen} midi={midi} setMidi={setMidi}
         onNanoKontrol={() => { const ch = (n: number) => `CC 1/${n}`; const keep = midi.maps.filter((m) => !m.key.startsWith("CC 1/")); setMidi({ ...midi, enabled: true, maps: [...keep, ...NANOKONTROL2.faders.map((n, i) => ({ key: ch(n), target: `bank:${i}`, label: `Fader ${i + 1}` })), { key: ch(NANOKONTROL2.master), target: "master", label: "Master" }, { key: ch(NANOKONTROL2.go), target: "cue:go", label: "GO" }, { key: ch(NANOKONTROL2.back), target: "cue:back", label: "Back" }, { key: ch(NANOKONTROL2.blackout), target: "blackout", label: "Blackout" }] }); }}
         learning={learning} setLearning={setLearning} lastMsg={lastMsg} midiDevices={midiDevices} midiError={midiError}
