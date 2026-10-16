@@ -526,7 +526,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                     const c = Math.max(1, px.cols), r = Math.max(1, Math.ceil(px.cells.length / Math.max(1, px.cols)));
                     return <div className={`my-0.5 grid min-h-0 flex-1 overflow-hidden rounded ${px.cells.length > 48 ? "" : "gap-px"}`} style={{ gridTemplateColumns: `repeat(${c}, 1fr)`, gridTemplateRows: `repeat(${r}, 1fr)` }}>
                       {px.cells.map((col, k) => <div key={k} style={{ background: col }} />)}</div>; })()}
-                  <div className="flex justify-between gap-1"><span className="truncate">{f.name}</span><span className="font-mono">{Math.round(f.intensity * 100)}%</span></div>
+                  <div className="flex justify-between gap-1"><span className="truncate">{it.text || f.name}</span><span className="font-mono">{Math.round(f.intensity * 100)}%</span></div>
                 </>) : it.macro ? (
                   <div className="flex flex-1 items-center justify-center text-center text-[11px] font-bold leading-tight text-foreground">{macroLabel(it.macro)}</div>
                 ) : it.kind === "text" ? (
