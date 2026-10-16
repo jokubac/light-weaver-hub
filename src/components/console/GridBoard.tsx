@@ -177,19 +177,19 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const FXW = sz * 2 * Math.sqrt(2 / 3), FXH = sz * 2 * Math.sqrt(3 / 2);
   const W = (i: GridItem) => (fxAuto(i) ? FXW : ISW(i, sz)), H = (i: GridItem) => (fxAuto(i) ? FXH : ISH(i, sz));
   const selItems = live ? grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!)) : grid.items.filter((i) => esel.includes(i.id));
-  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, size); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
+  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, Math.max(size, FXH)); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
   const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
   const rescale = (g: number, size: number) => {
     const grp = selItems.length > 1 ? selItems : [];
     const k = (size + g) / (sz + gap);
-    const ox = grp.length ? grp.reduce((a, i) => a + i.x + sz / 2, 0) / grp.length : 0;
-    const oy = grp.length ? grp.reduce((a, i) => a + i.y + sz / 2, 0) / grp.length : 0;
+    const ox = grp.length ? grp.reduce((a, i) => a + i.x + W(i) / 2, 0) / grp.length : 0;
+    const oy = grp.length ? grp.reduce((a, i) => a + i.y + H(i) / 2, 0) / grp.length : 0;
     const ids = new Set(grp.map((i) => i.id));
     setGrid({ ...grid, size, items: grid.items.map((i) => {
       if (i.w != null || i.kind === "image" || i.kind === "table") return i;
-      const c = { x: i.x + sz / 2, y: i.y + sz / 2 };
+      const c = { x: i.x + W(i) / 2, y: i.y + H(i) / 2 };
       const n = ids.has(i.id) ? { x: ox + (c.x - ox) * k, y: oy + (c.y - oy) * k } : c;
-      return { ...i, x: n.x - size / 2, y: n.y - size / 2 };
+      return { ...i, x: n.x - W(i) / 2, y: n.y - H(i) / 2 };
     }) });
   };
   const onGap = (g: number) => { if (selItems.length > 1) rescale(g, sz); setGap(g); };
