@@ -187,13 +187,23 @@ export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
     const used: boolean[][] = [];
     const free = (r: number, c: number, w: number, h: number) => { for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) if (used[y]?.[x]) return false; return true; };
     let rowsUsed = 0;
-    for (const m of members) {
-      const w = Math.min(cols, Math.max(1, m.cs ?? 1)), h = Math.max(1, m.rs ?? 1);
-      let r = 0, c = 0;
-      for (;; r++) { let ok = false; for (c = 0; c + w <= cols; c++) if (free(r, c, w, h)) { ok = true; break; } if (ok) break; }
+    // Each macro keeps the cell under its current top-left (gaps allowed); macros with no valid/free cell take the first free one.
+    const place = (m: GridItem, r: number, c: number, w: number, h: number) => {
       for (let y = r; y < r + h; y++) { used[y] ??= []; for (let x = c; x < c + w; x++) used[y]![x] = true; }
       rowsUsed = Math.max(rowsUsed, r + h);
       out.set(m.id, { ...m, x: t.x + c * cw + pad, y: t.y + 0.4 + r * ch + pad, w: w * cw - 2 * pad, h: h * ch - 2 * pad, s: undefined });
+    };
+    const rest: GridItem[] = [];
+    for (const m of members) {
+      const w = Math.min(cols, Math.max(1, m.cs ?? 1)), h = Math.max(1, m.rs ?? 1);
+      const c = Math.floor((m.x - t.x + cw * 0.3) / cw), r = Math.floor((m.y - t.y - 0.4 + ch * 0.3) / ch);
+      if (c >= 0 && r >= 0 && c + w <= cols && r < 200 && free(r, c, w, h)) place(m, r, c, w, h); else rest.push(m);
+    }
+    for (const m of rest) {
+      const w = Math.min(cols, Math.max(1, m.cs ?? 1)), h = Math.max(1, m.rs ?? 1);
+      let r = 0, c = 0;
+      for (;; r++) { let ok = false; for (c = 0; c + w <= cols; c++) if (free(r, c, w, h)) { ok = true; break; } if (ok) break; }
+      place(m, r, c, w, h);
     }
     const rows = Math.max(1, Math.round((tb.h - 0.4) / ch), rowsUsed);
     out.set(t.id, { ...t, cols, rows, h: rows * ch + 0.4 });
