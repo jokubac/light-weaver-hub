@@ -129,3 +129,6 @@
 
 - [ ] Console toolbar: FIXTURES, GRID, FX, PIXEL, FADERS, PLOT, PATCH — FX opens the effects rail, PATCH opens the patch library; browser verify each tab opens and collapses.
 - [ ] Change FIXTURES tab action: it opens a window built from the fixture glyph tiles (FixtureGlyph) — exact behaviour awaiting user confirmation
+- [ ] FIXTURES button: open a full-screen window with the fixture tiles grid (same tiles and selection as the console area), not the patch sheet
+- [ ] Full-screen windows (PLOT, PATCH, FIXTURES): the console top bar and view tabs must not stay visible while a window is open
+- [ ] PATCH button opens the patch sheet with addresses/universes — verify in browser
