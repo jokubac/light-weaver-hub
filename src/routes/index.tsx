@@ -48,6 +48,7 @@ import { PatchPage } from "@/components/console/PatchPage";
 import { mixFrames, statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
 import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
+import { uid } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { EffectsRail } from "@/components/console/EffectsRail";
