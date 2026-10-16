@@ -1115,10 +1115,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       {gridOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected}
-            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => fixtureColor(f, t, outLevel)} />
-          <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
-            {controlPanel()}
-          </aside>
+            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => fixtureColor(f, t, outLevel)} controls={controlPanel()} />
         </div>
       )}
       {patchOpen && (
