@@ -6,7 +6,7 @@ import { MoreHorizontal, PenLine, Plus, Trash2, MousePointer2 } from "lucide-rea
 
 /** Free layout (cell units, fractional) of squares — empty, fixture or user macro — plus drawn walls. */
 export interface GridItem { id: string; kind: "empty" | "fixture" | "macro"; uid?: string | undefined; macro?: { action: MacroAction; amount: number; label: string } | undefined; x: number; y: number }
-export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[] }
+export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
 const CELL = 76, COLS = 24, ROWS = 16, SIZE = 0.92;
@@ -99,12 +99,17 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [amount, setAmount] = useState(100);
   const [label, setLabel] = useState("");
   const [gap, setGap] = useState(0.2);
+  const [last, setLast] = useState<Arrange | null>(null);
+  const sz = grid.size ?? SIZE;
   const selItems = grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!));
-  const doArrange = (how: Arrange) => { const r = arrange(selItems, how, gap); setGrid({ ...grid, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y } : i; }) }); };
+  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, size); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y } : i; }) }); };
+  const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
+  const onGap = (g: number) => { setGap(g); if (last && selItems.length > 1) apply(last, g, sz); };
+  const onSize = (v: number) => { if (last && selItems.length > 1) apply(last, gap, v); else setGrid({ ...grid, size: v }); };
   const area = useRef<HTMLDivElement>(null);
 
   const placed = new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.uid));
-  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => Math.abs(i.x - x) < SIZE && Math.abs(i.y - y) < SIZE)) return { x, y }; return { x: 0, y: 0 }; };
+  const freeSpot = (items: GridItem[]) => { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!items.some((i) => Math.abs(i.x - x) < sz && Math.abs(i.y - y) < sz)) return { x, y }; return { x: 0, y: 0 }; };
   const pt = (e: React.PointerEvent) => { const r = area.current!.getBoundingClientRect(); return { x: (e.clientX - r.left) / CELL, y: (e.clientY - r.top) / CELL }; };
   const patch = (id: string, p: Partial<GridItem>) => setGrid({ ...grid, items: grid.items.map((i) => (i.id === id ? { ...i, ...p } : i)) });
   const edit = grid.items.find((i) => i.id === editing);
@@ -134,14 +139,19 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           <section className="space-y-2">
             <h3 className="text-xs font-bold uppercase text-muted-foreground">Arrange {selItems.length} selected</h3>
             <div className="grid grid-cols-3 gap-1">
-              {ARRANGE.map(([k, l]) => <button key={k} onClick={() => doArrange(k)} className="rounded-md bg-surface-elevated px-1 py-1.5 text-[11px] font-semibold active:scale-95">{l}</button>)}
+              {ARRANGE.map(([k, l]) => <button key={k} onClick={() => doArrange(k)} aria-pressed={last === k} className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[10px] font-semibold active:scale-95 ${last === k ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{ICON[k]}</svg>{l}</button>)}
             </div>
             <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
-              <input type="range" min={0} max={2} step={0.05} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
+              <input type="range" min={0} max={2} step={0.05} value={gap} onChange={(e) => onGap(+e.target.value)} className="flex-1" />
               <span className="w-8 text-right font-mono">{Math.round(gap * 100)}%</span>
             </label>
           </section>
         )}
+        <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Fixture size
+          <input type="range" min={0.4} max={2} step={0.02} value={sz} onChange={(e) => onSize(+e.target.value)} className="flex-1" />
+          <span className="w-8 text-right font-mono">{Math.round(sz * 100)}%</span>
+        </label>
         {edit && (
           <section className="space-y-2 rounded-lg border border-primary/50 p-2">
             <div className="flex items-center justify-between">
@@ -187,14 +197,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const p = pt(e);
             if (wall) setWall({ ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) });
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
-            else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; const g0 = drag.group; let dx = p.x - drag.sx, dy = p.y - drag.sy; for (const m of g0) { dx = Math.max(-m.x, Math.min(COLS - SIZE - m.x, dx)); dy = Math.max(-m.y, Math.min(ROWS - SIZE - m.y, dy)); } setDrag({ ...drag, moved, x: dx, y: dy }); }
+            else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; const g0 = drag.group; let dx = p.x - drag.sx, dy = p.y - drag.sy; for (const m of g0) { dx = Math.max(-m.x, Math.min(COLS - sz - m.x, dx)); dy = Math.max(-m.y, Math.min(ROWS - sz - m.y, dy)); } setDrag({ ...drag, moved, x: dx, y: dy }); }
           }}
           onPointerUp={() => {
             if (wall) { if (Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, wall] }); setWall(null); }
             if (box) {
               const [l, r, t, b] = [Math.min(box.x1, box.x2), Math.max(box.x1, box.x2), Math.min(box.y1, box.y2), Math.max(box.y1, box.y2)];
               if (r - l > 0.1 || b - t > 0.1) {
-                const hit = grid.items.filter((i) => i.kind === "fixture" && i.x < r && i.x + SIZE > l && i.y < b && i.y + SIZE > t).map((i) => i.uid!);
+                const hit = grid.items.filter((i) => i.kind === "fixture" && i.x < r && i.x + sz > l && i.y < b && i.y + sz > t).map((i) => i.uid!);
                 onSelect(box.add ? [...new Set([...selected, ...hit])] : hit);
               }
               setBox(null);
@@ -224,7 +234,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             return (
               <div key={it.id} role="button" tabIndex={0} aria-label={f ? `Select fixture ${n}, ${f.name}` : it.macro ? `Run ${macroLabel(it.macro)}` : "Empty square"} aria-pressed={f ? isSel : undefined}
                 className={`absolute flex flex-col overflow-hidden rounded-lg border p-1 text-[10px] ${mode === "walls" ? "pointer-events-none opacity-60" : "cursor-grab"} ${isSel ? "border-primary ring-2 ring-primary" : editing === it.id ? "border-primary/70 border-dashed" : it.kind === "empty" ? "border-dashed border-border" : "border-border"} ${f ? "bg-card" : "bg-surface-elevated"} ${gm ? "z-30 shadow-lg" : "z-10"}`}
-                style={{ left: pos.x * CELL, top: pos.y * CELL, width: SIZE * CELL, height: SIZE * CELL }}
+                style={{ left: pos.x * CELL, top: pos.y * CELL, width: sz * CELL, height: sz * CELL }}
                 onPointerDown={(e) => { if (mode !== "select") return; e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); const p = pt(e); const inSel = it.kind === "fixture" && selected.includes(it.uid!); const group = (inSel ? grid.items.filter((i) => i.id === it.id || (i.kind === "fixture" && selected.includes(i.uid!))) : [it]).map((i) => ({ id: i.id, x: i.x, y: i.y })); setDrag({ id: it.id, ox: p.x - it.x, oy: p.y - it.y, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group }); }}>
                 <button aria-label="Edit square" onPointerDown={(e) => e.stopPropagation()} onClick={() => { setEditing(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); } }}
                   className="absolute right-0.5 top-0.5 z-10 rounded bg-surface/80 p-0.5 text-muted-foreground hover:text-foreground"><MoreHorizontal className="h-3 w-3" /></button>
