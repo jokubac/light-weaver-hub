@@ -126,7 +126,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string;
 }) {
-  const [mode, setMode] = useState<"select" | "walls" | "text">("select");
+  const [mode, setMode] = useState<"select" | "walls" | "text" | "bgmove">("select");
+  const [pan, setPan] = useState<{ sx: number; sy: number; x0: number; y0: number } | null>(null);
+  const lastTap = useRef<{ id: string; t: number } | null>(null);
   const [drag, setDrag] = useState<{ id: string; ox: number; oy: number; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number }[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [box, setBox] = useState<{ x1: number; y1: number; x2: number; y2: number; add: boolean } | null>(null);
@@ -282,6 +284,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const p = pt(e); area.current!.setPointerCapture(e.pointerId);
             if (mode === "walls") setWall({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
             else if (mode === "text") addText(p.x, p.y);
+            else if (mode === "bgmove" && grid.bgT) setPan({ sx: e.clientX, sy: e.clientY, x0: grid.bgT.x, y0: grid.bgT.y });
+            else if (mode === "bgmove" && grid.bg) setGrid({ ...grid, bgT: { x: 0, y: 0, scale: 1, invert: false } });
             else setBox({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, add: e.shiftKey || e.ctrlKey || e.metaKey });
           }}
           onPointerMove={(e) => {
