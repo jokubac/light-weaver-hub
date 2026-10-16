@@ -241,7 +241,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string; controls: React.ReactNode;
   /** Live pixel colours + layout for pixel fixtures; `long` marks elongated (tube/bar) lights, which default to a wide box. */
   pixelsOf?: (f: PatchedFixture) => { cells?: string[] | undefined; cols: number; rows: number; aspect: number };
-  /** Group names the user has made, so the Add light tool can drop a whole group at once. */
+  /** Group names the user has made, so the light picker can drop a whole group at once. */
   groups?: string[];
 }) {
   const [live, setLive] = useState(true);

@@ -166,3 +166,4 @@
 
 - [x] GRID fader reset triggers on a double tap anywhere on the whole box (label, value, slider, padding; mouse or touch): Intensity 50%, CCT 5600K, G/M 0. Single taps and drags never reset.
 - [x] Filter picker for macros has separate Manufacturer (All/Rosco/LEE) and Type (All/Correction/Effect) rows that combine, plus a live result count.
+- [x] "Add light" button removed from the GRID toolbar — lights are placed straight from the light picker that is always visible in Edit mode.
