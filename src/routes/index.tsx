@@ -999,6 +999,29 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
             </>
   );
 
+  // Fixture / effects / pixel controls — pinned inside the Fixtures window
+  const controlPanel = () => (
+    panel === "fx" ? (
+      <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+        if (!activePixel) return;
+        const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
+        setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
+      }} />
+    ) : panel === "pixels" ? (
+      <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
+        const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
+        if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
+        setLayers(next);
+      }} />
+    ) : sel.length === 0 ? (
+      <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
+    ) : (
+      <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
+        onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
+        remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
+    )
+  );
+
   return (
     <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
@@ -1027,7 +1050,6 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
         <Button variant="secondary" onClick={() => openWin("fixtures")} aria-pressed={fixturesOpen} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
-        {tab("control", "GRID")}
         {tab("fx", "FX")}
         {tab("pixels", "PIXEL")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
@@ -1048,12 +1070,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
       )}
       {fixturesOpen && (
-        <div className="flex min-h-0 flex-1 flex-col bg-background">
-          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3">
-            <button onClick={() => setFixturesOpen(false)} aria-label="Back to console" className="mr-auto rounded-lg bg-surface-elevated p-3 text-primary active:scale-95"><ArrowLeft className="h-5 w-5" /></button>
-            <span className="font-display text-base font-semibold uppercase tracking-wider">Fixtures</span>
-            <span className="text-xs text-muted-foreground">{fixtures.length} fixtures</span>
-          </div>
+        <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
             {fixtures.length === 0 ? (
               <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Open PATCH to add them." />
@@ -1061,6 +1078,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
               fixtureBoard()
             )}
           </div>
+          <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
+            {controlPanel()}
+          </aside>
         </div>
       )}
       {patchOpen && (
