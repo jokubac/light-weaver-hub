@@ -233,7 +233,7 @@ export function layoutTables(items: GridItem[], sz = SIZE): GridItem[] {
       place(m, r, c, w, h);
     }
     const rows = Math.max(1, Math.round((tb.h - 0.4) / ch), rowsUsed);
-    out.set(t.id, { ...t, cols, rows, h: rows * ch + 0.4 });
+    out.set(t.id, { ...t, cols, rows, w: cols * cw, h: rows * ch + 0.4 });
   }
   return items.map((i) => out.get(i.id)!);
 }
@@ -606,7 +606,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (pinch.current && touches.current.size === 2) { const [p1, p2] = [...touches.current.values()]; const d = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y), cx = (p1!.x + p2!.x) / 2, cy = (p1!.y + p2!.y) / 2; const r = vp.current!.getBoundingClientRect(); const pc = pinch.current; setView((v) => ({ ...v, x: v.x + cx - pc.cx, y: v.y + cy - pc.cy })); viewRef.current = { ...viewRef.current, x: viewRef.current.x + cx - pc.cx, y: viewRef.current.y + cy - pc.cy }; zoomAt(cx - r.left, cy - r.top, viewRef.current.z * (d / pc.d)); pinch.current = { d, cx, cy }; return; }
             if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
             const p = pt(e);
-            if (rs) setRs({ ...rs, out: resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) });
+            if (rs) { const lone = rs.orig.length === 1 ? grid.items.find((i) => i.id === rs.orig[0]!.id && i.kind === "table") : undefined;
+              setRs({ ...rs, out: lone ? [resizeTable(rs.orig[0]!, rs.corner, p.x, p.y, grid.items.filter((m) => isMacroBox(m) && m.tbl === lone.id).map((m) => ({ id: m.id, x: m.x, y: m.y, w: W(m), h: H(m) })))] : resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) }); }
             else if (wEnd) { const w0 = grid.walls[wEnd.i]!; const o = wEnd.e === 1 ? { x: w0.x2, y: w0.y2 } : { x: w0.x1, y: w0.y1 }; const sn = snapToEnds(grid.walls, p.x, p.y, wEnd); const q = sn.x !== p.x || sn.y !== p.y ? sn : (() => { const k = snapWall(o.x, o.y, p.x, p.y); return { x: k.x2, y: k.y2 }; })(); setGrid({ ...grid, walls: grid.walls.map((w, k) => (k !== wEnd.i ? w : wEnd.e === 1 ? { ...w, x1: q.x, y1: q.y } : { ...w, x2: q.x, y2: q.y })) }); }
             else if (wall) setWall(wallRect ? { ...wall, x2: Math.round(p.x * 4) / 4, y2: Math.round(p.y * 4) / 4 } : (() => { const sn = snapToEnds(grid.walls, p.x, p.y); return sn.x !== p.x || sn.y !== p.y ? { ...wall, x2: sn.x, y2: sn.y } : { ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) }; })());
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
