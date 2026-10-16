@@ -530,6 +530,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const toggleLevels = useRef<Record<string, number>>({});
   const holdSaved = useRef<{ checkout: Record<string, { intensity: number; cct: number }>; locate: Record<string, { intensity: number; cct: number }> }>({ checkout: {}, locate: {} });
   const fadeTimer = useRef<number | null>(null);
+  const [locate, setLocate] = useState<{ ids: string[]; on: number; off?: number } | null>(null);
+  useEffect(() => { if (locate?.off == null) return; const id = setTimeout(() => setLocate((l) => (l?.off != null && performance.now() - l.off >= 250 ? null : l)), 300); return () => clearTimeout(id); }, [locate]);
   /** 0.25 s fade of intensity + CCT from each light's start values to its target. */
   const fadeTo = (from: Record<string, { intensity: number; cct: number }>, to: (id: string) => { intensity: number; cct: number }) => {
     if (fadeTimer.current) cancelAnimationFrame(fadeTimer.current);
@@ -781,7 +783,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     return () => { window.removeEventListener("keydown", h); window.removeEventListener("keyup", up); };
   }, []);
   const outFixtures = useMemo(() => {
-    const out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
+    let out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
+    if (locate) {
+      const now = performance.now();
+      const k = locate.off != null ? 1 - Math.min(1, (now - locate.off) / 250) : Math.min(1, (now - locate.on) / 250);
+      const loc = cctFromKelvin(5600);
+      if (k > 0) out = out.map((f) => locate.ids.includes(f.uid) ? { ...f, intensity: f.intensity + (1 - f.intensity) * k, cct: f.cct + (loc - f.cct) * k, on: true } : f);
+    }
     const ids = Object.keys(pulses);
     if (!ids.length) return out;
     const now = performance.now();
@@ -789,7 +797,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       const pulse = pulses[f.uid];
       return pulse ? inverseFlash(f, (now - pulse.at) / 1000, pulse.base, pulse.target) : f;
     });
-  }, [fixtures, bank, project.looks, flash, solo, pulses, t]);
+  }, [fixtures, bank, project.looks, flash, solo, pulses, t, locate]);
   useEffect(() => {
     if (!Object.keys(pulses).length) return;
     const id = setTimeout(() => { const now = performance.now(); setPulses((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => now - v.at < 1000))); }, 1050);
@@ -851,9 +859,10 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       return;
     }
     if (m.action === "locate") {
-      // hold: 100% @ 5600K with a 0.25 s fade in; release: 0.25 s fade back to what it was
-      if (!m.release) { const sv = Object.fromEntries(sel.map((f) => [f.uid, { intensity: f.intensity, cct: f.cct }])); holdSaved.current.locate = sv; fadeTo(sv, () => ({ intensity: 1, cct: cctFromKelvin(5600) })); }
-      else { const sv = holdSaved.current.locate; const now = Object.fromEntries(fixtures.filter((f) => sv[f.uid]).map((f) => [f.uid, { intensity: f.intensity, cct: f.cct }])); fadeTo(now, (id) => sv[id]!); holdSaved.current.locate = {}; }
+      // Output only: 100% @ 5600K faded in over 0.25 s while held, faded out on release. Never touches the lights' programming.
+      const now = performance.now();
+      if (!m.release) setLocate((l) => l && l.off == null ? l : { ids: l?.off != null ? [...new Set([...l.ids, ...selected])] : selected, on: l?.off != null ? now - Math.max(0, 250 - (now - l.off)) : now });
+      else setLocate((l) => l && l.off == null ? { ...l, off: now - Math.max(0, 250 - Math.min(250, now - l.on)) } : l);
       return;
     }
     if (m.action === "wrap") {
