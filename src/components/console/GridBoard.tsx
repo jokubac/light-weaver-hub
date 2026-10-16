@@ -329,7 +329,6 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
       const added = members.map((f, i) => ({ id: nid(), kind: "fixture" as const, uid: f.uid, x: Math.round(slots[i].x * 4) / 4, y: Math.round(slots[i].y * 4) / 4 }));
       setGrid({ ...grid, items: [...grid.items, ...added] });
       setEsel(added.map((a) => a.id));
-      if (!members.some((f) => !placed.has(f.uid))) setPickGroup(null);
       return;
     }
     const f = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
