@@ -453,7 +453,8 @@ export interface PatchedFixture {
   fxPlaying?: boolean; // effect play / stop
   label?: string; // colour tag chosen when patching
   icon?: FixtureIcon; // presentation only; never changes the DMX profile
-  group?: string; // group name
+  group?: string; // primary group name (the first of `groups`)
+  groups?: string[]; // every group this light belongs to — a light may be in several
   fan?: FanMode;
   gel?: string; // gel id from the gel library
   /** one pixel of a split pixel fixture, controlled as its own light */
@@ -570,6 +571,7 @@ export function normalizeFixture(raw: Record<string, unknown>): PatchedFixture {
     ...(r.label ? { label: r.label } : {}),
     ...(isFixtureIcon(r.icon) ? { icon: r.icon } : {}),
     ...(r.group ? { group: r.group } : {}),
+    ...(Array.isArray(r.groups) ? { groups: r.groups.filter(Boolean) } : {}),
     ...(r.fan ? { fan: r.fan } : {}),
     ...(r.gel ? { gel: r.gel } : {}),
     ...(r.split ? { split: r.split } : {}),

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { getDef, overlaps, type PatchedFixture } from "@/lib/dmx";
 import { pixelCount } from "@/lib/pixels";
 import { LABEL_COLORS } from "./PatchPanel";
+import { groupsOf, inGroup } from "@/lib/fixture-groups";
 import { PowerDialog } from "./PowerDialog";
 import type { PowerSource } from "@/lib/power";
 
@@ -14,7 +15,9 @@ const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated
 export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, onJoin, onGroup, onPower, level }: {
   onPower: (p: PowerSource | null) => void; level: number;
   f: PatchedFixture; fixtures: PatchedFixture[]; locked: boolean; groups: string[];
-  onChange: (p: Partial<PatchedFixture>) => void; onSplit: () => void; onJoin: () => void; onGroup: (g: string | null) => void;
+  onChange: (p: Partial<PatchedFixture>) => void; onSplit: () => void; onJoin: () => void;
+  /** Add the light to group `g` (on) or take it out of that one group (off). A light can be in several groups. */
+  onGroup: (g: string, on: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [grouping, setGrouping] = useState(false);
@@ -34,9 +37,9 @@ export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, on
         <DropdownMenuContent align="end">
           {locked && <DropdownMenuLabel className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3 w-3" />Patch locked — unlock to edit</DropdownMenuLabel>}
           <DropdownMenuItem disabled={locked} onSelect={() => { setDraft(f); setEditing(true); }}><Pencil className="mr-2 h-4 w-4" />Edit name, address, mode</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => { setGroupName(f.group ?? ""); setGrouping(true); }}><FolderPlus className="mr-2 h-4 w-4" />{f.group ? "Change group" : "Add to group"}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => { setGroupName(""); setGrouping(true); }}><FolderPlus className="mr-2 h-4 w-4" />{groupsOf(f).length ? "Groups…" : "Add to group"}</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setPowering(true)}><BatteryCharging className="mr-2 h-4 w-4" />{f.power ? "Battery settings" : "Run on V-mount / Instagrid"}</DropdownMenuItem>
-          {f.group && <DropdownMenuItem onSelect={() => onGroup(null)}><FolderMinus className="mr-2 h-4 w-4" />Remove from "{f.group}"</DropdownMenuItem>}
+          {groupsOf(f).map((g) => <DropdownMenuItem key={g} onSelect={() => onGroup(g, false)}><FolderMinus className="mr-2 h-4 w-4" />Remove from "{g}"</DropdownMenuItem>)}
           {(pixelCount(f) > 0 || f.split) && <DropdownMenuSeparator />}
           {pixelCount(f) > 0 && <DropdownMenuItem disabled={locked} onSelect={onSplit}><Split className="mr-2 h-4 w-4" />Split into {pixelCount(f)} pixel lights</DropdownMenuItem>}
           {f.split && <DropdownMenuItem disabled={locked} onSelect={onJoin}><Merge className="mr-2 h-4 w-4" />Join pixels back into "{f.split.name}"</DropdownMenuItem>}
@@ -85,15 +88,16 @@ export function FixtureMenu({ f, fixtures, locked, groups, onChange, onSplit, on
 
       <Dialog open={grouping} onOpenChange={setGrouping}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Group</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Groups</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">A light can sit in several groups at once. Tap a group to add the light or take it out.</p>
           {groups.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {groups.map((g) => <button key={g} onClick={() => { onGroup(g); setGrouping(false); }} className="rounded-md bg-surface-elevated px-3 py-2 text-xs font-semibold">{g}</button>)}
+              {groups.map((g) => <button key={g} aria-pressed={inGroup(f, g)} onClick={() => onGroup(g, !inGroup(f, g))} className={`rounded-md px-3 py-2 text-xs font-semibold ${inGroup(f, g) ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{g}</button>)}
             </div>
           )}
-          <form onSubmit={(e) => { e.preventDefault(); if (groupName.trim()) onGroup(groupName.trim()); setGrouping(false); }} className="flex gap-2">
+          <form onSubmit={(e) => { e.preventDefault(); if (groupName.trim()) onGroup(groupName.trim(), true); setGrouping(false); }} className="flex gap-2">
             <input autoFocus value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="New group name (e.g. Key lights)" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-            <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Save</button>
+            <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Add</button>
           </form>
         </DialogContent>
       </Dialog>

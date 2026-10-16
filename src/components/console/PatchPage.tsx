@@ -1,4 +1,5 @@
 import type { CallSheetData } from "@/lib/store";
+import { groupNamesOf, groupText, groupsPatch } from "@/lib/fixture-groups";
 import { Fragment as Frag, useRef, useState } from "react";
 import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     const names = fixtures.filter((f) => picked.includes(f.uid)).map((f) => f.name);
     if (confirm(`Unpatch ${names.length === 1 ? `"${names[0]}"` : `${names.length} fixtures`}? This cannot be undone.`)) { onRemove(picked); setPicked([]); }
   };
-  const groupNames = Array.from(new Set(fixtures.map((f) => f.group).filter(Boolean))) as string[];
+  const groupNames = groupNamesOf(fixtures);
   const fileRef = useRef<HTMLInputElement>(null);
   const rows = patchRows(fixtures, null);
   const totalW = fixtures.reduce((a, f) => a + fixtureWattage(f), 0);
@@ -101,7 +102,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
               {picked.length > 0 && <>
                 <span className="ml-2 flex gap-1">{LABEL_COLORS.map((c) => <button key={c} onClick={() => each({ label: c })} aria-label={`Colour ${c}`} className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />)}
                   <button onClick={() => each({ label: undefined } as never)} className="px-1 text-muted-foreground" aria-label="Remove colour">×</button></span>
-                <button onClick={() => { const g = prompt(`Group name${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove`); if (g !== null) each({ group: g.trim() || undefined } as never); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Group…</button>
+                <button onClick={() => { const g = prompt(`Groups, comma separated${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove all`); if (g !== null) each(groupsPatch(g.split(","))); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Groups…</button>
               </>}
               <button onClick={unpatch} disabled={!picked.length} className="ml-auto flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1.5 font-semibold text-destructive-foreground disabled:opacity-40"><Unplug className="h-3.5 w-3.5" />Unpatch{picked.length ? ` (${picked.length})` : ""}</button>
               <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures{totalW ? ` · ${totalW} W` : ""} · {new Date().toLocaleDateString("sv-SE")}</span>
@@ -135,7 +136,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <td className="pr-2 font-mono">{f.universe}</td>
                       <td className={`pr-2 font-mono ${clash ? "text-destructive" : ""}`}>{f.address}–{f.address + ch - 1}</td>
                       <td className="pr-2 font-mono">{ch}</td>
-                      <td className="pr-2 print:hidden">{f.group ?? ""}</td>
+                      <td className="pr-2 print:hidden">{groupText(f)}</td>
                       <td className="pr-2 font-mono print:hidden">{fixtureWattage(f)}</td>
                       <td className="whitespace-nowrap print:hidden">
                         <Button variant="ghost" size="icon" aria-label={`Move ${f.name}`} title="Drag to reorder" className="h-9 w-9 touch-none cursor-grab select-none active:cursor-grabbing"
@@ -195,8 +196,8 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                           {clash && <p role="alert" className="text-[11px] text-destructive">Overlaps {overlaps(fixtures, f.universe, f.address, ch, f.uid).map((fixture) => fixture.name).join(", ")}</p>}
                           <div className="text-[10px] font-semibold uppercase text-muted-foreground">Colour</div>
                           <div className="flex flex-wrap gap-1.5">{LABEL_COLORS.map((c) => <button key={c} onClick={() => onUpdate(f.uid, { label: c })} aria-label={`Colour ${c}`} className={`h-7 w-7 rounded-full border-2 ${f.label === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
-                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Group
-                            <input list="patch-groups" value={f.group ?? ""} onChange={(e) => onUpdate(f.uid, { group: e.target.value || undefined } as never)} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
+                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Groups
+                            <input list="patch-groups" value={groupText(f)} onChange={(e) => onUpdate(f.uid, groupsPatch(e.target.value.split(",")))} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
                         </div>
                       </div>
                     </td></tr>}</Frag>

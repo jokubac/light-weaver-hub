@@ -33,6 +33,7 @@ import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
 import { FixtureMenu } from "@/components/console/FixtureMenu";
+import { addToGroup, groupNamesOf, groupText, groupsOf, inGroup, membersOf, removeFromGroup, renameGroupsOn } from "@/lib/fixture-groups";
 import { SettingsDialog } from "@/components/console/SettingsDialog";
 import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
@@ -549,7 +550,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       else if (kind === "int") updateOne(id, { intensity: m.value });
       else if (kind === "on" && (!m.isNote || m.on)) setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, on: m.isNote ? f.on === false : m.value > 0.5 } : f)));
       else if (kind === "fx" && (!m.isNote || m.on)) setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, fxPlaying: f.fxPlaying === false } : f)));
-      else if (kind === "group") setFixtures((fs) => fs.map((f) => (f.group === id ? { ...f, intensity: m.value } : f)));
+      else if (kind === "group") setFixtures((fs) => fs.map((f) => (inGroup(f, id) ? { ...f, intensity: m.value } : f)));
       else if (kind === "look" && (!m.isNote || m.on)) { const l = project.looks?.find((x) => x.id === id); if (l) recallLook(l); }
       else if (kind === "trig" && (!m.isNote || m.on)) fire(id as TriggerKind);
       else if (kind === "bank") onBank((project.bank ?? []).map((b, i) => (String(i) === id ? { ...b, level: m.value } : b)));
@@ -636,20 +637,15 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [groupMeta, setGroupMeta] = useState<{ order: string[]; colors: Record<string, string> }>({ order: [], colors: {} });
   useEffect(() => { try { const r = localStorage.getItem("nox-group-meta"); if (r) setGroupMeta(JSON.parse(r)); } catch { /* ignore */ } }, []);
   const saveGroupMeta = (m: { order: string[]; colors: Record<string, string> }) => { setGroupMeta(m); try { localStorage.setItem("nox-group-meta", JSON.stringify(m)); } catch { /* ignore */ } };
-  const groups = Array.from(new Set(fixtures.map((f) => f.group).filter((g): g is string => !!g)))
+  const groups = groupNamesOf(fixtures)
     .sort((a, b) => { const ia = groupMeta.order.indexOf(a), ib = groupMeta.order.indexOf(b); return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib); });
-  const setGroup = (f: PatchedFixture, g: string | null) => {
+  const setGroup = (f: PatchedFixture, g: string, on: boolean) => {
     const targets = selected.includes(f.uid) ? selected : [f.uid];
-    setFixtures((fs) => fs.map((x) => {
-      if (!targets.includes(x.uid)) return x;
-      if (g) return { ...x, group: g };
-      const { group: _g, ...rest } = x;
-      return rest;
-    }));
+    setFixtures((fs) => fs.map((x) => (targets.includes(x.uid) ? (on ? addToGroup(x, g) : removeFromGroup(x, g)) : x)));
   };
-  const renameGroup = (from: string, to: string) => setFixtures((fs) => fs.map((x) => (x.group === from ? { ...x, group: to } : x)));
-  const updateGroup = (g: string, p: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((x) => (x.group === g ? { ...x, ...p } : x)));
-  const ungroup = (g: string) => setFixtures((fs) => fs.map((x) => { if (x.group !== g) return x; const { group: _g, ...rest } = x; return rest; }));
+  const renameGroup = (from: string, to: string) => setFixtures((fs) => fs.map((x) => renameGroupsOn(x, from, to)));
+  const updateGroup = (g: string, p: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((x) => (inGroup(x, g) ? { ...x, ...p } : x)));
+  const ungroup = (g: string) => setFixtures((fs) => fs.map((x) => removeFromGroup(x, g)));
 
   const recallLook = (l: Look) => {
     setFixtures((fs) => applyLook(l, fs));
@@ -987,15 +983,15 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                    onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
                    className={swapping ? "bg-primary text-primary-foreground" : ""}><ArrowLeftRight className="h-4 w-4" /></Button>
                 <SavePopover label="+ Group" kind="Group" canCreate={selected.length > 0}
-                  items={groups.map((g) => ({ id: g, name: g, color: groupMeta.colors[g], info: `${fixtures.filter((f) => f.group === g).length}` }))}
-                  onCreate={(name, color) => { setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: name } : x))); saveGroupMeta({ order: [...groupMeta.order.filter((o) => o !== name), name], colors: { ...groupMeta.colors, [name]: color } }); }}
+                   items={groups.map((g) => ({ id: g, name: g, color: groupMeta.colors[g], info: `${membersOf(fixtures, g).length}` }))}
+                  onCreate={(name, color) => { setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, name) : x))); saveGroupMeta({ order: [...groupMeta.order.filter((o) => o !== name), name], colors: { ...groupMeta.colors, [name]: color } }); }}
                   onChange={(items) => {
                     const ren = Object.fromEntries(items.filter((it) => it.id !== it.name).map((it) => [it.id, it.name]));
-                    if (Object.keys(ren).length) setFixtures((fs) => fs.map((x) => (x.group && ren[x.group] ? { ...x, group: ren[x.group]! } : x)));
+                    if (Object.keys(ren).length) setFixtures((fs) => fs.map((x) => Object.entries(ren).reduce((acc, [from, to]) => renameGroupsOn(acc, from, to), x)));
                     saveGroupMeta({ order: items.map((it) => it.name), colors: Object.fromEntries(items.filter((it) => it.color).map((it) => [it.name, it.color!])) });
                   }}
-                  onDelete={(id) => setFixtures((fs) => fs.map((x) => { if (x.group !== id) return x; const { group: _g, ...rest } = x; return rest; }))}
-                  onPick={(id) => setSelected(fixtures.filter((f) => f.group === id).map((f) => f.uid))} />
+                  onDelete={(id) => setFixtures((fs) => fs.map((x) => removeFromGroup(x, id)))}
+                  onPick={(id) => setSelected(membersOf(fixtures, id).map((f) => f.uid))} />
                 <SavePopover label="+ Look" kind="Look" canCreate={fixtures.length > 0}
                   items={(project.looks ?? []).map((l) => ({ id: l.id, name: l.name, color: l.color, info: `${l.states.length}` }))}
                   onCreate={(name, color) => { const src = fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
@@ -1029,14 +1025,14 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
                           {f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}
                         </div>
                         <FixtureMenu f={f} fixtures={fixtures} locked={locked} groups={groups}
-                          onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g) => setGroup(f, g)}
+                          onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g, on) => setGroup(f, g, on)}
                           level={outLevel} onPower={(p) => setFixtures((fs) => fs.map((x) => { if (x.uid !== f.uid) return x; const { power: _p, ...rest } = x; return p ? { ...rest, power: p } : rest; }))} />
                       </div>
                       <div className="flex shrink-0 justify-between gap-1 text-[9px] text-muted-foreground">
                         <span className="truncate">U{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
-                      {f.group && <div className="shrink-0 truncate text-[9px] text-primary">{f.group}</div>}
+                      {groupsOf(f).length > 0 && <div className="shrink-0 truncate text-[9px] text-primary">{groupText(f)}</div>}
                       {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
                         <div title={`${fmtHours(b.hours)} left`} className={`flex shrink-0 items-center gap-1 text-[9px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
                           <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)}
@@ -1187,14 +1183,17 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         {groupsOpen && (
           <aside aria-label="Groups, looks, effects and REC" className="max-h-[45vh] w-full shrink-0 space-y-3 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
             <CollapsibleSection title="Groups">
-            <GroupsPanel fixtures={fixtures} selected={selected} onRemoveMember={(id) => setFixtures((fs) => fs.map((x) => { if (x.uid !== id) return x; const { group: _g, ...rest } = x; return rest as typeof x; }))} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? { ...x, group: g } : x)))}
-              onSelect={(g) => { const ids = fixtures.filter((f) => f.group === g).map((f) => f.uid); setSelected((s) => ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])]); }} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
+            <GroupsPanel fixtures={fixtures} selected={selected} onRemoveMember={(id, g) => setFixtures((fs) => fs.map((x) => (x.uid === id ? removeFromGroup(x, g) : x)))} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, g) : x)))}
+              onSelect={(g) => { const ids = membersOf(fixtures, g).map((f) => f.uid); setSelected((s) => ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])]); }} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
               onCopy={(from, to) => setFixtures((fs) => {
-                const src = fs.find((x) => x.group === from);
+                const src = membersOf(fs, from)[0];
                 if (!src) return fs;
-                const exists = fs.some((x) => x.group === to);
+                const exists = fs.some((x) => inGroup(x, to));
                 const copy = { intensity: src.intensity, on: src.on !== false, cct: src.cct, gm: src.gm, hue: src.hue, saturation: src.saturation, crossfade: src.crossfade, cctOnly: src.cctOnly, fx: { ...src.fx }, fxPlaying: src.fxPlaying !== false };
-                return fs.map((x) => (exists ? x.group === to : selected.includes(x.uid) && x.group !== from) ? { ...x, ...copy, ...(exists ? {} : { group: to }) } : x);
+                return fs.map((x) => {
+                  const hit = exists ? inGroup(x, to) : selected.includes(x.uid) && !inGroup(x, from);
+                  return hit ? (exists ? { ...x, ...copy } : addToGroup({ ...x, ...copy }, to)) : x;
+                });
               })} />
             </CollapsibleSection>
             <CollapsibleSection title="Looks"><LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} /></CollapsibleSection>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, X, Power, Check, Copy, Play, Square, ChevronDown, ChevronRight } from "lucide-react";
 import type { PatchedFixture } from "@/lib/dmx";
+import { groupNamesOf, inGroup, membersOf } from "@/lib/fixture-groups";
 
 export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, onUngroup, onUpdate, onCopy, onRemoveMember }: {
   fixtures: PatchedFixture[];
@@ -13,13 +14,13 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
   onUpdate: (g: string, p: Partial<PatchedFixture>) => void;
   /** Copy settings (level, colour, effect) from group `from` to group `to`, or to the selected lights as a new group when `to` is new. */
   onCopy: (from: string, to: string) => void;
-  /** Take one light out of its group; its patch and settings stay. */
-  onRemoveMember: (uid: string) => void;
+  /** Take one light out of one group; its patch, settings and other groups stay. */
+  onRemoveMember: (uid: string, g: string) => void;
 }) {
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<{ g: string; v: string } | null>(null);
   const [collapsed, setCollapsed] = useState<string[]>([]);
-  const groups = Array.from(new Set(fixtures.map((f) => f.group).filter((g): g is string => !!g)));
+  const groups = groupNamesOf(fixtures);
 
   return (
     <div className="space-y-4">
@@ -33,7 +34,7 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
 
       {groups.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No groups yet.</p>}
       {groups.map((g) => {
-        const members = fixtures.filter((f) => f.group === g);
+        const members = membersOf(fixtures, g);
         const lvl = members.reduce((s, f) => s + f.intensity, 0) / members.length;
         const anyOn = members.some((f) => f.on !== false);
         const hasFx = members.some((f) => f.fx.kind !== "none");
@@ -64,7 +65,7 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
               <span className="w-12 text-right font-mono text-xs">{+(lvl * 100).toFixed(1)}%</span>
             </div>
             <div className="flex gap-1.5">
-              <Button variant="secondary" size="sm" disabled={!fixtures.some((f) => selected.includes(f.uid) && f.group !== g)} onClick={() => onCreate(g)} aria-label={`Add selected lights to ${g}`} title="Add selected lights to group" className="shrink-0 gap-1 text-[11px]"><Plus className="h-3 w-3" />Add</Button>
+              <Button variant="secondary" size="sm" disabled={!fixtures.some((f) => selected.includes(f.uid) && !inGroup(f, g))} onClick={() => onCreate(g)} aria-label={`Add selected lights to ${g}`} title="Add selected lights to group" className="shrink-0 gap-1 text-[11px]"><Plus className="h-3 w-3" />Add</Button>
               <Button variant="ghost" disabled={!selected.length} onClick={() => onCopy(g, `${g} copy`)} title="Selected lights become a new group with the same settings" className="flex flex-1 items-center justify-center gap-1 rounded bg-surface py-1.5 text-[11px] font-semibold disabled:opacity-40"><Copy className="h-3 w-3" />Duplicate to selected</Button>
               {groups.length > 1 && (
                 <select value="" onChange={(e) => e.target.value && onCopy(g, e.target.value)} className="flex-1 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Copy settings to group">
@@ -75,7 +76,7 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
             </div>
             <div className="flex flex-wrap gap-1">
               {members.map((f) => <span key={f.uid} className="flex items-center gap-0.5 rounded bg-surface py-0.5 pl-1.5 pr-0.5 text-[10px]">{f.name}
-                <button onClick={() => onRemoveMember(f.uid)} aria-label={`Remove ${f.name} from ${g}`} title="Remove from group" className="rounded p-0.5 text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button></span>)}
+                <button onClick={() => onRemoveMember(f.uid, g)} aria-label={`Remove ${f.name} from ${g}`} title="Remove from this group" className="rounded p-0.5 text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button></span>)}
             </div>
             </>}
           </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import type { PatchedFixture } from "@/lib/dmx";
+import { membersOf } from "@/lib/fixture-groups";
 import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, Lightbulb } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -324,7 +325,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const addLight = (x: number, y: number) => {
     if (pickGroup) {
       // Every member lands here; lights already somewhere on the board are moved, not duplicated
-      const members = fixtures.filter((g) => g.group === pickGroup);
+      const members = membersOf(fixtures, pickGroup);
       if (!members.length) return;
       const ids = new Set(members.map((m) => m.uid));
       const slots = groupSlots(members.length, x, y, FXW, FXH, sz * 0.3);
@@ -416,11 +417,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Groups</p>
                 <div className="flex flex-wrap gap-1">
-                  {groups.map((g) => { const ms = fixtures.filter((f) => f.group === g); const left = ms.filter((f) => !placed.has(f.uid)).length; return (
+                  {groups.map((g) => { const ms = membersOf(fixtures, g); const left = ms.filter((f) => !placed.has(f.uid)).length; return (
                     <button key={g} onClick={() => { setMode("light"); setPickGroup(pickGroup === g ? null : g); }} aria-pressed={pickGroup === g}
                       className={`${chip(pickGroup === g)} disabled:opacity-40`}>{g}<span className="font-mono opacity-70">{left}/{ms.length}</span></button>); })}
                 </div>
-                {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop all {fixtures.filter((f) => f.group === pickGroup).length} lights of “{pickGroup}” together (lights already on the grid move here). Tap the group again to stop.</p>}
+                {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop all {membersOf(fixtures, pickGroup).length} lights of “{pickGroup}” together (lights already on the grid move here). Tap the group again to stop.</p>}
               </div>
             )}
             <input value={lq} onChange={(e) => setLq(e.target.value)} placeholder="Search light name or #" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
@@ -624,7 +625,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                       {px.cells.map((col, k) => <div key={k} style={{ background: col }} />)}</div>; })()}
                   <div className="flex justify-between gap-1"><span className="truncate">{it.text || f.name}</span><span className="font-mono">{Math.round(f.intensity * 100)}%</span></div>
                 </>) : it.macro ? (
-                  <div className="flex flex-1 items-center justify-center text-center text-[11px] font-bold leading-tight text-foreground">{macroLabel(it.macro)}</div>
+                  <div className="nox-outline-2 flex flex-1 items-center justify-center text-center text-[11px] font-bold leading-tight text-foreground">{macroLabel(it.macro)}</div>
                 ) : it.kind === "text" ? (
                   <div className="flex flex-1 items-center justify-center overflow-hidden text-center text-xs font-bold leading-tight text-foreground">{it.text || "Text…"}</div>
                 ) : (

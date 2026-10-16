@@ -3,6 +3,7 @@ import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
 import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight, Copy, ClipboardPaste } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
+import { groupNamesOf, membersOf } from "@/lib/fixture-groups";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
@@ -208,10 +209,10 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       <section className="space-y-2" aria-label="Pixel fixtures">
         <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={fixturesOpen} aria-controls="pixel-fixture-choices" onClick={() => setFixturesOpen((open) => !open)}>{fixturesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}Fixtures<span className="ml-auto text-xs text-muted-foreground">{inMap.length}</span></Button>
         <div id="pixel-fixture-choices" hidden={!fixturesOpen} className="space-y-3">
-      {(() => { const gs = [...new Set(allPx.map((f) => f.group).filter(Boolean))] as string[]; return gs.length > 0 && (
+      {(() => { const gs = groupNamesOf(allPx); return gs.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Groups</div>
-          <div className="flex flex-wrap gap-1.5">{gs.map((g) => { const ids = allPx.filter((f) => f.group === g).map((f) => f.uid); const all = ids.every((u) => inMap.includes(u)); return (
+          <div className="flex flex-wrap gap-1.5">{gs.map((g) => { const ids = membersOf(allPx, g).map((f) => f.uid); const all = ids.every((u) => inMap.includes(u)); return (
             <button key={g} aria-pressed={all} onClick={() => set({ order: all ? inMap.filter((u) => !ids.includes(u)) : [...inMap, ...ids.filter((u) => !inMap.includes(u))] })} className={`rounded-md px-2.5 py-1.5 text-xs font-semibold ${all ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{g}</button>); })}</div>
         </div>); })()}
       <div className="space-y-1.5">

@@ -2,6 +2,7 @@
 import type { PatchedFixture } from "./dmx";
 import type { BankFader, Cue, Look, LookState } from "./store";
 import { blend } from "./recordings";
+import { membersOf } from "./fixture-groups";
 
 export const BANK_SIZE = 6;
 /** fader pages: Bank 1 = faders 1–6, Bank 2 = 7–12 … */
@@ -13,7 +14,7 @@ export const lookStateOf = (f: PatchedFixture): LookState => {
 };
 
 export function faderMembers(fd: BankFader, fixtures: PatchedFixture[], looks: Look[]): Set<string> {
-  if (fd.kind === "group") return new Set(fixtures.filter((f) => f.group === fd.ref).map((f) => f.uid));
+  if (fd.kind === "group") return new Set(membersOf(fixtures, fd.ref ?? "").map((f) => f.uid));
   if (fd.kind === "fixtures") return new Set(fd.uids ?? []);
   const l = looks.find((x) => x.id === fd.ref);
   if (!l) return new Set();
