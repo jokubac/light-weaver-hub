@@ -144,4 +144,4 @@
 - [x] Macros table: button named "Macros table"; dragging it carries only macros, never fixtures (browser verified)
 - [x] Macros table: dragging a table carries only macros, never fixtures
 
-- [ ] Add light: the picker must also offer groups, so a whole group of lights can be placed at once.
+- [x] Add light: the picker also offers groups — tapping the grid drops the whole group together, so a whole group of lights can be placed at once.
