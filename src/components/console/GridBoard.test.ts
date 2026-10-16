@@ -59,16 +59,20 @@ describe("fixture size slider", () => {
   it("a lone selected square grows about its own centre", () => {
     const r = applySize(items, ["a"], 1.4, 0.92);
     const a = r.find((i) => i.id === "a")!;
-    expect(a.x + a.s! / 2).toBeCloseTo(2 + 0.92 / 2, 9);
-    expect(a.y + a.s! / 2).toBeCloseTo(2 + 0.92 / 2, 9);
+    const FXW = 0.92 * 2 * Math.sqrt(2 / 3), FXH = 0.92 * 2 * Math.sqrt(3 / 2);
+    expect(a.x + a.s! / 2).toBeCloseTo(2 + FXW / 2, 9);
+    expect(a.y + a.s! / 2).toBeCloseTo(2 + FXH / 2, 9);
   });
   it("a selected group keeps its layout when resized together", () => {
     const base: GridItem[] = [{ id: "a", kind: "fixture", uid: "f1", x: 4, y: 4 }, { id: "b", kind: "fixture", uid: "f2", x: 8, y: 6 }];
-    const r = applySize(base, ["a", "b"], 1.84, 0.92); // exactly ×2
+    const r = applySize(base, ["a", "b"], 1.84, 0.92);
     const a = r.find((i) => i.id === "a")!, b = r.find((i) => i.id === "b")!;
     const ca = { x: a.x + a.s! / 2, y: a.y + a.s! / 2 }, cb = { x: b.x + b.s! / 2, y: b.y + b.s! / 2 };
-    const o = { x: (4 + 0.92 / 2 + 8 + 0.92 / 2) / 2, y: (4 + 0.92 / 2 + 6 + 0.92 / 2) / 2 };
-    expect(Math.hypot(cb.x - ca.x, cb.y - ca.y)).toBeCloseTo(2 * Math.hypot(6 - 2, 4 - 2), 9);
+    const FXW = 0.92 * 2 * Math.sqrt(2 / 3), FXH = 0.92 * 2 * Math.sqrt(3 / 2);
+    const oa = { x: 4 + FXW / 2, y: 4 + FXH / 2 }, ob = { x: 8 + FXW / 2, y: 6 + FXH / 2 };
+    const o = { x: (oa.x + ob.x) / 2, y: (oa.y + ob.y) / 2 };
+    const k = 1.84 / FXW;
+    expect(Math.hypot(cb.x - ca.x, cb.y - ca.y)).toBeCloseTo(Math.hypot(ob.x - oa.x, ob.y - oa.y) * k, 9);
     expect((ca.x + cb.x) / 2).toBeCloseTo(o.x, 9);
     expect((ca.y + cb.y) / 2).toBeCloseTo(o.y, 9);
   });
