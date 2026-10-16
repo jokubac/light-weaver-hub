@@ -406,10 +406,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         </div>
       )}
       {mode === "light" && (() => {
-        const cur = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
+        const cur = fixtures.find((g) => g.uid === nextUid) ?? fixtures.find((g) => !placed.has(g.uid));
         const q = lq.trim().toLowerCase();
         const list = fixtures.map((f, i) => ({ f, n: i + 1 })).filter(({ f, n }) => !q || f.name.toLowerCase().includes(q) || String(n) === q);
-        const inGroup = pickGroup ? fixtures.filter((f) => f.group === pickGroup && !placed.has(f.uid)) : [];
         return (
           <div className="space-y-1.5">
             {groups.length > 0 && (
