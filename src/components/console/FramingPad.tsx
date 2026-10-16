@@ -9,15 +9,40 @@ const EDGES: { a: [number, number]; b: [number, number]; d: [number, number] }[]
 ];
 /** Blade insertion 0-1 maps to the full beam width so a single blade end can cut deep across a corner. */
 const DEPTH = 100;
+/** Handles sit this far along the blade from each corner so A/B handles of neighbouring blades never overlap. */
+const T = 0.15;
+/** Rotation channel 0-1 covers ±45°, 0.5 = straight blade. */
+const MAX_ANGLE = Math.PI / 4;
+
+/** Blades with one insertion channel plus rotation: convert to the two end depths the pad draws. */
+export function endsFromRotation(ins: number, rot: number) {
+  const diff = Math.tan((rot - 0.5) * 2 * MAX_ANGLE);
+  return { a: ins - diff / 2, b: ins + diff / 2 };
+}
+/** Inverse of endsFromRotation: two end depths → insertion and rotation, both clamped to 0-1. */
+export function rotationFromEnds(a: number, b: number) {
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  const angle = Math.atan(b - a);
+  return { ins: clamp((a + b) / 2), rot: clamp(0.5 + angle / (2 * MAX_ANGLE)) };
+}
+/** Depth wanted at a handle → new value for that blade end, keeping the other end fixed. */
+export function endFromHandle(depth: number, other: number) {
+  return (depth - other * T) / (1 - T);
+}
+
+type Kind = "ab" | "rot" | "single";
 
 /** Visual framing shutter: drag either end of each blade to cut that corner of the beam. */
 export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean; value: (a: BeamAttr) => number; set: (a: BeamAttr, v: number | undefined) => void }) {
   const blades = [1, 2, 3, 4].filter((n) => has(`Blade${n}A` as BeamAttr) || has(`Blade${n}B` as BeamAttr));
   if (!blades.length) return null;
-  const ends = (n: number) => {
-    const A = `Blade${n}A` as BeamAttr, B = `Blade${n}B` as BeamAttr;
-    const a = has(A) ? value(A) : value(B), b = has(B) ? value(B) : value(A);
-    return { A, B, a, b };
+  const info = (n: number) => {
+    const A = `Blade${n}A` as BeamAttr, B = `Blade${n}B` as BeamAttr, R = `Blade${n}Rot` as BeamAttr;
+    const I = has(A) ? A : B;
+    const kind: Kind = has(A) && has(B) ? "ab" : has(R) ? "rot" : "single";
+    if (kind === "ab") return { kind, A, B, R, I, a: value(A), b: value(B) };
+    if (kind === "rot") return { kind, A, B, R, I, ...endsFromRotation(value(I), value(R)) };
+    return { kind, A, B, R, I, a: value(I), b: value(I) };
   };
   const drag = (n: number, end: "a" | "b") => (e: React.PointerEvent<SVGElement>) => {
     if (e.type === "pointermove" && e.buttons === 0) return;
@@ -27,11 +52,15 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
     // viewBox is -10..110 (120 units)
     const px = ((e.clientX - r.left) / r.width) * 120 - 10, py = ((e.clientY - r.top) / r.height) * 120 - 10;
     const ed = EDGES[n - 1]!;
-    const depth = (px - ed.a[0]) * ed.d[0] + (py - ed.a[1]) * ed.d[1];
-    const v = Math.min(1, Math.max(0, depth / DEPTH));
-    const { A, B } = ends(n);
-    if (has(A) && has(B)) set(end === "a" ? A : B, v);
-    else set(has(A) ? A : B, v);
+    const depth = ((px - ed.a[0]) * ed.d[0] + (py - ed.a[1]) * ed.d[1]) / DEPTH;
+    const b = info(n);
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    if (b.kind === "single") { set(b.I, clamp(depth)); return; }
+    let na = b.a, nb = b.b;
+    if (end === "a") na = clamp(endFromHandle(depth, b.b)); else nb = clamp(endFromHandle(depth, b.a));
+    if (b.kind === "ab") { set(end === "a" ? b.A : b.B, end === "a" ? na : nb); return; }
+    const { ins, rot } = rotationFromEnds(na, nb);
+    set(b.I, ins); set(b.R, rot);
   };
   return (
     <div className="space-y-1">
@@ -42,7 +71,7 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
         <circle cx="50" cy="50" r="50" className="fill-primary/60" />
         <g clipPath="url(#framing-beam)">
           {blades.map((n) => {
-            const ed = EDGES[n - 1]!; const { a, b } = ends(n);
+            const ed = EDGES[n - 1]!; const { a, b } = info(n);
             const pa = [ed.a[0] + ed.d[0] * a * DEPTH, ed.a[1] + ed.d[1] * a * DEPTH];
             const pb = [ed.b[0] + ed.d[0] * b * DEPTH, ed.b[1] + ed.d[1] * b * DEPTH];
             return <polygon key={n} points={`${ed.a.join(",")} ${ed.b.join(",")} ${pb.join(",")} ${pa.join(",")}`} className="fill-surface-elevated stroke-foreground" strokeWidth="0.8" />;
@@ -50,18 +79,14 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
         </g>
         <circle cx="50" cy="50" r="50" className="fill-none stroke-primary" strokeWidth="1.5" />
         {blades.map((n) => {
-          const ed = EDGES[n - 1]!; const { a, b } = ends(n);
-          // Handles sit slightly inside the corners so A and B never overlap.
-          const t = 0.15;
-          const along = (s: number): [number, number] => [ed.a[0] + (ed.b[0] - ed.a[0]) * s, ed.a[1] + (ed.b[1] - ed.a[1]) * s];
-          const ha = along(t), hb = along(1 - t);
-          const pa: [number, number] = [ha[0] + ed.d[0] * (a * (1 - t) + b * t) * DEPTH, ha[1] + ed.d[1] * (a * (1 - t) + b * t) * DEPTH];
-          const pb: [number, number] = [hb[0] + ed.d[0] * (b * (1 - t) + a * t) * DEPTH, hb[1] + ed.d[1] * (b * (1 - t) + a * t) * DEPTH];
+          const ed = EDGES[n - 1]!; const { a, b } = info(n);
+          const at = (s: number, depth: number): [number, number] => [ed.a[0] + (ed.b[0] - ed.a[0]) * s + ed.d[0] * depth * DEPTH, ed.a[1] + (ed.b[1] - ed.a[1]) * s + ed.d[1] * depth * DEPTH];
+          const pa = at(T, a * (1 - T) + b * T), pb = at(1 - T, b * (1 - T) + a * T);
           return (["a", "b"] as const).map((end) => {
             const p = end === "a" ? pa : pb;
             return (
               <g key={`${n}${end}`} className="cursor-grab" aria-label={`Blade ${n} ${end.toUpperCase()}`}
-                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag(n, end)(e); }} onPointerMove={drag(n, end)}>
+                onPointerDown={(e) => { e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); drag(n, end)(e); }} onPointerMove={drag(n, end)}>
                 <circle cx={p[0]} cy={p[1]} r="8" fill="transparent" />
                 <circle cx={p[0]} cy={p[1]} r="3.5" className="fill-foreground stroke-primary" strokeWidth="1.2" />
               </g>
