@@ -40,7 +40,7 @@ import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { SavePopover } from "@/components/console/SavePopover";
-import { DOUBLE_TAP_MS, defaultMacros, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
+import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil, History } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
