@@ -5,7 +5,7 @@ import type { PatchedFixture } from "@/lib/dmx";
 import { MoreHorizontal, PenLine, Plus, Trash2, MousePointer2 } from "lucide-react";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture or user macro — plus drawn walls. */
-export interface GridItem { id: string; kind: "empty" | "fixture" | "macro"; uid?: string; macro?: { action: MacroAction; amount: number; label: string }; x: number; y: number }
+export interface GridItem { id: string; kind: "empty" | "fixture" | "macro"; uid?: string | undefined; macro?: { action: MacroAction; amount: number; label: string } | undefined; x: number; y: number }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[] }
 export const emptyGrid = (): GridLayout => ({ items: [], walls: [] });
 
