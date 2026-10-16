@@ -1117,8 +1117,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected}
             onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => fixtureColor(f, t, outLevel)} controls={controlPanel()}
             pixelsOf={(f) => { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const pv = of.on === false ? 0 : of.intensity * outLevel; const pix = frame.get(f.uid); const [cols, rows] = pixelGrid(f); const m = getDef(f.defId).model.toLowerCase();
-              const long = f.icon && f.icon !== "auto" ? f.icon.startsWith("tube-") : /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip|bar|batten|line|rr50|rr100|rainbow/.test(m) || Math.max(cols, rows) >= 3 * Math.min(cols, rows) && Math.max(cols, rows) > 2;
-              return { cells: pix?.map((c) => `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})`), cols, rows, long }; }} />
+              const tube = f.icon && f.icon !== "auto" ? f.icon.startsWith("tube-") : /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip|batten|rr50|rr100|rainbow/.test(m);
+              const aspect = cols > 1 || rows > 1 ? (tube && cols === 1 && rows > cols ? rows / cols : cols / Math.max(1, rows)) : tube ? 4 : 1;
+              return { cells: pix?.map((c) => `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})`), cols: tube && cols === 1 && rows > cols ? rows : cols, rows: tube && cols === 1 && rows > cols ? cols : rows, aspect }; }} />
         </div>
       )}
       {patchOpen && (
