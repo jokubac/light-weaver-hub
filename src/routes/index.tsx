@@ -918,6 +918,14 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   );
   const outputEnabled = bo.target === 0;
   const windowOpen = plotOpen || patchOpen || fixturesOpen;
+  // One window at a time; tapping its tab again closes it and returns to the console
+  const openWin = (k: "plot" | "patch" | "fixtures") => {
+    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : fixturesOpen;
+    setPlotOpen(k === "plot" && !on);
+    setPatchOpen(k === "patch" && !on);
+    setFixturesOpen(k === "fixtures" && !on);
+  };
+
 
 
   // Fixture tiles with their selection toolbar — shared by the console area and the Fixtures window
@@ -991,9 +999,31 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
             </>
   );
 
+  // Fixture / effects / pixel controls — pinned inside the Fixtures window
+  const controlPanel = () => (
+    panel === "fx" ? (
+      <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+        if (!activePixel) return;
+        const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
+        setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
+      }} />
+    ) : panel === "pixels" ? (
+      <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
+        const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
+        if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
+        setLayers(next);
+      }} />
+    ) : sel.length === 0 ? (
+      <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
+    ) : (
+      <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
+        onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
+        remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
+    )
+  );
+
   return (
     <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
-      {!windowOpen && (<>
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
         <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
         <div className="min-w-0">
@@ -1019,18 +1049,15 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         </Button>
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
-        <Button variant="secondary" onClick={() => setFixturesOpen(true)} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
-        {tab("control", "GRID")}
+        <Button variant="secondary" onClick={() => openWin("fixtures")} aria-pressed={fixturesOpen} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
         {tab("fx", "FX")}
         {tab("pixels", "PIXEL")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS {fadersOpen ? "▾" : "▸"}</Button>
-        <Button variant="secondary" onClick={() => setPlotOpen(true)} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
-        <Button variant="secondary" onClick={() => setPatchOpen(true)} className="h-11 px-5 text-sm font-bold">PATCH</Button>
+        <Button variant="secondary" onClick={() => openWin("plot")} aria-pressed={plotOpen} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
+        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} className="h-11 px-5 text-sm font-bold">PATCH</Button>
         {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => setGroupsOpen((o) => !o)} aria-label={groupsOpen ? "Hide groups and looks" : "Show groups and looks"} title={groupsOpen ? "Hide groups and looks" : "Show groups and looks"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
-      </>
-      )}
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
         onSave={(name) => { onSetups([{ ...structuredClone(currentScene()), id: uid(), name, createdAt: Date.now() }, ...(project.setups ?? [])]); save(); setSavedFlash(true); }}
@@ -1043,12 +1070,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
       )}
       {fixturesOpen && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-background">
-          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3">
-            <button onClick={() => setFixturesOpen(false)} aria-label="Back to console" className="mr-auto rounded-lg bg-surface-elevated p-3 text-primary active:scale-95"><ArrowLeft className="h-5 w-5" /></button>
-            <span className="font-display text-base font-semibold uppercase tracking-wider">Fixtures</span>
-            <span className="text-xs text-muted-foreground">{fixtures.length} fixtures</span>
-          </div>
+        <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
             {fixtures.length === 0 ? (
               <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Open PATCH to add them." />
@@ -1056,6 +1078,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
               fixtureBoard()
             )}
           </div>
+          <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
+            {controlPanel()}
+          </aside>
         </div>
       )}
       {patchOpen && (
@@ -1082,6 +1107,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
             { id: `int:${f.uid}`, label: `${f.name} — intensity` }, { id: `on:${f.uid}`, label: `${f.name} — on/off` }, { id: `fx:${f.uid}`, label: `${f.name} — play/stop effect` },
           ]),
         ]} />
+      {!windowOpen && (
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
           {fixtures.length === 0 ? (
@@ -1092,25 +1118,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         </div>
 
         {panelOpen && <aside className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:border-l lg:border-t-0 lg:w-96">
-          {panel === "fx" ? (
-            <EffectsRail fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
-              if (!activePixel) return;
-              const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
-              setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
-            }} />
-          ) : panel === "pixels" ? (
-            <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
-              const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
-              if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
-              setLayers(next);
-            }} />
-          ) : sel.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
-          ) : (
-            <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
-              onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
-              remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
-          )}
+          {controlPanel()}
         </aside>}
         {groupsOpen && (
           <aside aria-label="Groups and looks" className="max-h-[45vh] w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
@@ -1138,6 +1146,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
         )}
       </div>
+      )}
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
