@@ -292,9 +292,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const p = pt(e);
             if (wall) setWall({ ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) });
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
+            else if (pan) { const w = area.current!.clientWidth || 1, h = area.current!.clientHeight || 1; setGrid({ ...grid, bgT: { ...grid.bgT!, x: pan.x0 + ((e.clientX - pan.sx) / w) * 100, y: pan.y0 + ((e.clientY - pan.sy) / h) * 100 } }); }
             else if (drag) { const moved = drag.moved || Math.hypot(p.x - drag.sx, p.y - drag.sy) > 0.08; const g0 = drag.group; let dx = p.x - drag.sx, dy = p.y - drag.sy; for (const m of g0) { dx = Math.max(-m.x, Math.min(COLS - sz - m.x, dx)); dy = Math.max(-m.y, Math.min(ROWS - sz - m.y, dy)); } setDrag({ ...drag, moved, x: dx, y: dy }); }
           }}
           onPointerUp={() => {
+            if (pan) { setPan(null); return; }
             if (wall) { if (Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) > 0.2) setGrid({ ...grid, walls: [...grid.walls, wall] }); setWall(null); }
             if (box) {
               const [l, r, t, b] = [Math.min(box.x1, box.x2), Math.max(box.x1, box.x2), Math.min(box.y1, box.y2), Math.max(box.y1, box.y2)];
