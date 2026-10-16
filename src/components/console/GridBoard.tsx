@@ -137,6 +137,16 @@ const ISW = (i: GridItem, d: number) => i.w ?? i.s ?? d;
 const ISH = (i: GridItem, d: number) => i.h ?? i.s ?? d;
 /** Default fixture box on the board: a 2×-scaled 3:2 (w:h) rectangle — wider than tall. */
 export const fixtureBox = (sz = SIZE) => ({ w: sz * 2 * Math.sqrt(3 / 2), h: sz * 2 * Math.sqrt(2 / 3) });
+/** Slots for dropping n lights around a tap point: a near-square block centred on the tap, so a whole group lands together. */
+export const groupSlots = (n: number, cx: number, cy: number, w: number, h: number, gap = 0.3) => {
+  const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
+  const rows = Math.max(1, Math.ceil(n / cols));
+  const px = w + gap, py = h + gap;
+  return Array.from({ length: n }, (_, k) => ({
+    x: cx + ((k % cols) - (cols - 1) / 2) * px - w / 2,
+    y: cy + (Math.floor(k / cols) - (rows - 1) / 2) * py - h / 2,
+  }));
+};
 /** Box of one grid item at base size `sz` — a fixture that was never resized takes the default 3:2 rectangle. */
 export function boxOf(i: GridItem, sz = SIZE) {
   return i.kind === "fixture" && i.w == null && i.s == null ? fixtureBox(sz) : { w: ISW(i, sz), h: ISH(i, sz) };
@@ -214,11 +224,13 @@ export function resizeBoxes(boxes: Box[], corner: Corner, px: number, py: number
 
 const COLORS = ["", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#f5f5f4", "#57534e"];
 
-export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf }: {
+export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf, groups = [] }: {
   grid: GridLayout; setGrid: (g: GridLayout) => void; fixtures: PatchedFixture[]; selected: string[];
   onToggle: (uid: string) => void; onSelect: (uids: string[]) => void; onRun: (m: Macro) => void; colorOf: (f: PatchedFixture) => string; controls: React.ReactNode;
   /** Live pixel colours + layout for pixel fixtures; `long` marks elongated (tube/bar) lights, which default to a wide box. */
   pixelsOf?: (f: PatchedFixture) => { cells?: string[] | undefined; cols: number; rows: number; aspect: number };
+  /** Group names the user has made, so the Add light tool can drop a whole group at once. */
+  groups?: string[];
 }) {
   const [live, setLive] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
@@ -230,6 +242,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [wallRect, setWallRect] = useState(false);
   const [wEnd, setWEnd] = useState<{ i: number; e: 1 | 2 } | null>(null);
   const [nextUid, setNextUid] = useState<string | null>(null);
+  const [pickGroup, setPickGroup] = useState<string | null>(null);
   const [lq, setLq] = useState("");
   const [box, setBox] = useState<{ x1: number; y1: number; x2: number; y2: number; add: boolean } | null>(null);
   const [picker, setPicker] = useState<string | null>(null);
@@ -309,6 +322,15 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); };
   /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
   const addLight = (x: number, y: number) => {
+    if (pickGroup) {
+      const members = fixtures.filter((g) => g.group === pickGroup && !placed.has(g.uid));
+      if (!members.length) return;
+      const slots = groupSlots(members.length, x, y, FXW, FXH, sz * 0.3);
+      const added = members.map((f, i) => { const s = slots[i] ?? { x: x - FXW / 2, y: y - FXH / 2 }; return { id: nid(), kind: "fixture" as const, uid: f.uid, x: Math.round(s.x * 4) / 4, y: Math.round(s.y * 4) / 4 }; });
+      setGrid({ ...grid, items: [...grid.items, ...added] });
+      setEsel(added.map((a) => a.id));
+      return;
+    }
     const f = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
     if (!f) return;
     const id = nid();
@@ -372,7 +394,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
 
   const editPanel = (
     <div className="space-y-4">
-      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? "Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Drag a wall end to lengthen it; drop it on another end to join them. Tap a wall to delete it.") : mode === "text" ? "Tap the grid to drop a text label." : mode === "light" ? "Pick a light below, then tap the grid to place it. The next free light is picked automatically." : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select."}</p>
+      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? "Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Drag a wall end to lengthen it; drop it on another end to join them. Tap a wall to delete it.") : mode === "text" ? "Tap the grid to drop a text label." : mode === "light" ? (pickGroup ? "Tap the grid to drop the whole group together, centred where you tap." : "Pick a light or a group below, then tap the grid to place it. The next free light is picked automatically.") : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select."}</p>
       {mode === "walls" && (
         <div className="grid grid-cols-2 gap-1.5">
           <button onClick={() => setWallRect(false)} aria-pressed={!wallRect} className={chip(!wallRect)}><PenLine className="h-3.5 w-3.5" />Line</button>
@@ -383,12 +405,24 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         const cur = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
         const q = lq.trim().toLowerCase();
         const list = fixtures.map((f, i) => ({ f, n: i + 1 })).filter(({ f, n }) => !q || f.name.toLowerCase().includes(q) || String(n) === q);
+        const inGroup = pickGroup ? fixtures.filter((f) => f.group === pickGroup && !placed.has(f.uid)) : [];
         return (
           <div className="space-y-1.5">
+            {groups.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Groups</p>
+                <div className="flex flex-wrap gap-1">
+                  {groups.map((g) => { const ms = fixtures.filter((f) => f.group === g); const left = ms.filter((f) => !placed.has(f.uid)).length; return (
+                    <button key={g} disabled={!left} onClick={() => setPickGroup(pickGroup === g ? null : g)} aria-pressed={pickGroup === g}
+                      className={`${chip(pickGroup === g)} disabled:opacity-40`}>{g}<span className="font-mono opacity-70">{left}/{ms.length}</span></button>); })}
+                </div>
+                {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop the {inGroup.length} remaining light{inGroup.length === 1 ? "" : "s"} of “{pickGroup}” together. Tap the group again to stop.</p>}
+              </div>
+            )}
             <input value={lq} onChange={(e) => setLq(e.target.value)} placeholder="Search light name or #" className="w-full rounded-md border border-border bg-surface-elevated px-2 py-1.5 text-xs" />
             <div className="max-h-72 space-y-1 overflow-y-auto">
-              {list.map(({ f, n }) => { const done = placed.has(f.uid); const on = cur?.uid === f.uid; return (
-                <button key={f.uid} disabled={done} onClick={() => setNextUid(f.uid)} aria-pressed={on}
+              {list.map(({ f, n }) => { const done = placed.has(f.uid); const on = !pickGroup && cur?.uid === f.uid; return (
+                <button key={f.uid} disabled={done || !!pickGroup} onClick={() => { setPickGroup(null); setNextUid(f.uid); }} aria-pressed={on}
                   className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"} disabled:opacity-40`}>
                   <span className="font-mono font-bold">#{n}</span><span className="flex-1 truncate">{f.name}</span>{done && <span className="text-[10px]">on grid</span>}
                 </button>); })}
@@ -566,7 +600,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (live && it.kind === "empty") return null;
             return (
               <div key={it.id} role="button" tabIndex={0} aria-label={f ? `Select fixture ${n}, ${f.name}` : it.macro ? `Run ${macroLabel(it.macro)}` : it.kind === "text" ? "Text label" : it.kind === "image" ? "Picture" : it.kind === "table" ? "Table" : "Empty box"} aria-pressed={f ? isSel : undefined}
-                className={`absolute flex flex-col overflow-hidden ${it.kind === "image" ? "" : "rounded-lg border p-1"} text-[10px] ${(!live && mode === "walls") || (live && back) ? "pointer-events-none" : live ? "cursor-pointer active:scale-[0.97]" : "cursor-grab"} ${!live && mode === "walls" ? "opacity-60" : ""} ${isSel ? "border-primary ring-2 ring-primary" : it.kind === "empty" ? "border-dashed border-border" : it.kind === "text" ? "border-transparent" : it.kind === "table" ? "border-2 border-border" : "border-border"} ${it.kind === "text" || it.kind === "table" ? "bg-transparent" : f ? "bg-card" : "bg-surface-elevated"} ${gm || rr ? "z-30 shadow-lg" : back ? "z-0" : "z-10"}`}
+                className={`absolute flex flex-col overflow-hidden ${it.kind === "image" ? "" : "rounded-lg border p-1"} text-[10px] ${(!live && mode === "walls") || (live && back) ? "pointer-events-none" : live ? "cursor-pointer active:scale-[0.97]" : "cursor-grab"} ${!live && mode === "walls" ? "opacity-60" : ""} ${isSel ? "border-primary ring-2 ring-primary" : it.kind === "empty" ? "border-dashed border-border" : it.kind === "text" ? "border-transparent" : it.kind === "table" ? "border-2 border-border" : "border-border"} ${it.kind === "text" ? "bg-transparent" : it.kind === "table" ? "bg-muted" : f ? "bg-card" : "bg-surface-elevated"} ${gm || rr ? "z-30 shadow-lg" : back ? "z-0" : "z-10"}`}
                 style={{ left: pos.x * CELL, top: pos.y * CELL, width: pos.w * CELL, height: pos.h * CELL, ...(it.kind === "table" ? (it.color ? { borderColor: it.color } : {}) : f ? (it.color ? { borderColor: it.color, borderWidth: 2 } : {}) : pal(it.color)) }}
                 onPointerDown={(e) => { if (!live && mode !== "select") return; e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); const p = pt(e); if (live) { setDrag({ id: it.id, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group: [] }); return; } const sel = esel.includes(it.id) ? esel : e.shiftKey ? [...esel, it.id] : [it.id]; setEsel(sel); setDrag({ id: it.id, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group: groupFor(it, sel) });}}>
                 {it.kind === "image" ? (
