@@ -149,3 +149,5 @@
 - [x] GRID: Add light group drops all members (moves ones already on grid)
 - [x] Framing shutter visual pad in beam controls
 - [x] Fixture toolbar: + Group / + Look buttons
+- [x] GRID: light picker (groups, search, fixture list, Macros table, All lights) always visible in Edit mode, whatever tool is active; picking a light switches to placing
+- [ ] GRID: dragging a macro table over another macro table must NOT steal its macros — only dragging a macro itself moves it into a cell
