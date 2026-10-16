@@ -177,6 +177,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; sx: number; sy: number; moved: boolean; group: { id: string; x: number; y: number; w: number; h: number }[] } | null>(null);
   const [rs, setRs] = useState<{ corner: Corner; orig: Box[]; out: Box[] } | null>(null);
   const [wall, setWall] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const [wallRect, setWallRect] = useState(false);
+  const [nextUid, setNextUid] = useState<string | null>(null);
+  const [lq, setLq] = useState("");
   const [box, setBox] = useState<{ x1: number; y1: number; x2: number; y2: number; add: boolean } | null>(null);
   const [picker, setPicker] = useState<string | null>(null);
   const [action, setAction] = useState<MacroAction>("cct_up");
@@ -247,12 +250,19 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const addText = (x: number, y: number) => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "text", text: "", x, y }] }); setEsel([id]); setMode("select"); };
   /** Drops the next patched light that is not on the board yet, centred on the tap and snapped to the grid. The tool stays on, so lights can be placed one after another. */
   const addLight = (x: number, y: number) => {
-    const f = fixtures.find((g) => !placed.has(g.uid));
+    const f = fixtures.find((g) => g.uid === nextUid && !placed.has(g.uid)) ?? fixtures.find((g) => !placed.has(g.uid));
     if (!f) return;
     const id = nid();
     setGrid({ ...grid, items: [...grid.items, { id, kind: "fixture", uid: f.uid, x: Math.max(0, Math.round(x - FXW / 2)), y: Math.max(0, Math.round(y - FXH / 2)) }] });
     setEsel([id]);
+    const idx = fixtures.indexOf(f);
+    const nx = [...fixtures.slice(idx + 1), ...fixtures.slice(0, idx)].find((g) => !placed.has(g.uid) && g.uid !== f.uid);
+    setNextUid(nx?.uid ?? null);
   };
+  const rectWalls = (w: { x1: number; y1: number; x2: number; y2: number }) => [
+    { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y1 }, { x1: w.x2, y1: w.y1, x2: w.x2, y2: w.y2 },
+    { x1: w.x2, y1: w.y2, x2: w.x1, y2: w.y2 }, { x1: w.x1, y1: w.y2, x2: w.x1, y2: w.y1 },
+  ];
   const addTable = () => { const id = nid(); setGrid({ ...grid, items: [...grid.items, { id, kind: "table", text: "Macros", cols: 4, rows: 3, x: 1, y: 1, w: 4 * 1.1, h: 3 * 1.1 + 0.4 }] }); setEsel([id]); };
   /** Packs macro squares (selected ones, or all) into the table's cells in reading order. */
   const fillTable = (t: GridItem) => {
