@@ -126,3 +126,6 @@
 - [x] Patch sheet: NOX logo removed from the on-screen title, Add fixtures button moved above the PATCH SHEET heading; 162 tests pass and browser confirms the button sits above the plain title with no logo
 - [x] Rename any remaining Kroma naming to NOX (user-visible)
 - [ ] Nanlux official DMX charts (nanlux.com download id=97) — verify Evoke/Dyno modes against manufacturer tables
+
+- [ ] Console toolbar: FIXTURES, GRID, FX, PIXEL, FADERS, PLOT, PATCH — FX opens the effects rail, PATCH opens the patch library; browser verify each tab opens and collapses.
+- [ ] Change FIXTURES tab action: it opens a window built from the fixture glyph tiles (FixtureGlyph) — exact behaviour awaiting user confirmation
