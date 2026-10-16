@@ -162,3 +162,4 @@
 
 - [x] Assign box dialog has a red Remove button (trash icon, bottom right) that deletes the box; for a macro table it also drops the macros inside it.
 - [x] Remove ▾/▸ arrows from top tabs (FX etc.)
+- [x] GRID toolbar has a Hide/Show controls button that tucks the fixture controls panel away for a full-width grid and brings it back; Edit mode always keeps its tools.
