@@ -417,16 +417,16 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Groups</p>
                 <div className="flex flex-wrap gap-1">
                   {groups.map((g) => { const ms = fixtures.filter((f) => f.group === g); const left = ms.filter((f) => !placed.has(f.uid)).length; return (
-                    <button key={g} disabled={!left} onClick={() => setPickGroup(pickGroup === g ? null : g)} aria-pressed={pickGroup === g}
+                    <button key={g} onClick={() => setPickGroup(pickGroup === g ? null : g)} aria-pressed={pickGroup === g}
                       className={`${chip(pickGroup === g)} disabled:opacity-40`}>{g}<span className="font-mono opacity-70">{left}/{ms.length}</span></button>); })}
                 </div>
-                {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop the {inGroup.length} remaining light{inGroup.length === 1 ? "" : "s"} of “{pickGroup}” together. Tap the group again to stop.</p>}
+                {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop all {fixtures.filter((f) => f.group === pickGroup).length} lights of “{pickGroup}” together (lights already on the grid move here). Tap the group again to stop.</p>}
               </div>
             )}
             <input value={lq} onChange={(e) => setLq(e.target.value)} placeholder="Search light name or #" className="w-full rounded-md border border-border bg-surface-elevated px-2 py-1.5 text-xs" />
             <div className="max-h-72 space-y-1 overflow-y-auto">
               {list.map(({ f, n }) => { const done = placed.has(f.uid); const on = !pickGroup && cur?.uid === f.uid; return (
-                <button key={f.uid} disabled={done || !!pickGroup} onClick={() => { setPickGroup(null); setNextUid(f.uid); }} aria-pressed={on}
+                <button key={f.uid} onClick={() => { setPickGroup(null); setNextUid(f.uid); }} aria-pressed={on}
                   className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"} disabled:opacity-40`}>
                   <span className="font-mono font-bold">#{n}</span><span className="flex-1 truncate">{f.name}</span>{done && <span className="text-[10px]">on grid</span>}
                 </button>); })}
