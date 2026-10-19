@@ -392,7 +392,7 @@ const SIMPLE_PX = ["solid", "rainbow", "chase", "runner", "wave", "sparkle", "st
 
 /** Floating, movable, resizable window showing the lights live while the timeline plays. */
 function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures: PatchedFixture[]; timeline: Timeline; colorOf?: ((f: PatchedFixture) => [number, number, number]) | undefined; onClose: () => void }) {
-  const [pos, setPos] = useState({ x: 24, y: 120 });
+  const [pos, setPos] = useState(() => ({ x: Math.max(0, (typeof window !== "undefined" ? window.innerWidth : 1280) - 720), y: Math.max(0, (typeof window !== "undefined" ? window.innerHeight : 900) - 300) }));
   const d = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const used = new Set(timeline.clips.flatMap((c) => c.uids ?? c.layer?.order ?? []));
   const list = used.size ? fixtures.filter((f) => used.has(f.uid)) : fixtures;
@@ -410,6 +410,7 @@ function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures
           <div key={f.uid} className="flex min-h-12 flex-col justify-end rounded-md border border-border p-1 text-[10px] font-semibold" style={{ background: `rgb(${c[0]},${c[1]},${c[2]})`, boxShadow: `0 0 18px rgb(${c[0]},${c[1]},${c[2]} / 0.6)` }}>
             <span className="truncate">{f.name}</span>
           </div>); })}
+        {!list.length && <p className="col-span-full p-4 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
       </div>
     </div>
   );
