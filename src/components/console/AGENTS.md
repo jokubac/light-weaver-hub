@@ -31,3 +31,4 @@
 - Console swaps and Patch drag insertion move whole fixtures without changing identity or settings. Patch displays canonical positions as read-only numbers; drag insertion changes keypad/PDF positions.
 - Fixture FLASH and fader banks are output-only overlays in outFixtures, never mutating live fixture state; keypad numbers are console positions.
 - GDTF library is curated by scripts/gdtf-curate.ts using src/lib/gdtf-curation.ts; exact model aliases dedupe profiles without merging distinct revisions, and only model-specific verified power may fill missing watts.
+- Timeline (Scene.timeline, src/lib/timeline.ts) plays clips on free layers with the top layer winning; playback is output-only and restores light state and pixel layers on stop. Soundtracks live in IndexedDB (timeline-audio.ts), not project JSON.

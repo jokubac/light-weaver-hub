@@ -14,6 +14,7 @@ export interface Scene {
   pixelMaster?: number;
   plot?: import("@/components/console/PlotPanel").Plot;
   grid?: import("@/components/console/GridBoard").GridLayout;
+  timeline?: import("./timeline").Timeline;
 }
 
 /** A saved snapshot of fixture settings, recallable from any scene in the project. */
