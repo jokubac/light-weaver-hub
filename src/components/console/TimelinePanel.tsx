@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE } from "react";
-import { Copy, Flag, Repeat, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X } from "lucide-react";
+import { Copy, Flag, MousePointerSquareDashed, Repeat, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/console/NumberField";
 import { useFxLibrary } from "@/lib/fxlib";
@@ -37,21 +37,31 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const lib = useFxLibrary();
   const [zoom, setZoom] = useState(40); // px per second
   const [track, setTrack] = useState(timeline.tracks[0]?.id ?? "");
-  const [picked, setPicked] = useState<string | null>(null);
+  const [sel, setSel] = useState<string[]>([]);
+  const [marq, setMarq] = useState<{ track: string; a: number; b: number } | null>(null);
   const [addKind, setAddKind] = useState("");
-  const drag = useRef<{ id: string; mode: "move" | "l" | "r"; x: number; y: number; orig: TimelineClip } | null>(null);
+  const drag = useRef<{ ids: { id: string; orig: TimelineClip }[]; mode: "move" | "l" | "r"; x: number; y: number; moved: boolean } | null>(null);
   const mdrag = useRef<{ id: string; x: number; t: number; moved: boolean } | null>(null);
+  const marqRef = useRef<{ track: string; x: number; moved: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const len = Math.max(30, timelineLength(timeline) + 10, time + 5);
-  const clip = timeline.clips.find((c) => c.id === picked);
+  const clip = sel.length === 1 ? timeline.clips.find((c) => c.id === sel[0]) : undefined;
+  const selClips = timeline.clips.filter((c) => sel.includes(c.id));
   const set = (clips: TimelineClip[]) => setTimeline({ ...timeline, clips });
   const patch = (id: string, p: Partial<TimelineClip>) => set(timeline.clips.map((c) => (c.id === id ? { ...c, ...p } : c)));
   const targetTrack = timeline.tracks.find((t) => t.id === track)?.id ?? timeline.tracks[0]?.id;
+  /** Shared value across the selection, or undefined when the clips disagree. */
+  const shared = (get: (c: TimelineClip) => number | undefined) => {
+    const v = selClips.length ? get(selClips[0]!) : undefined;
+    return v !== undefined && selClips.every((c) => get(c) === v) ? v : undefined;
+  };
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest("input,select,textarea")) return;
-      if ((e.key === "Delete" || e.key === "Backspace") && picked) { set(timeline.clips.filter((c) => c.id !== picked)); setPicked(null); }
+      if ((e.key === "Delete" || e.key === "Backspace") && sel.length) { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); }
+      if ((e.key === "a" || e.key === "A") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setSel(timeline.clips.map((c) => c.id)); }
+      if (e.key === "Escape") { setSel([]); setMarq(null); }
       if (e.key === " ") { e.preventDefault(); if (playing) onPause(); else onPlay(); }
     };
     window.addEventListener("keydown", key);
@@ -79,26 +89,67 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       const from = kind === "fadein" ? 0 : cur?.intensity ?? 1, to = kind === "fadeout" ? 0 : kind === "fadein" ? cur?.intensity || 1 : 1;
       c = { ...base, kind: "level", length: 4, name: kind === "fadein" ? "Fade in" : kind === "fadeout" ? "Fade out" : "Level", uids, from: { intensity: from }, to: { intensity: to } };
     }
-    if (c) { setTimeline(placeClip(timeline, c)); setPicked(c.id); }
+    if (c) { setTimeline(placeClip(timeline, c)); setSel([c.id]); }
   };
 
+  /** Pointer down on a clip: plain click selects only it, Shift/Ctrl/Cmd adds or removes it, and a clip already in the group keeps the group so all of them drag together. */
   const down = (e: RPE, c: TimelineClip, mode: "move" | "l" | "r") => {
     e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    setPicked(c.id); drag.current = { id: c.id, mode, x: e.clientX, y: e.clientY, orig: { ...c } };
+    const add = e.shiftKey || e.metaKey || e.ctrlKey;
+    const ids = add ? (sel.includes(c.id) ? sel.filter((x) => x !== c.id) : [...sel, c.id]) : sel.includes(c.id) ? sel : [c.id];
+    setSel(ids);
+    const group = mode === "move" ? ids : [c.id];
+    drag.current = { ids: group.flatMap((id) => { const o = timeline.clips.find((x) => x.id === id); return o ? [{ id, orig: { ...o } }] : []; }), mode, x: e.clientX, y: e.clientY, moved: false };
   };
   const move = (e: RPE) => {
     const d = drag.current; if (!d) return;
-    const ds = Math.round(((e.clientX - d.x) / zoom) * 10) / 10, o = d.orig;
+    const ds = Math.round(((e.clientX - d.x) / zoom) * 10) / 10, dy = Math.round((e.clientY - d.y) / ROW);
+    if (Math.abs(e.clientX - d.x) > 2 || Math.abs(e.clientY - d.y) > 2) d.moved = true;
     if (d.mode === "move") {
-      const ti = Math.max(0, Math.min(timeline.tracks.length - 1, timeline.tracks.findIndex((t) => t.id === o.track) + Math.round((e.clientY - d.y) / ROW)));
-      patch(d.id, { start: Math.max(0, o.start + ds), track: timeline.tracks[ti]!.id });
-    } else if (d.mode === "r") patch(d.id, { length: Math.max(0.2, o.length + ds) });
-    else { const s = Math.max(0, Math.min(o.start + o.length - 0.2, o.start + ds)); patch(d.id, { start: s, length: o.length - (s - o.start) }); }
+      set(timeline.clips.map((c) => {
+        const o = d.ids.find((x) => x.id === c.id)?.orig; if (!o) return c;
+        const ti = Math.max(0, Math.min(timeline.tracks.length - 1, timeline.tracks.findIndex((t) => t.id === o.track) + dy));
+        return { ...c, start: Math.max(0, o.start + ds), track: timeline.tracks[ti]!.id };
+      }));
+    } else if (d.ids[0]) {
+      const o = d.ids[0].orig;
+      if (d.mode === "r") patch(o.id, { length: Math.max(0.2, o.length + ds) });
+      else { const s = Math.max(0, Math.min(o.start + o.length - 0.2, o.start + ds)); patch(o.id, { start: s, length: o.length - (s - o.start) }); }
+    }
   };
+  const up = () => {
+    const d = drag.current; drag.current = null; if (!d) return;
+    let tl = timeline;
+    for (const { id } of d.ids) { const c = tl.clips.find((x) => x.id === id); if (c && tl.clips.some((o) => clash(c, o))) tl = placeClip(tl, c); }
+    if (tl !== timeline) setTimeline(tl);
+  };
+
+  /** Pointer down on an empty lane: a click seeks, a drag draws a box that selects every clip it touches. */
+  const laneDown = (e: RPE<HTMLDivElement>, t: string) => {
+    setTrack(t); marqRef.current = { track: t, x: e.clientX, moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const laneMove = (e: RPE<HTMLDivElement>) => {
+    const m = marqRef.current; if (!m || m.track !== e.currentTarget.dataset["track"]) return;
+    if (Math.abs(e.clientX - m.x) > 3) m.moved = true;
+    if (!m.moved) return;
+    const left = e.currentTarget.getBoundingClientRect().left;
+    setMarq({ track: m.track, a: (m.x - left) / zoom, b: (e.clientX - left) / zoom });
+  };
+  const laneUp = (e: RPE<HTMLDivElement>) => {
+    const m = marqRef.current; marqRef.current = null; if (!m || m.track !== e.currentTarget.dataset["track"]) return;
+    const left = e.currentTarget.getBoundingClientRect().left;
+    if (!m.moved) { setSel([]); onSeek(Math.max(0, (m.x - left) / zoom)); return; }
+    const a = Math.min(m.x, e.clientX), b = Math.max(m.x, e.clientX);
+    const hit = timeline.clips.filter((c) => c.track === m.track && left + c.start * zoom < b && left + (c.start + c.length) * zoom > a).map((c) => c.id);
+    setSel(e.shiftKey ? [...new Set([...sel, ...hit])] : hit);
+    setMarq(null);
+  };
+
   const seekAt = (e: RPE<HTMLDivElement>) => { const r = e.currentTarget.getBoundingClientRect(); onSeek(Math.max(0, (e.clientX - r.left) / zoom)); };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={() => { const d = drag.current; drag.current = null; const c = d && timeline.clips.find((x) => x.id === d.id); if (c && timeline.clips.some((o) => clash(c, o))) setTimeline(placeClip(timeline, c)); }}>
+    <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={up}>
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2">
         <Button size="icon" variant={playing ? "default" : "secondary"} aria-label={playing ? "Pause" : "Play"} onClick={playing ? onPause : onPlay}>{playing ? <Pause /> : <Play />}</Button>
         <Button size="icon" variant={waiting ? "default" : "secondary"} aria-label="GO — continue from marker" title="GO — continue from marker" disabled={!waiting} onClick={onGo} className={waiting ? "animate-pulse" : ""}><SkipForward /></Button>
@@ -133,6 +184,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         <Button variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />Layer</Button>
         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? "Replace audio" : "Add audio"}</Button>
         <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
+        <Button variant="secondary" size="sm" title="Select every clip" onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />Select all</Button>
         <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">Zoom<input type="range" min={5} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} className="w-28" /></label>
       </div>
 
@@ -152,12 +204,13 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
               <div className={`sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r border-border px-2 ${track === t.id ? "bg-primary/15" : "bg-surface"}`} style={{ width: HEAD }} onClick={() => setTrack(t.id)}>
                 <input aria-label="Layer name" value={t.name} onChange={(e) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)) })} className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-foreground outline-none" />
                 <button aria-label={t.muted ? "Show layer" : "Hide layer"} title={t.muted ? "Turn layer on" : "Turn layer off"} onClick={() => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, muted: !x.muted } : x)) })} className="text-muted-foreground">{t.muted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button>
-                {timeline.tracks.length > 1 && <button aria-label="Delete layer" onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
+                {timeline.tracks.length > 1 && <button aria-label="Delete layer" onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) { setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); setSel([]); } }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
               </div>
-              <div className={`relative flex-1 ${i % 2 ? "bg-muted/15" : ""}`} onPointerDown={(e) => { setTrack(t.id); setPicked(null); seekAt(e); }}>
+              <div data-track={t.id} className={`relative flex-1 ${i % 2 ? "bg-muted/15" : ""}`} onPointerDown={(e) => laneDown(e, t.id)} onPointerMove={laneMove} onPointerUp={laneUp}>
+                {marq && marq.track === t.id && <div className="pointer-events-none absolute inset-y-0 z-10 border border-primary bg-primary/20" style={{ left: Math.min(marq.a, marq.b) * zoom, width: Math.max(2, Math.abs(marq.b - marq.a) * zoom) }} />}
                 {timeline.clips.filter((c) => c.track === t.id).map((c) => (
                   <div key={c.id} onPointerDown={(e) => down(e, c, "move")}
-                    className={`absolute top-1 bottom-1 cursor-grab touch-none select-none overflow-hidden rounded-md border px-2 text-xs text-foreground ${KIND_STYLE[c.kind]} ${picked === c.id ? "ring-2 ring-foreground" : ""} ${activeClips.includes(c.id) ? "brightness-125" : ""}`}
+                    className={`absolute top-1 bottom-1 cursor-grab touch-none select-none overflow-hidden rounded-md border px-2 text-xs text-foreground ${KIND_STYLE[c.kind]} ${sel.includes(c.id) ? "ring-2 ring-foreground" : ""} ${activeClips.includes(c.id) ? "brightness-125" : ""}`}
                     style={{ left: c.start * zoom, width: Math.max(8, c.length * zoom) }}>
                     {(c.fadeIn ?? 0) > 0 && <div className="pointer-events-none absolute inset-y-0 left-0 bg-gradient-to-r from-background/70 to-transparent" style={{ width: (c.fadeIn ?? 0) * zoom }} />}
                     {(c.fadeOut ?? 0) > 0 && <div className="pointer-events-none absolute inset-y-0 right-0 bg-gradient-to-l from-background/70 to-transparent" style={{ width: (c.fadeOut ?? 0) * zoom }} />}
@@ -197,7 +250,24 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: HEAD + time * zoom }} />
         </div>
         {timeline.clips.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.</p>}
+        {timeline.clips.length > 0 && <p className="px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag across an empty layer to box-select several, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
       </div>
+
+      {sel.length > 1 && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs">
+          <span className="font-semibold">{sel.length} clips selected</span>
+          <label className="flex items-center gap-1">Fade in<NumberField aria-label="Fade in all" min={0} step={0.1} allowEmpty placeholder="—" value={shared((c) => c.fadeIn ?? 0)} onChange={(v) => set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, fadeIn: Math.max(0, v ?? 0) } : c)))} className={field} />s</label>
+          <label className="flex items-center gap-1">Fade out<NumberField aria-label="Fade out all" min={0} step={0.1} allowEmpty placeholder="—" value={shared((c) => c.fadeOut ?? 0)} onChange={(v) => set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, fadeOut: Math.max(0, v ?? 0) } : c)))} className={field} />s</label>
+          {selClips.length > 0 && selClips.every((c) => c.kind === "level") && <>
+            <label className="flex items-center gap-1">From<NumberField aria-label="From intensity all" min={0} max={100} value={Math.round((selClips[0]!.from?.intensity ?? 0) * 100)} onChange={(v) => v !== undefined && set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, from: { ...c.from!, intensity: v / 100 } } : c)))} className={field} />%</label>
+            <label className="flex items-center gap-1">To<NumberField aria-label="To intensity all" min={0} max={100} value={Math.round((selClips[0]!.to?.intensity ?? 0) * 100)} onChange={(v) => v !== undefined && set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, to: { ...c.to!, intensity: v / 100 } } : c)))} className={field} />%</label>
+          </>}
+          {selected.length > 0 && <Button size="sm" variant="secondary" onClick={() => set(timeline.clips.map((c) => (sel.includes(c.id) && c.kind !== "rec" ? { ...c, uids: [...selected] } : c)))}>Use selected lights</Button>}
+          <Button size="sm" variant="secondary" onClick={() => { const dups = timeline.clips.filter((c) => sel.includes(c.id)).map((c) => ({ ...structuredClone(c), id: newId(), start: c.start + c.length })); let tl = timeline; for (const c of dups) tl = placeClip(tl, c); setTimeline(tl); setSel(dups.map((c) => c.id)); }}><Copy />Duplicate</Button>
+          <Button size="sm" variant="ghost" onClick={() => setSel([])}>Clear</Button>
+          <div className="ml-auto"><Button size="icon" variant="ghost" aria-label="Delete selected clips" title="Delete selected clips" onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); }}><Trash2 /></Button></div>
+        </div>
+      )}
 
       {clip && (
         <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs">
@@ -216,8 +286,8 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           {clip.kind !== "rec" && <span className="text-muted-foreground">{clip.uids?.length ? `${clip.uids.length} lights` : clip.kind === "pixel" ? "layer's own lights" : "no lights"}</span>}
           {clip.kind !== "rec" && <Button size="sm" variant="secondary" disabled={!selected.length} onClick={() => patch(clip.id, { uids: [...selected] })}>Use selected lights</Button>}
           <div className="ml-auto flex gap-1">
-            <Button size="icon" variant="ghost" aria-label="Duplicate clip" title="Duplicate after this clip" onClick={() => { const c = { ...structuredClone(clip), id: newId(), start: clip.start + clip.length }; setTimeline(placeClip(timeline, c)); setPicked(c.id); }}><Copy /></Button>
-            <Button size="icon" variant="ghost" aria-label="Delete clip" onClick={() => { set(timeline.clips.filter((c) => c.id !== clip.id)); setPicked(null); }}><Trash2 /></Button>
+            <Button size="icon" variant="ghost" aria-label="Duplicate clip" title="Duplicate after this clip" onClick={() => { const c = { ...structuredClone(clip), id: newId(), start: clip.start + clip.length }; setTimeline(placeClip(timeline, c)); setSel([c.id]); }}><Copy /></Button>
+            <Button size="icon" variant="ghost" aria-label="Delete clip" onClick={() => { set(timeline.clips.filter((c) => c.id !== clip.id)); setSel([]); }}><Trash2 /></Button>
           </div>
         </div>
       )}
