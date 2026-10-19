@@ -391,7 +391,7 @@ const SIMPLE_FX: { id: string; label: string; fx: Partial<FxParams> }[] = [
 const SIMPLE_PX = ["solid", "rainbow", "chase", "runner", "wave", "sparkle", "strobe", "police"];
 
 /** Floating, movable, resizable window showing the lights live while the timeline plays. */
-function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures: PatchedFixture[]; timeline: Timeline; colorOf?: (f: PatchedFixture) => [number, number, number]; onClose: () => void }) {
+function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures: PatchedFixture[]; timeline: Timeline; colorOf?: ((f: PatchedFixture) => [number, number, number]) | undefined; onClose: () => void }) {
   const [pos, setPos] = useState({ x: 24, y: 120 });
   const d = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const used = new Set(timeline.clips.flatMap((c) => c.uids ?? c.layer?.order ?? []));
