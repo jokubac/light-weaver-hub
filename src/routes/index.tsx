@@ -65,7 +65,7 @@ import { CallSheet } from "@/components/console/CallSheet";
 import { TimelinePanel } from "@/components/console/TimelinePanel";
 import { emptyTimeline, timelineAt, timelineLength, type Timeline } from "@/lib/timeline";
 import { deleteAudio, loadAudio, peaks as audioPeaksOf, saveAudio } from "@/lib/timeline-audio";
-import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
+import { defaultLayer, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
   loadProjects,
