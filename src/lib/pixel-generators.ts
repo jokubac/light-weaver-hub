@@ -1,4 +1,4 @@
-// 50 procedural pixel generators. Each maps a pixel position on the layer's map to a colour.
+// Procedural pixel generators. Each maps a pixel position on the layer's map to a colour.
 // Pure and browser-safe so the same output plays live, in REC and on the TIMELINE.
 
 export type RGB = [number, number, number];
@@ -73,7 +73,6 @@ export const PIXEL_GENERATORS: PixelGenerator[] = [
   { id: "sunset", label: "Sunset", group: "Sky", fn: (c) => { const k = c.H > 1 ? c.y / (c.H - 1) : (Math.sin(c.t * 0.2) + 1) / 2; const h = clamp(k + Math.sin(c.t * 0.3) * 0.1); return pick(c, ramp([[40, 0, 90], [200, 30, 90], [255, 110, 30], [255, 200, 80]], h), h); } },
   { id: "lightning", label: "Lightning", group: "Sky", fn: (c) => { const slot = Math.floor(c.t * 4); const on = hash(slot) > 0.85 && fract(c.t * 4) < 0.35 ? 1 : 0; const bolt = Math.abs(c.x - c.W * hash(slot + 1) - noise(c.y * 0.5, slot) * 6) < 1.5 ? 1 : 0.25; const k = on * bolt; return pick(c, mix([5, 5, 20], [220, 220, 255], k), k); } },
   { id: "clouds", label: "Clouds", group: "Sky", fn: (c) => { const h = clamp(fbm(c.x * 0.12 + c.t * 0.25, c.y * 0.2) * 1.4 - 0.3); return pick(c, mix([40, 110, 220], [245, 245, 255], h), h); } },
-  { id: "stars", label: "Stars", group: "Sky", fn: (c) => { const r = hash2(c.x, c.y); const k = r > 0.9 ? Math.pow((Math.sin(c.t * (1 + r * 3) + r * 40) + 1) / 2, 3) : 0; return pick(c, mix([0, 0, 15], [255, 250, 230], k), k, r); } },
   { id: "galaxy", label: "Galaxy", group: "Sky", fn: (c) => { const dx = c.x - c.W / 2, dy = (c.y - c.H / 2) * 2; const a = Math.atan2(dy, dx), d = Math.hypot(dx, dy); const h = clamp((Math.sin(a * 2 + d * 0.3 - c.t) + 1) / 2 * Math.exp(-d * 0.04) * 1.6); return pick(c, ramp([K, [60, 0, 120], [200, 80, 255], WH], h), h); } },
   { id: "nebula", label: "Nebula", group: "Sky", fn: (c) => { const h = fbm(c.x * 0.1 + c.t * 0.05, c.y * 0.1); const hue = fbm(c.x * 0.05 - c.t * 0.03, c.y * 0.05 + 7); return pick(c, sc(hsv(0.6 + hue * 0.4, 0.8, 1), h * h * 1.4), h); } },
   // ── Nature ──
@@ -85,7 +84,6 @@ export const PIXEL_GENERATORS: PixelGenerator[] = [
   { id: "toxic", label: "Toxic", group: "Nature", fn: (c) => { const h = clamp(fbm(c.x * 0.25, c.y * 0.25 - c.t * 0.8) * 1.4 - 0.2); return pick(c, ramp([K, [30, 120, 0], [150, 255, 0], [230, 255, 150]], h), h); } },
   // ── Party ──
   { id: "matrix", label: "Matrix", group: "Party", fn: (c) => { const sp = 0.5 + hash(c.x) * 1.2; const head = fract(c.t * sp * 0.3 + hash(c.x * 9)) * (c.H + 8); const d = head - c.y; const k = d >= 0 && d < 8 ? (d < 1 ? 1 : 0.8 - d / 10) : 0; return pick(c, d >= 0 && d < 1 ? [200, 255, 200] : sc([0, 255, 70], k), k); } },
-  { id: "scanner", label: "Scanner", group: "Party", fn: (c) => { const p = (Math.sin(c.t * 2) + 1) / 2 * (c.W - 1); const k = clamp(1 - Math.abs(c.x - p) / 3); return pick(c, sc([255, 0, 0], k), k); } },
   { id: "disco", label: "Disco", group: "Party", fn: (c) => { const cell = hash2(Math.floor(c.x / 2), Math.floor(c.y / 2) + Math.floor(c.t * 3) * 17); return pick(c, hsv(cell, 1, cell > 0.4 ? 1 : 0), cell > 0.4 ? 1 : 0, cell); } },
   { id: "equalizer", label: "Equalizer", group: "Party", fn: (c) => { const band = Math.floor(c.x / 2); const lvl = noise(band * 3, c.t * 4) * 0.8 + 0.2; const ny = c.H > 1 ? 1 - c.y / (c.H - 1) : 0.5; const k = c.H > 1 ? (ny <= lvl ? 1 : 0) : lvl; return pick(c, c.H > 1 ? ramp([[0, 255, 0], [255, 255, 0], [255, 0, 0]], ny) : sc(ramp([[0, 255, 0], [255, 0, 0]], lvl), lvl), k, ny); } },
   { id: "vu", label: "VU meter", group: "Party", fn: (c) => { const lvl = noise(0, c.t * 5) * 0.9 + 0.1; const nx = c.x / Math.max(1, c.W - 1); return nx <= lvl ? pick(c, ramp([[0, 255, 0], [255, 255, 0], [255, 0, 0]], nx), 1, nx) : K; } },
@@ -101,13 +99,13 @@ export const PIXEL_GENERATORS: PixelGenerator[] = [
   { id: "zigzag", label: "Zigzag", group: "Shapes", fn: (c) => { const ph = fract((c.x + Math.abs(fract(c.y / 4) - 0.5) * 8) / 10 - c.t * 0.5); return pick(c, hsv(ph, 0.9), 1, ph); } },
   { id: "diamond", label: "Diamond", group: "Shapes", fn: (c) => { const d = Math.abs(c.x - c.W / 2) + Math.abs(c.y - c.H / 2) * 2; const ph = fract(d / 8 - c.t * 0.7); const k = ph < 0.4 ? 1 : 0; return pick(c, sc([0, 220, 255], k), k, ph); } },
   { id: "tunnel", label: "Tunnel", group: "Shapes", fn: (c) => { const d = Math.hypot(c.x - c.W / 2, c.y - c.H / 2) + 0.5; const ph = fract(4 / d + c.t * 0.8); return pick(c, sc(hsv(ph), clamp(d / 4)), clamp(d / 4), ph); } },
-  // ── Basic ──
-  { id: "breathe", label: "Breathe", group: "Basic", fn: (c) => { const k = (Math.sin(c.t * 1.5) + 1) / 2; return pick(c, sc([255, 255, 255], k), k, 0); } },
-  { id: "heartbeat", label: "Heartbeat", group: "Basic", fn: (c) => { const p = fract(c.t * 0.9); const k = Math.max(Math.exp(-Math.pow((p - 0.1) * 25, 2)), 0.7 * Math.exp(-Math.pow((p - 0.3) * 25, 2))); return pick(c, sc([255, 0, 30], k), k, 0); } },
-  { id: "colour-cycle", label: "Colour cycle", group: "Basic", fn: (c) => pick(c, hsv(c.t * 0.1), 1, fract(c.t * 0.1)) },
-  { id: "split", label: "Split colours", group: "Basic", fn: (c) => { const left = c.x < c.W / 2; const sw = Math.floor(c.t * 0.5) % 2 === 1; return pick(c, left !== sw ? [255, 60, 0] : [0, 120, 255], 1, left !== sw ? 0 : 0.5); } },
-  { id: "vertical", label: "Vertical gradient", group: "Basic", fn: (c) => { const k = c.H > 1 ? c.y / (c.H - 1) : fract(c.t * 0.2); return pick(c, ramp([[255, 0, 120], [255, 160, 0], [0, 200, 255]], fract(k + c.t * 0.1)), 1, fract(k + c.t * 0.1)); } },
-  { id: "glitch", label: "Glitch", group: "Basic", fn: (c) => { const row = Math.floor(c.y) + Math.floor(c.t * 8) * 7; const on = hash(row) > 0.6; const sh = on ? Math.floor(hash(row + 1) * 6) : 0; const v = hash2(Math.floor((c.x + sh) / 3), Math.floor(c.t * 8)); return pick(c, on ? hsv(v, 1, 1) : sc([0, 200, 255], 0.15), on ? 1 : 0.15, v); } },
+  // ── Colour ──
+  { id: "breathe", label: "Breathe", group: "Colour", fn: (c) => { const k = (Math.sin(c.t * 1.5) + 1) / 2; return pick(c, sc([255, 255, 255], k), k, 0); } },
+  { id: "heartbeat", label: "Heartbeat", group: "Colour", fn: (c) => { const p = fract(c.t * 0.9); const k = Math.max(Math.exp(-Math.pow((p - 0.1) * 25, 2)), 0.7 * Math.exp(-Math.pow((p - 0.3) * 25, 2))); return pick(c, sc([255, 0, 30], k), k, 0); } },
+  { id: "colour-cycle", label: "Colour cycle", group: "Colour", fn: (c) => pick(c, hsv(c.t * 0.1), 1, fract(c.t * 0.1)) },
+  { id: "split", label: "Split colours", group: "Colour", fn: (c) => { const left = c.x < c.W / 2; const sw = Math.floor(c.t * 0.5) % 2 === 1; return pick(c, left !== sw ? [255, 60, 0] : [0, 120, 255], 1, left !== sw ? 0 : 0.5); } },
+  { id: "vertical", label: "Vertical gradient", group: "Colour", fn: (c) => { const k = c.H > 1 ? c.y / (c.H - 1) : fract(c.t * 0.2); return pick(c, ramp([[255, 0, 120], [255, 160, 0], [0, 200, 255]], fract(k + c.t * 0.1)), 1, fract(k + c.t * 0.1)); } },
+  { id: "glitch", label: "Glitch", group: "Colour", fn: (c) => { const row = Math.floor(c.y) + Math.floor(c.t * 8) * 7; const on = hash(row) > 0.6; const sh = on ? Math.floor(hash(row + 1) * 6) : 0; const v = hash2(Math.floor((c.x + sh) / 3), Math.floor(c.t * 8)); return pick(c, on ? hsv(v, 1, 1) : sc([0, 200, 255], 0.15), on ? 1 : 0.15, v); } },
 ];
 
 export const PIXEL_GENERATOR_GROUPS = [...new Set(PIXEL_GENERATORS.map((g) => g.group))];
