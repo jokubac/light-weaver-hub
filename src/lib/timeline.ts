@@ -16,6 +16,8 @@ export interface TimelineClip {
   fx?: FxParams; layer?: PixelLayer; recId?: string;
   from?: { intensity: number; cct?: number | undefined }; to?: { intensity: number; cct?: number | undefined };
   keys?: TimelineKey[] | undefined;
+  /** playback speed of the clip's content (REC sequences); set when a layer/clip is stretched */
+  rate?: number | undefined;
 }
 /** adjust layers hold adjustment clips that scale/recolour everything on the layers below */
 export interface TimelineTrack { id: string; name: string; muted?: boolean; adjust?: boolean }
@@ -75,7 +77,7 @@ export function timelineAt(tl: Timeline, t: number, fixtures: PatchedFixture[], 
       const local = t - c.start, env = envelope(c, local);
       if (c.kind === "rec") {
         const rec = recordings.find((r) => r.id === c.recId);
-        const res = rec ? statesAt(rec, fixtures, origin, local) : null;
+        const res = rec ? statesAt(rec, fixtures, origin, local * (c.rate ?? 1)) : null;
         res?.states.forEach((s, uid) => { const { mix: _m, ...st } = s; merge(uid, { ...st, intensity: st.intensity * env }); });
       } else if (c.kind === "fx" && c.fx) {
         for (const uid of c.uids ?? []) { const f = base(uid); merge(uid, { fx: c.fx, fxPlaying: true, on: true, intensity: (states.get(uid)?.intensity ?? (f?.intensity || 1)) * env }); }
@@ -91,7 +93,7 @@ export function timelineAt(tl: Timeline, t: number, fixtures: PatchedFixture[], 
         const v = clipValue(c, local);
         for (const uid of c.uids?.length ? c.uids : fixtures.map((f) => f.uid)) {
           const cur = states.get(uid), f = base(uid);
-          const p: TimelinePatch = { intensity: (cur?.intensity ?? f?.intensity ?? 0) * (1 + (v.intensity - 1) * env) };
+          const p: TimelinePatch = { intensity: Math.min(1, (cur?.intensity ?? f?.intensity ?? 0) * (1 + (v.intensity - 1) * env)) };
           if (v.cct != null) { p.cct = v.cct; p.cctOnly = true; }
           if (v.hue != null) { p.hue = v.hue; p.saturation = v.sat ?? 1; p.cctOnly = false; }
           merge(uid, p);
@@ -102,4 +104,17 @@ export function timelineAt(tl: Timeline, t: number, fixtures: PatchedFixture[], 
     }
   }
   return { states, pixels: pixels.length ? pixels : null, active };
+}
+
+/** Stretch every clip on a layer around its first clip: factor 2 = twice as long (half speed). Points, fades and REC speed follow. */
+export function stretchTrack(tl: Timeline, trackId: string, factor: number): Timeline {
+  const cs = tl.clips.filter((c) => c.track === trackId);
+  if (!cs.length || !(factor > 0)) return tl;
+  const t0 = Math.min(...cs.map((c) => c.start));
+  return { ...tl, clips: tl.clips.map((c) => c.track !== trackId ? c : {
+    ...c, start: t0 + (c.start - t0) * factor, length: c.length * factor,
+    ...(c.fadeIn ? { fadeIn: c.fadeIn * factor } : {}), ...(c.fadeOut ? { fadeOut: c.fadeOut * factor } : {}),
+    ...(c.keys ? { keys: c.keys.map((k) => ({ ...k, t: k.t * factor })) } : {}),
+    ...(c.kind === "rec" ? { rate: (c.rate ?? 1) / factor } : {}),
+  }) };
 }

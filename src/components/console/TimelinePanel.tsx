@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent } from "react";
-import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X } from "lucide-react";
+import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/console/NumberField";
 import { useFxLibrary } from "@/lib/fxlib";
@@ -7,7 +7,7 @@ import { membersOf } from "@/lib/fixture-groups";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { PixelLayer } from "@/lib/pixels";
 import type { Recording } from "@/lib/store";
-import { clipValue, newId, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey } from "@/lib/timeline";
+import { clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey } from "@/lib/timeline";
 
 const ROW = 52, HEAD = 150;
 const KIND_STYLE: Record<ClipKind, string> = {
@@ -118,13 +118,13 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const addKey = (e: ReactMouseEvent<HTMLDivElement>, c: TimelineClip) => {
     if (!hasKeys(c)) return;
     const r = e.currentTarget.getBoundingClientRect(), t = Math.max(0, Math.min(c.length, (e.clientX - r.left) / zoom));
-    const v = clipValue(c, t), k: TimelineKey = { id: newId(), t: Math.round(t * 10) / 10, intensity: Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height)), cct: v.cct, hue: v.hue, sat: v.sat };
+    const v = clipValue(c, t), k: TimelineKey = { id: newId(), t: Math.round(t * 10) / 10, intensity: Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height)) * (c.kind === "adjust" ? 2 : 1), cct: v.cct, hue: v.hue, sat: v.sat };
     setKeys(c, [...keysOf(c), k]); setSel([c.id]); setKeySel(k.id);
   };
   const keyMove = (e: RPE, c: TimelineClip) => {
     const d = kdrag.current; if (!d || d.clip !== c.id) return;
     d.moved = true;
-    const t = Math.max(0, Math.min(c.length, Math.round(((e.clientX - d.rect.left) / zoom) * 10) / 10)), i = Math.max(0, Math.min(1, 1 - (e.clientY - d.rect.top) / d.rect.height));
+    const t = Math.max(0, Math.min(c.length, Math.round(((e.clientX - d.rect.left) / zoom) * 10) / 10)), i = Math.max(0, Math.min(1, 1 - (e.clientY - d.rect.top) / d.rect.height)) * (c.kind === "adjust" ? 2 : 1);
     setKeys(c, keysOf(c).map((k) => (k.id === d.key ? { ...k, t, intensity: Math.round(i * 100) / 100 } : k)));
   };
 
@@ -246,6 +246,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
             <div key={t.id} className={`flex border-b border-border ${t.muted ? "opacity-40" : ""}`} style={{ height: ROW }}>
               <div className={`sticky left-0 z-40 flex shrink-0 items-center gap-1 border-r border-border px-2 ${track === t.id ? "bg-primary/15" : "bg-surface"}`} style={{ width: HEAD }} onClick={() => setTrack(t.id)}>
                 <input aria-label="Layer name" value={t.name} onChange={(e) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)) })} className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-foreground outline-none" />
+                <button aria-label="Stretch layer" title="Stretch layer — change the speed of everything on it" onClick={() => { const v = prompt(`Speed of ${t.name} in % (50 = twice as slow, 200 = twice as fast)`, "100"); const pct = Number(v); if (v && pct > 0) setTimeline(stretchTrack(timeline, t.id, 100 / pct)); }} className="text-muted-foreground hover:text-foreground"><MoveHorizontal className="h-3.5 w-3.5" /></button>
                 <button aria-label={t.muted ? "Show layer" : "Hide layer"} title={t.muted ? "Turn layer on" : "Turn layer off"} onClick={() => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, muted: !x.muted } : x)) })} className="text-muted-foreground">{t.muted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button>
                 {timeline.tracks.length > 1 && <button aria-label="Delete layer" onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) { setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); setSel([]); } }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
               </div>
@@ -256,13 +257,13 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
                     style={{ left: c.start * zoom, width: Math.max(8, c.length * zoom) }}>
                     {(c.fadeIn ?? 0) > 0 && <div className="pointer-events-none absolute inset-y-0 left-0 bg-gradient-to-r from-background/70 to-transparent" style={{ width: (c.fadeIn ?? 0) * zoom }} />}
                     {(c.fadeOut ?? 0) > 0 && <div className="pointer-events-none absolute inset-y-0 right-0 bg-gradient-to-l from-background/70 to-transparent" style={{ width: (c.fadeOut ?? 0) * zoom }} />}
-                    {hasKeys(c) && (() => { const ks = keysOf(c), h = ROW - 8; return <>
+                    {hasKeys(c) && (() => { const ks = keysOf(c), h = ROW - 8, sc = c.kind === "adjust" ? 2 : 1; return <>
                       <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
-                        <polyline fill="none" stroke="currentColor" strokeWidth={1.5} points={[{ t: 0, intensity: ks[0]!.intensity }, ...ks, { t: c.length, intensity: ks[ks.length - 1]!.intensity }].map((k) => `${k.t * zoom},${(1 - k.intensity) * h}`).join(" ")} />
+                        <polyline fill="none" stroke="currentColor" strokeWidth={1.5} points={[{ t: 0, intensity: ks[0]!.intensity }, ...ks, { t: c.length, intensity: ks[ks.length - 1]!.intensity }].map((k) => `${k.t * zoom},${(1 - k.intensity / sc) * h}`).join(" ")} />
                       </svg>
                       {c.keys?.length ? ks.map((k) => <div key={k.id} title={`${Math.round(k.intensity * 100)}%${k.cct != null ? ` · ${c2k(k.cct)}K` : ""}${k.hue != null ? ` · hue ${Math.round(k.hue)}°` : ""} — drag to move, double-click to delete`}
                         className={`absolute z-10 h-3 w-3 -translate-x-1/2 -translate-y-1/2 cursor-move rounded-full border-2 border-foreground ${keySel === k.id ? "bg-primary" : "bg-background"}`}
-                        style={{ left: k.t * zoom, top: (1 - k.intensity) * h, ...(k.hue != null ? { backgroundColor: `hsl(${k.hue} ${Math.round((k.sat ?? 1) * 100)}% 50%)` } : {}) }}
+                        style={{ left: k.t * zoom, top: (1 - k.intensity / sc) * h, ...(k.hue != null ? { backgroundColor: `hsl(${k.hue} ${Math.round((k.sat ?? 1) * 100)}% 50%)` } : {}) }}
                         onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); setSel([c.id]); setKeySel(k.id); kdrag.current = { clip: c.id, key: k.id, rect: (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect(), moved: false }; }}
                         onPointerMove={(e) => keyMove(e, c)} onPointerUp={() => { kdrag.current = null; }}
                         onDoubleClick={(e) => { e.stopPropagation(); setKeys(c, ks.filter((x) => x.id !== k.id)); setKeySel(null); }} />) : null}
@@ -344,7 +345,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
             return <span className="flex flex-wrap items-center gap-2 rounded border border-primary/50 px-2 py-1">
               <b>Point</b>
               <label className="flex items-center gap-1">At<NumberField aria-label="Point time" min={0} max={clip.length} step={0.1} value={+k.t.toFixed(2)} onChange={(v) => v !== undefined && upd({ t: Math.max(0, Math.min(clip.length, v)) })} className={field} />s</label>
-              <label className="flex items-center gap-1">{clip.kind === "adjust" ? "Level" : "Intensity"}<NumberField aria-label="Point intensity" min={0} max={100} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd({ intensity: v / 100 })} className={field} />%</label>
+              <label className="flex items-center gap-1">{clip.kind === "adjust" ? "Level" : "Intensity"}<NumberField aria-label="Point intensity" min={0} max={clip.kind === "adjust" ? 200 : 100} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd({ intensity: v / 100 })} className={field} />%</label>
               <label className="flex items-center gap-1">CCT<NumberField aria-label="Point CCT" allowEmpty placeholder="—" min={2000} max={10000} step={100} value={k.cct != null ? c2k(k.cct) : undefined} onChange={(v) => upd({ cct: v == null ? undefined : k2c(v), ...(v != null ? { hue: undefined, sat: undefined } : {}) })} className={field} />K</label>
               <label className="flex items-center gap-1">Colour<input type="color" aria-label="Point colour" value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd({ hue: h, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>
               {(k.hue != null || k.cct != null) && <Button size="sm" variant="ghost" onClick={() => upd({ hue: undefined, sat: undefined, cct: undefined })}>No colour</Button>}
