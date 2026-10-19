@@ -181,3 +181,4 @@
 - [x] Text outline is 0.7px everywhere (global and macro labels share one value)
 - [x] TIMELINE: multi-select of clips (click, shift, drag box) with move / delete / edit together; browser verified group drag and delete
 - [x] TIMELINE: intensity/colour points, +Fixture/+Effect/+Layer/+Adjustment layer, box-select across layers, layer names always on top
+- [x] TIMELINE: Delete button in the toolbar — removes the selected clips, greyed out until something is picked; browser verified single and group delete

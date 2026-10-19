@@ -228,6 +228,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? "Replace audio" : "Add audio"}</Button>
         <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
         <Button variant="secondary" size="sm" title="Select every clip" onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />Select all</Button>
+        <Button variant="secondary" size="sm" aria-label="Delete selected" title="Delete the selected clips" disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 />Delete</Button>
         <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">Zoom<input type="range" min={5} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} className="w-28" /></label>
       </div>
 
