@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type React from "react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { RotateCw, ZoomIn, ZoomOut, LayoutGrid } from "lucide-react";
+import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
