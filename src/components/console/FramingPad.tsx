@@ -93,7 +93,7 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
           })}
         </g>
         <circle cx="50" cy="50" r="50" className="fill-none stroke-primary" strokeWidth="1.5" />
-        {blades.map((n) => {
+        {(() => { const parts = blades.map((n) => {
           const ed = EDGES[n - 1]!; const { a, b } = info(n);
           const at = (s: number, depth: number): [number, number] => [ed.a[0] + (ed.b[0] - ed.a[0]) * s + ed.d[0] * depth * DEPTH, ed.a[1] + (ed.b[1] - ed.a[1]) * s + ed.d[1] * depth * DEPTH];
           const pa = at(T, a * (1 - T) + b * T), pb = at(1 - T, b * (1 - T) + a * T);
@@ -105,7 +105,7 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
               <line x1={la[0]} y1={la[1]} x2={lb[0]} y2={lb[1]} className="stroke-foreground" strokeWidth="1.4" />
             </g>
           );
-          return [line, ...(["a", "b"] as const).map((end) => {
+          return { line, dots: (["a", "b"] as const).map((end) => {
             const p = end === "a" ? pa : pb;
             return (
               <g key={`${n}${end}`} className="cursor-grab" aria-label={`Blade ${n} ${end.toUpperCase()}`}
@@ -114,8 +114,10 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
                 <circle cx={p[0]} cy={p[1]} r="3.5" className="fill-foreground stroke-primary" strokeWidth="1.2" />
               </g>
             );
-          })];
-        })}
+          }) };
+        });
+          // every blade edge first, every corner dot on top, so a moved blade never hides another blade's dots
+          return <>{parts.map((x) => x.line)}{parts.flatMap((x) => x.dots)}</>; })()}
       </svg>
       <p className="text-[10px] text-muted-foreground">Drag a blade edge to slide it, or a dot to cut a corner.</p>
     </div>
