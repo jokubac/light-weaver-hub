@@ -33,7 +33,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="grid h-full w-full gap-px" style={{ gridTemplateColumns: `repeat(${gw}, 1fr)`, gridTemplateRows: `repeat(${gh}, 1fr)` }}>
         {Array.from({ length: pixelCount(f) }, (_, i) => {
           const x = i % lc, y = Math.floor(i / lc); const [cx, cy] = rot === 90 ? [y, x] : [x, y]; const c = cols?.[i];
-          return <div key={i} className="rounded-[2px]" style={{ gridColumn: cx + 1, gridRow: cy + 1, minWidth: size > 6 ? 0 : undefined, background: c ? `rgb(${c[0]},${c[1]},${c[2]})` : "hsl(var(--muted))" }} />;
+          return <div key={i} className="rounded-[2px]" style={{ gridColumn: cx + 1, gridRow: cy + 1, minWidth: size > 6 ? 0 : undefined, background: c ? `rgb(${c[0]},${c[1]},${c[2]})` : "var(--muted)" }} />;
         })}
       </div>
     );
@@ -53,7 +53,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         </div>
         <div className="min-h-0 flex-1 overflow-auto p-3">
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">Patch a light in a pixel mode first (search “pixel” in PATCH).</p> : (
-            <div className="relative rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(hsl(var(--border)/.5) 1px,transparent 1px),linear-gradient(90deg,hsl(var(--border)/.5) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
+            <div className="relative rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               {px.map((f) => {
                 const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); const inLayer = layer?.order.includes(f.uid);
                 return (
