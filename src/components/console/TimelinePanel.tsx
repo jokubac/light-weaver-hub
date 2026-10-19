@@ -130,14 +130,14 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const laneMove = (e: RPE<HTMLDivElement>) => {
-    const m = marqRef.current; if (!m || m.track !== e.currentTarget.dataset.track) return;
+    const m = marqRef.current; if (!m || m.track !== e.currentTarget.dataset["track"]) return;
     if (Math.abs(e.clientX - m.x) > 3) m.moved = true;
     if (!m.moved) return;
     const left = e.currentTarget.getBoundingClientRect().left;
     setMarq({ track: m.track, a: (m.x - left) / zoom, b: (e.clientX - left) / zoom });
   };
   const laneUp = (e: RPE<HTMLDivElement>) => {
-    const m = marqRef.current; marqRef.current = null; if (!m || m.track !== e.currentTarget.dataset.track) return;
+    const m = marqRef.current; marqRef.current = null; if (!m || m.track !== e.currentTarget.dataset["track"]) return;
     const left = e.currentTarget.getBoundingClientRect().left;
     if (!m.moved) { setSel([]); onSeek(Math.max(0, (m.x - left) / zoom)); return; }
     const a = Math.min(m.x, e.clientX), b = Math.max(m.x, e.clientX);
