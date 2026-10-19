@@ -8,13 +8,23 @@ import type { PixelLayer } from "@/lib/pixels";
 import type { Recording } from "@/lib/store";
 import { newId, timelineLength, type ClipKind, type Timeline, type TimelineClip } from "@/lib/timeline";
 
-const ROW = 52, HEAD = 120;
+const ROW = 52, HEAD = 150;
 const KIND_STYLE: Record<ClipKind, string> = {
   fx: "bg-primary/70 border-primary", pixel: "bg-accent/80 border-accent-foreground/40", rec: "bg-success/70 border-success", level: "bg-warning/70 border-warning",
 };
 const KIND_LABEL: Record<ClipKind, string> = { fx: "FX", pixel: "PIXEL", rec: "REC", level: "LEVEL" };
 const k2c = (k: number) => (k - 2000) / 8000, c2k = (c: number) => Math.round(2000 + c * 8000);
 const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
+const clash = (a: TimelineClip, b: TimelineClip) => a.id !== b.id && a.track === b.track && a.start < b.start + b.length - 1e-6 && b.start < a.start + a.length - 1e-6;
+/** Keep clips from overlapping inside one layer: move a clashing clip to the nearest free layer, adding one if needed. */
+export function placeClip(tl: Timeline, c: TimelineClip): Timeline {
+  const others = tl.clips.filter((x) => x.id !== c.id);
+  const from = Math.max(0, tl.tracks.findIndex((t) => t.id === c.track));
+  const order = tl.tracks.map((_, i) => i).sort((a, b) => Math.abs(a - from) - Math.abs(b - from) || b - a);
+  for (const i of order) { const t = { ...c, track: tl.tracks[i]!.id }; if (!others.some((o) => clash(t, o))) return { ...tl, clips: [...others, t] }; }
+  const track = { id: newId(), name: `Layer ${tl.tracks.length + 1}` };
+  return { ...tl, tracks: [...tl.tracks, track], clips: [...others, { ...c, track: track.id }] };
+}
 const field = "w-16 rounded border border-input bg-surface-elevated px-1 py-1 text-right font-mono text-xs";
 
 export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, onPause, onStop, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio }: {
@@ -62,7 +72,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       const from = kind === "fadein" ? 0 : cur?.intensity ?? 1, to = kind === "fadeout" ? 0 : kind === "fadein" ? cur?.intensity || 1 : 1;
       c = { ...base, kind: "level", length: 4, name: kind === "fadein" ? "Fade in" : kind === "fadeout" ? "Fade out" : "Level", uids, from: { intensity: from }, to: { intensity: to } };
     }
-    if (c) { set([...timeline.clips, c]); setPicked(c.id); }
+    if (c) { setTimeline(placeClip(timeline, c)); setPicked(c.id); }
   };
 
   const down = (e: RPE, c: TimelineClip, mode: "move" | "l" | "r") => {
@@ -81,7 +91,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const seekAt = (e: RPE<HTMLDivElement>) => { const r = e.currentTarget.getBoundingClientRect(); onSeek(Math.max(0, (e.clientX - r.left) / zoom)); };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={() => (drag.current = null)}>
+    <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={() => { const d = drag.current; drag.current = null; const c = d && timeline.clips.find((x) => x.id === d.id); if (c && timeline.clips.some((o) => clash(c, o))) setTimeline(placeClip(timeline, c)); }}>
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2">
         <Button size="icon" variant={playing ? "default" : "secondary"} aria-label={playing ? "Pause" : "Play"} onClick={playing ? onPause : onPlay}>{playing ? <Pause /> : <Play />}</Button>
         <Button size="icon" variant="secondary" aria-label="Stop" onClick={onStop}><Square /></Button>
@@ -123,7 +133,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           {timeline.tracks.map((t, i) => (
             <div key={t.id} className={`flex border-b border-border ${t.muted ? "opacity-40" : ""}`} style={{ height: ROW }}>
               <div className={`sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r border-border px-2 ${track === t.id ? "bg-primary/15" : "bg-surface"}`} style={{ width: HEAD }} onClick={() => setTrack(t.id)}>
-                <input aria-label="Layer name" value={t.name} onChange={(e) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)) })} className="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none" />
+                <input aria-label="Layer name" value={t.name} onChange={(e) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)) })} className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-foreground outline-none" />
                 <button aria-label={t.muted ? "Show layer" : "Hide layer"} title={t.muted ? "Turn layer on" : "Turn layer off"} onClick={() => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, muted: !x.muted } : x)) })} className="text-muted-foreground">{t.muted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button>
                 {timeline.tracks.length > 1 && <button aria-label="Delete layer" onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
               </div>
@@ -178,7 +188,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           {clip.kind !== "rec" && <span className="text-muted-foreground">{clip.uids?.length ? `${clip.uids.length} lights` : clip.kind === "pixel" ? "layer's own lights" : "no lights"}</span>}
           {clip.kind !== "rec" && <Button size="sm" variant="secondary" disabled={!selected.length} onClick={() => patch(clip.id, { uids: [...selected] })}>Use selected lights</Button>}
           <div className="ml-auto flex gap-1">
-            <Button size="icon" variant="ghost" aria-label="Duplicate clip" title="Duplicate after this clip" onClick={() => { const c = { ...structuredClone(clip), id: newId(), start: clip.start + clip.length }; set([...timeline.clips, c]); setPicked(c.id); }}><Copy /></Button>
+            <Button size="icon" variant="ghost" aria-label="Duplicate clip" title="Duplicate after this clip" onClick={() => { const c = { ...structuredClone(clip), id: newId(), start: clip.start + clip.length }; setTimeline(placeClip(timeline, c)); setPicked(c.id); }}><Copy /></Button>
             <Button size="icon" variant="ghost" aria-label="Delete clip" onClick={() => { set(timeline.clips.filter((c) => c.id !== clip.id)); setPicked(null); }}><Trash2 /></Button>
           </div>
         </div>
