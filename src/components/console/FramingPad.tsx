@@ -93,7 +93,7 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
           })}
         </g>
         <circle cx="50" cy="50" r="50" className="fill-none stroke-primary" strokeWidth="1.5" />
-        {blades.map((n) => {
+        {(() => { const parts = blades.map((n) => {
           const ed = EDGES[n - 1]!; const { a, b } = info(n);
           const at = (s: number, depth: number): [number, number] => [ed.a[0] + (ed.b[0] - ed.a[0]) * s + ed.d[0] * depth * DEPTH, ed.a[1] + (ed.b[1] - ed.a[1]) * s + ed.d[1] * depth * DEPTH];
           const pa = at(T, a * (1 - T) + b * T), pb = at(1 - T, b * (1 - T) + a * T);
@@ -115,9 +115,9 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
               </g>
             );
           }) };
-        }).reduce<{ lines: React.ReactNode[]; dots: React.ReactNode[] }>((acc, x) => { acc.lines.push(x.line); acc.dots.push(...x.dots); return acc; }, { lines: [], dots: [] })
+        });
           // every blade edge first, every corner dot on top, so a moved blade never hides another blade's dots
-          .lines.concat([])}
+          return <>{parts.map((x) => x.line)}{parts.flatMap((x) => x.dots)}</>; })()}
       </svg>
       <p className="text-[10px] text-muted-foreground">Drag a blade edge to slide it, or a dot to cut a corner.</p>
     </div>
