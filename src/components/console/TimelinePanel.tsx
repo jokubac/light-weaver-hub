@@ -397,7 +397,7 @@ function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures
   const d = useRef<{ x: number; y: number; ox: number; oy: number; mode: "move" | "size" } | null>(null);
   const used = new Set(timeline.clips.flatMap((c) => c.uids?.length ? c.uids : c.layer?.order ?? []));
   const list = used.size ? fixtures.filter((f) => used.has(f.uid)) : fixtures;
-  const start = (mode: "move" | "size") => (e: React.PointerEvent) => {
+  const start = (mode: "move" | "size") => (e: RPE) => {
     e.preventDefault(); e.stopPropagation();
     d.current = { x: e.clientX, y: e.clientY, ox: mode === "move" ? pos.x : size.w, oy: mode === "move" ? pos.y : size.h, mode };
     const move = (ev: PointerEvent) => { const r = d.current; if (!r) return; const dx = ev.clientX - r.x, dy = ev.clientY - r.y;
