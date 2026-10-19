@@ -1121,7 +1121,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
   );
   const outputEnabled = bo.target === 0;
-  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen || seqOpen;
+  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen || seqOpen || pixOpen;
   // One window at a time; tapping its tab again closes it and returns to the console
   const openWin = (k: "plot" | "patch" | "fixtures" | "grid" | "timeline" | "pixels") => {
     const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : k === "pixels" ? pixOpen : fixturesOpen;

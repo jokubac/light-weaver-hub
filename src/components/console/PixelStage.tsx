@@ -23,7 +23,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   let W = 8, H = 6;
   for (const f of px) { const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); W = Math.max(W, p.x + w + 4); H = Math.max(H, p.y + h + 4); }
 
-  const autoArrange = () => { let y = 0; for (const f of px) { onMove(f.uid, { x: 0, y, r: 0 }); y += canvasSize({ ...f, pixelPos: undefined })[1] + 1; } };
+  const autoArrange = () => { let y = 0; for (const f of px) { onMove(f.uid, { x: 0, y, r: 0 }); y += canvasSize({ ...f, pixelPos: { x: 0, y: 0 } })[1] + 1; } };
 
   const pixels = (f: PatchedFixture, size: number, rot: number) => {
     const [lc, lr] = pixelGrid(f);
