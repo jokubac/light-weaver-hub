@@ -6,7 +6,7 @@ import type { BeamAttr } from "@/lib/dmx";
 
 function Harness({ attrs, out }: { attrs: BeamAttr[]; out: Record<string, number> }) {
   const [v, setV] = useState<Record<string, number>>({});
-  return <FramingPad has={(a) => attrs.includes(a)} value={(a) => v[a] ?? 0} set={(a, n) => setV((s) => { const nx = { ...s, [a]: n ?? 0 }; Object.assign(out, nx); return nx; })} />;
+  return <FramingPad has={(a) => attrs.includes(a)} value={(a) => v[a] ?? (a.endsWith("Rot") ? 0.5 : 0)} set={(a, n) => setV((s) => { const nx = { ...s, [a]: n ?? 0 }; Object.assign(out, nx); return nx; })} />;
 }
 if (!("PointerEvent" in globalThis)) (globalThis as Record<string, unknown>).PointerEvent = class extends MouseEvent { pointerId: number; constructor(t: string, i: PointerEventInit = {}) { super(t, i); this.pointerId = i.pointerId ?? 1; } };
 const rect = () => ({ left: 0, top: 0, width: 120, height: 120, right: 120, bottom: 120, x: 0, y: 0, toJSON: () => ({}) });
