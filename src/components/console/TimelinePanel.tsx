@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE } from "react";
-import { Copy, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X } from "lucide-react";
+import { Copy, Flag, Repeat, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/console/NumberField";
 import { useFxLibrary } from "@/lib/fxlib";
+import { membersOf } from "@/lib/fixture-groups";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { PixelLayer } from "@/lib/pixels";
 import type { Recording } from "@/lib/store";
@@ -27,9 +28,9 @@ export function placeClip(tl: Timeline, c: TimelineClip): Timeline {
 }
 const field = "w-16 rounded border border-input bg-surface-elevated px-1 py-1 text-right font-mono text-xs";
 
-export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, onPause, onStop, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio }: {
+export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, onPause, onStop, onGo, waiting, repeat, onRepeat, groups, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio }: {
   timeline: Timeline; setTimeline: (t: Timeline) => void; time: number; playing: boolean;
-  onPlay: () => void; onPause: () => void; onStop: () => void; onSeek: (t: number) => void;
+  onPlay: () => void; onPause: () => void; onStop: () => void; onGo: () => void; waiting: boolean; repeat: boolean; onRepeat: () => void; groups: string[]; onSeek: (t: number) => void;
   fixtures: PatchedFixture[]; selected: string[]; recordings: Recording[]; layers: PixelLayer[]; activeClips: string[];
   audioPeaks: number[] | null; onAudio: (f: File) => void; onRemoveAudio: () => void;
 }) {
@@ -62,7 +63,12 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
     const uids = selected.length ? selected : fixtures.map((f) => f.uid);
     const base = { id: newId(), track: targetTrack, start: Math.round(time * 10) / 10, length: 8 };
     let c: TimelineClip | null = null;
-    if (kind === "fxsel") { const f = fixtures.find((x) => selected.includes(x.uid) && x.fx.kind !== "none"); if (f) c = { ...base, kind: "fx", name: `${f.fx.kind} (${f.name})`, fx: structuredClone(f.fx), uids }; else alert("Select a light that has an effect set."); }
+    if (kind === "on" || kind === "group") {
+      const ids = kind === "group" ? membersOf(fixtures, ref ?? "").map((f) => f.uid) : uids;
+      const f0 = fixtures.find((f) => ids.includes(f.uid));
+      const lvl = { intensity: f0?.intensity || 1, cct: f0?.cct };
+      c = { ...base, kind: "level", name: kind === "group" ? `${ref} ON` : selected.length ? `${ids.length} lights ON` : "All lights ON", uids: ids, from: lvl, to: { ...lvl } };
+    } else if (kind === "fxsel") { const f = fixtures.find((x) => selected.includes(x.uid) && x.fx.kind !== "none"); if (f) c = { ...base, kind: "fx", name: `${f.fx.kind} (${f.name})`, fx: structuredClone(f.fx), uids }; else alert("Select a light that has an effect set."); }
     else if (kind === "fx") { const s = lib.lib.fx.find((x) => x.id === ref); if (s) c = { ...base, kind: "fx", name: s.name, fx: structuredClone(s.fx), uids }; }
     else if (kind === "pxlayer") { const l = layers.find((x) => x.id === ref); if (l) c = { ...base, kind: "pixel", name: l.name, layer: structuredClone({ ...l, playing: false }) }; }
     else if (kind === "pixel") { const s = lib.lib.pixel.find((x) => x.id === ref); if (s) c = { ...base, kind: "pixel", name: s.name, layer: structuredClone(s.layer), uids: fixtures.filter((f) => selected.includes(f.uid)).map((f) => f.uid) }; }
@@ -94,10 +100,16 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
     <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={() => { const d = drag.current; drag.current = null; const c = d && timeline.clips.find((x) => x.id === d.id); if (c && timeline.clips.some((o) => clash(c, o))) setTimeline(placeClip(timeline, c)); }}>
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2">
         <Button size="icon" variant={playing ? "default" : "secondary"} aria-label={playing ? "Pause" : "Play"} onClick={playing ? onPause : onPlay}>{playing ? <Pause /> : <Play />}</Button>
-        <Button size="icon" variant="secondary" aria-label="Stop" onClick={onStop}><Square /></Button>
+        <Button size="icon" variant={waiting ? "default" : "secondary"} aria-label="GO — continue from marker" title="GO — continue from marker" disabled={!waiting} onClick={onGo} className={waiting ? "animate-pulse" : ""}><SkipForward /></Button>
+        <Button size="icon" variant="secondary" aria-label="Stop" title="Stop — return lights to how they were" onClick={onStop}><Square /></Button>
+        <Button size="icon" variant={repeat ? "default" : "secondary"} aria-label="Repeat" aria-pressed={repeat} title="Repeat" onClick={onRepeat}><Repeat /></Button>
         <span className="w-20 font-mono text-sm tabular-nums">{fmt(time)}</span>
         <select aria-label="Add clip" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm">
           <option value="">+ Add clip at playhead…</option>
+          <optgroup label="Lights / groups">
+            <option value="on">{selected.length ? `Selected lights ON (${selected.length})` : "All lights ON"}</option>
+            {groups.map((g) => <option key={g} value={`group:${g}`}>Group {g} ON</option>)}
+          </optgroup>
           <optgroup label="Light effects">
             <option value="fxsel">Effect from selected light</option>
             {lib.lib.fx.map((s) => <option key={s.id} value={`fx:${s.id}`}>{s.name}</option>)}
@@ -113,6 +125,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         <select aria-label="Layer" value={targetTrack} onChange={(e) => setTrack(e.target.value)} className="rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm">
           {timeline.tracks.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
+        <Button variant="secondary" size="sm" title="Playback stops here until GO" onClick={() => { const m = timeline.markers ?? []; setTimeline({ ...timeline, markers: [...m, { id: newId(), t: Math.round(time * 10) / 10, name: `M${m.length + 1}` }].sort((a, b) => a.t - b.t) }); }}><Flag />Marker</Button>
         <Button variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />Layer</Button>
         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? "Replace audio" : "Add audio"}</Button>
         <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
@@ -166,6 +179,11 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
               </div>
             </div>
           )}
+          {(timeline.markers ?? []).map((m) => <div key={m.id} className="absolute top-0 bottom-0 z-20" style={{ left: HEAD + m.t * zoom }}>
+            <div className="pointer-events-none absolute inset-y-0 w-px bg-warning/70" />
+            <button title={`${m.name} — playback waits here for GO. Double-click to remove.`} onClick={() => onSeek(m.t)} onDoubleClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).filter((x) => x.id !== m.id) })}
+              className="absolute top-0 flex h-7 items-center gap-0.5 rounded-r bg-warning px-1 text-[10px] font-bold text-primary-foreground"><Flag className="h-3 w-3" />{m.name}</button>
+          </div>)}
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: HEAD + time * zoom }} />
         </div>
         {timeline.clips.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.</p>}

@@ -18,6 +18,8 @@ export interface TimelineTrack { id: string; name: string; muted?: boolean }
 export interface Timeline {
   tracks: TimelineTrack[]; clips: TimelineClip[];
   audio?: { name: string; duration: number } | undefined;
+  /** playback pauses at each marker until GO is pressed */
+  markers?: { id: string; t: number; name: string }[] | undefined;
 }
 
 export const newId = () => Math.random().toString(36).slice(2, 10);

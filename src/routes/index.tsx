@@ -724,7 +724,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const pauseRec = () => { if (play && play.pausedAt == null) setPlay({ ...play, pausedAt: (performance.now() - play.start) / 1000 }); };
   // Editing-style timeline playback
   const [seqTime, setSeqTime] = useState(0);
-  const [seqPlay, setSeqPlay] = useState<{ start: number; from: number; origin: Map<string, LookState>; layers: PixelLayer[] } | null>(null);
+  const [seqPlay, setSeqPlay] = useState<{ start: number; from: number } | null>(null);
   const [seqActive, setSeqActive] = useState<string[]>([]);
   const audioEl = useRef<HTMLAudioElement | null>(null);
   const [audioPeaks, setAudioPeaks] = useState<number[] | null>(null);
@@ -748,33 +748,50 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     // lights without an active clip return to where they were when playback started
     setUntrackedFixtures((fs) => fs.map((f) => { const st = res.states.get(f.uid), o = origin.get(f.uid); return st ? { ...f, ...(o ?? {}), ...st, trigger: null } : o ? { ...f, ...o } : f; }));
   };
+  // markers pause playback until GO; the end holds the last frame (or loops when repeat is on)
+  const [seqWait, setSeqWait] = useState<number | null>(null);
+  const [seqRepeat, setSeqRepeat] = useState(false);
+  const repeatRef = useRef(seqRepeat); repeatRef.current = seqRepeat;
+  const seqHold = useRef<{ origin: Map<string, LookState>; layers: PixelLayer[] } | null>(null);
   useEffect(() => {
     if (!seqPlay) return;
+    let prev = seqPlay.from;
     const id = setInterval(() => {
-      const time = seqPlay.from + (performance.now() - seqPlay.start) / 1000;
-      if (time > timelineLength(latest.current.seq) + 0.5) { stopSeq(); return; }
+      const tl = latest.current.seq, origin = seqHold.current?.origin ?? new Map();
+      let time = seqPlay.from + (performance.now() - seqPlay.start) / 1000;
+      const mk = (tl.markers ?? []).map((m) => m.t).filter((m) => m > prev && m <= time && m > seqPlay.from + 0.01).sort((x, y) => x - y)[0];
+      if (mk != null) { seqApply(mk, origin); setSeqTime(mk); setSeqWait(mk); setSeqPlay(null); audioEl.current?.pause(); return; }
+      const end = timelineLength(tl);
+      if (time >= end) {
+        if (repeatRef.current && end > 0) { seqApply(0, origin); setSeqTime(0); setSeqPlay({ ...seqPlay, start: performance.now(), from: 0 }); if (audioEl.current) audioEl.current.currentTime = 0; return; }
+        seqApply(Math.max(0, end - 0.001), origin); setSeqTime(end); setSeqPlay(null); audioEl.current?.pause(); return;
+      }
+      prev = time;
       setSeqTime(time);
-      seqApply(time, seqPlay.origin);
+      seqApply(time, origin);
     }, 40);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seqPlay]);
-  const playSeq = () => {
+  const playSeq = (fromT = seqTime) => {
     if (seqPlay) return;
-    seqLastPx.current = "-";
-    setSeqPlay({ start: performance.now(), from: seqTime, origin: new Map(fixtures.map((f) => [f.uid, snapshot(f)])), layers });
-    if (audioEl.current && seq.audio) { audioEl.current.currentTime = seqTime; void audioEl.current.play().catch(() => {}); }
+    if (!seqHold.current) seqHold.current = { origin: new Map(fixtures.map((f) => [f.uid, snapshot(f)])), layers };
+    const from = !seqRepeat && fromT >= timelineLength(seq) ? 0 : fromT;
+    seqLastPx.current = "-"; setSeqWait(null);
+    setSeqPlay({ start: performance.now(), from });
+    if (audioEl.current && seq.audio) { audioEl.current.currentTime = from; void audioEl.current.play().catch(() => {}); }
   };
-  const restoreSeq = () => {
-    if (!seqPlay) return;
-    const { origin, layers: saved } = seqPlay;
-    setUntrackedFixtures((fs) => fs.map((f) => { const o = origin.get(f.uid); return o ? { ...f, ...o } : f; }));
-    setLayers(saved); setSeqActive([]);
+  const goSeq = () => { if (seqWait != null) playSeq(seqWait); };
+  // pause keeps the current look on the lights
+  const pauseSeq = () => { setSeqPlay(null); audioEl.current?.pause(); };
+  // stop returns everything to how it was before the timeline started
+  const stopSeq = () => {
+    pauseSeq(); setSeqTime(0); setSeqWait(null); setSeqActive([]);
+    const h = seqHold.current; seqHold.current = null;
+    if (h) { setUntrackedFixtures((fs) => fs.map((f) => { const o = h.origin.get(f.uid); return o ? { ...f, ...o } : f; })); setLayers(h.layers); }
   };
-  const pauseSeq = () => { restoreSeq(); setSeqPlay(null); audioEl.current?.pause(); };
-  const stopSeq = () => { pauseSeq(); setSeqTime(0); };
   const seekSeq = (time: number) => {
-    setSeqTime(time);
+    setSeqTime(time); setSeqWait(null);
     if (seqPlay) setSeqPlay({ ...seqPlay, start: performance.now(), from: time });
     if (audioEl.current) audioEl.current.currentTime = time;
   };
@@ -1303,8 +1320,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       )}
       {seqOpen && (
         <TimelinePanel timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}
-          onPlay={playSeq} onPause={pauseSeq} onStop={stopSeq} onSeek={seekSeq} fixtures={fixtures} selected={selected} recordings={recordings}
-          layers={seqPlay?.layers ?? layers} activeClips={seqActive} audioPeaks={audioPeaks}
+          onPlay={() => playSeq()} onPause={pauseSeq} onStop={stopSeq} onGo={goSeq} waiting={seqWait != null} repeat={seqRepeat} onRepeat={() => setSeqRepeat((r) => !r)} groups={groups} onSeek={seekSeq} fixtures={fixtures} selected={selected} recordings={recordings}
+          layers={seqHold.current?.layers ?? layers} activeClips={seqActive} audioPeaks={audioPeaks}
           onAudio={async (file) => {
             try {
               const { duration } = await audioPeaksOf(file, 10);
