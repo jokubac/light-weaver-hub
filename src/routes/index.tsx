@@ -61,6 +61,9 @@ import { Keypad } from "@/components/console/Keypad";
 import { useFixtureHistory } from "@/hooks/use-fixture-history";
 import { useTransmitterDiscovery } from "@/hooks/use-transmitter-discovery";
 import { CallSheet } from "@/components/console/CallSheet";
+import { TimelinePanel } from "@/components/console/TimelinePanel";
+import { emptyTimeline, timelineAt, timelineLength, type Timeline } from "@/lib/timeline";
+import { deleteAudio, loadAudio, peaks as audioPeaksOf, saveAudio } from "@/lib/timeline-audio";
 import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
@@ -425,6 +428,8 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [fixturesOpen, setFixturesOpen] = useState(false);
   const [gridOpen, setGridOpen] = useState(false);
   const [grid, setGrid] = useState<GridLayout>(() => scene.grid ?? emptyGrid());
+  const [seqOpen, setSeqOpen] = useState(false);
+  const [seq, setSeq] = useState<Timeline>(() => scene.timeline ?? emptyTimeline());
   const [lastLook, setLastLook] = useState<string | null>(null);
   const [conn, setConnState] = useState<Connection>(() => loadConnection());
   const [connOpen, setConnOpen] = useState(false);
@@ -454,11 +459,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const latest = useRef({ fixtures, master, layers, plot, pixelMaster, grid });
-  latest.current = { fixtures, master, layers, plot, pixelMaster, grid };
+  const latest = useRef({ fixtures, master, layers, plot, pixelMaster, grid, seq });
+  latest.current = { fixtures, master, layers, plot, pixelMaster, grid, seq };
   const currentScene = (): Scene => {
     const { pixelMap: _legacy, ...rest } = scene;
-    return { ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot, pixelMaster: latest.current.pixelMaster, grid: latest.current.grid };
+    return { ...rest, fixtures: latest.current.fixtures.map((f) => ({ ...f, trigger: null })), master: latest.current.master, pixelLayers: latest.current.layers, plot: latest.current.plot, pixelMaster: latest.current.pixelMaster, grid: latest.current.grid, timeline: latest.current.seq };
   };
   const save = () => onSave(currentScene());
   const restoreSetup = (setup: Scene) => {
@@ -717,6 +722,62 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   };
   const goRec = () => { if (play?.waiting != null && play.pausedAt != null) setPlay({ ...play, start: performance.now() - (play.pausedAt + 0.002) * 1000, pausedAt: undefined, released: play.waiting, waiting: undefined }); };
   const pauseRec = () => { if (play && play.pausedAt == null) setPlay({ ...play, pausedAt: (performance.now() - play.start) / 1000 }); };
+  // Editing-style timeline playback
+  const [seqTime, setSeqTime] = useState(0);
+  const [seqPlay, setSeqPlay] = useState<{ start: number; from: number; origin: Map<string, LookState>; layers: PixelLayer[] } | null>(null);
+  const [seqActive, setSeqActive] = useState<string[]>([]);
+  const audioEl = useRef<HTMLAudioElement | null>(null);
+  const [audioPeaks, setAudioPeaks] = useState<number[] | null>(null);
+  const audioKey = `scene:${scene.id}`;
+  const useAudioBlob = (blob: Blob) => {
+    if (audioEl.current) URL.revokeObjectURL(audioEl.current.src);
+    audioEl.current = new Audio(URL.createObjectURL(blob));
+    void audioPeaksOf(blob).then((p) => setAudioPeaks(p.peaks)).catch(() => setAudioPeaks(null));
+  };
+  useEffect(() => {
+    if (scene.timeline?.audio) void loadAudio(audioKey).then((b) => { if (b) useAudioBlob(b); }).catch(() => {});
+    return () => { audioEl.current?.pause(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const seqLastPx = useRef("");
+  const seqApply = (time: number, origin: Map<string, LookState>) => {
+    const res = timelineAt(latest.current.seq, time, fixturesRef.current, recRef.current, origin);
+    setSeqActive(res.active);
+    const key = res.pixels?.map((l) => l.id).join() ?? "";
+    if (key !== seqLastPx.current) { seqLastPx.current = key; setLayers(res.pixels ?? []); }
+    // lights without an active clip return to where they were when playback started
+    setUntrackedFixtures((fs) => fs.map((f) => { const st = res.states.get(f.uid), o = origin.get(f.uid); return st ? { ...f, ...(o ?? {}), ...st, trigger: null } : o ? { ...f, ...o } : f; }));
+  };
+  useEffect(() => {
+    if (!seqPlay) return;
+    const id = setInterval(() => {
+      const time = seqPlay.from + (performance.now() - seqPlay.start) / 1000;
+      if (time > timelineLength(latest.current.seq) + 0.5) { stopSeq(); return; }
+      setSeqTime(time);
+      seqApply(time, seqPlay.origin);
+    }, 40);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seqPlay]);
+  const playSeq = () => {
+    if (seqPlay) return;
+    seqLastPx.current = "-";
+    setSeqPlay({ start: performance.now(), from: seqTime, origin: new Map(fixtures.map((f) => [f.uid, snapshot(f)])), layers });
+    if (audioEl.current && seq.audio) { audioEl.current.currentTime = seqTime; void audioEl.current.play().catch(() => {}); }
+  };
+  const restoreSeq = () => {
+    if (!seqPlay) return;
+    const { origin, layers: saved } = seqPlay;
+    setUntrackedFixtures((fs) => fs.map((f) => { const o = origin.get(f.uid); return o ? { ...f, ...o } : f; }));
+    setLayers(saved); setSeqActive([]);
+  };
+  const pauseSeq = () => { restoreSeq(); setSeqPlay(null); audioEl.current?.pause(); };
+  const stopSeq = () => { pauseSeq(); setSeqTime(0); };
+  const seekSeq = (time: number) => {
+    setSeqTime(time);
+    if (seqPlay) setSeqPlay({ ...seqPlay, start: performance.now(), from: time });
+    if (audioEl.current) audioEl.current.currentTime = time;
+  };
   const stopRec = () => { setPlay(null); setRecProg(null); setPixelMix(null); setUntrackedFixtures((fs) => fs.map((f) => (f.mix ? { ...f, mix: undefined } : f))); };
 
   // Playback bank + cue stack
@@ -1041,11 +1102,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
   );
   const outputEnabled = bo.target === 0;
-  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen;
+  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen || seqOpen;
   // One window at a time; tapping its tab again closes it and returns to the console
-  const openWin = (k: "plot" | "patch" | "fixtures" | "grid") => {
-    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : k === "grid" ? gridOpen : fixturesOpen;
+  const openWin = (k: "plot" | "patch" | "fixtures" | "grid" | "timeline") => {
+    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : fixturesOpen;
     setGridOpen(k === "grid" && !on);
+    setSeqOpen(k === "timeline" && !on);
     if (!on && (k === "fixtures" || k === "grid")) { setPanel("control"); setPanelOpen(true); }
     setPlotOpen(k === "plot" && !on);
     setPatchOpen(k === "patch" && !on);
@@ -1193,6 +1255,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
         <Button variant="secondary" onClick={() => openWin("fixtures")} aria-pressed={fixturesOpen} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
         <Button variant="secondary" onClick={() => openWin("grid")} aria-pressed={gridOpen} className="h-11 px-5 text-sm font-bold">GRID</Button>
+        <Button variant="secondary" onClick={() => openWin("timeline")} aria-pressed={seqOpen} className="h-11 px-5 text-sm font-bold">TIMELINE</Button>
         {tab("pixels", "PIXEL")}
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS</Button>
@@ -1237,6 +1300,19 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
               return { cells: pix?.map((c) => `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})`), cols: tube && cols === 1 && rows > cols ? rows : gc, rows: tube && cols === 1 && rows > cols ? cols : gr, aspect }; }} />
           {groupsOpen && groupsAside()}
         </div>
+      )}
+      {seqOpen && (
+        <TimelinePanel timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}
+          onPlay={playSeq} onPause={pauseSeq} onStop={stopSeq} onSeek={seekSeq} fixtures={fixtures} selected={selected} recordings={recordings}
+          layers={seqPlay?.layers ?? layers} activeClips={seqActive} audioPeaks={audioPeaks}
+          onAudio={async (file) => {
+            try {
+              const { duration } = await audioPeaksOf(file, 10);
+              await saveAudio(audioKey, file); useAudioBlob(file);
+              const tl = { ...latest.current.seq, audio: { name: file.name, duration } }; setSeq(tl); latest.current.seq = tl; save();
+            } catch { alert("This audio file could not be read. Try MP3 or WAV."); }
+          }}
+          onRemoveAudio={() => { void deleteAudio(audioKey); audioEl.current?.pause(); audioEl.current = null; setAudioPeaks(null); const tl = { ...latest.current.seq, audio: undefined }; setSeq(tl); latest.current.seq = tl; save(); }} />
       )}
       {patchOpen && (
         <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}
