@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent } from "react";
-import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X } from "lucide-react";
+import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/console/NumberField";
 import { useFxLibrary } from "@/lib/fxlib";
 import { membersOf } from "@/lib/fixture-groups";
-import type { PatchedFixture } from "@/lib/dmx";
-import type { PixelLayer } from "@/lib/pixels";
+import { defaultFx, type FxParams, type PatchedFixture } from "@/lib/dmx";
+import { PIXEL_LIBRARY, defaultLayer, isPixelFixture, type PixelLayer } from "@/lib/pixels";
 import type { Recording } from "@/lib/store";
 import { clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey } from "@/lib/timeline";
 
@@ -42,12 +42,14 @@ const fits = (t: { adjust?: boolean | undefined } | undefined, c: TimelineClip) 
 const hasKeys = (c: TimelineClip) => c.kind === "level" || c.kind === "adjust";
 const field = "w-16 rounded border border-input bg-surface-elevated px-1 py-1 text-right font-mono text-xs";
 
-export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, onPause, onStop, onGo, waiting, repeat, onRepeat, groups, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio }: {
+export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, onPause, onStop, onGo, waiting, repeat, onRepeat, groups, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio, colorOf }: {
   timeline: Timeline; setTimeline: (t: Timeline) => void; time: number; playing: boolean;
   onPlay: () => void; onPause: () => void; onStop: () => void; onGo: () => void; waiting: boolean; repeat: boolean; onRepeat: () => void; groups: string[]; onSeek: (t: number) => void;
   fixtures: PatchedFixture[]; selected: string[]; recordings: Recording[]; layers: PixelLayer[]; activeClips: string[];
   audioPeaks: number[] | null; onAudio: (f: File) => void; onRemoveAudio: () => void;
+  colorOf?: (f: PatchedFixture) => [number, number, number];
 }) {
+  const [viz, setViz] = useState(true);
   const lib = useFxLibrary();
   const [zoom, setZoom] = useState(40); // px per second
   const [track, setTrack] = useState(timeline.tracks[0]?.id ?? "");
@@ -96,6 +98,8 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       const lvl = { intensity: f0?.intensity || 1, cct: f0?.cct };
       c = { ...base, kind: "level", name: kind === "group" ? `${ref} ON` : kind === "light" ? `${f0?.name ?? "Light"} ON` : selected.length ? `${ids.length} lights ON` : "All lights ON", uids: ids, from: lvl, to: { ...lvl } };
     } else if (kind === "fxsel") { const f = fixtures.find((x) => selected.includes(x.uid) && x.fx.kind !== "none"); if (f) c = { ...base, kind: "fx", name: `${f.fx.kind} (${f.name})`, fx: structuredClone(f.fx), uids }; else alert("Select a light that has an effect set."); }
+    else if (kind === "simple") { const fx = { ...defaultFx(), ...SIMPLE_FX.find((x) => x.id === ref)!.fx }; c = { ...base, kind: "fx", name: SIMPLE_FX.find((x) => x.id === ref)!.label, fx, uids }; }
+    else if (kind === "spx") { const look = PIXEL_LIBRARY.find((x) => x.key === ref); if (look) { const l = { ...defaultLayer(look.label, fixtures.filter(isPixelFixture).map((f) => f.uid)), kind: look.kind, ...(look.gen ? { gen: look.gen } : {}) }; c = { ...base, kind: "pixel", name: `Pixel ${look.label}`, layer: l, uids: selected.filter((u) => fixtures.some((f) => f.uid === u && isPixelFixture(f))) }; } }
     else if (kind === "fx") { const s = lib.lib.fx.find((x) => x.id === ref); if (s) c = { ...base, kind: "fx", name: s.name, fx: structuredClone(s.fx), uids }; }
     else if (kind === "pxlayer") { const l = layers.find((x) => x.id === ref); if (l) c = { ...base, kind: "pixel", name: l.name, layer: structuredClone({ ...l, playing: false }) }; }
     else if (kind === "pixel") { const s = lib.lib.pixel.find((x) => x.id === ref); if (s) c = { ...base, kind: "pixel", name: s.name, layer: structuredClone(s.layer), uids: fixtures.filter((f) => selected.includes(f.uid)).map((f) => f.uid) }; }
@@ -195,28 +199,30 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         <Button size="icon" variant="secondary" aria-label="Stop" title="Stop — return lights to how they were" onClick={onStop}><Square /></Button>
         <Button size="icon" variant={repeat ? "default" : "secondary"} aria-label="Repeat" aria-pressed={repeat} title="Repeat" onClick={onRepeat}><Repeat /></Button>
         <span className="w-20 font-mono text-sm tabular-nums">{fmt(time)}</span>
-        <select aria-label="Add fixture" title="Add lights or a group at the playhead" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
+        <select aria-label="Add fixture" title="Add one light at the playhead" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
           <option value="">+ Fixture</option>
-          <optgroup label="Lights / groups">
-            {selected.length > 1 && <option value="on">Selected lights ON ({selected.length})</option>}
-            {groups.map((g) => <option key={g} value={`group:${g}`}>Group {g} ON</option>)}
-          </optgroup>
-          <optgroup label="Single light ON">
-            {fixtures.map((f, i) => <option key={f.uid} value={`light:${f.uid}`}>{i + 1}. {f.name}</option>)}
-          </optgroup>
-          <optgroup label="Brightness / colour"><option value="fadein">Fade in</option><option value="fadeout">Fade out</option><option value="level">Level / CCT ramp</option></optgroup>
+          {fixtures.map((f, i) => <option key={f.uid} value={`light:${f.uid}`}>{i + 1}. {f.name}</option>)}
         </select>
-        <select aria-label="Add effect" title="Add an effect at the playhead" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
+        <select aria-label="Add group" title="Add your group or the selected lights at the playhead" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
+          <option value="">+ Group</option>
+          {selected.length > 1 && <option value="on">Selected lights ({selected.length})</option>}
+          {groups.map((g) => <option key={g} value={`group:${g}`}>{g}</option>)}
+          {!groups.length && selected.length < 2 && <option disabled>No groups yet — make one in Groups</option>}
+        </select>
+        <select aria-label="Add effect" title="Simple effects at the playhead (on selected lights)" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
           <option value="">+ Effect</option>
-          <optgroup label="Light effects">
-            <option value="fxsel">Effect from selected light</option>
-            {lib.lib.fx.map((s) => <option key={s.id} value={`fx:${s.id}`}>{s.name}</option>)}
-          </optgroup>
-          <optgroup label="Pixel effects">
-            {layers.map((l) => <option key={l.id} value={`pxlayer:${l.id}`}>{l.name} (current layer)</option>)}
-            {lib.lib.pixel.map((s) => <option key={s.id} value={`pixel:${s.id}`}>{s.name}</option>)}
-          </optgroup>
+          <optgroup label="Light">{SIMPLE_FX.map((x) => <option key={x.id} value={`simple:${x.id}`}>{x.label}</option>)}</optgroup>
+          <optgroup label="Pixel">{SIMPLE_PX.map((k) => { const l = PIXEL_LIBRARY.find((x) => x.key === k); return l && <option key={k} value={`spx:${k}`}>{l.label}</option>; })}</optgroup>
+          <optgroup label="Brightness"><option value="fadein">Fade in</option><option value="fadeout">Fade out</option><option value="level">Level / CCT ramp</option></optgroup>
+        </select>
+        <select aria-label="Add REC" title="Your own effects made in FX / PIXEL and REC sequences" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
+          <option value="">+ REC</option>
           <optgroup label="REC sequences">{recordings.map((r) => <option key={r.id} value={`rec:${r.id}`}>{r.name}</option>)}</optgroup>
+          <optgroup label="Saved light effects"><option value="fxsel">Effect from selected light</option>{lib.lib.fx.map((x) => <option key={x.id} value={`fx:${x.id}`}>{x.name}</option>)}</optgroup>
+          <optgroup label="Saved pixel effects">
+            {layers.map((l) => <option key={l.id} value={`pxlayer:${l.id}`}>{l.name} (PIXEL layer)</option>)}
+            {lib.lib.pixel.map((x) => <option key={x.id} value={`pixel:${x.id}`}>{x.name}</option>)}
+          </optgroup>
         </select>
         <span className="text-xs text-muted-foreground">on</span>
         <select aria-label="Layer" value={targetTrack} onChange={(e) => setTrack(e.target.value)} className="rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm">
@@ -227,11 +233,13 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         <Button variant="secondary" size="sm" title="Adjustment layer — changes brightness and colour of every layer below it" onClick={addAdjust}><SlidersHorizontal />Adjustment layer</Button>
         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? "Replace audio" : "Add audio"}</Button>
         <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
+        <Button variant={viz ? "default" : "secondary"} size="sm" title="Show or hide the light visualiser" onClick={() => setViz((v) => !v)}><MonitorPlay />Visualiser</Button>
         <Button variant="secondary" size="sm" title="Select every clip" onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />Select all</Button>
         <Button variant="secondary" size="sm" aria-label="Delete selected" title="Delete the selected clips" disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 />Delete</Button>
         <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">Zoom<input type="range" min={5} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} className="w-28" /></label>
       </div>
 
+      <div className="flex min-h-0 flex-1">
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: HEAD + len * zoom }}>
           {/* ruler */}
@@ -309,6 +317,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         {timeline.clips.length > 0 && <p className="px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
       </div>
 
+      {(sel.length > 0) && <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3 text-xs [&>div]:flex-col [&>div]:items-stretch [&>div]:border-0 [&>div]:p-0" aria-label="Clip settings">
       {sel.length > 1 && (
         <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs">
           <span className="font-semibold">{sel.length} clips selected</span>
@@ -362,6 +371,47 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           </div>
         </div>
       )}
+      </aside>}
+      </div>
+      {viz && <TimelineVisualiser fixtures={fixtures} timeline={timeline} colorOf={colorOf} onClose={() => setViz(false)} />}
+    </div>
+  );
+}
+
+const SIMPLE_FX: { id: string; label: string; fx: Partial<FxParams> }[] = [
+  { id: "strobe", label: "Strobe", fx: { kind: "strobe", rate: 8, duty: 0.3 } },
+  { id: "strobe-slow", label: "Slow strobe", fx: { kind: "strobe", rate: 2, duty: 0.3 } },
+  { id: "pulse", label: "Pulse", fx: { kind: "pulse", rate: 1 } },
+  { id: "breathe", label: "Breathe (slow pulse)", fx: { kind: "pulse", rate: 0.25, min: 0.2 } },
+  { id: "flicker", label: "Flicker / fire", fx: { kind: "fire", rate: 1 } },
+  { id: "candle", label: "Candle", fx: { kind: "candle", rate: 1 } },
+  { id: "tv", label: "TV", fx: { kind: "tv", rate: 1 } },
+  { id: "lightning", label: "Lightning", fx: { kind: "lightning", rate: 1 } },
+];
+const SIMPLE_PX = ["solid", "rainbow", "chase", "runner", "wave", "sparkle", "strobe", "police"];
+
+/** Floating, movable, resizable window showing the lights live while the timeline plays. */
+function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures: PatchedFixture[]; timeline: Timeline; colorOf?: ((f: PatchedFixture) => [number, number, number]) | undefined; onClose: () => void }) {
+  const [pos, setPos] = useState(() => ({ x: Math.max(0, (typeof window !== "undefined" ? window.innerWidth : 1280) - 720), y: Math.max(0, (typeof window !== "undefined" ? window.innerHeight : 900) - 300) }));
+  const d = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const used = new Set(timeline.clips.flatMap((c) => c.uids ?? c.layer?.order ?? []));
+  const list = used.size ? fixtures.filter((f) => used.has(f.uid)) : fixtures;
+  return (
+    <div className="fixed z-[60] flex flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-2xl" style={{ left: pos.x, top: pos.y, width: 360, height: 260, resize: "both", minWidth: 180, minHeight: 120 }}>
+      <div className="flex cursor-move touch-none select-none items-center gap-2 border-b border-border bg-surface-elevated px-2 py-1 text-xs font-semibold"
+        onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture(e.pointerId); d.current = { x: e.clientX, y: e.clientY, ox: pos.x, oy: pos.y }; }}
+        onPointerMove={(e) => { const r = d.current; if (r) setPos({ x: Math.max(0, r.ox + e.clientX - r.x), y: Math.max(0, r.oy + e.clientY - r.y) }); }}
+        onPointerUp={() => { d.current = null; }}>
+        <MonitorPlay className="h-3.5 w-3.5" />Visualiser<span className="font-normal text-muted-foreground">{list.length} lights · drag to move, corner to resize</span>
+        <button aria-label="Close visualiser" onPointerDown={(e) => e.stopPropagation()} onClick={onClose} className="ml-auto text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+      </div>
+      <div className="grid flex-1 auto-rows-fr gap-1.5 overflow-auto p-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))" }}>
+        {list.map((f) => { const c = colorOf?.(f) ?? [0, 0, 0]; return (
+          <div key={f.uid} className="flex min-h-12 flex-col justify-end rounded-md border border-border p-1 text-[10px] font-semibold" style={{ background: `rgb(${c[0]},${c[1]},${c[2]})`, boxShadow: `0 0 18px rgb(${c[0]},${c[1]},${c[2]} / 0.6)` }}>
+            <span className="truncate">{f.name}</span>
+          </div>); })}
+        {!list.length && <p className="col-span-full p-4 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
+      </div>
     </div>
   );
 }
