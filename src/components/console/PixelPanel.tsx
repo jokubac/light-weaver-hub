@@ -69,15 +69,6 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
     }
   };
 
-  if (allPx.length === 0) {
-    return (
-      <div className="space-y-2">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pixel map</h2>
-        <p className="text-sm text-muted-foreground">Patch a light in a pixel mode first (e.g. Astera Titan Tube → "Pixel RGB (16 px)"). Search "pixel" in Patch.</p>
-      </div>
-    );
-  }
-
   const { placed, W, H, frame: preview } = pixelPreview({ ...layer, order: inMap }, fixtures, frame, now);
 
   return (
@@ -87,6 +78,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         {anyPlaying && <button onClick={() => setLayers(layers.map((l) => ({ ...l, playing: false })))} className="rounded-md bg-destructive px-3 py-1.5 text-[11px] font-bold text-destructive-foreground">STOP ALL</button>}
       </div>
 
+      {allPx.length === 0 && <p className="rounded-md bg-surface-elevated/60 px-2 py-1.5 text-[11px] text-muted-foreground">No pixel lights yet — you can prepare effects now. Patch a light in a pixel mode (search "pixel" in PATCH) to play them.</p>}
       {/* layers: several effects can run at once on different lights */}
       <div className="flex flex-wrap gap-1.5">
         {layers.map((l) => (
