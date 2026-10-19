@@ -56,3 +56,19 @@ describe("timeline keyframes and adjustment layers", () => {
     expect(timelineAt(t, 4, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.5);
   });
 });
+
+import { stretchTrack } from "@/lib/timeline";
+describe("adjustment boost and layer stretch", () => {
+  it("adjustment at 200% lifts 10% lights to 20%", () => {
+    const t: Timeline = { tracks: [{ id: "adj", name: "A", adjust: true }, { id: "l", name: "L" }], clips: [
+      { id: "c", track: "l", kind: "level", name: "c", start: 0, length: 10, uids: ["a"], from: { intensity: 0.1 }, to: { intensity: 0.1 } },
+      { id: "a", track: "adj", kind: "adjust", name: "A", start: 0, length: 10, keys: [{ id: "k", t: 0, intensity: 2 }] }] };
+    expect(timelineAt(t, 5, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.2);
+  });
+  it("stretching a layer to 50% speed doubles timing and points", () => {
+    const t: Timeline = { tracks: [{ id: "l", name: "L" }], clips: [{ id: "c", track: "l", kind: "level", name: "c", start: 2, length: 4, fadeIn: 1, keys: [{ id: "k", t: 3, intensity: 1 }] }, { id: "d", track: "l", kind: "rec", name: "d", start: 6, length: 2 }] };
+    const s = stretchTrack(t, "l", 2);
+    expect(s.clips[0]).toMatchObject({ start: 2, length: 8, fadeIn: 2 }); expect(s.clips[0]!.keys![0]!.t).toBe(6);
+    expect(s.clips[1]).toMatchObject({ start: 10, length: 4, rate: 0.5 });
+  });
+});
