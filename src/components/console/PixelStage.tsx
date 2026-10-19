@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { RotateCw, ZoomIn, ZoomOut, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
-import { canvasPositions, canvasSize, layerArea, renderCanvasImage, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
+import { canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
 import { useClock } from "./PixelPanel";
 
@@ -32,7 +32,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const bg = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = bg.current; if (!c || !layer) return;
-    const { W: w, H: h, img } = renderCanvasImage(layer, fixtures, now, layer.kind === "text" ? textMask(layer.text.toUpperCase(), stage.H) : null);
+    const shown = layers.filter((l) => l.playing || l.id === layer.id);
+    const { W: w, H: h, img } = renderCanvasComposite(shown, fixtures, now, (l) => (l.kind === "text" ? textMask(l.text.toUpperCase(), layerArea(l, stage).h) : null));
     c.width = w; c.height = h;
     const ctx = c.getContext("2d"); if (!ctx) return;
     const data = ctx.createImageData(w, h);
@@ -61,7 +62,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
           <span className="font-semibold">Pixel canvas</span>
-          <span className="text-muted-foreground">Drag the dashed box to move the effect, its corner to resize it · drag lights · tap to add/remove from “{layer?.name}”</span>
+          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · drag lights · tap to add/remove from “{layer?.name}”</span>
           <div className="ml-auto flex gap-1">
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c - 4))}><ZoomOut /></Button>
