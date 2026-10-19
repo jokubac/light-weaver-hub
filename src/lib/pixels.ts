@@ -297,7 +297,7 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
   const { placed, W, H, S } = layoutLayer(layer, fixtures);
   if (!placed.length) return out;
   const { at, finish } = makeSampler(layer, W, H, S, t, mask);
-  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => (c.s < 0 ? BLACK : finish(at(c.x, c.y, c.s)))));
+  for (const p of placed) out.set(p.f.uid, p.cells.map((c, i) => (c.s < 0 ? out.get(p.f.uid)?.[i] ?? BLACK : finish(at(c.x, c.y, c.s)))));
   return out;
 }
 
@@ -310,6 +310,18 @@ export function renderCanvasImage(layer: PixelLayer, fixtures: PatchedFixture[],
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const lx = x - a.x, ly = y - a.y;
     img.push(lx >= 0 && ly >= 0 && lx < a.w && ly < a.h ? finish(at(lx, ly, lx)) : BLACK);
+  }
+  return { W, H, img };
+}
+
+/** Several effect layers stacked into one canvas picture: each layer paints only its own area, upper layers on top. */
+export function renderCanvasComposite(layers: PixelLayer[], fixtures: PatchedFixture[], t: number, maskOf: (l: PixelLayer) => ReturnType<typeof textMask> | null) {
+  const { W, H } = stageSize(fixtures);
+  const img: RGB[] = Array.from({ length: W * H }, () => BLACK);
+  for (const l of layers) {
+    const a = layerArea(l, { W, H });
+    const { at, finish } = makeSampler(l, a.w, a.h, a.w, t, maskOf(l));
+    for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) img[(a.y + y) * W + a.x + x] = finish(at(x, y, x));
   }
   return { W, H, img };
 }

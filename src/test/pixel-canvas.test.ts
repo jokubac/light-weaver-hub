@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createFixture, FIXTURE_LIBRARY } from "@/lib/dmx";
-import { defaultLayer, layerArea, stageSize, migrateLayers, PIXEL_LIBRARY, renderCanvasImage, renderLayer, type PixelLayer } from "@/lib/pixels";
+import { defaultLayer, renderLayers, layerArea, stageSize, migrateLayers, PIXEL_LIBRARY, renderCanvasImage, renderLayer, type PixelLayer } from "@/lib/pixels";
 
 function fixture(name: string, x: number, y: number) {
   const def = FIXTURE_LIBRARY.find((d) => d.modes.some((m) => (m.pixels ?? 0) >= 4))!;
@@ -41,5 +41,17 @@ describe("resizable effect area", () => {
   it("canvas is fixed and the area is clamped inside it", () => {
     expect(stageSize([fixture("Far", 200, 200)])).toEqual({ W: 48, H: 24 });
     expect(layerArea({ area: { x: 40, y: -3, w: 20, h: 5 } }, { W: 48, H: 24 })).toEqual({ x: 28, y: 0, w: 20, h: 5 });
+  });
+});
+
+describe("several effects in one window", () => {
+  it("two layers with separate areas both reach the same light", () => {
+    const def = FIXTURE_LIBRARY.find((d) => d.modes.some((m) => (m.pixels ?? 0) >= 8))!;
+    const f = { ...createFixture(def, def.modes.findIndex((m) => (m.pixels ?? 0) >= 8), 1, 1, "Bar"), pixelPos: { x: 0, y: 0 } };
+    const red = { ...defaultLayer("R", [f.uid]), kind: "solid" as const, colors: ["#ff0000"], playing: true, area: { x: 0, y: 0, w: 2, h: 24 } };
+    const blue = { ...defaultLayer("B", [f.uid]), kind: "solid" as const, colors: ["#0000ff"], playing: true, area: { x: 2, y: 0, w: 46, h: 24 } };
+    const px = renderLayers([red, blue], [f], 1, new Map()).get(f.uid)!;
+    expect(px[0]).toEqual([255, 0, 0]);
+    expect(px[3]).toEqual([0, 0, 255]);
   });
 });
