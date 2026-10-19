@@ -177,3 +177,4 @@
 - [x] Prie makro pasirinkimų (assign dialog) pridėti lempos dydžio mygtuką su stopais 1/8 1/4 1/2 1 2 3 4 (Jokubas)
 - [x] Macro table: plotis susitraukia iki 1 langelio (per daug), aukštis iš apačios nesitraukia — pataisyti (Jokubas)
 - [x] Default GRID TOOLS table: Redo sits where Check out! was and Check out! below it (same colours); 3 default-layout tests passed, browser verified in a fresh scene.
+- [x] TIMELINE tab: layers, FX/Pixel/REC/level clips, audio waveform
