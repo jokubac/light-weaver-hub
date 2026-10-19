@@ -36,7 +36,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const setAngle = (a: number) => { onLayer?.({ angle: a }); sample(baseArea.x, baseArea.y, a); };
   const toggleRec = () => {
     if (!layer || !onLayer) return;
-    if (!rec.current) { rec.current = { start: performance.now() / 1000, pts: [] }; sample(baseArea.x, baseArea.y, layer.angle ?? 0); onLayer({ motion: undefined, motionLen: undefined, area: baseArea }); setRecording(true); return; }
+    if (!rec.current) { rec.current = { start: performance.now() / 1000, pts: [] }; sample(baseArea.x, baseArea.y, layer.angle ?? 0); onLayer({ motion: [], motionLen: 0, area: baseArea }); setRecording(true); return; }
     const r = rec.current; rec.current = null; setRecording(false);
     const len = performance.now() / 1000 - r.start;
     if (r.pts.length > 1 && len > 0.2) { const last = r.pts[r.pts.length - 1]!; onLayer({ motion: [...r.pts, { ...last, t: len }], motionLen: len }); }
@@ -95,7 +95,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
               <input type="number" step={5} value={layer.spin ?? 0} onChange={(e) => onLayer({ spin: Number(e.target.value) || 0 })} className="w-16 rounded bg-surface-elevated px-1 py-0.5" />°/s
             </label>
             <Button size="sm" variant={recording ? "destructive" : "secondary"} onClick={toggleRec}>{recording ? "■ Stop REC" : "● REC move"}</Button>
-            {layer.motion?.length ? <><span className="text-muted-foreground">Recorded {layer.motionLen?.toFixed(1)} s · loops</span><Button size="sm" variant="secondary" onClick={() => onLayer({ motion: undefined, motionLen: undefined })}>Clear move</Button></> : <span className="text-muted-foreground">{recording ? "Drag the box and rotate now…" : "Press REC, then drag/rotate the box"}</span>}
+            {layer.motion?.length ? <><span className="text-muted-foreground">Recorded {layer.motionLen?.toFixed(1)} s · loops</span><Button size="sm" variant="secondary" onClick={() => onLayer({ motion: [], motionLen: 0 })}>Clear move</Button></> : <span className="text-muted-foreground">{recording ? "Drag the box and rotate now…" : "Press REC, then drag/rotate the box"}</span>}
           </div>
         )}
         {onSelect && (
