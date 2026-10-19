@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent } from "react";
-import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X } from "lucide-react";
+import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/console/NumberField";
 import { useFxLibrary } from "@/lib/fxlib";
 import { membersOf } from "@/lib/fixture-groups";
-import type { PatchedFixture } from "@/lib/dmx";
-import type { PixelLayer } from "@/lib/pixels";
+import { defaultFx, type FxParams, type PatchedFixture } from "@/lib/dmx";
+import { PIXEL_LIBRARY, defaultLayer, isPixelFixture, type PixelLayer } from "@/lib/pixels";
 import type { Recording } from "@/lib/store";
 import { clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey } from "@/lib/timeline";
 
