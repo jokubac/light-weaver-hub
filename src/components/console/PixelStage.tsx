@@ -114,9 +114,9 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Layer</Button>}
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-auto p-3">
+        <div className="flex min-h-0 flex-1 overflow-auto p-3">
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">Patch a light in a pixel mode first (search “pixel” in PATCH).</p> : (
-            <div className="relative rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
+            <div className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
 
               {layers.filter((l) => l.id !== layer?.id).map((l) => { const a = layerArea(l, stage); return (
