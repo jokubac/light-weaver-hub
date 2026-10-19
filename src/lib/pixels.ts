@@ -48,6 +48,30 @@ export interface PixelLayer {
   videoName?: string;
   /** canvas cells the effect covers; whole canvas when unset */
   area?: { x: number; y: number; w: number; h: number };
+  /** effect rotation in degrees around the area centre */
+  angle?: number;
+  /** continuous rotation, degrees per second */
+  spin?: number;
+  /** recorded movement of the effect box: absolute x/y/angle at t seconds, looped over motionLen */
+  motion?: { t: number; x: number; y: number; a: number }[];
+  motionLen?: number;
+}
+
+/** Layer as it sits at time t: recorded motion and spin applied to area/angle. */
+export function layerAt<L extends PixelLayer>(l: L, t: number): L {
+  const m = l.motion;
+  let x = l.area?.x, y = l.area?.y, a = l.angle ?? 0;
+  if (m?.length) {
+    const len = Math.max(0.05, l.motionLen ?? m[m.length - 1]!.t);
+    const tt = ((t % len) + len) % len;
+    let i = 0; while (i < m.length - 1 && m[i + 1]!.t <= tt) i++;
+    const p = m[i]!, q = m[i + 1];
+    const k = q && q.t > p.t ? (tt - p.t) / (q.t - p.t) : 0;
+    x = p.x + ((q?.x ?? p.x) - p.x) * k; y = p.y + ((q?.y ?? p.y) - p.y) * k; a = p.a + ((q?.a ?? p.a) - p.a) * k;
+  }
+  a += (l.spin ?? 0) * t;
+  if (!a && !m?.length) return l;
+  return { ...l, angle: a, area: l.area && x != null && y != null ? { ...l.area, x, y } : l.area };
 }
 
 export const POLICE_FLASHES = [{ n: 1, l: "Single" }, { n: 2, l: "Double" }, { n: 3, l: "Triple" }, { n: 4, l: "Quad" }];
@@ -293,7 +317,8 @@ export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
 }
 
 /** Colours (0-255) per fixture uid, one entry per pixel. */
-export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null, out = new Map<string, RGB[]>()) {
+export function renderLayer(layer0: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null, out = new Map<string, RGB[]>()) {
+  const layer = layerAt(layer0, t);
   const { placed, W, H, S } = layoutLayer(layer, fixtures);
   if (!placed.length) return out;
   const { at, finish } = makeSampler(layer, W, H, S, t, mask);
@@ -302,7 +327,8 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
 }
 
 /** The effect painted over the whole PIXEL canvas, like a video frame (row-major, W×H). */
-export function renderCanvasImage(layer: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null) {
+export function renderCanvasImage(layer0: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null) {
+  const layer = layerAt(layer0, t);
   const { W, H } = stageSize(fixtures);
   const a = layerArea(layer, { W, H });
   const { at, finish } = makeSampler(layer, a.w, a.h, a.w, t, mask);
@@ -318,7 +344,8 @@ export function renderCanvasImage(layer: PixelLayer, fixtures: PatchedFixture[],
 export function renderCanvasComposite(layers: PixelLayer[], fixtures: PatchedFixture[], t: number, maskOf: (l: PixelLayer) => ReturnType<typeof textMask> | null) {
   const { W, H } = stageSize(fixtures);
   const img: RGB[] = Array.from({ length: W * H }, () => BLACK);
-  for (const l of layers) {
+  for (const l0 of layers) {
+    const l = layerAt(l0, t);
     const a = layerArea(l, { W, H });
     const { at, finish } = makeSampler(l, a.w, a.h, a.w, t, maskOf(l));
     for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) img[(a.y + y) * W + a.x + x] = finish(at(x, y, x));
@@ -352,7 +379,7 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
       }
       case "video": {
         if (!vid) return BLACK;
-        const i = (Math.min(H - 1, y) * W + Math.min(W - 1, layer.reverse ? W - 1 - x : x)) * 4;
+        const i = (Math.max(0, Math.min(H - 1, y)) * W + Math.max(0, Math.min(W - 1, layer.reverse ? W - 1 - x : x))) * 4;
         return tinted([vid[i]!, vid[i + 1]!, vid[i + 2]!]);
       }
       case "solid": return cols[0]!;
@@ -437,15 +464,23 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
         const off = Math.floor(tt * 10);
         const mx = ((((x + off * dir) % mask.w) + mask.w) % mask.w);
         const my = Math.floor((y / H) * mask.h);
+        if (my < 0 || my >= mask.h) return BLACK;
         return mask.on(mx, my) ? cols[0]! : BLACK;
       }
     }
   };
 
+  const rad = ((layer.angle ?? 0) * Math.PI) / 180;
+  const cs = Math.cos(rad), sn = Math.sin(rad), cx = (W - 1) / 2, cy = (H - 1) / 2;
+  const atR = rad ? (x: number, y: number, s: number): RGB => {
+    const dx = x - cx, dy = y - cy;
+    const rx = Math.round(cx + dx * cs + dy * sn), ry = Math.round(cy - dx * sn + dy * cs);
+    return at(rx, ry, s >= 0 ? rx : s);
+  } : at;
   const brightness = Math.min(1, Math.max(0, layer.brightness ?? 1));
   const background = Math.min(1, Math.max(0, layer.background ?? 0));
   const finish = (c: RGB): RGB => scale(mix(cols[0] ?? BLACK, c, 1 - background), brightness);
-  return { at, finish };
+  return { at: atR, finish };
 }
 
 /** Renders all playing layers; later layers override earlier ones on shared fixtures. */
