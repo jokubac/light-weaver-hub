@@ -3,7 +3,7 @@
 // several independent layers playing at once.
 
 import { getMode, hexToRgb, hsvToRgb, type PatchedFixture } from "./dmx";
-import { generatorById } from "./pixel-generators";
+import { generatorById, PIXEL_GENERATORS } from "./pixel-generators";
 import { videoFrame } from "./pixel-media";
 
 export type PixelFx =
@@ -76,6 +76,30 @@ export const PIXEL_FX: { id: PixelFx; label: string }[] = [
   { id: "video", label: "Video" },
 ];
 
+/** One library entry: built-in effect or generator. Each look appears once, sorted by group. */
+export interface PixelLook { key: string; label: string; group: string; kind: PixelFx; gen?: string }
+export const PIXEL_GROUPS = ["Chase", "Colour", "Fire", "Water", "Sky", "Nature", "Party", "Shapes", "Media"];
+const BUILT_IN: PixelLook[] = [
+  { key: "runner", label: "Runner", group: "Chase", kind: "runner" },
+  { key: "chase", label: "Chase", group: "Chase", kind: "chase" },
+  { key: "meteor", label: "Meteor", group: "Chase", kind: "meteor" },
+  { key: "bounce", label: "Scanner", group: "Chase", kind: "bounce" },
+  { key: "solid", label: "Colour", group: "Colour", kind: "solid" },
+  { key: "rainbow", label: "Rainbow", group: "Colour", kind: "rainbow" },
+  { key: "gradient", label: "Gradient", group: "Colour", kind: "gradient" },
+  { key: "wave", label: "Wave", group: "Colour", kind: "wave" },
+  { key: "plasma", label: "Plasma", group: "Colour", kind: "plasma" },
+  { key: "twinkle", label: "Stars", group: "Sky", kind: "twinkle" },
+  { key: "sparkle", label: "Sparkle", group: "Party", kind: "sparkle" },
+  { key: "strobe", label: "Strobe", group: "Party", kind: "strobe" },
+  { key: "police", label: "Police", group: "Party", kind: "police" },
+  { key: "text", label: "Text", group: "Media", kind: "text" },
+  { key: "video", label: "Video", group: "Media", kind: "video" },
+];
+export const PIXEL_LIBRARY: PixelLook[] = [...BUILT_IN, ...PIXEL_GENERATORS.map((g) => ({ key: `gen:${g.id}`, label: g.label, group: g.group, kind: "generator" as const, gen: g.id }))];
+export const lookOf = (l: Pick<PixelLayer, "kind" | "gen">) =>
+  PIXEL_LIBRARY.find((x) => x.kind === l.kind && (l.kind !== "generator" || x.gen === (l.gen ?? PIXEL_GENERATORS[0]!.id)));
+
 const newId = () => Math.random().toString(36).slice(2, 10);
 
 /** Copied effect settings: identity, name, order (which lights) and playing never travel. */
@@ -88,12 +112,12 @@ export function copyPixelEffect(l: PixelLayer): PixelEffectClipboard {
 
 /** Paste onto an existing layer: keeps the layer's lights, replaces the effect. */
 export function applyPixelEffect(layer: PixelLayer, clip: PixelEffectClipboard): PixelLayer {
-  return { ...structuredClone(clip), id: layer.id, name: layer.name, playing: false, order: layer.order };
+  return normalizeLayer({ ...structuredClone(clip), id: layer.id, name: layer.name, playing: false, order: layer.order });
 }
 
 /** Paste as a new layer aimed at other lights, e.g. the ones selected in the console. */
 export function pastePixelEffect(name: string, order: string[], clip: PixelEffectClipboard): PixelLayer {
-  return { ...structuredClone(clip), id: newId(), name, playing: false, order };
+  return normalizeLayer({ ...structuredClone(clip), id: newId(), name, playing: false, order });
 }
 
 /** localStorage key so a copied effect survives closing the app. */
@@ -120,11 +144,20 @@ export const defaultLayer = (name = "Layer 1", order: string[] = []): PixelLayer
   reverse: false,
 });
 
+/** Every effect paints the canvas; duplicates merged into one catalog entry. */
+export function normalizeLayer(l: PixelLayer): PixelLayer {
+  const n: PixelLayer = { ...l, layout: "canvas" };
+  if (n.kind === "fire") { n.kind = "generator"; n.gen = "fire-classic"; }
+  if (n.kind === "generator" && n.gen === "stars") n.kind = "twinkle";
+  if (n.kind === "generator" && n.gen === "scanner") n.kind = "bounce";
+  return n;
+}
+
 export function migrateLayers(s: { pixelLayers?: PixelLayer[]; pixelMap?: PixelMap }): PixelLayer[] {
-  if (s.pixelLayers?.length) return s.pixelLayers.map((l) => ({ ...defaultLayer(), ...l, playing: false }));
+  if (s.pixelLayers?.length) return s.pixelLayers.map((l) => normalizeLayer({ ...defaultLayer(), ...l, playing: false }));
   if (s.pixelMap) {
-    const { vertical, ...rest } = s.pixelMap;
-    return [{ ...defaultLayer(), ...rest, layout: vertical ? "upright" : "stack", playing: false }];
+    const { vertical: _v, ...rest } = s.pixelMap;
+    return [normalizeLayer({ ...defaultLayer(), ...rest, playing: false })];
   }
   return [defaultLayer()];
 }
@@ -176,7 +209,7 @@ interface Placed { f: PatchedFixture; cells: { x: number; y: number; s: number }
 /** Positions of every pixel of every fixture in the layer on one shared grid. */
 export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number; S: number } {
   const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
-  if (layer.layout === "canvas") return layoutCanvas(list, canvasPositions(fixtures));
+  if (layer.layout === "canvas") return layoutCanvas(list, canvasPositions(fixtures), stageSize(fixtures));
   const placed: Placed[] = [];
   let ox = 0, oy = 0, W = 0, H = 0, seq = 0;
   for (const f of list) {
@@ -218,10 +251,19 @@ export function canvasPositions(fixtures: PatchedFixture[]): Map<string, { x: nu
   return out;
 }
 
-function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>) {
+/** Minimum PIXEL canvas in cells; grows with lights placed further out. */
+export const STAGE_MIN: [number, number] = [48, 24];
+
+/** Whole canvas the effect is painted on, so every light samples the spot it sits on. */
+export function stageSize(fixtures: PatchedFixture[]): { W: number; H: number } {
+  const pos = canvasPositions(fixtures);
+  let [W, H] = STAGE_MIN;
+  for (const f of fixtures.filter(isPixelFixture)) { const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); W = Math.max(W, p.x + w); H = Math.max(H, p.y + h); }
+  return { W, H };
+}
+
+function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>, stage: { W: number; H: number }) {
   const placed: Placed[] = [];
-  let seq = 0, minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
-  for (const f of list) { const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x + w); maxY = Math.max(maxY, p.y + h); }
   for (const f of list) {
     const p = pos.get(f.uid)!;
     const [lc] = pixelGrid(f);
@@ -230,11 +272,12 @@ function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: n
     for (let i = 0; i < n; i++) {
       const px = i % lc, py = Math.floor(i / lc);
       const [lx, ly] = p.r === 90 ? [py, px] : [px, py];
-      cells.push({ x: p.x - minX + lx, y: p.y - minY + ly, s: seq++ });
+      // travelling effects sweep across the canvas, so s follows x
+      cells.push({ x: p.x + lx, y: p.y + ly, s: p.x + lx });
     }
     placed.push({ f, cells });
   }
-  return { placed, W: Math.max(1, maxX - minX), H: Math.max(1, maxY - minY), S: Math.max(1, seq) };
+  return { placed, W: stage.W, H: stage.H, S: stage.W };
 }
 
 export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
@@ -245,6 +288,21 @@ export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
 export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null, out = new Map<string, RGB[]>()) {
   const { placed, W, H, S } = layoutLayer(layer, fixtures);
   if (!placed.length) return out;
+  const { at, finish } = makeSampler(layer, W, H, S, t, mask);
+  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => finish(at(c.x, c.y, c.s))));
+  return out;
+}
+
+/** The effect painted over the whole PIXEL canvas, like a video frame (row-major, W×H). */
+export function renderCanvasImage(layer: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null) {
+  const { W, H } = stageSize(fixtures);
+  const { at, finish } = makeSampler(layer, W, H, W, t, mask);
+  const img: RGB[] = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) img.push(finish(at(x, y, x)));
+  return { W, H, img };
+}
+
+function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: number, mask: ReturnType<typeof textMask> | null) {
   const cols: RGB[] = layer.colors.length ? layer.colors.map(hexToRgb) : [[255, 255, 255]];
   const tintRgb = layer.tint ? hexToRgb(layer.tint) : null;
   const tinted = (c: RGB): RGB => (tintRgb ? (c.map((v, i) => (v * tintRgb[i]!) / 255) as RGB) : c);
@@ -362,8 +420,8 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
 
   const brightness = Math.min(1, Math.max(0, layer.brightness ?? 1));
   const background = Math.min(1, Math.max(0, layer.background ?? 0));
-  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => scale(mix(cols[0] ?? BLACK, at(c.x, c.y, c.s), 1 - background), brightness)));
-  return out;
+  const finish = (c: RGB): RGB => scale(mix(cols[0] ?? BLACK, c, 1 - background), brightness);
+  return { at, finish };
 }
 
 /** Renders all playing layers; later layers override earlier ones on shared fixtures. */

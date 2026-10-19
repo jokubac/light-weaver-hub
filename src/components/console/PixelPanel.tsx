@@ -7,19 +7,11 @@ import { groupNamesOf, membersOf } from "@/lib/fixture-groups";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
-import { PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, pixelCount, pixelGrid, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelLayout, type PixelEffectClipboard } from "@/lib/pixels";
+import { PIXEL_LIBRARY, PIXEL_GROUPS, lookOf, POLICE_FLASHES, defaultLayer, isPixelFixture, pixelCount, pixelGrid, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelEffectClipboard } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
-import { PIXEL_GENERATORS, PIXEL_GENERATOR_GROUPS } from "@/lib/pixel-generators";
 import { saveVideo, videoMissing } from "@/lib/pixel-media";
 
 type RGB = [number, number, number];
-
-const LAYOUTS: { id: PixelLayout; label: string; hint: string }[] = [
-  { id: "canvas", label: "Canvas", hint: "Uses where the lights sit on the PIXEL canvas" },
-  { id: "line", label: "In a line", hint: "End to end — effects flow from one light into the next" },
-  { id: "upright", label: "Upright", hint: "Tubes standing side by side (best for text)" },
-  { id: "stack", label: "Stacked", hint: "Horizontal lights stacked on top of each other" },
-];
 
 export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, activeId, onActiveChange, pixelMaster = 1, onPixelMaster, hidePreview }: {
   hidePreview?: boolean; fixtures: PatchedFixture[]; selected?: string[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>; activeId: string; onActiveChange: (id: string) => void;
@@ -126,31 +118,22 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={effectsOpen} aria-controls="pixel-effect-choices" onClick={() => setEffectsOpen((open) => !open)}>
           {effectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           Effects
-          <span className="ml-auto text-xs text-muted-foreground">{PIXEL_FX.find((effect) => effect.id === layer.kind)?.label}</span>
+          <span className="ml-auto text-xs text-muted-foreground">{lookOf(layer)?.label}</span>
         </Button>
         <div id="pixel-effect-choices" hidden={!effectsOpen} className="space-y-3">
-          <div className="grid grid-cols-3 gap-1.5">
-            {PIXEL_FX.map((e) => (
-              <Button key={e.id} variant={layer.kind === e.id ? "default" : "secondary"} aria-pressed={layer.kind === e.id} onClick={() => set({ kind: e.id })} className="h-auto py-2.5 text-xs font-semibold">{e.label}</Button>
-            ))}
-          </div>
-
-      {layer.kind === "generator" && (
-        <div className="space-y-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Generators ({PIXEL_GENERATORS.length})</div>
-          {PIXEL_GENERATOR_GROUPS.map((g) => (
+          <p className="text-[10px] text-muted-foreground">Every effect plays over the whole PIXEL canvas like a video — each light shows the part it sits on.</p>
+          {PIXEL_GROUPS.map((g) => (
             <div key={g} className="space-y-1">
-              <div className="text-[10px] text-muted-foreground">{g}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{g}</div>
               <div className="grid grid-cols-3 gap-1">
-                {PIXEL_GENERATORS.filter((x) => x.group === g).map((x) => (
-                  <button key={x.id} aria-pressed={(layer.gen ?? PIXEL_GENERATORS[0]!.id) === x.id} onClick={() => set({ gen: x.id })}
-                    className={`rounded-md px-1 py-1.5 text-[11px] font-semibold ${(layer.gen ?? PIXEL_GENERATORS[0]!.id) === x.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{x.label}</button>
-                ))}
+                {PIXEL_LIBRARY.filter((x) => x.group === g).map((x) => {
+                  const on = lookOf(layer)?.key === x.key;
+                  return <button key={x.key} aria-pressed={on} onClick={() => set(x.gen ? { kind: x.kind, gen: x.gen } : { kind: x.kind })}
+                    className={`rounded-md px-1 py-1.5 text-[11px] font-semibold ${on ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{x.label}</button>;
+                })}
               </div>
             </div>
           ))}
-        </div>
-      )}
 
       {layer.kind === "video" && (
         <div className="space-y-1.5">
@@ -163,14 +146,14 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
             }} />
           </label>
           {videoMissing(layer.videoId) && <p className="text-[10px] text-destructive">This video is not on this device — choose it again.</p>}
-          <p className="text-[10px] text-muted-foreground">The video is scaled over all lights in this layer and loops. It is kept only on this device.</p>
+          <p className="text-[10px] text-muted-foreground">The video fills the whole PIXEL canvas and loops; each light shows its spot. It is kept only on this device.</p>
         </div>
       )}
 
       {layer.kind === "text" && (
         <div className="space-y-1">
           <input value={layer.text} onChange={(e) => set({ text: e.target.value.slice(0, 60) })} placeholder="Type text to scroll…" className="w-full font-mono uppercase rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-          <p className="text-[10px] text-muted-foreground">Text is {H} pixels tall. Use "Upright" with several tubes side by side for readable letters.</p>
+          <p className="text-[10px] text-muted-foreground">Text is {H} pixels tall.</p>
         </div>
       )}
 
@@ -191,13 +174,6 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       )}
 
       <div className="space-y-1.5">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Layout</div>
-        <div className="grid grid-cols-4 gap-1.5">
-          {LAYOUTS.map((l) => (
-            <button key={l.id} title={l.hint} onClick={() => set({ layout: l.id })} className={`rounded-md py-2 text-xs font-semibold ${layer.layout === l.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{l.label}</button>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted-foreground">{LAYOUTS.find((l) => l.id === layer.layout)?.hint}</p>
         <button onClick={() => set({ reverse: !layer.reverse })} className={`flex w-full items-center justify-center gap-1 rounded-md py-2 text-xs font-semibold ${layer.reverse ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><ArrowLeftRight className="h-3.5 w-3.5" />Reverse direction</button>
       </div>
         </div>
@@ -216,7 +192,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       {layer.kind === "sparkle" && <Slider label="Density" value={layer.density ?? 0.15} min={0} max={1} display={`${Math.round((layer.density ?? 0.15) * 100)}%`} onChange={(density) => set({ density })} />}
       <Slider label="Phase offset" value={layer.phase ?? 0} min={0} max={1} display={`${Math.round((layer.phase ?? 0) * 100)}%`} onChange={(phase) => set({ phase })} />
       {layer.kind === "runner" && <Slider label="Runners" value={layer.runners ?? 1} min={1} max={8} step={1} display={`${layer.runners ?? 1}`} onChange={(v) => set({ runners: v })} />}
-      {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">A block of {layer.size} px travels through all {placed.length} lights ({W} px) one after another. Use "In a line".</p>}
+      {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">A block of {layer.size} px travels through all {placed.length} lights ({W} px) one after another.</p>}
       {["runner", "chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label="Size" value={layer.size} min={1} max={Math.max(32, W)} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
 
         </div>
@@ -228,7 +204,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
           {!coloursOpen && <span className="ml-auto flex gap-1" aria-hidden="true">{layer.colors.map((colour, i) => <span key={i} className="h-3 w-3 rounded-sm" style={{ background: colour }} />)}</span>}
         </Button>
         <div id="pixel-colour-editor" hidden={!coloursOpen}>
-          <PaletteEditor colours={layer.colors} native={["rainbow", "plasma", "fire"].includes(layer.kind) && !layer.customPalette}
+          <PaletteEditor colours={layer.colors} native={["rainbow", "plasma", "generator", "twinkle"].includes(layer.kind) && !layer.customPalette}
             onChange={(colors) => set({ colors, customPalette: true, tint: "" })}
             onReset={() => set({ customPalette: false, tint: "" })} />
         </div>
