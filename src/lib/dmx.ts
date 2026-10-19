@@ -1,6 +1,6 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
 import { asteraModes, asteraSpec, asteraSpecFromName } from "./astera";
-import { pixelLayout } from "./pixel-layout";
+import { pixelLayout, pixelShape, knownLayout } from "./pixel-layout";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";
@@ -34,6 +34,7 @@ export interface ChannelMapEntry {
 
 export interface FixtureMode {
   pixels?: number; // pixel count for pixel modes
+  cells?: [number, number][]; // exact [x, y] per pixel inside grid, for non-rectangular fixtures (hexagons)
   grid?: [number, number]; // physical pixel layout [cols, rows], numbered row by row from top-left
   name: string;
   channels: number;
@@ -306,6 +307,9 @@ export const deriveMode = (d: { brand?: string; model?: string }, mo: FixtureMod
   let out = derivedModes.get(mo);
   if (out) return out;
   out = deriveCells(d, mo);
+  const sh = (out.pixels ?? 0) > 1 && !out.astera ? pixelShape(d.model ?? "", out.pixels!) : undefined;
+  if (sh) out = { ...out, ...sh };
+  else if ((out.pixels ?? 0) > 1 && !out.astera) { const k = knownLayout(d.model ?? "", out.pixels!); if (k) out = { ...out, grid: k }; }
   if ((out.pixels ?? 0) > 1 && !out.grid && !out.astera) { const g = pixelLayout(d.model ?? "", out.name, out.pixels!); if (g) out = { ...out, grid: g }; }
   derivedModes.set(mo, out);
   return out;

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
-import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
+import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
 import { useClock } from "./PixelPanel";
 
@@ -68,7 +68,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     return (
       <div className="grid h-full w-full gap-px" style={{ gridTemplateColumns: `repeat(${gw}, 1fr)`, gridTemplateRows: `repeat(${gh}, 1fr)` }}>
         {Array.from({ length: pixelCount(f) }, (_, i) => {
-          const x = i % lc, y = Math.floor(i / lc); const [cx, cy] = rot === 90 ? [y, x] : [x, y]; const c = cols?.[i];
+          const [x, y] = pixelCell(f, i); const [cx, cy] = rot === 90 ? [y, x] : [x, y]; const c = cols?.[i];
           return <div key={i} className="rounded-[2px]" style={{ gridColumn: cx + 1, gridRow: cy + 1, minWidth: size > 6 ? 0 : undefined, background: c ? `rgb(${c[0]},${c[1]},${c[2]})` : "var(--muted)" }} />;
         })}
       </div>
