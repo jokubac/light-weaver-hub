@@ -26,7 +26,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const W = stage.W, H = stage.H;
   const area = layerArea(layer ?? {}, stage);
   const areaDrag = useRef<{ mode: "move" | "size"; x: number; y: number; a: typeof area } | null>(null);
-  const clampPos = (f: PatchedFixture, x: number, y: number, r?: number) => { const [w, h] = canvasSize({ ...f, pixelPos: { x: 0, y: 0, r } }); return { x: Math.max(0, Math.min(W - w, x)), y: Math.max(0, Math.min(H - h, y)), r }; };
+  const clampPos = (f: PatchedFixture, x: number, y: number, r = 0) => { const [w, h] = canvasSize({ ...f, pixelPos: { x: 0, y: 0, r } }); return { x: Math.max(0, Math.min(W - w, x)), y: Math.max(0, Math.min(H - h, y)), r }; };
   // effect painted over the whole canvas, like a video; lights pick up the spot they sit on
   const bg = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
