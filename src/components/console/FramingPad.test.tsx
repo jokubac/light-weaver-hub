@@ -8,7 +8,7 @@ function Harness({ attrs, out }: { attrs: BeamAttr[]; out: Record<string, number
   const [v, setV] = useState<Record<string, number>>({});
   return <FramingPad has={(a) => attrs.includes(a)} value={(a) => v[a] ?? (a.endsWith("Rot") ? 0.5 : 0)} set={(a, n) => setV((s) => { const nx = { ...s, [a]: n ?? 0 }; Object.assign(out, nx); return nx; })} />;
 }
-if (!("PointerEvent" in globalThis)) (globalThis as Record<string, unknown>).PointerEvent = class extends MouseEvent { pointerId: number; constructor(t: string, i: PointerEventInit = {}) { super(t, i); this.pointerId = i.pointerId ?? 1; } };
+if (!("PointerEvent" in globalThis)) (globalThis as Record<string, unknown>)["PointerEvent"] = class extends MouseEvent { pointerId: number; constructor(t: string, i: PointerEventInit = {}) { super(t, i); this.pointerId = i.pointerId ?? 1; } };
 const rect = () => ({ left: 0, top: 0, width: 120, height: 120, right: 120, bottom: 120, x: 0, y: 0, toJSON: () => ({}) });
 // viewBox -10..110 at 120px: client px = svg unit + 10
 const at = (x: number, y: number) => ({ clientX: x + 10, clientY: y + 10, buttons: 1, pointerId: 1 });
@@ -30,4 +30,13 @@ describe("FramingPad", () => {
       expect(out).not.toEqual(cut);
     });
   }
+
+  it("a moved blade edge never covers another blade's corner dot", () => {
+    render(<Harness attrs={["Blade1A", "Blade1B", "Blade4A", "Blade4B"] as BeamAttr[]} out={{}} />);
+    const svg = screen.getByLabelText("Framing shutters");
+    const groups = [...svg.querySelectorAll("g[aria-label]")].map((g) => g.getAttribute("aria-label"));
+    const lastEdge = Math.max(...groups.map((l, i) => (l?.endsWith("edge") ? i : -1)));
+    const firstDot = groups.findIndex((l) => / [AB]$/.test(l ?? ""));
+    expect(firstDot).toBeGreaterThan(lastEdge);
+  });
 });
