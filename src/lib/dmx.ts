@@ -440,7 +440,7 @@ export const defaultFx = (): FxParams => ({
 export interface PatchedFixture {
   uid: string;
   /** Position on the PIXEL canvas in pixel cells; r = rotation in degrees (0 or 90). */
-  pixelPos?: { x: number; y: number; r?: number };
+  pixelPos?: { x: number; y: number; r?: number } | undefined;
   defId: string;
   modeIdx: number;
   name: string;

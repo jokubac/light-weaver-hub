@@ -11,11 +11,11 @@ import { useClock } from "./PixelPanel";
 type RGB = [number, number, number];
 
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
-export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onLayer, addFixtures }: {
+export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveLight, onLayer, addFixtures }: {
   addFixtures?: ReactNode;
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
-  onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void;
+  onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void; onPause?: (id: string) => void; onRemoveLayer?: (id: string) => void; onRemoveLight?: (uid: string) => void;
   onArea?: (area: { x: number; y: number; w: number; h: number }) => void;
   onLayer?: (patch: Partial<PixelLayer>) => void;
 }) {
@@ -30,7 +30,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const toLocal = (dx: number, dy: number) => { const r = (-view * Math.PI) / 180; return [(dx * Math.cos(r) - dy * Math.sin(r)) / cell, (dx * Math.sin(r) + dy * Math.cos(r)) / cell] as const; };
   const [addOpen, setAddOpen] = useState(false);
   const now = useClock();
-  const px = fixtures.filter(isPixelFixture);
+  const px = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos);
   const layer = layers.find((l) => l.id === activeId) ?? layers[0];
   const pos = canvasPositions(fixtures);
   const preview = layer ? pixelPreview({ ...layer, order: layer.order.filter((u) => px.some((f) => f.uid === u)) }, fixtures, frame, now).frame : frame;
@@ -84,6 +84,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     }
   };
   const gUp = (e: React.PointerEvent) => { touches.current.delete(e.pointerId); if (touches.current.size < 2) gesture.current = null; };
+  // open centred on the map
+  useEffect(() => { const sc = scroller.current; if (sc) { sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2; sc.scrollTop = (sc.scrollHeight - sc.clientHeight) / 2; } }, [px.length > 0]);
   useEffect(() => {
     const el = scroller.current; if (!el) return;
     const onWheel = (e: WheelEvent) => {
@@ -131,7 +133,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
           <span className="font-semibold">Pixel canvas</span>
-          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom, turn and move the map (Ctrl/Alt + wheel on a mouse) · drag lights · tap to add/remove from “{layer?.name}”</span>
+          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom, turn and move the map (Ctrl/Alt + wheel on a mouse) · every effect plays on all lights on the map · ✕ on a light removes it</span>
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
@@ -161,7 +163,9 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             {layers.map((l) => (
               <span key={l.id} className={`flex items-center overflow-hidden rounded-md ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
                 <button onClick={() => onPlay?.(l.id)} aria-label={`${l.playing ? "Stop" : "Play"} ${l.name}`} className="px-1.5 py-1">{l.playing ? "■" : "▶"}</button>
-                <button onClick={() => onSelect(l.id)} className="py-1 pr-2 font-semibold">{l.name}</button>
+                {l.playing && onPause && <button onClick={() => onPause(l.id)} aria-label={`${l.pausedAt != null ? "Resume" : "Pause"} ${l.name}`} className="px-1 py-1">{l.pausedAt != null ? "⏵" : "❚❚"}</button>}
+                <button onClick={() => onSelect(l.id)} className="py-1 pr-2 font-semibold">{l.name}{l.pausedAt != null && l.playing ? " (paused)" : ""}</button>
+                {onRemoveLayer && layers.length > 1 && <button onClick={() => { if (confirm(`Delete effect “${l.name}”?`)) onRemoveLayer(l.id); }} aria-label={`Delete ${l.name}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">✕</button>}
               </span>
             ))}
             {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Layer</Button>}
@@ -169,7 +173,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         )}
         <div ref={scroller} className="flex min-h-0 flex-1 touch-none overflow-auto p-3"
           onPointerDownCapture={gDown} onPointerMoveCapture={gMove} onPointerUpCapture={gUp} onPointerCancelCapture={gUp}>
-          {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">Patch a light in a pixel mode first (search “pixel” in PATCH).</p> : (
+          {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No lights on the pixel map yet. Press “Add fixtures” to add pixel lights.</p> : (
             <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ transform: view ? `rotate(${view}deg)` : undefined, width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
 
@@ -200,18 +204,20 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                 );
               })()}
               {px.map((f) => {
-                const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); const inLayer = layer?.order.includes(f.uid);
+                const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); const inLayer = true;
                 return (
                   <div key={f.uid} title={`${f.name} · ${getDef(f.defId).model}`}
                     className={`absolute cursor-grab touch-none rounded-sm p-px ${inLayer ? "ring-2 ring-primary" : "ring-1 ring-border opacity-70"}`}
                     style={{ left: p.x * cell, top: p.y * cell, width: w * cell, height: h * cell }}
                     onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); drag.current = { uid: f.uid, x: e.clientX, y: e.clientY, ox: p.x, oy: p.y, moved: false }; }}
                     onPointerMove={(e) => { const d = drag.current; if (!d || d.uid !== f.uid) return; const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly); if (!dx && !dy && !d.moved) return; d.moved = true; onMove(f.uid, clampPos(f, d.ox + dx, d.oy + dy, p.r)); }}
-                    onPointerUp={() => { const d = drag.current; drag.current = null; if (d && !d.moved) onToggle(f.uid); }}>
+                    onPointerUp={() => { drag.current = null; }}>
                     {pixels(f, cell, p.r)}
                     <span className="pointer-events-none absolute -top-4 left-0 whitespace-nowrap text-[10px] font-semibold">{f.name}</span>
                     <button aria-label={`Rotate ${f.name}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onMove(f.uid, clampPos(f, p.x, p.y, p.r === 90 ? 0 : 90)); }}
                       className="absolute -right-2 -top-2 rounded-full bg-surface-elevated p-0.5 text-muted-foreground hover:text-foreground"><RotateCw className="h-3 w-3" /></button>
+                    {onRemoveLight && <button aria-label={`Remove ${f.name} from the pixel map`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onRemoveLight(f.uid); }}
+                      className="absolute -left-2 -top-2 rounded-full bg-surface-elevated px-1 text-[10px] leading-4 text-muted-foreground hover:text-destructive">✕</button>}
                   </div>
                 );
               })}
