@@ -127,7 +127,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
                 <button aria-label={t.muted ? "Show layer" : "Hide layer"} title={t.muted ? "Turn layer on" : "Turn layer off"} onClick={() => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, muted: !x.muted } : x)) })} className="text-muted-foreground">{t.muted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button>
                 {timeline.tracks.length > 1 && <button aria-label="Delete layer" onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
               </div>
-              <div className="relative flex-1" onPointerDown={(e) => { setTrack(t.id); setPicked(null); seekAt(e); }} style={{ background: i % 2 ? "hsl(var(--muted) / 0.15)" : undefined }}>
+              <div className={`relative flex-1 ${i % 2 ? "bg-muted/15" : ""}`} onPointerDown={(e) => { setTrack(t.id); setPicked(null); seekAt(e); }}>
                 {timeline.clips.filter((c) => c.track === t.id).map((c) => (
                   <div key={c.id} onPointerDown={(e) => down(e, c, "move")}
                     className={`absolute top-1 bottom-1 cursor-grab touch-none select-none overflow-hidden rounded-md border px-2 text-xs text-foreground ${KIND_STYLE[c.kind]} ${picked === c.id ? "ring-2 ring-foreground" : ""} ${activeClips.includes(c.id) ? "brightness-125" : ""}`}
