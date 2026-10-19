@@ -9,17 +9,20 @@ import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
 import { PIXEL_FX, POLICE_FLASHES, defaultLayer, isPixelFixture, pixelCount, pixelGrid, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelLayout, type PixelEffectClipboard } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
+import { PIXEL_GENERATORS, PIXEL_GENERATOR_GROUPS } from "@/lib/pixel-generators";
+import { saveVideo, videoMissing } from "@/lib/pixel-media";
 
 type RGB = [number, number, number];
 
 const LAYOUTS: { id: PixelLayout; label: string; hint: string }[] = [
+  { id: "canvas", label: "Canvas", hint: "Uses where the lights sit on the PIXEL canvas" },
   { id: "line", label: "In a line", hint: "End to end — effects flow from one light into the next" },
   { id: "upright", label: "Upright", hint: "Tubes standing side by side (best for text)" },
   { id: "stack", label: "Stacked", hint: "Horizontal lights stacked on top of each other" },
 ];
 
-export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, activeId, onActiveChange, pixelMaster = 1, onPixelMaster }: {
-  fixtures: PatchedFixture[]; selected?: string[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>; activeId: string; onActiveChange: (id: string) => void;
+export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, activeId, onActiveChange, pixelMaster = 1, onPixelMaster, hidePreview }: {
+  hidePreview?: boolean; fixtures: PatchedFixture[]; selected?: string[]; layers: PixelLayer[]; setLayers: (l: PixelLayer[]) => void; frame: Map<string, RGB[]>; activeId: string; onActiveChange: (id: string) => void;
   pixelMaster?: number; onPixelMaster?: (value: number) => void;
 }) {
   const setActiveId = onActiveChange;
@@ -115,7 +118,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       </div>
       {!layer.playing && inMap.length > 0 && <p className="text-[10px] text-muted-foreground">Preview below — press PLAY to send it to the lights.</p>}
       {/* live preview of the layer grid */}
-      {placed.length > 0 && (
+      {placed.length > 0 && !hidePreview && (
         <InfiniteGrid columns={W} rows={H}>
           <div className="grid gap-px" style={{ gridTemplateColumns: `repeat(${W}, 10px)`, gridTemplateRows: `repeat(${H}, 10px)` }}>
             {placed.flatMap((p, fi) => p.cells.map((c, i) => {
@@ -139,6 +142,38 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
               <Button key={e.id} variant={layer.kind === e.id ? "default" : "secondary"} aria-pressed={layer.kind === e.id} onClick={() => set({ kind: e.id })} className="h-auto py-2.5 text-xs font-semibold">{e.label}</Button>
             ))}
           </div>
+
+      {layer.kind === "generator" && (
+        <div className="space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Generators ({PIXEL_GENERATORS.length})</div>
+          {PIXEL_GENERATOR_GROUPS.map((g) => (
+            <div key={g} className="space-y-1">
+              <div className="text-[10px] text-muted-foreground">{g}</div>
+              <div className="grid grid-cols-3 gap-1">
+                {PIXEL_GENERATORS.filter((x) => x.group === g).map((x) => (
+                  <button key={x.id} aria-pressed={(layer.gen ?? PIXEL_GENERATORS[0]!.id) === x.id} onClick={() => set({ gen: x.id })}
+                    className={`rounded-md px-1 py-1.5 text-[11px] font-semibold ${(layer.gen ?? PIXEL_GENERATORS[0]!.id) === x.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{x.label}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {layer.kind === "video" && (
+        <div className="space-y-1.5">
+          <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-input py-3 text-xs font-semibold hover:border-primary">
+            {layer.videoName ? `Video: ${layer.videoName} — replace` : "Choose a video (MP4, MOV, WebM)"}
+            <input type="file" accept="video/*" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0]; e.target.value = "";
+              if (!file) return;
+              try { const id = await saveVideo(file); set({ videoId: id, videoName: file.name }); } catch { alert("This video could not be saved on this device."); }
+            }} />
+          </label>
+          {videoMissing(layer.videoId) && <p className="text-[10px] text-destructive">This video is not on this device — choose it again.</p>}
+          <p className="text-[10px] text-muted-foreground">The video is scaled over all lights in this layer and loops. It is kept only on this device.</p>
+        </div>
+      )}
 
       {layer.kind === "text" && (
         <div className="space-y-1">
@@ -165,7 +200,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
 
       <div className="space-y-1.5">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Layout</div>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {LAYOUTS.map((l) => (
             <button key={l.id} title={l.hint} onClick={() => set({ layout: l.id })} className={`rounded-md py-2 text-xs font-semibold ${layer.layout === l.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{l.label}</button>
           ))}

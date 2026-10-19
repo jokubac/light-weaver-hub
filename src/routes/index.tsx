@@ -29,6 +29,7 @@ import { FixtureControls } from "@/components/console/FixtureControls";
 import { FixtureGlyph } from "@/components/console/FixtureGlyph";
 import { copyFixtureSettings, type FixtureSettings } from "@/lib/fixture-settings";
 import { PixelPanel } from "@/components/console/PixelPanel";
+import { PixelStage } from "@/components/console/PixelStage";
 import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
@@ -427,6 +428,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const [plotOpen, setPlotOpen] = useState(false);
   const [fixturesOpen, setFixturesOpen] = useState(false);
   const [gridOpen, setGridOpen] = useState(false);
+  const [pixOpen, setPixOpen] = useState(false);
   const [grid, setGrid] = useState<GridLayout>(() => scene.grid ?? emptyGrid());
   const [seqOpen, setSeqOpen] = useState(false);
   const [seq, setSeq] = useState<Timeline>(() => scene.timeline ?? emptyTimeline());
@@ -1119,10 +1121,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           </aside>
   );
   const outputEnabled = bo.target === 0;
-  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen || seqOpen;
+  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen || seqOpen || pixOpen;
   // One window at a time; tapping its tab again closes it and returns to the console
-  const openWin = (k: "plot" | "patch" | "fixtures" | "grid" | "timeline") => {
-    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : fixturesOpen;
+  const openWin = (k: "plot" | "patch" | "fixtures" | "grid" | "timeline" | "pixels") => {
+    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : k === "pixels" ? pixOpen : fixturesOpen;
+    setPixOpen(k === "pixels" && !on);
     setGridOpen(k === "grid" && !on);
     setSeqOpen(k === "timeline" && !on);
     if (!on && (k === "fixtures" || k === "grid")) { setPanel("control"); setPanelOpen(true); }
@@ -1219,6 +1222,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
             </>
   );
 
+  const pixelPanel = (hidePreview = false) => (
+      <PixelPanel hidePreview={hidePreview} fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
+        const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
+        if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
+        setLayers(next);
+      }} />
+  );
   // Fixture / effects / pixel controls — pinned inside the Fixtures window
   const controlPanel = () => (
     panel === "fx" ? (
@@ -1228,11 +1238,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
       }} />
     ) : panel === "pixels" ? (
-      <PixelPanel fixtures={fixtures} selected={selected} layers={layers} frame={frame} pixelMaster={pixelMaster} onPixelMaster={setPixelMaster} activeId={activePixelId} onActiveChange={setActivePixelId} setLayers={(next) => {
-        const started = next.filter((l) => l.playing && !layers.find((o) => o.id === l.id)?.playing).flatMap((l) => l.order);
-        if (started.length) setFixtures((fs) => fs.map((f) => (started.includes(f.uid) && (f.intensity === 0 || f.on === false) ? { ...f, intensity: f.intensity || 1, on: true } : f)));
-        setLayers(next);
-      }} />
+      pixelPanel()
     ) : sel.length === 0 ? (
       <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
     ) : (
@@ -1273,7 +1279,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         <Button variant="secondary" onClick={() => openWin("fixtures")} aria-pressed={fixturesOpen} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
         <Button variant="secondary" onClick={() => openWin("grid")} aria-pressed={gridOpen} className="h-11 px-5 text-sm font-bold">GRID</Button>
         <Button variant="secondary" onClick={() => openWin("timeline")} aria-pressed={seqOpen} className="h-11 px-5 text-sm font-bold">TIMELINE</Button>
-        {tab("pixels", "PIXEL")}
+        <Button variant="secondary" onClick={() => openWin("pixels")} aria-pressed={pixOpen} className="h-11 px-5 text-sm font-bold">PIXEL</Button>
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS</Button>
 
@@ -1317,6 +1323,11 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
               return { cells: pix?.map((c) => `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})`), cols: tube && cols === 1 && rows > cols ? rows : gc, rows: tube && cols === 1 && rows > cols ? cols : gr, aspect }; }} />
           {groupsOpen && groupsAside()}
         </div>
+      )}
+      {pixOpen && (
+        <PixelStage fixtures={fixtures} layers={layers} activeId={activePixelId} frame={frame} controls={pixelPanel(true)}
+          onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
+          onToggle={(id) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, order: l.order.includes(id) ? l.order.filter((u) => u !== id) : [...l.order, id] } : l))} />
       )}
       {seqOpen && (
         <TimelinePanel timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}

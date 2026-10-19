@@ -3,13 +3,15 @@
 // several independent layers playing at once.
 
 import { getMode, hexToRgb, hsvToRgb, type PatchedFixture } from "./dmx";
+import { generatorById } from "./pixel-generators";
+import { videoFrame } from "./pixel-media";
 
 export type PixelFx =
   | "runner" | "chase" | "meteor" | "bounce" | "rainbow" | "wave" | "gradient" | "plasma"
-  | "fire" | "sparkle" | "twinkle" | "strobe" | "police" | "solid" | "text";
+  | "fire" | "sparkle" | "twinkle" | "strobe" | "police" | "solid" | "text" | "generator" | "video";
 
 /** line = fixtures end-to-end in one long row; stack = horizontal fixtures stacked; upright = tubes standing side by side */
-export type PixelLayout = "line" | "stack" | "upright";
+export type PixelLayout = "line" | "stack" | "upright" | "canvas";
 
 export interface PixelLayer {
   id: string;
@@ -39,6 +41,11 @@ export interface PixelLayer {
   duty?: number; // strobe on-time fraction
   density?: number; // sparkle probability
   phase?: number; // time offset in effect units
+  /** generator kind: id from PIXEL_GENERATORS */
+  gen?: string;
+  /** video kind: id of the clip stored on this device */
+  videoId?: string;
+  videoName?: string;
 }
 
 export const POLICE_FLASHES = [{ n: 1, l: "Single" }, { n: 2, l: "Double" }, { n: 3, l: "Triple" }, { n: 4, l: "Quad" }];
@@ -65,6 +72,8 @@ export const PIXEL_FX: { id: PixelFx; label: string }[] = [
   { id: "police", label: "Police" },
   { id: "solid", label: "Colour" },
   { id: "text", label: "Text" },
+  { id: "generator", label: "Generators" },
+  { id: "video", label: "Video" },
 ];
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -106,7 +115,7 @@ export const defaultLayer = (name = "Layer 1", order: string[] = []): PixelLayer
   speed: 1,
   size: 3,
   text: "HELLO",
-  layout: "line",
+  layout: "canvas",
   order,
   reverse: false,
 });
@@ -167,6 +176,7 @@ interface Placed { f: PatchedFixture; cells: { x: number; y: number; s: number }
 /** Positions of every pixel of every fixture in the layer on one shared grid. */
 export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number; S: number } {
   const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
+  if (layer.layout === "canvas") return layoutCanvas(list, canvasPositions(fixtures));
   const placed: Placed[] = [];
   let ox = 0, oy = 0, W = 0, H = 0, seq = 0;
   for (const f of list) {
@@ -190,6 +200,43 @@ export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { pl
   return { placed, W: Math.max(1, W), H: Math.max(1, H), S: Math.max(1, seq) };
 }
 
+/** Footprint [w, h] of a fixture on the canvas after rotation. */
+export function canvasSize(f: PatchedFixture): [number, number] {
+  let [c, r] = pixelGrid(f);
+  if (f.pixelPos?.r === 90) [c, r] = [r, c];
+  return [Math.max(1, c), Math.max(1, r)];
+}
+
+/** Canvas positions of every pixel light; unplaced lights are stacked below the placed ones. */
+export function canvasPositions(fixtures: PatchedFixture[]): Map<string, { x: number; y: number; r: number }> {
+  const px = fixtures.filter(isPixelFixture);
+  const out = new Map<string, { x: number; y: number; r: number }>();
+  let bottom = 0;
+  for (const f of px) if (f.pixelPos) { out.set(f.uid, { x: f.pixelPos.x, y: f.pixelPos.y, r: f.pixelPos.r ?? 0 }); bottom = Math.max(bottom, f.pixelPos.y + canvasSize(f)[1]); }
+  let y = bottom ? bottom + 1 : 0;
+  for (const f of px) if (!f.pixelPos) { out.set(f.uid, { x: 0, y, r: 0 }); y += canvasSize(f)[1] + 1; }
+  return out;
+}
+
+function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>) {
+  const placed: Placed[] = [];
+  let seq = 0, minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+  for (const f of list) { const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x + w); maxY = Math.max(maxY, p.y + h); }
+  for (const f of list) {
+    const p = pos.get(f.uid)!;
+    const [lc] = pixelGrid(f);
+    const n = pixelCount(f);
+    const cells: { x: number; y: number; s: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const px = i % lc, py = Math.floor(i / lc);
+      const [lx, ly] = p.r === 90 ? [py, px] : [px, py];
+      cells.push({ x: p.x - minX + lx, y: p.y - minY + ly, s: seq++ });
+    }
+    placed.push({ f, cells });
+  }
+  return { placed, W: Math.max(1, maxX - minX), H: Math.max(1, maxY - minY), S: Math.max(1, seq) };
+}
+
 export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
   return layoutLayer(layer, fixtures).H;
 }
@@ -211,10 +258,21 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
   const tt = t * layer.speed + (layer.phase ?? 0);
   const size = Math.max(1, layer.size);
 
+  const gen = layer.kind === "generator" ? generatorById(layer.gen) : null;
+  const vid = layer.kind === "video" ? videoFrame(layer.videoId, W, H) : null;
   // travelling effects follow the pixel path light → light (s), whatever the layout
   const at = (x: number, y: number, s: number): RGB => {
     const sd = layer.reverse ? S - 1 - s : s;
     switch (layer.kind) {
+      case "generator": {
+        const xx = layer.reverse ? W - 1 - x : x;
+        return tinted(gen!.fn({ x: xx, y, W, H, t: tt, pal: palette, custom: !!layer.customPalette }));
+      }
+      case "video": {
+        if (!vid) return BLACK;
+        const i = (Math.min(H - 1, y) * W + Math.min(W - 1, layer.reverse ? W - 1 - x : x)) * 4;
+        return tinted([vid[i]!, vid[i + 1]!, vid[i + 2]!]);
+      }
       case "solid": return cols[0]!;
       case "chase": return col(Math.floor((sd - tt * 8) / size));
       case "meteor": {
