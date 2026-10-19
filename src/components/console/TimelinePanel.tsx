@@ -392,16 +392,24 @@ const SIMPLE_PX = ["solid", "rainbow", "chase", "runner", "wave", "sparkle", "st
 
 /** Floating, movable, resizable window showing the lights live while the timeline plays. */
 function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures: PatchedFixture[]; timeline: Timeline; colorOf?: ((f: PatchedFixture) => [number, number, number]) | undefined; onClose: () => void }) {
-  const [pos, setPos] = useState(() => ({ x: Math.max(0, (typeof window !== "undefined" ? window.innerWidth : 1280) - 720), y: Math.max(0, (typeof window !== "undefined" ? window.innerHeight : 900) - 300) }));
-  const d = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const used = new Set(timeline.clips.flatMap((c) => c.uids ?? c.layer?.order ?? []));
+  const [pos, setPos] = useState(() => ({ x: Math.max(0, (typeof window !== "undefined" ? window.innerWidth : 1280) - 400), y: 80 }));
+  const [size, setSize] = useState({ w: 360, h: 260 });
+  const d = useRef<{ x: number; y: number; ox: number; oy: number; mode: "move" | "size" } | null>(null);
+  const used = new Set(timeline.clips.flatMap((c) => c.uids?.length ? c.uids : c.layer?.order ?? []));
   const list = used.size ? fixtures.filter((f) => used.has(f.uid)) : fixtures;
+  const start = (mode: "move" | "size") => (e: RPE) => {
+    e.preventDefault(); e.stopPropagation();
+    d.current = { x: e.clientX, y: e.clientY, ox: mode === "move" ? pos.x : size.w, oy: mode === "move" ? pos.y : size.h, mode };
+    const move = (ev: PointerEvent) => { const r = d.current; if (!r) return; const dx = ev.clientX - r.x, dy = ev.clientY - r.y;
+      if (r.mode === "move") setPos({ x: Math.min(window.innerWidth - 60, Math.max(0, r.ox + dx)), y: Math.min(window.innerHeight - 30, Math.max(0, r.oy + dy)) });
+      else setSize({ w: Math.max(180, r.ox + dx), h: Math.max(120, r.oy + dy) }); };
+    const up = () => { d.current = null; window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+  };
   return (
-    <div className="fixed z-[60] flex flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-2xl" style={{ left: pos.x, top: pos.y, width: 360, height: 260, resize: "both", minWidth: 180, minHeight: 120 }}>
+    <div className="fixed z-[200] flex flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-2xl" style={{ left: pos.x, top: pos.y, width: size.w, height: size.h }}>
       <div className="flex cursor-move touch-none select-none items-center gap-2 border-b border-border bg-surface-elevated px-2 py-1 text-xs font-semibold"
-        onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture(e.pointerId); d.current = { x: e.clientX, y: e.clientY, ox: pos.x, oy: pos.y }; }}
-        onPointerMove={(e) => { const r = d.current; if (r) setPos({ x: Math.max(0, r.ox + e.clientX - r.x), y: Math.max(0, r.oy + e.clientY - r.y) }); }}
-        onPointerUp={() => { d.current = null; }}>
+        onPointerDown={start("move")}>
         <MonitorPlay className="h-3.5 w-3.5" />Visualiser<span className="font-normal text-muted-foreground">{list.length} lights · drag to move, corner to resize</span>
         <button aria-label="Close visualiser" onPointerDown={(e) => e.stopPropagation()} onClick={onClose} className="ml-auto text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
       </div>
@@ -412,6 +420,7 @@ function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures
           </div>); })}
         {!list.length && <p className="col-span-full p-4 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
       </div>
+      <div aria-label="Resize visualiser" onPointerDown={start("size")} className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize touch-none border-b-2 border-r-2 border-muted-foreground" />
     </div>
   );
 }

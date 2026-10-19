@@ -32,6 +32,7 @@ import { PixelPanel } from "@/components/console/PixelPanel";
 import { PixelStage } from "@/components/console/PixelStage";
 import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
+import { PatchPanel } from "@/components/console/PatchPanel";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
 import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { GEL_BY_ID, hexToHs } from "@/lib/gels";
@@ -1328,6 +1329,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         <PixelStage fixtures={fixtures} layers={layers} activeId={activePixelId} frame={frame} controls={pixelPanel(true)}
           onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
           onSelect={setActivePixelId}
+          addFixtures={<PatchPanel fixtures={fixtures} pixelOnly defaultMap={false} showPatched={false}
+            onAdd={(fs) => { const px = fs.filter((f) => pixelCount(f) > 1); if (!px.length) return; setFixtures((x) => [...x, ...px]); setLayers(layers.map((l) => l.id === (layers.find((y) => y.id === activePixelId) ?? layers[0])?.id ? { ...l, order: [...l.order, ...px.map((f) => f.uid)] } : l)); }}
+            onRemove={() => {}} onUpdate={(id, p) => updateOne(id, p)} />}
           onPlay={(id) => setLayers(layers.map((l) => (l.id === id ? { ...l, playing: !l.playing } : l)))}
           onAdd={() => { const l = defaultLayer(`Layer ${layers.length + 1}`, fixtures.filter(isPixelFixture).map((f) => f.uid)); setLayers([...layers, l]); setActivePixelId(l.id); }}
           onLayer={(patch) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, ...patch } : l))}

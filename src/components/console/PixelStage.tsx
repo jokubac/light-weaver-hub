@@ -1,6 +1,7 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type React from "react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { RotateCw, ZoomIn, ZoomOut, LayoutGrid } from "lucide-react";
+import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
@@ -10,7 +11,8 @@ import { useClock } from "./PixelPanel";
 type RGB = [number, number, number];
 
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
-export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onLayer }: {
+export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onLayer, addFixtures }: {
+  addFixtures?: ReactNode;
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
   onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void;
@@ -18,6 +20,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   onLayer?: (patch: Partial<PixelLayer>) => void;
 }) {
   const [cell, setCell] = useState(20);
+  const [addOpen, setAddOpen] = useState(false);
   const now = useClock();
   const px = fixtures.filter(isPixelFixture);
   const layer = layers.find((l) => l.id === activeId) ?? layers[0];
@@ -79,6 +82,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           <span className="font-semibold">Pixel canvas</span>
           <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · drag lights · tap to add/remove from “{layer?.name}”</span>
           <div className="ml-auto flex gap-1">
+            {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c - 4))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(48, c + 4))}><ZoomIn /></Button>
@@ -172,6 +176,15 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         </section>
       </div>
       <aside aria-label="Pixel effect controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">{controls}</aside>
+      {addFixtures && (
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
+            <DialogHeader><DialogTitle>Add pixel fixtures</DialogTitle></DialogHeader>
+            <p className="text-xs text-muted-foreground">Only pixel modes are shown.</p>
+            {addFixtures}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
