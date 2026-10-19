@@ -20,6 +20,14 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   onLayer?: (patch: Partial<PixelLayer>) => void;
 }) {
   const [cell, setCell] = useState(20);
+  // whole-map view rotation (degrees); zoom is the cell size so drag maths stay in exact grid units
+  const [view, setView] = useState(0);
+  const scroller = useRef<HTMLDivElement>(null);
+  const board = useRef<HTMLDivElement>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{ d: number; a: number; mx: number; my: number; cell: number; view: number; effect: null | { area: { x: number; y: number; w: number; h: number }; angle: number } } | null>(null);
+  /** screen delta → grid delta, undoing the map rotation */
+  const toLocal = (dx: number, dy: number) => { const r = (-view * Math.PI) / 180; return [(dx * Math.cos(r) - dy * Math.sin(r)) / cell, (dx * Math.sin(r) + dy * Math.cos(r)) / cell] as const; };
   const [addOpen, setAddOpen] = useState(false);
   const now = useClock();
   const px = fixtures.filter(isPixelFixture);
@@ -44,6 +52,49 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     const len = performance.now() / 1000 - r.start;
     if (r.pts.length > 1 && len > 0.2) { const last = r.pts[r.pts.length - 1]!; onLayer({ motion: [...r.pts, { ...last, t: len }], motionLen: len }); }
   };
+  const toGrid = (cx: number, cy: number) => { const b = board.current?.getBoundingClientRect(); if (!b) return [0, 0] as const; const [lx, ly] = toLocal(cx - (b.left + b.width / 2), cy - (b.top + b.height / 2)); return [lx + W / 2, ly + H / 2] as const; };
+  const pair = () => { const [p, q] = [...touches.current.values()]; return { d: Math.hypot(q!.x - p!.x, q!.y - p!.y) || 1, a: (Math.atan2(q!.y - p!.y, q!.x - p!.x) * 180) / Math.PI, mx: (p!.x + q!.x) / 2, my: (p!.y + q!.y) / 2 }; };
+  const gDown = (e: React.PointerEvent) => {
+    touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.current.size !== 2) return;
+    drag.current = null; areaDrag.current = null;
+    const g = pair(); const [gx, gy] = toGrid(g.mx, g.my); const a = baseArea;
+    // two fingers inside the selected effect box move/scale/rotate the effect, elsewhere the whole map
+    const onEffect = !!layer && onLayer && gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h;
+    gesture.current = { ...g, cell, view, effect: onEffect ? { area: a, angle: layer!.angle ?? 0 } : null };
+  };
+  const gMove = (e: React.PointerEvent) => {
+    if (!touches.current.has(e.pointerId)) return;
+    touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const s0 = gesture.current; if (!s0 || touches.current.size < 2) return;
+    e.stopPropagation(); drag.current = null; areaDrag.current = null;
+    const g = pair(), k = g.d / s0.d, rot = g.a - s0.a;
+    if (s0.effect) {
+      const a0 = s0.effect.area; const [dx, dy] = toLocal(g.mx - s0.mx, g.my - s0.my);
+      const w = Math.max(1, Math.min(W, Math.round(a0.w * k))), h = Math.max(1, Math.min(H, Math.round(a0.h * k)));
+      const cx = a0.x + a0.w / 2 + dx, cy = a0.y + a0.h / 2 + dy;
+      const area2 = layerArea({ area: { x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w, h } }, stage);
+      const ang = ((s0.effect.angle + rot + 540) % 360) - 180;
+      onLayer?.({ area: area2, angle: ang }); sample(area2.x, area2.y, ang);
+    } else {
+      setCell(Math.max(4, Math.min(60, s0.cell * k)));
+      setView(s0.view + rot);
+      const sc = scroller.current; if (sc) { sc.scrollLeft -= g.mx - s0.mx; sc.scrollTop -= g.my - s0.my; }
+      gesture.current = { ...s0, mx: g.mx, my: g.my };
+    }
+  };
+  const gUp = (e: React.PointerEvent) => { touches.current.delete(e.pointerId); if (touches.current.size < 2) gesture.current = null; };
+  useEffect(() => {
+    const el = scroller.current; if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.altKey) return;
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      if (e.altKey) setView((v) => v + dy * 0.2); else setCell((c) => Math.max(4, Math.min(60, c * Math.exp(-dy * 0.0015))));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
   const areaDrag = useRef<{ mode: "move" | "size"; x: number; y: number; a: typeof area } | null>(null);
   const clampPos = (f: PatchedFixture, x: number, y: number, r = 0) => { const [w, h] = canvasSize({ ...f, pixelPos: { x: 0, y: 0, r } }); return { x: Math.max(0, Math.min(W - w, x)), y: Math.max(0, Math.min(H - h, y)), r }; };
   // effect painted over the whole canvas, like a video; lights pick up the spot they sit on
@@ -80,12 +131,14 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
           <span className="font-semibold">Pixel canvas</span>
-          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · drag lights · tap to add/remove from “{layer?.name}”</span>
+          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom, turn and move the map (Ctrl/Alt + wheel on a mouse) · drag lights · tap to add/remove from “{layer?.name}”</span>
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
-            <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c - 4))}><ZoomOut /></Button>
-            <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(48, c + 4))}><ZoomIn /></Button>
+            <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
+            <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
+            <Button size="sm" variant="secondary" aria-label="Rotate map" onClick={() => setView((v) => v + 90)}><RotateCw />{Math.round(((view % 360) + 360) % 360)}°</Button>
+            {view % 360 !== 0 && <Button size="sm" variant="ghost" onClick={() => setView(0)}>Reset view</Button>}
           </div>
         </div>
         {layer && onLayer && (
@@ -114,9 +167,10 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Layer</Button>}
           </div>
         )}
-        <div className="flex min-h-0 flex-1 overflow-auto p-3">
+        <div ref={scroller} className="flex min-h-0 flex-1 touch-none overflow-auto p-3"
+          onPointerDownCapture={gDown} onPointerMoveCapture={gMove} onPointerUpCapture={gUp} onPointerCancelCapture={gUp}>
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">Patch a light in a pixel mode first (search “pixel” in PATCH).</p> : (
-            <div className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
+            <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ transform: view ? `rotate(${view}deg)` : undefined, width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
 
               {layers.filter((l) => l.id !== layer?.id).map((l) => { const a = layerArea(l, stage); return (
@@ -127,7 +181,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
               ); })}
               {layer && onArea && (() => {
                 const start = (mode: "move" | "size") => (e: React.PointerEvent) => { e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); areaDrag.current = { mode, x: e.clientX, y: e.clientY, a: baseArea }; };
-                const move = (e: React.PointerEvent) => { const d = areaDrag.current; if (!d) return; const dx = Math.round((e.clientX - d.x) / cell), dy = Math.round((e.clientY - d.y) / cell);
+                const move = (e: React.PointerEvent) => { const d = areaDrag.current; if (!d) return; const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly);
                   setArea(layerArea({ area: d.mode === "move" ? { ...d.a, x: d.a.x + dx, y: d.a.y + dy } : { ...d.a, w: Math.min(W - d.a.x, d.a.w + dx), h: Math.min(H - d.a.y, d.a.h + dy) } }, stage)); };
                 const end = () => { areaDrag.current = null; };
                 return (
@@ -152,7 +206,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                     className={`absolute cursor-grab touch-none rounded-sm p-px ${inLayer ? "ring-2 ring-primary" : "ring-1 ring-border opacity-70"}`}
                     style={{ left: p.x * cell, top: p.y * cell, width: w * cell, height: h * cell }}
                     onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); drag.current = { uid: f.uid, x: e.clientX, y: e.clientY, ox: p.x, oy: p.y, moved: false }; }}
-                    onPointerMove={(e) => { const d = drag.current; if (!d || d.uid !== f.uid) return; const dx = Math.round((e.clientX - d.x) / cell), dy = Math.round((e.clientY - d.y) / cell); if (!dx && !dy && !d.moved) return; d.moved = true; onMove(f.uid, clampPos(f, d.ox + dx, d.oy + dy, p.r)); }}
+                    onPointerMove={(e) => { const d = drag.current; if (!d || d.uid !== f.uid) return; const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly); if (!dx && !dy && !d.moved) return; d.moved = true; onMove(f.uid, clampPos(f, d.ox + dx, d.oy + dy, p.r)); }}
                     onPointerUp={() => { const d = drag.current; drag.current = null; if (d && !d.moved) onToggle(f.uid); }}>
                     {pixels(f, cell, p.r)}
                     <span className="pointer-events-none absolute -top-4 left-0 whitespace-nowrap text-[10px] font-semibold">{f.name}</span>
