@@ -63,11 +63,11 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
     const uids = selected.length ? selected : fixtures.map((f) => f.uid);
     const base = { id: newId(), track: targetTrack, start: Math.round(time * 10) / 10, length: 8 };
     let c: TimelineClip | null = null;
-    if (kind === "on" || kind === "group") {
-      const ids = kind === "group" ? membersOf(fixtures, ref ?? "").map((f) => f.uid) : uids;
+    if (kind === "on" || kind === "group" || kind === "light") {
+      const ids = kind === "group" ? membersOf(fixtures, ref ?? "").map((f) => f.uid) : kind === "light" ? [ref ?? ""] : uids;
       const f0 = fixtures.find((f) => ids.includes(f.uid));
       const lvl = { intensity: f0?.intensity || 1, cct: f0?.cct };
-      c = { ...base, kind: "level", name: kind === "group" ? `${ref} ON` : selected.length ? `${ids.length} lights ON` : "All lights ON", uids: ids, from: lvl, to: { ...lvl } };
+      c = { ...base, kind: "level", name: kind === "group" ? `${ref} ON` : kind === "light" ? `${f0?.name ?? "Light"} ON` : selected.length ? `${ids.length} lights ON` : "All lights ON", uids: ids, from: lvl, to: { ...lvl } };
     } else if (kind === "fxsel") { const f = fixtures.find((x) => selected.includes(x.uid) && x.fx.kind !== "none"); if (f) c = { ...base, kind: "fx", name: `${f.fx.kind} (${f.name})`, fx: structuredClone(f.fx), uids }; else alert("Select a light that has an effect set."); }
     else if (kind === "fx") { const s = lib.lib.fx.find((x) => x.id === ref); if (s) c = { ...base, kind: "fx", name: s.name, fx: structuredClone(s.fx), uids }; }
     else if (kind === "pxlayer") { const l = layers.find((x) => x.id === ref); if (l) c = { ...base, kind: "pixel", name: l.name, layer: structuredClone({ ...l, playing: false }) }; }
@@ -107,8 +107,11 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         <select aria-label="Add clip" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm">
           <option value="">+ Add clip at playhead…</option>
           <optgroup label="Lights / groups">
-            <option value="on">{selected.length ? `Selected lights ON (${selected.length})` : "All lights ON"}</option>
+            {selected.length > 1 && <option value="on">Selected lights ON ({selected.length})</option>}
             {groups.map((g) => <option key={g} value={`group:${g}`}>Group {g} ON</option>)}
+          </optgroup>
+          <optgroup label="Single light ON">
+            {fixtures.map((f, i) => <option key={f.uid} value={`light:${f.uid}`}>{i + 1}. {f.name}</option>)}
           </optgroup>
           <optgroup label="Light effects">
             <option value="fxsel">Effect from selected light</option>
