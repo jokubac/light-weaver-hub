@@ -108,7 +108,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const baseCaps: CapFilter[] = pixelOnly ? ["pixels"] : [];
   const [caps, setCaps] = useState<CapFilter[]>(baseCaps);
   const isPx = (d: FixtureDef) => !pixelOnly || d.modes.some((_, i) => pxCount(d, i) > 0);
-  const toggleCap = (c: CapFilter) => setCaps((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
+  const toggleCap = (c: CapFilter) => (pixelOnly && c === "pixels") || setCaps((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
   const fav = useFavorites("fixtures");
   const favModes = useFavorites("modes");
   const favBrands = useFavorites("manufacturers");
