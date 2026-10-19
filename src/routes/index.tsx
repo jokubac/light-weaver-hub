@@ -729,13 +729,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
   const audioEl = useRef<HTMLAudioElement | null>(null);
   const [audioPeaks, setAudioPeaks] = useState<number[] | null>(null);
   const audioKey = `scene:${scene.id}`;
-  const useAudioBlob = (blob: Blob) => {
+  const attachAudio = (blob: Blob) => {
     if (audioEl.current) URL.revokeObjectURL(audioEl.current.src);
     audioEl.current = new Audio(URL.createObjectURL(blob));
     void audioPeaksOf(blob).then((p) => setAudioPeaks(p.peaks)).catch(() => setAudioPeaks(null));
   };
   useEffect(() => {
-    if (scene.timeline?.audio) void loadAudio(audioKey).then((b) => { if (b) useAudioBlob(b); }).catch(() => {});
+    if (scene.timeline?.audio) void loadAudio(audioKey).then((b) => { if (b) attachAudio(b); }).catch(() => {});
     return () => { audioEl.current?.pause(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1308,7 +1308,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onAudio={async (file) => {
             try {
               const { duration } = await audioPeaksOf(file, 10);
-              await saveAudio(audioKey, file); useAudioBlob(file);
+              await saveAudio(audioKey, file); attachAudio(file);
               const tl = { ...latest.current.seq, audio: { name: file.name, duration } }; setSeq(tl); latest.current.seq = tl; save();
             } catch { alert("This audio file could not be read. Try MP3 or WAV."); }
           }}
