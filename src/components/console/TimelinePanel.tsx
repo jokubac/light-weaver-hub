@@ -40,6 +40,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const [picked, setPicked] = useState<string | null>(null);
   const [addKind, setAddKind] = useState("");
   const drag = useRef<{ id: string; mode: "move" | "l" | "r"; x: number; y: number; orig: TimelineClip } | null>(null);
+  const mdrag = useRef<{ id: string; x: number; t: number; moved: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const len = Math.max(30, timelineLength(timeline) + 10, time + 5);
   const clip = timeline.clips.find((c) => c.id === picked);
@@ -184,8 +185,14 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           )}
           {(timeline.markers ?? []).map((m) => <div key={m.id} className="absolute top-0 bottom-0 z-20" style={{ left: HEAD + m.t * zoom }}>
             <div className="pointer-events-none absolute inset-y-0 w-px bg-warning/70" />
-            <button title={`${m.name} — playback waits here for GO. Double-click to remove.`} onClick={() => onSeek(m.t)} onDoubleClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).filter((x) => x.id !== m.id) })}
-              className="absolute top-0 flex h-7 items-center gap-0.5 rounded-r bg-warning px-1 text-[10px] font-bold text-primary-foreground"><Flag className="h-3 w-3" />{m.name}</button>
+            <div title={`${m.name} — playback waits here for GO. Drag to move.`}
+              className="absolute top-0 flex h-7 cursor-grab touch-none select-none items-center gap-0.5 rounded-r bg-warning px-1 text-[10px] font-bold text-primary-foreground"
+              onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); mdrag.current = { id: m.id, x: e.clientX, t: m.t, moved: false }; }}
+              onPointerMove={(e) => { const d = mdrag.current; if (d?.id !== m.id) return; const dx = e.clientX - d.x; if (Math.abs(dx) > 3) d.moved = true; if (!d.moved) return; setTimeline({ ...timeline, markers: (timeline.markers ?? []).map((x) => (x.id === m.id ? { ...x, t: Math.max(0, Math.round((d.t + dx / zoom) * 10) / 10) } : x)) }); }}
+              onPointerUp={(e) => { const d = mdrag.current; mdrag.current = null; (e.target as HTMLElement).releasePointerCapture(e.pointerId); if (!d) return; if (!d.moved) onSeek(m.t); else setTimeline({ ...timeline, markers: [...(timeline.markers ?? [])].sort((a, b) => a.t - b.t) }); }}>
+              <Flag className="h-3 w-3" />{m.name}
+              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).filter((x) => x.id !== m.id) })} aria-label={`Delete marker ${m.name}`} title="Delete marker" className="ml-0.5 text-primary-foreground/70 hover:text-primary-foreground"><X className="h-3 w-3" /></button>
+            </div>
           </div>)}
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: HEAD + time * zoom }} />
         </div>
