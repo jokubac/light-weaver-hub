@@ -278,7 +278,7 @@ export function canvasPositions(fixtures: PatchedFixture[]): Map<string, { x: nu
 }
 
 /** Fixed PIXEL canvas in cells; lights and effect areas stay inside it. */
-export const STAGE_MIN: [number, number] = [48, 24];
+export const STAGE_MIN: [number, number] = [122, 72];
 
 /** Effect area clamped into the canvas. */
 export function layerArea(layer: Pick<PixelLayer, "area">, stage: { W: number; H: number }) {
