@@ -196,6 +196,15 @@ export const pixelGrid = (f: PatchedFixture): [number, number] => {
   return mo.grid ?? [mo.pixels ?? 0, 1];
 };
 
+/** Position [x, y] of DMX pixel i inside the fixture's grid, following the manufacturer's numbering. */
+export const pixelCell = (f: PatchedFixture, i: number): [number, number] => {
+  const mo = getMode(f);
+  const c = mo.cells?.[i];
+  if (c) return c;
+  const lc = (mo.grid ?? [mo.pixels ?? 1, 1])[0] || 1;
+  return [i % lc, Math.floor(i / lc)];
+};
+
 type RGB = [number, number, number];
 
 /** Renders text into a boolean mask `height` pixels tall (browser only). */
@@ -311,11 +320,10 @@ function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: n
   const placed: Placed[] = [];
   for (const f of list) {
     const p = pos.get(f.uid)!;
-    const [lc] = pixelGrid(f);
     const n = pixelCount(f);
     const cells: { x: number; y: number; s: number }[] = [];
     for (let i = 0; i < n; i++) {
-      const px = i % lc, py = Math.floor(i / lc);
+      const [px, py] = pixelCell(f, i);
       const [lx, ly] = p.r === 90 ? [py, px] : [px, py];
       // travelling effects sweep across the canvas, so s follows x
       const q = pt(p.x + lx, p.y + ly);
