@@ -18,7 +18,7 @@ export interface PixelLayer {
   name: string;
   playing: boolean;
   /** frozen effect time (seconds, performance clock) while paused */
-  pausedAt?: number;
+  pausedAt?: number | undefined;
   kind: PixelFx;
   colors: string[];
   /** Optional tint for generated-colour effects (rainbow, plasma, fire). */
