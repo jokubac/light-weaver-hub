@@ -1330,6 +1330,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onSelect={setActivePixelId}
           onPlay={(id) => setLayers(layers.map((l) => (l.id === id ? { ...l, playing: !l.playing } : l)))}
           onAdd={() => { const l = defaultLayer(`Layer ${layers.length + 1}`, fixtures.filter(isPixelFixture).map((f) => f.uid)); setLayers([...layers, l]); setActivePixelId(l.id); }}
+          onLayer={(patch) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, ...patch } : l))}
           onArea={(area) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, area } : l))}
           onToggle={(id) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, order: l.order.includes(id) ? l.order.filter((u) => u !== id) : [...l.order, id] } : l))} />
       )}

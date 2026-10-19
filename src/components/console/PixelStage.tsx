@@ -3,18 +3,19 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { RotateCw, ZoomIn, ZoomOut, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
-import { canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
+import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
 import { useClock } from "./PixelPanel";
 
 type RGB = [number, number, number];
 
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
-export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay }: {
+export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onLayer }: {
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
   onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void;
   onArea?: (area: { x: number; y: number; w: number; h: number }) => void;
+  onLayer?: (patch: Partial<PixelLayer>) => void;
 }) {
   const [cell, setCell] = useState(20);
   const now = useClock();
@@ -25,7 +26,21 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null);
   const stage = stageSize(fixtures);
   const W = stage.W, H = stage.H;
-  const area = layerArea(layer ?? {}, stage);
+  const rec = useRef<{ start: number; pts: { t: number; x: number; y: number; a: number }[] } | null>(null);
+  const [recording, setRecording] = useState(false);
+  const live = layer && !recording ? layerAt(layer, now) : layer;
+  const area = layerArea(live ?? {}, stage);
+  const baseArea = layerArea(layer ?? {}, stage);
+  const sample = (x: number, y: number, a: number) => { const r = rec.current; if (r) r.pts.push({ t: performance.now() / 1000 - r.start, x, y, a }); };
+  const setArea = (a: { x: number; y: number; w: number; h: number }) => { onArea?.(a); sample(a.x, a.y, layer?.angle ?? 0); };
+  const setAngle = (a: number) => { onLayer?.({ angle: a }); sample(baseArea.x, baseArea.y, a); };
+  const toggleRec = () => {
+    if (!layer || !onLayer) return;
+    if (!rec.current) { rec.current = { start: performance.now() / 1000, pts: [] }; sample(baseArea.x, baseArea.y, layer.angle ?? 0); onLayer({ motion: undefined, motionLen: undefined, area: baseArea }); setRecording(true); return; }
+    const r = rec.current; rec.current = null; setRecording(false);
+    const len = performance.now() / 1000 - r.start;
+    if (r.pts.length > 1 && len > 0.2) { const last = r.pts[r.pts.length - 1]!; onLayer({ motion: [...r.pts, { ...last, t: len }], motionLen: len }); }
+  };
   const areaDrag = useRef<{ mode: "move" | "size"; x: number; y: number; a: typeof area } | null>(null);
   const clampPos = (f: PatchedFixture, x: number, y: number, r = 0) => { const [w, h] = canvasSize({ ...f, pixelPos: { x: 0, y: 0, r } }); return { x: Math.max(0, Math.min(W - w, x)), y: Math.max(0, Math.min(H - h, y)), r }; };
   // effect painted over the whole canvas, like a video; lights pick up the spot they sit on
@@ -69,6 +84,20 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(48, c + 4))}><ZoomIn /></Button>
           </div>
         </div>
+        {layer && onLayer && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 text-xs" aria-label="Effect motion">
+            <span className="font-semibold">Motion</span>
+            <label className="flex items-center gap-1">Rotate
+              <input type="range" min={-180} max={180} value={Math.round(layer.angle ?? 0)} onChange={(e) => setAngle(Number(e.target.value))} className="w-28" />
+              <span className="w-9 tabular-nums">{Math.round(layer.angle ?? 0)}°</span>
+            </label>
+            <label className="flex items-center gap-1">Spin
+              <input type="number" step={5} value={layer.spin ?? 0} onChange={(e) => onLayer({ spin: Number(e.target.value) || 0 })} className="w-16 rounded bg-surface-elevated px-1 py-0.5" />°/s
+            </label>
+            <Button size="sm" variant={recording ? "destructive" : "secondary"} onClick={toggleRec}>{recording ? "■ Stop REC" : "● REC move"}</Button>
+            {layer.motion?.length ? <><span className="text-muted-foreground">Recorded {layer.motionLen?.toFixed(1)} s · loops</span><Button size="sm" variant="secondary" onClick={() => onLayer({ motion: undefined, motionLen: undefined })}>Clear move</Button></> : <span className="text-muted-foreground">{recording ? "Drag the box and rotate now…" : "Press REC, then drag/rotate the box"}</span>}
+          </div>
+        )}
         {onSelect && (
           <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-1.5 text-xs" aria-label="Effect layers">
             <span className="mr-1 font-semibold">Layers</span>
@@ -93,17 +122,17 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                 </button>
               ); })}
               {layer && onArea && (() => {
-                const start = (mode: "move" | "size") => (e: React.PointerEvent) => { e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); areaDrag.current = { mode, x: e.clientX, y: e.clientY, a: area }; };
+                const start = (mode: "move" | "size") => (e: React.PointerEvent) => { e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); areaDrag.current = { mode, x: e.clientX, y: e.clientY, a: baseArea }; };
                 const move = (e: React.PointerEvent) => { const d = areaDrag.current; if (!d) return; const dx = Math.round((e.clientX - d.x) / cell), dy = Math.round((e.clientY - d.y) / cell);
-                  onArea(layerArea({ area: d.mode === "move" ? { ...d.a, x: d.a.x + dx, y: d.a.y + dy } : { ...d.a, w: Math.min(W - d.a.x, d.a.w + dx), h: Math.min(H - d.a.y, d.a.h + dy) } }, stage)); };
+                  setArea(layerArea({ area: d.mode === "move" ? { ...d.a, x: d.a.x + dx, y: d.a.y + dy } : { ...d.a, w: Math.min(W - d.a.x, d.a.w + dx), h: Math.min(H - d.a.y, d.a.h + dy) } }, stage)); };
                 const end = () => { areaDrag.current = null; };
                 return (
-                  <div aria-label="Effect area" className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-primary" style={{ left: area.x * cell, top: area.y * cell, width: area.w * cell, height: area.h * cell }}>
+                  <div aria-label="Effect area" className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-primary" style={{ left: area.x * cell, top: area.y * cell, width: area.w * cell, height: area.h * cell, transform: `rotate(${-(live?.angle ?? 0)}deg)` }}>
                     <div title="Move effect area" onPointerDown={start("move")} onPointerMove={move} onPointerUp={end}
                       className="pointer-events-auto absolute -top-5 left-0 cursor-move touch-none rounded-t bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">Effect {area.w}×{area.h}</div>
                     <div className="pointer-events-auto absolute -top-5 right-0 flex gap-px">
                       {([["Full", 1], ["1/2", 2], ["1/4", 4]] as const).map(([l, d]) => (
-                        <button key={l} onPointerDown={(e) => e.stopPropagation()} onClick={() => onArea(d === 1 ? { x: 0, y: 0, w: W, h: H } : layerArea({ area: { x: area.x, y: area.y, w: Math.round(W / d), h: Math.round(H / d) } }, stage))}
+                        <button key={l} onPointerDown={(e) => e.stopPropagation()} onClick={() => setArea(d === 1 ? { x: 0, y: 0, w: W, h: H } : layerArea({ area: { x: area.x, y: area.y, w: Math.round(W / d), h: Math.round(H / d) } }, stage))}
                           className={`rounded-t px-1.5 text-[10px] font-semibold ${area.w === Math.round(W / d) && area.h === Math.round(H / d) ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{l}</button>
                       ))}
                     </div>
