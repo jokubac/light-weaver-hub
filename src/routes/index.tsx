@@ -66,7 +66,7 @@ import { CallSheet } from "@/components/console/CallSheet";
 import { TimelinePanel } from "@/components/console/TimelinePanel";
 import { emptyTimeline, timelineAt, timelineLength, type Timeline } from "@/lib/timeline";
 import { deleteAudio, loadAudio, peaks as audioPeaksOf, saveAudio } from "@/lib/timeline-audio";
-import { defaultLayer, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
+import { defaultLayer, freeCanvasSpot, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
   loadProjects,
@@ -1330,9 +1330,12 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
           onSelect={setActivePixelId}
           addFixtures={<PatchPanel fixtures={fixtures} pixelOnly defaultMap={false} showPatched={false}
-            onAdd={(fs) => { const px = fs.filter((f) => pixelCount(f) > 1); if (!px.length) return; setFixtures((x) => [...x, ...px]); setLayers(layers.map((l) => l.id === (layers.find((y) => y.id === activePixelId) ?? layers[0])?.id ? { ...l, order: [...l.order, ...px.map((f) => f.uid)] } : l)); }}
+            onAdd={(fs) => { const px = fs.filter((f) => pixelCount(f) > 1); if (!px.length) return; const placed: typeof px = []; for (const f of px) placed.push({ ...f, pixelPos: freeCanvasSpot([...fixtures, ...placed], f) }); setFixtures((x) => [...x, ...placed]); }}
             onRemove={() => {}} onUpdate={(id, p) => updateOne(id, p)} />}
-          onPlay={(id) => setLayers(layers.map((l) => (l.id === id ? { ...l, playing: !l.playing } : l)))}
+          onPlay={(id) => setLayers(layers.map((l) => (l.id === id ? { ...l, playing: !l.playing, pausedAt: undefined } : l)))}
+          onPause={(id) => setLayers(layers.map((l) => { if (l.id !== id) return l; const now = performance.now() / 1000; return l.pausedAt != null ? { ...l, pausedAt: undefined, phase: (l.phase ?? 0) + (l.pausedAt - now) * l.speed } : { ...l, pausedAt: now }; }))}
+          onRemoveLayer={(id) => { const rest = layers.filter((l) => l.id !== id); if (!rest.length) return; setLayers(rest); if (activePixelId === id) setActivePixelId(rest[0]!.id); }}
+          onRemoveLight={(uid) => updateOne(uid, { pixelPos: undefined })}
           onAdd={() => { const l = defaultLayer(`Layer ${layers.length + 1}`, fixtures.filter(isPixelFixture).map((f) => f.uid)); setLayers([...layers, l]); setActivePixelId(l.id); }}
           onLayer={(patch) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, ...patch } : l))}
           onArea={(area) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, area } : l))}
