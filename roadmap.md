@@ -179,4 +179,4 @@
 - [x] Default GRID TOOLS table: Redo sits where Check out! was and Check out! below it (same colours); 3 default-layout tests passed, browser verified in a fresh scene.
 - [x] TIMELINE tab: layers, FX/Pixel/REC/level clips, audio waveform
 - [x] Text outline is 0.7px everywhere (global and macro labels share one value)
-- [ ] TIMELINE: multi-select of clips (click, shift, drag box) with move / delete / edit together
+- [x] TIMELINE: multi-select of clips (click, shift, drag box) with move / delete / edit together; browser verified group drag and delete
