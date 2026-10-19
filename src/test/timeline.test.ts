@@ -37,3 +37,22 @@ describe("timeline layers never overlap", () => {
     expect(out.tracks.length).toBe(2);
   });
 });
+
+describe("timeline keyframes and adjustment layers", () => {
+  const base = (): Timeline => ({ tracks: [{ id: "adj", name: "Adj", adjust: true }, { id: "l", name: "L" }], clips: [
+    { id: "k", track: "l", kind: "level", name: "k", start: 0, length: 10, uids: ["a"], keys: [{ id: "1", t: 0, intensity: 0 }, { id: "2", t: 4, intensity: 1, hue: 120, sat: 1 }, { id: "3", t: 8, intensity: 0.5 }] },
+  ] });
+  it("interpolates intensity between points and holds after the last", () => {
+    expect(timelineAt(base(), 2, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.5);
+    expect(timelineAt(base(), 6, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.75);
+    expect(timelineAt(base(), 9, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.5);
+  });
+  it("colour points switch the light to hue/saturation", () => {
+    const s = timelineAt(base(), 5, [f], [], new Map()).states.get("a");
+    expect(s?.hue).toBe(120); expect(s?.cctOnly).toBe(false);
+  });
+  it("adjustment layer at 50% halves everything below", () => {
+    const t = base(); t.clips.push({ id: "a1", track: "adj", kind: "adjust", name: "Adj", start: 0, length: 10, keys: [{ id: "x", t: 0, intensity: 0.5 }] });
+    expect(timelineAt(t, 4, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.5);
+  });
+});
