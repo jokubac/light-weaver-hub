@@ -129,9 +129,11 @@ input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius
   --text-outline:
     0.7px 0 0 #000, -0.7px 0 0 #000, 0 0.7px 0 #000, 0 -0.7px 0 #000,
     0.5px 0.5px 0 #000, -0.5px 0.5px 0 #000,
-    0.5px -0.5px 0 #000, -0.5px 0.5px 0 #000;
+    0.5px -0.5px 0 #000, -0.5px -0.5px 0 #000;
 }
 body { text-shadow: var(--text-outline); }
+/* Dark text on bright buttons would only thicken with a black outline, so it stays clean. */
+.text-primary-foreground, .text-primary-foreground *, .text-warning-foreground, .text-success-foreground { text-shadow: none; }
 
 /* Macro labels share the same 0.7px hairline as everything else. */
 :root {
