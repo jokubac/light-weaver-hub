@@ -10,9 +10,10 @@ import { useClock } from "./PixelPanel";
 type RGB = [number, number, number];
 
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
-export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea }: {
+export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay }: {
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
+  onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void;
   onArea?: (area: { x: number; y: number; w: number; h: number }) => void;
 }) {
   const [cell, setCell] = useState(20);
@@ -67,10 +68,29 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(48, c + 4))}><ZoomIn /></Button>
           </div>
         </div>
+        {onSelect && (
+          <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-1.5 text-xs" aria-label="Effect layers">
+            <span className="mr-1 font-semibold">Layers</span>
+            {layers.map((l) => (
+              <span key={l.id} className={`flex items-center overflow-hidden rounded-md ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
+                <button onClick={() => onPlay?.(l.id)} aria-label={`${l.playing ? "Stop" : "Play"} ${l.name}`} className="px-1.5 py-1">{l.playing ? "■" : "▶"}</button>
+                <button onClick={() => onSelect(l.id)} className="py-1 pr-2 font-semibold">{l.name}</button>
+              </span>
+            ))}
+            {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Layer</Button>}
+          </div>
+        )}
         <div className="min-h-0 flex-1 overflow-auto p-3">
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">Patch a light in a pixel mode first (search “pixel” in PATCH).</p> : (
             <div className="relative rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
+
+              {layers.filter((l) => l.id !== layer?.id).map((l) => { const a = layerArea(l, stage); return (
+                <button key={l.id} title={`Select ${l.name}`} onClick={() => onSelect?.(l.id)}
+                  className="absolute z-[5] rounded-sm border border-dashed border-muted-foreground/70 text-left align-top" style={{ left: a.x * cell, top: a.y * cell, width: a.w * cell, height: a.h * cell, pointerEvents: "none" }}>
+                  <span className="pointer-events-auto absolute left-0 top-0 rounded-br bg-secondary px-1 text-[10px] font-semibold">{l.name}{l.playing ? " ▶" : ""}</span>
+                </button>
+              ); })}
               {layer && onArea && (() => {
                 const start = (mode: "move" | "size") => (e: React.PointerEvent) => { e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); areaDrag.current = { mode, x: e.clientX, y: e.clientY, a: area }; };
                 const move = (e: React.PointerEvent) => { const d = areaDrag.current; if (!d) return; const dx = Math.round((e.clientX - d.x) / cell), dy = Math.round((e.clientY - d.y) / cell);
@@ -80,7 +100,12 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                   <div aria-label="Effect area" className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-primary" style={{ left: area.x * cell, top: area.y * cell, width: area.w * cell, height: area.h * cell }}>
                     <div title="Move effect area" onPointerDown={start("move")} onPointerMove={move} onPointerUp={end}
                       className="pointer-events-auto absolute -top-5 left-0 cursor-move touch-none rounded-t bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">Effect {area.w}×{area.h}</div>
-                    <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onArea({ x: 0, y: 0, w: W, h: H })} className="pointer-events-auto absolute -top-5 right-0 rounded-t bg-secondary px-1.5 text-[10px] font-semibold">Full</button>
+                    <div className="pointer-events-auto absolute -top-5 right-0 flex gap-px">
+                      {([["Full", 1], ["1/2", 2], ["1/4", 4]] as const).map(([l, d]) => (
+                        <button key={l} onPointerDown={(e) => e.stopPropagation()} onClick={() => onArea(d === 1 ? { x: 0, y: 0, w: W, h: H } : layerArea({ area: { x: area.x, y: area.y, w: Math.round(W / d), h: Math.round(H / d) } }, stage))}
+                          className={`rounded-t px-1.5 text-[10px] font-semibold ${area.w === Math.round(W / d) && area.h === Math.round(H / d) ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{l}</button>
+                      ))}
+                    </div>
                     <div title="Resize effect area" aria-label="Resize effect area" onPointerDown={start("size")} onPointerMove={move} onPointerUp={end}
                       className="pointer-events-auto absolute -bottom-2 -right-2 h-4 w-4 cursor-nwse-resize touch-none rounded-sm border-2 border-background bg-primary" />
                   </div>
