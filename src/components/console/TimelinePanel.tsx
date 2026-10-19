@@ -234,7 +234,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: HEAD + len * zoom }}>
           {/* ruler */}
-          <div className="sticky top-0 z-50 flex h-7 border-b border-border bg-surface">
+          <div className="sticky top-0 z-[35] flex h-7 border-b border-border bg-surface">
             <div className="sticky left-0 z-50 shrink-0 border-r border-border bg-surface" style={{ width: HEAD }} />
             <div className="relative flex-1 cursor-pointer" onPointerDown={seekAt}>
               {Array.from({ length: Math.ceil(len) + 1 }, (_, s) => s).filter((s) => s % (zoom < 15 ? 10 : zoom < 40 ? 5 : 1) === 0).map((s) => (
@@ -289,7 +289,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
               </div>
             </div>
           )}
-          {(timeline.markers ?? []).map((m) => <div key={m.id} className="absolute top-0 bottom-0 z-20" style={{ left: HEAD + m.t * zoom }}>
+          {(timeline.markers ?? []).map((m) => <div key={m.id} className="absolute top-0 bottom-0 z-[36]" style={{ left: HEAD + m.t * zoom }}>
             <div className="pointer-events-none absolute inset-y-0 w-px bg-warning/70" />
             <div title={`${m.name} — playback waits here for GO. Drag to move.`}
               className="absolute top-0 flex h-7 cursor-grab touch-none select-none items-center gap-0.5 rounded-r bg-warning px-1 text-[10px] font-bold text-primary-foreground"
