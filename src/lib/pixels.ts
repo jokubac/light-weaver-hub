@@ -46,6 +46,8 @@ export interface PixelLayer {
   /** video kind: id of the clip stored on this device */
   videoId?: string;
   videoName?: string;
+  /** canvas cells the effect covers; whole canvas when unset */
+  area?: { x: number; y: number; w: number; h: number };
 }
 
 export const POLICE_FLASHES = [{ n: 1, l: "Single" }, { n: 2, l: "Double" }, { n: 3, l: "Triple" }, { n: 4, l: "Quad" }];
@@ -209,7 +211,7 @@ interface Placed { f: PatchedFixture; cells: { x: number; y: number; s: number }
 /** Positions of every pixel of every fixture in the layer on one shared grid. */
 export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number; S: number } {
   const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
-  if (layer.layout === "canvas") return layoutCanvas(list, canvasPositions(fixtures), stageSize(fixtures));
+  if (layer.layout === "canvas") { const st = stageSize(fixtures); return layoutCanvas(list, canvasPositions(fixtures), st, layerArea(layer, st)); }
   const placed: Placed[] = [];
   let ox = 0, oy = 0, W = 0, H = 0, seq = 0;
   for (const f of list) {
@@ -251,18 +253,22 @@ export function canvasPositions(fixtures: PatchedFixture[]): Map<string, { x: nu
   return out;
 }
 
-/** Minimum PIXEL canvas in cells; grows with lights placed further out. */
+/** Fixed PIXEL canvas in cells; lights and effect areas stay inside it. */
 export const STAGE_MIN: [number, number] = [48, 24];
 
-/** Whole canvas the effect is painted on, so every light samples the spot it sits on. */
-export function stageSize(fixtures: PatchedFixture[]): { W: number; H: number } {
-  const pos = canvasPositions(fixtures);
-  let [W, H] = STAGE_MIN;
-  for (const f of fixtures.filter(isPixelFixture)) { const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); W = Math.max(W, p.x + w); H = Math.max(H, p.y + h); }
-  return { W, H };
+/** Effect area clamped into the canvas. */
+export function layerArea(layer: Pick<PixelLayer, "area">, stage: { W: number; H: number }) {
+  const a = layer.area ?? { x: 0, y: 0, w: stage.W, h: stage.H };
+  const w = Math.max(1, Math.min(stage.W, Math.round(a.w))), h = Math.max(1, Math.min(stage.H, Math.round(a.h)));
+  return { x: Math.max(0, Math.min(stage.W - w, Math.round(a.x))), y: Math.max(0, Math.min(stage.H - h, Math.round(a.y))), w, h };
 }
 
-function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>, stage: { W: number; H: number }) {
+/** Whole canvas the effect is painted on, so every light samples the spot it sits on. */
+export function stageSize(_fixtures?: PatchedFixture[]): { W: number; H: number } {
+  return { W: STAGE_MIN[0], H: STAGE_MIN[1] };
+}
+
+function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>, stage: { W: number; H: number }, area: { x: number; y: number; w: number; h: number }) {
   const placed: Placed[] = [];
   for (const f of list) {
     const p = pos.get(f.uid)!;
@@ -273,11 +279,13 @@ function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: n
       const px = i % lc, py = Math.floor(i / lc);
       const [lx, ly] = p.r === 90 ? [py, px] : [px, py];
       // travelling effects sweep across the canvas, so s follows x
-      cells.push({ x: p.x + lx, y: p.y + ly, s: p.x + lx });
+      const x = p.x + lx - area.x, y = p.y + ly - area.y;
+      // s = -1: outside the effect area, light stays dark
+      cells.push({ x, y, s: x >= 0 && y >= 0 && x < area.w && y < area.h ? x : -1 });
     }
     placed.push({ f, cells });
   }
-  return { placed, W: stage.W, H: stage.H, S: stage.W };
+  return { placed, W: area.w, H: area.h, S: area.w };
 }
 
 export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
@@ -289,16 +297,20 @@ export function renderLayer(layer: PixelLayer, fixtures: PatchedFixture[], t: nu
   const { placed, W, H, S } = layoutLayer(layer, fixtures);
   if (!placed.length) return out;
   const { at, finish } = makeSampler(layer, W, H, S, t, mask);
-  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => finish(at(c.x, c.y, c.s))));
+  for (const p of placed) out.set(p.f.uid, p.cells.map((c) => (c.s < 0 ? BLACK : finish(at(c.x, c.y, c.s)))));
   return out;
 }
 
 /** The effect painted over the whole PIXEL canvas, like a video frame (row-major, W×H). */
 export function renderCanvasImage(layer: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null) {
   const { W, H } = stageSize(fixtures);
-  const { at, finish } = makeSampler(layer, W, H, W, t, mask);
+  const a = layerArea(layer, { W, H });
+  const { at, finish } = makeSampler(layer, a.w, a.h, a.w, t, mask);
   const img: RGB[] = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) img.push(finish(at(x, y, x)));
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const lx = x - a.x, ly = y - a.y;
+    img.push(lx >= 0 && ly >= 0 && lx < a.w && ly < a.h ? finish(at(lx, ly, lx)) : BLACK);
+  }
   return { W, H, img };
 }
 
