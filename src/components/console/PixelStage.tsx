@@ -1,8 +1,8 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { RotateCw, ZoomIn, ZoomOut, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
-import { canvasPositions, canvasSize, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
+import { canvasPositions, canvasSize, renderCanvasImage, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, type PixelLayer } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
 import { useClock } from "./PixelPanel";
 
@@ -13,15 +13,26 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
 }) {
-  const [cell, setCell] = useState(16);
+  const [cell, setCell] = useState(20);
   const now = useClock();
   const px = fixtures.filter(isPixelFixture);
   const layer = layers.find((l) => l.id === activeId) ?? layers[0];
   const pos = canvasPositions(fixtures);
   const preview = layer ? pixelPreview({ ...layer, order: layer.order.filter((u) => px.some((f) => f.uid === u)) }, fixtures, frame, now).frame : frame;
   const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null);
-  let W = 8, H = 6;
-  for (const f of px) { const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); W = Math.max(W, p.x + w + 4); H = Math.max(H, p.y + h + 4); }
+  const stage = stageSize(fixtures);
+  const W = stage.W + 4, H = stage.H + 4;
+  // effect painted over the whole canvas, like a video; lights pick up the spot they sit on
+  const bg = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = bg.current; if (!c || !layer) return;
+    const { W: w, H: h, img } = renderCanvasImage(layer, fixtures, now, layer.kind === "text" ? textMask(layer.text.toUpperCase(), stage.H) : null);
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d"); if (!ctx) return;
+    const data = ctx.createImageData(w, h);
+    img.forEach((p, i) => { data.data[i * 4] = p[0]; data.data[i * 4 + 1] = p[1]; data.data[i * 4 + 2] = p[2]; data.data[i * 4 + 3] = 255; });
+    ctx.putImageData(data, 0, 0);
+  });
 
   const autoArrange = () => { let y = 0; for (const f of px) { onMove(f.uid, { x: 0, y, r: 0 }); y += canvasSize({ ...f, pixelPos: { x: 0, y: 0 } })[1] + 1; } };
 
@@ -44,7 +55,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
           <span className="font-semibold">Pixel canvas</span>
-          <span className="text-muted-foreground">Drag lights to place them · tap to add/remove from “{layer?.name}”</span>
+          <span className="text-muted-foreground">Effect plays over the whole canvas · drag lights anywhere · tap to add/remove from “{layer?.name}”</span>
           <div className="ml-auto flex gap-1">
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c - 4))}><ZoomOut /></Button>
@@ -54,6 +65,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         <div className="min-h-0 flex-1 overflow-auto p-3">
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">Patch a light in a pixel mode first (search “pixel” in PATCH).</p> : (
             <div className="relative rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
+              <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
               {px.map((f) => {
                 const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); const inLayer = layer?.order.includes(f.uid);
                 return (
