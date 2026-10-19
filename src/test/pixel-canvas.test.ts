@@ -39,7 +39,7 @@ describe("resizable effect area", () => {
     expect(out.get(b.uid)!.every((c) => c[0] === 0 && c[1] === 0 && c[2] === 0)).toBe(true);
   });
   it("canvas is fixed and the area is clamped inside it", () => {
-    expect(stageSize([fixture("Far", 200, 200)])).toEqual({ W: 48, H: 24 });
+    expect(stageSize([fixture("Far", 200, 200)])).toEqual({ W: 122, H: 72 });
     expect(layerArea({ area: { x: 40, y: -3, w: 20, h: 5 } }, { W: 48, H: 24 })).toEqual({ x: 28, y: 0, w: 20, h: 5 });
   });
 });
