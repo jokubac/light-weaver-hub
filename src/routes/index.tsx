@@ -65,7 +65,7 @@ import { CallSheet } from "@/components/console/CallSheet";
 import { TimelinePanel } from "@/components/console/TimelinePanel";
 import { emptyTimeline, timelineAt, timelineLength, type Timeline } from "@/lib/timeline";
 import { deleteAudio, loadAudio, peaks as audioPeaksOf, saveAudio } from "@/lib/timeline-audio";
-import { layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
+import { defaultLayer, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
   loadProjects,
@@ -1327,6 +1327,9 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
       {pixOpen && (
         <PixelStage fixtures={fixtures} layers={layers} activeId={activePixelId} frame={frame} controls={pixelPanel(true)}
           onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
+          onSelect={setActivePixelId}
+          onPlay={(id) => setLayers(layers.map((l) => (l.id === id ? { ...l, playing: !l.playing } : l)))}
+          onAdd={() => { const l = defaultLayer(`Layer ${layers.length + 1}`, fixtures.filter(isPixelFixture).map((f) => f.uid)); setLayers([...layers, l]); setActivePixelId(l.id); }}
           onArea={(area) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, area } : l))}
           onToggle={(id) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, order: l.order.includes(id) ? l.order.filter((u) => u !== id) : [...l.order, id] } : l))} />
       )}
