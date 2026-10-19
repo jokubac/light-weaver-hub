@@ -105,7 +105,7 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
               <line x1={la[0]} y1={la[1]} x2={lb[0]} y2={lb[1]} className="stroke-foreground" strokeWidth="1.4" />
             </g>
           );
-          return [line, ...(["a", "b"] as const).map((end) => {
+          return { line, dots: (["a", "b"] as const).map((end) => {
             const p = end === "a" ? pa : pb;
             return (
               <g key={`${n}${end}`} className="cursor-grab" aria-label={`Blade ${n} ${end.toUpperCase()}`}
@@ -114,8 +114,10 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
                 <circle cx={p[0]} cy={p[1]} r="3.5" className="fill-foreground stroke-primary" strokeWidth="1.2" />
               </g>
             );
-          })];
-        })}
+          }) };
+        }).reduce<{ lines: React.ReactNode[]; dots: React.ReactNode[] }>((acc, x) => { acc.lines.push(x.line); acc.dots.push(...x.dots); return acc; }, { lines: [], dots: [] })
+          // every blade edge first, every corner dot on top, so a moved blade never hides another blade's dots
+          .lines.concat([])}
       </svg>
       <p className="text-[10px] text-muted-foreground">Drag a blade edge to slide it, or a dot to cut a corner.</p>
     </div>
