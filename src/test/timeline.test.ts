@@ -26,3 +26,14 @@ describe("timeline", () => {
     expect(timelineAt(t, 1, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.1);
   });
 });
+
+import { placeClip } from "@/components/console/TimelinePanel";
+describe("timeline layers never overlap", () => {
+  it("a clashing clip moves to a free layer", () => {
+    const t = tl(); t.tracks = [t.tracks[0]!];
+    const out = placeClip(t, { ...t.clips[1]!, id: "new", track: "top" });
+    const a = out.clips.filter((c) => c.track === "top");
+    expect(a.some((c) => c.id === "new") && a.some((c) => c.id === "hi")).toBe(false);
+    expect(out.tracks.length).toBe(2);
+  });
+});
