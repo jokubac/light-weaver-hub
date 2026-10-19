@@ -420,6 +420,7 @@ function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures
           </div>); })}
         {!list.length && <p className="col-span-full p-4 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
       </div>
+      <div aria-label="Resize visualiser" onPointerDown={start("size")} className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize touch-none border-b-2 border-r-2 border-muted-foreground" />
     </div>
   );
 }
