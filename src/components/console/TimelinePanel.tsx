@@ -52,13 +52,13 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const [zoom, setZoom] = useState(40); // px per second
   const [track, setTrack] = useState(timeline.tracks[0]?.id ?? "");
   const [sel, setSel] = useState<string[]>([]);
-  const [marq, setMarq] = useState<{ track: string; a: number; b: number } | null>(null);
+  const [marq, setMarq] = useState<{ t0: number; t1: number; a: number; b: number } | null>(null);
   const [addKind, setAddKind] = useState("");
   const [keySel, setKeySel] = useState<string | null>(null);
   const kdrag = useRef<{ clip: string; key: string; rect: DOMRect; moved: boolean } | null>(null);
   const drag = useRef<{ ids: { id: string; orig: TimelineClip }[]; mode: "move" | "l" | "r"; x: number; y: number; moved: boolean } | null>(null);
   const mdrag = useRef<{ id: string; x: number; t: number; moved: boolean } | null>(null);
-  const marqRef = useRef<{ track: string; x: number; moved: boolean } | null>(null);
+  const marqRef = useRef<{ idx: number; x: number; top: number; left: number; moved: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const len = Math.max(30, timelineLength(timeline) + 10, time + 5);
   const clip = sel.length === 1 ? timeline.clips.find((c) => c.id === sel[0]) : undefined;
@@ -161,24 +161,26 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
     if (tl !== timeline) setTimeline(tl);
   };
 
-  /** Pointer down on an empty lane: a click seeks, a drag draws a box that selects every clip it touches. */
+  /** Pointer down on an empty lane: a click seeks, a drag draws a box across any number of layers that selects every clip it touches. */
   const laneDown = (e: RPE<HTMLDivElement>, t: string) => {
-    setTrack(t); marqRef.current = { track: t, x: e.clientX, moved: false };
+    const r = e.currentTarget.getBoundingClientRect(), idx = timeline.tracks.findIndex((x) => x.id === t);
+    setTrack(t); marqRef.current = { idx, x: e.clientX, top: r.top - idx * ROW, left: r.left, moved: false };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
+  const marqBox = (m: NonNullable<typeof marqRef.current>, e: RPE) => {
+    const i = Math.max(0, Math.min(timeline.tracks.length - 1, Math.floor((e.clientY - m.top) / ROW)));
+    return { t0: Math.min(m.idx, i), t1: Math.max(m.idx, i), a: Math.max(0, (Math.min(m.x, e.clientX) - m.left) / zoom), b: Math.max(0, (Math.max(m.x, e.clientX) - m.left) / zoom) };
+  };
   const laneMove = (e: RPE<HTMLDivElement>) => {
-    const m = marqRef.current; if (!m || m.track !== e.currentTarget.dataset["track"]) return;
+    const m = marqRef.current; if (!m) return;
     if (Math.abs(e.clientX - m.x) > 3) m.moved = true;
-    if (!m.moved) return;
-    const left = e.currentTarget.getBoundingClientRect().left;
-    setMarq({ track: m.track, a: (m.x - left) / zoom, b: (e.clientX - left) / zoom });
+    if (m.moved) setMarq(marqBox(m, e));
   };
   const laneUp = (e: RPE<HTMLDivElement>) => {
-    const m = marqRef.current; marqRef.current = null; if (!m || m.track !== e.currentTarget.dataset["track"]) return;
-    const left = e.currentTarget.getBoundingClientRect().left;
-    if (!m.moved) { setSel([]); onSeek(Math.max(0, (m.x - left) / zoom)); return; }
-    const a = Math.min(m.x, e.clientX), b = Math.max(m.x, e.clientX);
-    const hit = timeline.clips.filter((c) => c.track === m.track && left + c.start * zoom < b && left + (c.start + c.length) * zoom > a).map((c) => c.id);
+    const m = marqRef.current; marqRef.current = null; if (!m) return;
+    if (!m.moved) { setSel([]); setKeySel(null); onSeek(Math.max(0, (m.x - m.left) / zoom)); return; }
+    const q = marqBox(m, e), ids = timeline.tracks.slice(q.t0, q.t1 + 1).map((t) => t.id);
+    const hit = timeline.clips.filter((c) => ids.includes(c.track) && c.start < q.b && c.start + c.length > q.a).map((c) => c.id);
     setSel(e.shiftKey ? [...new Set([...sel, ...hit])] : hit);
     setMarq(null);
   };
@@ -232,8 +234,8 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: HEAD + len * zoom }}>
           {/* ruler */}
-          <div className="sticky top-0 z-20 flex h-7 border-b border-border bg-surface">
-            <div className="sticky left-0 z-10 shrink-0 border-r border-border bg-surface" style={{ width: HEAD }} />
+          <div className="sticky top-0 z-50 flex h-7 border-b border-border bg-surface">
+            <div className="sticky left-0 z-50 shrink-0 border-r border-border bg-surface" style={{ width: HEAD }} />
             <div className="relative flex-1 cursor-pointer" onPointerDown={seekAt}>
               {Array.from({ length: Math.ceil(len) + 1 }, (_, s) => s).filter((s) => s % (zoom < 15 ? 10 : zoom < 40 ? 5 : 1) === 0).map((s) => (
                 <span key={s} className="absolute top-0 h-full border-l border-border pl-1 text-[10px] text-muted-foreground" style={{ left: s * zoom }}>{fmt(s).replace(/\.0$/, "")}</span>
@@ -242,13 +244,12 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           </div>
           {timeline.tracks.map((t, i) => (
             <div key={t.id} className={`flex border-b border-border ${t.muted ? "opacity-40" : ""}`} style={{ height: ROW }}>
-              <div className={`sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r border-border px-2 ${track === t.id ? "bg-primary/15" : "bg-surface"}`} style={{ width: HEAD }} onClick={() => setTrack(t.id)}>
+              <div className={`sticky left-0 z-40 flex shrink-0 items-center gap-1 border-r border-border px-2 ${track === t.id ? "bg-primary/15" : "bg-surface"}`} style={{ width: HEAD }} onClick={() => setTrack(t.id)}>
                 <input aria-label="Layer name" value={t.name} onChange={(e) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)) })} className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-foreground outline-none" />
                 <button aria-label={t.muted ? "Show layer" : "Hide layer"} title={t.muted ? "Turn layer on" : "Turn layer off"} onClick={() => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, muted: !x.muted } : x)) })} className="text-muted-foreground">{t.muted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button>
                 {timeline.tracks.length > 1 && <button aria-label="Delete layer" onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) { setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); setSel([]); } }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
               </div>
               <div data-track={t.id} className={`relative flex-1 ${i % 2 ? "bg-muted/15" : ""}`} onPointerDown={(e) => laneDown(e, t.id)} onPointerMove={laneMove} onPointerUp={laneUp}>
-                {marq && marq.track === t.id && <div className="pointer-events-none absolute inset-y-0 z-10 border border-primary bg-primary/20" style={{ left: Math.min(marq.a, marq.b) * zoom, width: Math.max(2, Math.abs(marq.b - marq.a) * zoom) }} />}
                 {timeline.clips.filter((c) => c.track === t.id).map((c) => (
                   <div key={c.id} onPointerDown={(e) => down(e, c, "move")} onDoubleClick={(e) => addKey(e, c)}
                     className={`absolute top-1 bottom-1 cursor-grab touch-none select-none overflow-hidden rounded-md border px-2 text-xs text-foreground ${KIND_STYLE[c.kind]} ${sel.includes(c.id) ? "ring-2 ring-foreground" : ""} ${activeClips.includes(c.id) ? "brightness-125" : ""}`}
@@ -277,7 +278,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           ))}
           {timeline.audio && (
             <div className="flex border-b border-border" style={{ height: ROW }}>
-              <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r border-border bg-surface px-2" style={{ width: HEAD }}>
+              <div className="sticky left-0 z-40 flex shrink-0 items-center gap-1 border-r border-border bg-surface px-2" style={{ width: HEAD }}>
                 <Music className="h-3.5 w-3.5 shrink-0 text-primary" /><span className="min-w-0 flex-1 truncate text-xs" title={timeline.audio.name}>{timeline.audio.name}</span>
                 <button aria-label="Remove audio" onClick={() => { if (confirm("Remove the audio track?")) onRemoveAudio(); }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
               </div>
@@ -299,10 +300,11 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
               <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).filter((x) => x.id !== m.id) })} aria-label={`Delete marker ${m.name}`} title="Delete marker" className="ml-0.5 text-primary-foreground/70 hover:text-primary-foreground"><X className="h-3 w-3" /></button>
             </div>
           </div>)}
+          {marq && <div className="pointer-events-none absolute z-30 border border-primary bg-primary/20" style={{ left: HEAD + marq.a * zoom, width: Math.max(2, (marq.b - marq.a) * zoom), top: 28 + marq.t0 * ROW, height: (marq.t1 - marq.t0 + 1) * ROW }} />}
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: HEAD + time * zoom }} />
         </div>
         {timeline.clips.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.</p>}
-        {timeline.clips.length > 0 && <p className="px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag across an empty layer to box-select several, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
+        {timeline.clips.length > 0 && <p className="px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
       </div>
 
       {sel.length > 1 && (
