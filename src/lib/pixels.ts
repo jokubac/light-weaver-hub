@@ -235,7 +235,7 @@ interface Placed { f: PatchedFixture; cells: { x: number; y: number; s: number }
 /** Positions of every pixel of every fixture in the layer on one shared grid. */
 export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number; S: number } {
   const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
-  if (layer.layout === "canvas") { const st = stageSize(fixtures); return layoutCanvas(list, canvasPositions(fixtures), st, layerArea(layer, st)); }
+  if (layer.layout === "canvas") { const st = stageSize(fixtures); return layoutCanvas(list, canvasPositions(fixtures), st, picturePoint(layer, st)); }
   const placed: Placed[] = [];
   let ox = 0, oy = 0, W = 0, H = 0, seq = 0;
   for (const f of list) {
@@ -292,7 +292,22 @@ export function stageSize(_fixtures?: PatchedFixture[]): { W: number; H: number 
   return { W: STAGE_MIN[0], H: STAGE_MIN[1] };
 }
 
-function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>, stage: { W: number; H: number }, area: { x: number; y: number; w: number; h: number }) {
+/** The effect is a picture (stage-sized) stretched into its box and rotated about the box centre.
+ *  Returns, for a stage cell, the picture coordinate it shows, or null when outside the rotated box. */
+export function picturePoint(layer: PixelLayer, stage: { W: number; H: number }) {
+  const a = layerArea(layer, stage);
+  const rad = ((layer.angle ?? 0) * Math.PI) / 180;
+  const cs = Math.cos(rad), sn = Math.sin(rad);
+  const cx = a.x + a.w / 2, cy = a.y + a.h / 2;
+  return (X: number, Y: number): { x: number; y: number } | null => {
+    const dx = X + 0.5 - cx, dy = Y + 0.5 - cy;
+    const lx = dx * cs + dy * sn + a.w / 2, ly = -dx * sn + dy * cs + a.h / 2;
+    if (lx < 0 || ly < 0 || lx >= a.w || ly >= a.h) return null;
+    return { x: Math.min(stage.W - 1, Math.floor((lx / a.w) * stage.W)), y: Math.min(stage.H - 1, Math.floor((ly / a.h) * stage.H)) };
+  };
+}
+
+function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>, stage: { W: number; H: number }, pt: ReturnType<typeof picturePoint>) {
   const placed: Placed[] = [];
   for (const f of list) {
     const p = pos.get(f.uid)!;
@@ -303,13 +318,13 @@ function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: n
       const px = i % lc, py = Math.floor(i / lc);
       const [lx, ly] = p.r === 90 ? [py, px] : [px, py];
       // travelling effects sweep across the canvas, so s follows x
-      const x = p.x + lx - area.x, y = p.y + ly - area.y;
-      // s = -1: outside the effect area, light stays dark
-      cells.push({ x, y, s: x >= 0 && y >= 0 && x < area.w && y < area.h ? x : -1 });
+      const q = pt(p.x + lx, p.y + ly);
+      // s = -1: outside the effect picture, layers below show through
+      cells.push(q ? { x: q.x, y: q.y, s: q.x } : { x: 0, y: 0, s: -1 });
     }
     placed.push({ f, cells });
   }
-  return { placed, W: area.w, H: area.h, S: area.w };
+  return { placed, W: stage.W, H: stage.H, S: stage.W };
 }
 
 export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
@@ -330,12 +345,12 @@ export function renderLayer(layer0: PixelLayer, fixtures: PatchedFixture[], t: n
 export function renderCanvasImage(layer0: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null) {
   const layer = layerAt(layer0, t);
   const { W, H } = stageSize(fixtures);
-  const a = layerArea(layer, { W, H });
-  const { at, finish } = makeSampler(layer, a.w, a.h, a.w, t, mask);
+  const pt = picturePoint(layer, { W, H });
+  const { at, finish } = makeSampler(layer, W, H, W, t, mask);
   const img: RGB[] = [];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const lx = x - a.x, ly = y - a.y;
-    img.push(lx >= 0 && ly >= 0 && lx < a.w && ly < a.h ? finish(at(lx, ly, lx)) : BLACK);
+    const q = pt(x, y);
+    img.push(q ? finish(at(q.x, q.y, q.x)) : BLACK);
   }
   return { W, H, img };
 }
@@ -346,9 +361,9 @@ export function renderCanvasComposite(layers: PixelLayer[], fixtures: PatchedFix
   const img: RGB[] = Array.from({ length: W * H }, () => BLACK);
   for (const l0 of layers) {
     const l = layerAt(l0, t);
-    const a = layerArea(l, { W, H });
-    const { at, finish } = makeSampler(l, a.w, a.h, a.w, t, maskOf(l));
-    for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) img[(a.y + y) * W + a.x + x] = finish(at(x, y, x));
+    const pt = picturePoint(l, { W, H });
+    const { at, finish } = makeSampler(l, W, H, W, t, maskOf(l));
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const q = pt(x, y); if (q) img[y * W + x] = finish(at(q.x, q.y, q.x)); }
   }
   return { W, H, img };
 }
@@ -470,17 +485,10 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
     }
   };
 
-  const rad = ((layer.angle ?? 0) * Math.PI) / 180;
-  const cs = Math.cos(rad), sn = Math.sin(rad), cx = (W - 1) / 2, cy = (H - 1) / 2;
-  const atR = rad ? (x: number, y: number, s: number): RGB => {
-    const dx = x - cx, dy = y - cy;
-    const rx = Math.round(cx + dx * cs + dy * sn), ry = Math.round(cy - dx * sn + dy * cs);
-    return at(rx, ry, s >= 0 ? rx : s);
-  } : at;
   const brightness = Math.min(1, Math.max(0, layer.brightness ?? 1));
   const background = Math.min(1, Math.max(0, layer.background ?? 0));
   const finish = (c: RGB): RGB => scale(mix(cols[0] ?? BLACK, c, 1 - background), brightness);
-  return { at: atR, finish };
+  return { at, finish };
 }
 
 /** Renders all playing layers; later layers override earlier ones on shared fixtures. */

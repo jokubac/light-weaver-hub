@@ -131,7 +131,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                   setArea(layerArea({ area: d.mode === "move" ? { ...d.a, x: d.a.x + dx, y: d.a.y + dy } : { ...d.a, w: Math.min(W - d.a.x, d.a.w + dx), h: Math.min(H - d.a.y, d.a.h + dy) } }, stage)); };
                 const end = () => { areaDrag.current = null; };
                 return (
-                  <div aria-label="Effect area" className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-primary" style={{ left: area.x * cell, top: area.y * cell, width: area.w * cell, height: area.h * cell, transform: `rotate(${-(live?.angle ?? 0)}deg)` }}>
+                  <div aria-label="Effect area" className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-primary" style={{ left: area.x * cell, top: area.y * cell, width: area.w * cell, height: area.h * cell, transform: `rotate(${live?.angle ?? 0}deg)` }}>
                     <div title="Move effect area" onPointerDown={start("move")} onPointerMove={move} onPointerUp={end}
                       className="pointer-events-auto absolute -top-5 left-0 cursor-move touch-none rounded-t bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">Effect {area.w}×{area.h}</div>
                     <div className="pointer-events-auto absolute -top-5 right-0 flex gap-px">
