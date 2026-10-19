@@ -1345,7 +1345,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         <TimelinePanel timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}
           onPlay={() => playSeq()} onPause={pauseSeq} onStop={stopSeq} onGo={goSeq} waiting={seqWait != null} repeat={seqRepeat} onRepeat={() => setSeqRepeat((r) => !r)} groups={groups} onSeek={seekSeq} fixtures={fixtures} selected={selected} recordings={recordings}
           layers={seqHold.current?.layers ?? layers} activeClips={seqActive} audioPeaks={audioPeaks}
-          colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } const of = outFixtures.find((o) => o.uid === f.uid) ?? f; return fixtureState(of, t, outLevel).rgb.map(Math.round) as RGB; }}
+          colorOf={(f) => { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const px = frame.get(f.uid); if (px?.length) { const n = px.length; const pv = of.on === false ? 0 : of.intensity * outLevel; return [0, 1, 2].map((k) => Math.round((px.reduce((a, c) => a + c[k]!, 0) / n) * pv)) as RGB; } const st = fixtureState(of, t, outLevel); return st.rgb.map((c) => Math.round(c * st.v)) as RGB; }}
           onAudio={async (file) => {
             try {
               const { duration } = await audioPeaksOf(file, 10);
