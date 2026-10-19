@@ -17,6 +17,8 @@ export interface PixelLayer {
   id: string;
   name: string;
   playing: boolean;
+  /** frozen effect time (seconds, performance clock) while paused */
+  pausedAt?: number;
   kind: PixelFx;
   colors: string[];
   /** Optional tint for generated-colour effects (rainbow, plasma, fire). */
@@ -244,7 +246,7 @@ interface Placed { f: PatchedFixture; cells: { x: number; y: number; s: number }
 /** Positions of every pixel of every fixture in the layer on one shared grid. */
 export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number; S: number } {
   const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
-  if (layer.layout === "canvas") { const st = stageSize(fixtures); return layoutCanvas(list, canvasPositions(fixtures), st, picturePoint(layer, st)); }
+  if (layer.layout === "canvas") { const st = stageSize(fixtures); const list = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos); return layoutCanvas(list, canvasPositions(fixtures), st, picturePoint(layer, st)); }
   const placed: Placed[] = [];
   let ox = 0, oy = 0, W = 0, H = 0, seq = 0;
   for (const f of list) {
@@ -281,9 +283,20 @@ export function canvasPositions(fixtures: PatchedFixture[]): Map<string, { x: nu
   const out = new Map<string, { x: number; y: number; r: number }>();
   let bottom = 0;
   for (const f of px) if (f.pixelPos) { out.set(f.uid, { x: f.pixelPos.x, y: f.pixelPos.y, r: f.pixelPos.r ?? 0 }); bottom = Math.max(bottom, f.pixelPos.y + canvasSize(f)[1]); }
-  let y = bottom ? bottom + 1 : 0;
-  for (const f of px) if (!f.pixelPos) { out.set(f.uid, { x: 0, y, r: 0 }); y += canvasSize(f)[1] + 1; }
+  void bottom;
   return out;
+}
+
+/** Only lights added to the PIXEL map have a position; this picks a free spot for a newly added one. */
+export function freeCanvasSpot(fixtures: PatchedFixture[], f: PatchedFixture): { x: number; y: number; r: number } {
+  const [W, H] = STAGE_MIN; const [w, h] = canvasSize({ ...f, pixelPos: { x: 0, y: 0 } });
+  const taken = [...canvasPositions(fixtures).entries()].map(([u, p]) => { const g = fixtures.find((x) => x.uid === u)!; const [gw, gh] = canvasSize(g); return { ...p, w: gw, h: gh }; });
+  const cx = Math.round(W / 2 - w / 2);
+  for (let y = Math.round(H / 2 - h / 2), k = 0; k < H; k++, y += (k % 2 ? k : -k)) {
+    if (y < 0 || y + h > H) continue;
+    if (!taken.some((t) => cx < t.x + t.w + 1 && cx + w + 1 > t.x && y < t.y + t.h + 1 && y + h + 1 > t.y)) return { x: cx, y, r: 0 };
+  }
+  return { x: Math.max(0, cx), y: 0, r: 0 };
 }
 
 /** Fixed PIXEL canvas in cells; lights and effect areas stay inside it. */
@@ -368,9 +381,9 @@ export function renderCanvasComposite(layers: PixelLayer[], fixtures: PatchedFix
   const { W, H } = stageSize(fixtures);
   const img: RGB[] = Array.from({ length: W * H }, () => BLACK);
   for (const l0 of layers) {
-    const l = layerAt(l0, t);
+    const l = layerAt(l0, l0.pausedAt ?? t);
     const pt = picturePoint(l, { W, H });
-    const { at, finish } = makeSampler(l, W, H, W, t, maskOf(l));
+    const { at, finish } = makeSampler(l, W, H, W, l0.pausedAt ?? t, maskOf(l));
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const q = pt(x, y); if (q) img[y * W + x] = finish(at(q.x, q.y, q.x)); }
   }
   return { W, H, img };
@@ -502,6 +515,6 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
 /** Renders all playing layers; later layers override earlier ones on shared fixtures. */
 export function renderLayers(layers: PixelLayer[], fixtures: PatchedFixture[], t: number, masks: Map<string, ReturnType<typeof textMask>>) {
   const out = new Map<string, RGB[]>();
-  for (const l of layers) if (l.playing) renderLayer(l, fixtures, t, masks.get(l.id) ?? null, out);
+  for (const l of layers) if (l.playing) renderLayer(l, fixtures, l.pausedAt ?? t, masks.get(l.id) ?? null, out);
   return out;
 }
