@@ -3,7 +3,7 @@
 // several independent layers playing at once.
 
 import { getMode, hexToRgb, hsvToRgb, type PatchedFixture } from "./dmx";
-import { generatorById } from "./pixel-generators";
+import { generatorById, PIXEL_GENERATORS } from "./pixel-generators";
 import { videoFrame } from "./pixel-media";
 
 export type PixelFx =
@@ -75,6 +75,30 @@ export const PIXEL_FX: { id: PixelFx; label: string }[] = [
   { id: "generator", label: "Generators" },
   { id: "video", label: "Video" },
 ];
+
+/** One library entry: built-in effect or generator. Each look appears once, sorted by group. */
+export interface PixelLook { key: string; label: string; group: string; kind: PixelFx; gen?: string }
+export const PIXEL_GROUPS = ["Chase", "Colour", "Fire", "Water", "Sky", "Nature", "Party", "Shapes", "Media"];
+const BUILT_IN: PixelLook[] = [
+  { key: "runner", label: "Runner", group: "Chase", kind: "runner" },
+  { key: "chase", label: "Chase", group: "Chase", kind: "chase" },
+  { key: "meteor", label: "Meteor", group: "Chase", kind: "meteor" },
+  { key: "bounce", label: "Scanner", group: "Chase", kind: "bounce" },
+  { key: "solid", label: "Colour", group: "Colour", kind: "solid" },
+  { key: "rainbow", label: "Rainbow", group: "Colour", kind: "rainbow" },
+  { key: "gradient", label: "Gradient", group: "Colour", kind: "gradient" },
+  { key: "wave", label: "Wave", group: "Colour", kind: "wave" },
+  { key: "plasma", label: "Plasma", group: "Colour", kind: "plasma" },
+  { key: "twinkle", label: "Stars", group: "Sky", kind: "twinkle" },
+  { key: "sparkle", label: "Sparkle", group: "Party", kind: "sparkle" },
+  { key: "strobe", label: "Strobe", group: "Party", kind: "strobe" },
+  { key: "police", label: "Police", group: "Party", kind: "police" },
+  { key: "text", label: "Text", group: "Media", kind: "text" },
+  { key: "video", label: "Video", group: "Media", kind: "video" },
+];
+export const PIXEL_LIBRARY: PixelLook[] = [...BUILT_IN, ...PIXEL_GENERATORS.map((g) => ({ key: `gen:${g.id}`, label: g.label, group: g.group, kind: "generator" as const, gen: g.id }))];
+export const lookOf = (l: Pick<PixelLayer, "kind" | "gen">) =>
+  PIXEL_LIBRARY.find((x) => x.kind === l.kind && (l.kind !== "generator" || x.gen === (l.gen ?? PIXEL_GENERATORS[0]!.id)));
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
