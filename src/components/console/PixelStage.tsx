@@ -169,8 +169,6 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
-            <Button size="sm" variant={multi ? "default" : "secondary"} aria-pressed={multi} onClick={() => { setMulti((m) => !m); setSel(new Set()); }}>Multi select{multi && sel.size ? ` (${sel.size})` : ""}</Button>
-            {multi && <Button size="sm" variant="secondary" onClick={() => setSel(sel.size === px.length ? new Set() : new Set(px.map((f) => f.uid)))}>{sel.size === px.length ? "Select none" : "Select all"}</Button>}
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
           </div>
