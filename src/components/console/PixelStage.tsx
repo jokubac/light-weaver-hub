@@ -34,9 +34,9 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const pos = canvasPositions(fixtures);
   const preview = layer ? pixelPreview({ ...layer, order: layer.order.filter((u) => px.some((f) => f.uid === u)) }, fixtures, frame, now).frame : frame;
   const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean; group: { f: PatchedFixture; p: { x: number; y: number; r?: number } }[] } | null>(null);
-  const effDrag = useRef<{ x: number; y: number; a: { x: number; y: number; w: number; h: number } } | null>(null);
-  const [multi, setMulti] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const marquee = useRef<{ id: number; x0: number; y0: number } | null>(null);
+  const [mq, setMq] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const stage = stageSize(fixtures);
   const W = stage.W, H = stage.H;
   const rec = useRef<{ start: number; pts: { t: number; x: number; y: number; a: number }[] } | null>(null);
@@ -59,15 +59,16 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const gDown = (e: React.PointerEvent) => {
     touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.current.size === 1) {
-      // one finger/mouse on an empty spot inside the selected effect box drags the effect
+      // dragging on an empty map spot draws a selection rectangle over the lights
       const t = e.target as HTMLElement;
-      if (layer && onArea && (t === board.current || t === bg.current)) {
-        const [gx, gy] = toGrid(e.clientX, e.clientY); const a = baseArea;
-        if (gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h) effDrag.current = { x: e.clientX, y: e.clientY, a };
+      if (t === board.current || t === bg.current) {
+        const [gx, gy] = toGrid(e.clientX, e.clientY);
+        marquee.current = { id: e.pointerId, x0: gx, y0: gy };
+        setMq({ x: gx, y: gy, w: 0, h: 0 });
       }
       return;
     }
-    effDrag.current = null;
+    marquee.current = null; setMq(null);
     if (touches.current.size !== 2) return;
     drag.current = null; areaDrag.current = null;
     const g = pair(); const [gx, gy] = toGrid(g.mx, g.my); const a = baseArea;
