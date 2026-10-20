@@ -34,9 +34,9 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const pos = canvasPositions(fixtures);
   const preview = layer ? pixelPreview({ ...layer, order: layer.order.filter((u) => px.some((f) => f.uid === u)) }, fixtures, frame, now).frame : frame;
   const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean; group: { f: PatchedFixture; p: { x: number; y: number; r?: number } }[] } | null>(null);
-  const effDrag = useRef<{ x: number; y: number; a: { x: number; y: number; w: number; h: number } } | null>(null);
-  const [multi, setMulti] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const marquee = useRef<{ id: number; x0: number; y0: number } | null>(null);
+  const [mq, setMq] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const stage = stageSize(fixtures);
   const W = stage.W, H = stage.H;
   const rec = useRef<{ start: number; pts: { t: number; x: number; y: number; a: number }[] } | null>(null);
@@ -59,15 +59,16 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const gDown = (e: React.PointerEvent) => {
     touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.current.size === 1) {
-      // one finger/mouse on an empty spot inside the selected effect box drags the effect
+      // dragging on an empty map spot draws a selection rectangle over the lights
       const t = e.target as HTMLElement;
-      if (layer && onArea && (t === board.current || t === bg.current)) {
-        const [gx, gy] = toGrid(e.clientX, e.clientY); const a = baseArea;
-        if (gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h) effDrag.current = { x: e.clientX, y: e.clientY, a };
+      if (t === board.current || t === bg.current) {
+        const [gx, gy] = toGrid(e.clientX, e.clientY);
+        marquee.current = { id: e.pointerId, x0: gx, y0: gy };
+        setMq({ x: gx, y: gy, w: 0, h: 0 });
       }
       return;
     }
-    effDrag.current = null;
+    marquee.current = null; setMq(null);
     if (touches.current.size !== 2) return;
     drag.current = null; areaDrag.current = null;
     const g = pair(); const [gx, gy] = toGrid(g.mx, g.my); const a = baseArea;
@@ -78,10 +79,15 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const gMove = (e: React.PointerEvent) => {
     if (!touches.current.has(e.pointerId)) return;
     touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const ed = effDrag.current;
-    if (ed && touches.current.size === 1) {
-      const [lx, ly] = toLocal(e.clientX - ed.x, e.clientY - ed.y);
-      setArea(layerArea({ area: { ...ed.a, x: ed.a.x + Math.round(lx), y: ed.a.y + Math.round(ly) } }, stage));
+    const m = marquee.current;
+    if (m && touches.current.size === 1 && e.pointerId === m.id) {
+      const [gx, gy] = toGrid(e.clientX, e.clientY);
+      const r = { x: Math.min(m.x0, gx), y: Math.min(m.y0, gy), w: Math.abs(gx - m.x0), h: Math.abs(gy - m.y0) };
+      setMq(r);
+      const hit = new Set<string>();
+      for (const f of px) { const p = pos.get(f.uid); if (!p) continue; const [w, h] = canvasSize({ ...f, pixelPos: p });
+        if (p.x < r.x + r.w && p.x + w > r.x && p.y < r.y + r.h && p.y + h > r.y) hit.add(f.uid); }
+      setSel(hit);
       return;
     }
     const s0 = gesture.current; if (!s0 || touches.current.size < 2) return;
@@ -100,7 +106,16 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       gesture.current = { ...s0, mx: g.mx, my: g.my };
     }
   };
-  const gUp = (e: React.PointerEvent) => { touches.current.delete(e.pointerId); if (touches.current.size === 0) effDrag.current = null; if (touches.current.size < 2) gesture.current = null; };
+  const gUp = (e: React.PointerEvent) => {
+    touches.current.delete(e.pointerId);
+    if (touches.current.size === 0) {
+      const m = marquee.current; marquee.current = null;
+      // a tap on an empty map spot (no drag) deselects everything
+      if (m && e.pointerId === m.id && mq && mq.w < 0.5 && mq.h < 0.5) setSel(new Set());
+      setMq(null);
+    }
+    if (touches.current.size < 2) gesture.current = null;
+  };
   // open centred on the map
   useEffect(() => { const sc = scroller.current; if (sc) { sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2; sc.scrollTop = (sc.scrollHeight - sc.clientHeight) / 2; } }, [px.length > 0]);
   useEffect(() => {
@@ -150,12 +165,10 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
           <span className="font-semibold">Pixel canvas</span>
-          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom and move the map (Ctrl + wheel on a mouse) · the map itself never turns, only the effect does · every effect plays on all lights on the map · ✕ on a light removes it</span>
+          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · drag on an empty map spot to select lights, tap an empty spot to deselect · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom and move the map (Ctrl + wheel on a mouse) · every effect plays on all lights on the map · ✕ on a light removes it</span>
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
-            <Button size="sm" variant={multi ? "default" : "secondary"} aria-pressed={multi} onClick={() => { setMulti((m) => !m); setSel(new Set()); }}>Multi select{multi && sel.size ? ` (${sel.size})` : ""}</Button>
-            {multi && <Button size="sm" variant="secondary" onClick={() => setSel(sel.size === px.length ? new Set() : new Set(px.map((f) => f.uid)))}>{sel.size === px.length ? "Select none" : "Select all"}</Button>}
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
           </div>
@@ -222,19 +235,20 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                   </div>
                 );
               })()}
+              {mq && <div aria-label="Selection rectangle" className="pointer-events-none absolute z-20 border border-dashed border-primary bg-primary/10" style={{ left: mq.x * cell, top: mq.y * cell, width: mq.w * cell, height: mq.h * cell }} />}
               {px.map((f) => {
-                const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); const inLayer = !multi || sel.has(f.uid);
+                const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p });
                 return (
                   <div key={f.uid} title={`${f.name} · ${getDef(f.defId).model}`}
-                    className={`absolute cursor-grab touch-none rounded-sm p-px ${multi && sel.has(f.uid) ? "ring-4 ring-primary" : inLayer ? "ring-2 ring-primary" : "ring-1 ring-border opacity-70"}`}
+                    className={`absolute cursor-grab touch-none rounded-sm p-px ${sel.has(f.uid) ? "ring-4 ring-primary" : "ring-2 ring-primary"}`}
                     style={{ left: p.x * cell, top: p.y * cell, width: w * cell, height: h * cell }}
                     onPointerDown={(e) => {
                       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                      const group = multi && sel.has(f.uid) ? px.filter((g) => sel.has(g.uid)) : [f];
+                      const group = sel.has(f.uid) ? px.filter((g) => sel.has(g.uid)) : [f];
                       drag.current = { uid: f.uid, x: e.clientX, y: e.clientY, ox: p.x, oy: p.y, moved: false, group: group.map((g) => ({ f: g, p: pos.get(g.uid)! })) };
                     }}
                     onPointerMove={(e) => { const d = drag.current; if (!d || d.uid !== f.uid) return; const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly); if (!dx && !dy && !d.moved) return; d.moved = true; for (const g of d.group) onMove(g.f.uid, clampPos(g.f, g.p.x + dx, g.p.y + dy, g.p.r)); }}
-                    onPointerUp={() => { const d = drag.current; drag.current = null; if (multi && d && !d.moved) setSel((s) => { const n = new Set(s); if (n.has(f.uid)) n.delete(f.uid); else n.add(f.uid); return n; }); }}>
+                    onPointerUp={() => { const d = drag.current; drag.current = null; if (d && !d.moved) setSel((s) => { const n = new Set(s); if (n.has(f.uid)) n.delete(f.uid); else n.add(f.uid); return n; }); }}>
                     {pixels(f, cell, p.r)}
                     <span className="pointer-events-none absolute -top-4 left-0 whitespace-nowrap text-[10px] font-semibold">{f.name}</span>
                     <button aria-label={`Rotate ${f.name}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onMove(f.uid, clampPos(f, p.x, p.y, p.r === 90 ? 0 : 90)); }}
