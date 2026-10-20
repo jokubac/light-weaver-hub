@@ -235,19 +235,20 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                   </div>
                 );
               })()}
+              {mq && <div aria-label="Selection rectangle" className="pointer-events-none absolute z-20 border border-dashed border-primary bg-primary/10" style={{ left: mq.x * cell, top: mq.y * cell, width: mq.w * cell, height: mq.h * cell }} />}
               {px.map((f) => {
-                const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); const inLayer = !multi || sel.has(f.uid);
+                const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p });
                 return (
                   <div key={f.uid} title={`${f.name} · ${getDef(f.defId).model}`}
-                    className={`absolute cursor-grab touch-none rounded-sm p-px ${multi && sel.has(f.uid) ? "ring-4 ring-primary" : inLayer ? "ring-2 ring-primary" : "ring-1 ring-border opacity-70"}`}
+                    className={`absolute cursor-grab touch-none rounded-sm p-px ${sel.has(f.uid) ? "ring-4 ring-primary" : "ring-2 ring-primary"}`}
                     style={{ left: p.x * cell, top: p.y * cell, width: w * cell, height: h * cell }}
                     onPointerDown={(e) => {
                       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                      const group = multi && sel.has(f.uid) ? px.filter((g) => sel.has(g.uid)) : [f];
+                      const group = sel.has(f.uid) ? px.filter((g) => sel.has(g.uid)) : [f];
                       drag.current = { uid: f.uid, x: e.clientX, y: e.clientY, ox: p.x, oy: p.y, moved: false, group: group.map((g) => ({ f: g, p: pos.get(g.uid)! })) };
                     }}
                     onPointerMove={(e) => { const d = drag.current; if (!d || d.uid !== f.uid) return; const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly); if (!dx && !dy && !d.moved) return; d.moved = true; for (const g of d.group) onMove(g.f.uid, clampPos(g.f, g.p.x + dx, g.p.y + dy, g.p.r)); }}
-                    onPointerUp={() => { const d = drag.current; drag.current = null; if (multi && d && !d.moved) setSel((s) => { const n = new Set(s); if (n.has(f.uid)) n.delete(f.uid); else n.add(f.uid); return n; }); }}>
+                    onPointerUp={() => { const d = drag.current; drag.current = null; if (d && !d.moved) setSel((s) => { const n = new Set(s); if (n.has(f.uid)) n.delete(f.uid); else n.add(f.uid); return n; }); }}>
                     {pixels(f, cell, p.r)}
                     <span className="pointer-events-none absolute -top-4 left-0 whitespace-nowrap text-[10px] font-semibold">{f.name}</span>
                     <button aria-label={`Rotate ${f.name}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onMove(f.uid, clampPos(f, p.x, p.y, p.r === 90 ? 0 : 90)); }}
