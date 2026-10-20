@@ -33,7 +33,10 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const layer = layers.find((l) => l.id === activeId) ?? layers[0];
   const pos = canvasPositions(fixtures);
   const preview = layer ? pixelPreview({ ...layer, order: layer.order.filter((u) => px.some((f) => f.uid === u)) }, fixtures, frame, now).frame : frame;
-  const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null);
+  const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean; group: { f: PatchedFixture; p: { x: number; y: number; r?: number } }[] } | null>(null);
+  const effDrag = useRef<{ x: number; y: number; a: { x: number; y: number; w: number; h: number } } | null>(null);
+  const [multi, setMulti] = useState(false);
+  const [sel, setSel] = useState<Set<string>>(new Set());
   const stage = stageSize(fixtures);
   const W = stage.W, H = stage.H;
   const rec = useRef<{ start: number; pts: { t: number; x: number; y: number; a: number }[] } | null>(null);
@@ -55,6 +58,16 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const pair = () => { const [p, q] = [...touches.current.values()]; return { d: Math.hypot(q!.x - p!.x, q!.y - p!.y) || 1, a: (Math.atan2(q!.y - p!.y, q!.x - p!.x) * 180) / Math.PI, mx: (p!.x + q!.x) / 2, my: (p!.y + q!.y) / 2 }; };
   const gDown = (e: React.PointerEvent) => {
     touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.current.size === 1) {
+      // one finger/mouse on an empty spot inside the selected effect box drags the effect
+      const t = e.target as HTMLElement;
+      if (layer && onArea && (t === board.current || t === bg.current)) {
+        const [gx, gy] = toGrid(e.clientX, e.clientY); const a = baseArea;
+        if (gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h) effDrag.current = { x: e.clientX, y: e.clientY, a };
+      }
+      return;
+    }
+    effDrag.current = null;
     if (touches.current.size !== 2) return;
     drag.current = null; areaDrag.current = null;
     const g = pair(); const [gx, gy] = toGrid(g.mx, g.my); const a = baseArea;
@@ -65,6 +78,12 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const gMove = (e: React.PointerEvent) => {
     if (!touches.current.has(e.pointerId)) return;
     touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const ed = effDrag.current;
+    if (ed && touches.current.size === 1) {
+      const [lx, ly] = toLocal(e.clientX - ed.x, e.clientY - ed.y);
+      setArea(layerArea({ area: { ...ed.a, x: ed.a.x + Math.round(lx), y: ed.a.y + Math.round(ly) } }, stage));
+      return;
+    }
     const s0 = gesture.current; if (!s0 || touches.current.size < 2) return;
     e.stopPropagation(); drag.current = null; areaDrag.current = null;
     const g = pair(), k = g.d / s0.d, rot = g.a - s0.a;
@@ -81,7 +100,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       gesture.current = { ...s0, mx: g.mx, my: g.my };
     }
   };
-  const gUp = (e: React.PointerEvent) => { touches.current.delete(e.pointerId); if (touches.current.size < 2) gesture.current = null; };
+  const gUp = (e: React.PointerEvent) => { touches.current.delete(e.pointerId); if (touches.current.size === 0) effDrag.current = null; if (touches.current.size < 2) gesture.current = null; };
   // open centred on the map
   useEffect(() => { const sc = scroller.current; if (sc) { sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2; sc.scrollTop = (sc.scrollHeight - sc.clientHeight) / 2; } }, [px.length > 0]);
   useEffect(() => {
@@ -135,6 +154,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
+            <Button size="sm" variant={multi ? "default" : "secondary"} aria-pressed={multi} onClick={() => { setMulti((m) => !m); setSel(new Set()); }}>Multi select{multi && sel.size ? ` (${sel.size})` : ""}</Button>
+            {multi && <Button size="sm" variant="secondary" onClick={() => setSel(sel.size === px.length ? new Set() : new Set(px.map((f) => f.uid)))}>{sel.size === px.length ? "Select none" : "Select all"}</Button>}
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
           </div>
@@ -200,14 +221,18 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                 );
               })()}
               {px.map((f) => {
-                const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); const inLayer = true;
+                const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p }); const inLayer = !multi || sel.has(f.uid);
                 return (
                   <div key={f.uid} title={`${f.name} · ${getDef(f.defId).model}`}
-                    className={`absolute cursor-grab touch-none rounded-sm p-px ${inLayer ? "ring-2 ring-primary" : "ring-1 ring-border opacity-70"}`}
+                    className={`absolute cursor-grab touch-none rounded-sm p-px ${multi && sel.has(f.uid) ? "ring-4 ring-primary" : inLayer ? "ring-2 ring-primary" : "ring-1 ring-border opacity-70"}`}
                     style={{ left: p.x * cell, top: p.y * cell, width: w * cell, height: h * cell }}
-                    onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); drag.current = { uid: f.uid, x: e.clientX, y: e.clientY, ox: p.x, oy: p.y, moved: false }; }}
-                    onPointerMove={(e) => { const d = drag.current; if (!d || d.uid !== f.uid) return; const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly); if (!dx && !dy && !d.moved) return; d.moved = true; onMove(f.uid, clampPos(f, d.ox + dx, d.oy + dy, p.r)); }}
-                    onPointerUp={() => { drag.current = null; }}>
+                    onPointerDown={(e) => {
+                      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                      const group = multi && sel.has(f.uid) ? px.filter((g) => sel.has(g.uid)) : [f];
+                      drag.current = { uid: f.uid, x: e.clientX, y: e.clientY, ox: p.x, oy: p.y, moved: false, group: group.map((g) => ({ f: g, p: pos.get(g.uid)! })) };
+                    }}
+                    onPointerMove={(e) => { const d = drag.current; if (!d || d.uid !== f.uid) return; const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly); if (!dx && !dy && !d.moved) return; d.moved = true; for (const g of d.group) onMove(g.f.uid, clampPos(g.f, g.p.x + dx, g.p.y + dy, g.p.r)); }}
+                    onPointerUp={() => { const d = drag.current; drag.current = null; if (multi && d && !d.moved) setSel((s) => { const n = new Set(s); if (n.has(f.uid)) n.delete(f.uid); else n.add(f.uid); return n; }); }}>
                     {pixels(f, cell, p.r)}
                     <span className="pointer-events-none absolute -top-4 left-0 whitespace-nowrap text-[10px] font-semibold">{f.name}</span>
                     <button aria-label={`Rotate ${f.name}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onMove(f.uid, clampPos(f, p.x, p.y, p.r === 90 ? 0 : 90)); }}
