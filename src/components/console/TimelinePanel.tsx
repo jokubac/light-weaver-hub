@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent } from "react";
-import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay } from "lucide-react";
+import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NumberField } from "@/components/console/NumberField";
 import { useFxLibrary } from "@/lib/fxlib";
 import { membersOf } from "@/lib/fixture-groups";
@@ -35,6 +36,39 @@ export function placeClip(tl: Timeline, c: TimelineClip): Timeline {
   const track = { id: newId(), name: adjust ? "Adjustment" : `Layer ${tl.tracks.length + 1}`, ...(adjust ? { adjust: true } : {}) };
   return { ...tl, tracks: adjust ? [track, ...tl.tracks] : [...tl.tracks, track], clips: [...others, { ...c, track: track.id }] };
 }
+/** New clips go on the highest layer that is free at their time; if every layer is busy, a new layer is added below. */
+export function placeAtTop(tl: Timeline, c: TimelineClip): Timeline {
+  for (const t of tl.tracks) { if (!fits(t, c)) continue; const x = { ...c, track: t.id }; if (!tl.clips.some((o) => clash(x, o))) return { ...tl, clips: [...tl.clips, x] }; }
+  const track = { id: newId(), name: `Layer ${tl.tracks.length + 1}` };
+  return { ...tl, tracks: [...tl.tracks, track], clips: [...tl.clips, { ...c, track: track.id }] };
+}
+/** Nearest target within range, otherwise t unchanged. */
+export function snapTime(t: number, targets: number[], range: number): number {
+  let best = t, dist = range;
+  for (const x of targets) { const d = Math.abs(x - t); if (d <= dist) { dist = d; best = x; } }
+  return best;
+}
+type MenuItem = { value: string; label: string; hint?: string };
+/** Tidy add menu: a button that opens a panel of tiles grouped by section, with optional search. */
+function AddMenu({ label, sections, onPick, search }: { label: string; sections: { title: string; items: MenuItem[]; empty?: string }[]; onPick: (v: string) => void; search?: boolean }) {
+  const [open, setOpen] = useState(false), [q, setQ] = useState("");
+  const s = q.trim().toLowerCase();
+  return <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQ(""); }}>
+    <PopoverTrigger asChild><Button variant="secondary" size="sm"><Plus />{label}<ChevronDown className="opacity-60" /></Button></PopoverTrigger>
+    <PopoverContent align="start" className="w-80 p-0">
+      {search && <div className="border-b border-border p-2"><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="w-full rounded-md border border-input bg-surface-elevated px-2 py-1.5 text-sm outline-none focus:border-primary" /></div>}
+      <div className="max-h-96 space-y-3 overflow-auto p-2">
+        {sections.map((sec) => { const items = sec.items.filter((i) => !s || i.label.toLowerCase().includes(s)); return <div key={sec.title}>
+          <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{sec.title}</div>
+          {items.length ? <div className="grid grid-cols-2 gap-1">{items.map((i) => <button key={i.value} onClick={() => { onPick(i.value); setOpen(false); setQ(""); }}
+            className="flex min-w-0 items-center gap-1 rounded-md border border-border bg-surface-elevated px-2 py-1.5 text-left text-xs font-medium hover:border-primary hover:bg-primary/15">
+            <span className="min-w-0 flex-1 truncate">{i.label}</span>{i.hint && <span className="shrink-0 text-[10px] text-muted-foreground">{i.hint}</span>}
+          </button>)}</div> : <p className="px-1 text-xs text-muted-foreground">{s ? "No match" : sec.empty ?? "Nothing here"}</p>}
+        </div>; })}
+      </div>
+    </PopoverContent>
+  </Popover>;
+}
 /** Automation points of a clip; clips without points start from their from→to ramp. */
 const keysOf = (c: TimelineClip): TimelineKey[] => c.keys?.length ? [...c.keys].sort((a, b) => a.t - b.t)
   : [{ id: newId(), t: 0, intensity: c.from?.intensity ?? 1, cct: c.from?.cct }, { id: newId(), t: c.length, intensity: c.to?.intensity ?? c.from?.intensity ?? 1, cct: c.to?.cct }];
@@ -55,11 +89,14 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const [track, setTrack] = useState(timeline.tracks[0]?.id ?? "");
   const [sel, setSel] = useState<string[]>([]);
   const [marq, setMarq] = useState<{ t0: number; t1: number; a: number; b: number } | null>(null);
-  const [addKind, setAddKind] = useState("");
+  const [magnet, setMagnet] = useState(true);
   const [keySel, setKeySel] = useState<string | null>(null);
   const kdrag = useRef<{ clip: string; key: string; rect: DOMRect; moved: boolean } | null>(null);
-  const drag = useRef<{ ids: { id: string; orig: TimelineClip }[]; mode: "move" | "l" | "r"; x: number; y: number; moved: boolean } | null>(null);
+  const drag = useRef<{ primary: string; ids: { id: string; orig: TimelineClip }[]; mode: "move" | "l" | "r"; x: number; y: number; moved: boolean } | null>(null);
   const mdrag = useRef<{ id: string; x: number; t: number; moved: boolean } | null>(null);
+  const phDrag = useRef<{ x: number; t: number } | null>(null);
+  /** Magnet: pull a time onto the nearest clip edge (or the playhead) within 10px. */
+  const snapT = (t: number, skip: string[]) => magnet ? snapTime(t, [time, ...timeline.clips.filter((c) => !skip.includes(c.id)).flatMap((c) => [c.start, c.start + c.length])], 10 / zoom) : t;
   const marqRef = useRef<{ idx: number; x: number; top: number; left: number; moved: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const len = Math.max(30, timelineLength(timeline) + 10, time + 5);
@@ -109,7 +146,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       const from = kind === "fadein" ? 0 : cur?.intensity ?? 1, to = kind === "fadeout" ? 0 : kind === "fadein" ? cur?.intensity || 1 : 1;
       c = { ...base, kind: "level", length: 4, name: kind === "fadein" ? "Fade in" : kind === "fadeout" ? "Fade out" : "Level", uids, from: { intensity: from }, to: { intensity: to } };
     }
-    if (c) { setTimeline(placeClip(timeline, c)); setSel([c.id]); }
+    if (c) { setTimeline(placeAtTop(timeline, c)); setSel([c.id]); }
   };
 
   const addAdjust = () => {
@@ -139,12 +176,21 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
     const ids = add ? (sel.includes(c.id) ? sel.filter((x) => x !== c.id) : [...sel, c.id]) : sel.includes(c.id) ? sel : [c.id];
     setSel(ids);
     const group = mode === "move" ? ids : [c.id];
-    drag.current = { ids: group.flatMap((id) => { const o = timeline.clips.find((x) => x.id === id); return o ? [{ id, orig: { ...o } }] : []; }), mode, x: e.clientX, y: e.clientY, moved: false };
+    drag.current = { primary: c.id, ids: group.flatMap((id) => { const o = timeline.clips.find((x) => x.id === id); return o ? [{ id, orig: { ...o } }] : []; }), mode, x: e.clientX, y: e.clientY, moved: false };
   };
   const move = (e: RPE) => {
     const d = drag.current; if (!d) return;
-    const ds = Math.round(((e.clientX - d.x) / zoom) * 10) / 10, dy = Math.round((e.clientY - d.y) / ROW);
+    let ds = Math.round(((e.clientX - d.x) / zoom) * 10) / 10;
+    const dy = Math.round((e.clientY - d.y) / ROW);
     if (Math.abs(e.clientX - d.x) > 2 || Math.abs(e.clientY - d.y) > 2) d.moved = true;
+    const skip = d.ids.map((x) => x.id), p = d.ids.find((x) => x.id === d.primary)?.orig ?? d.ids[0]?.orig;
+    if (magnet && p) {
+      if (d.mode === "move") {
+        const s = p.start + (e.clientX - d.x) / zoom, a = snapT(s, skip), b = snapT(s + p.length, skip);
+        if (a !== s) ds = a - p.start; else if (b !== s + p.length) ds = b - p.length - p.start;
+      } else if (d.mode === "r") ds = snapT(p.start + p.length + (e.clientX - d.x) / zoom, skip) - p.start - p.length;
+      else ds = snapT(p.start + (e.clientX - d.x) / zoom, skip) - p.start;
+    }
     if (d.mode === "move") {
       set(timeline.clips.map((c) => {
         const o = d.ids.find((x) => x.id === c.id)?.orig; if (!o) return c;
@@ -199,35 +245,22 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         <Button size="icon" variant="secondary" aria-label="Stop" title="Stop — return lights to how they were" onClick={onStop}><Square /></Button>
         <Button size="icon" variant={repeat ? "default" : "secondary"} aria-label="Repeat" aria-pressed={repeat} title="Repeat" onClick={onRepeat}><Repeat /></Button>
         <span className="w-20 font-mono text-sm tabular-nums">{fmt(time)}</span>
-        <select aria-label="Add fixture" title="Add one light at the playhead" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
-          <option value="">+ Fixture</option>
-          {fixtures.map((f, i) => <option key={f.uid} value={`light:${f.uid}`}>{i + 1}. {f.name}</option>)}
-        </select>
-        <select aria-label="Add group" title="Add your group or the selected lights at the playhead" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
-          <option value="">+ Group</option>
-          {selected.length > 1 && <option value="on">Selected lights ({selected.length})</option>}
-          {groups.map((g) => <option key={g} value={`group:${g}`}>{g}</option>)}
-          {!groups.length && selected.length < 2 && <option disabled>No groups yet — make one in Groups</option>}
-        </select>
-        <select aria-label="Add effect" title="Simple effects at the playhead (on selected lights)" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
-          <option value="">+ Effect</option>
-          <optgroup label="Light">{SIMPLE_FX.map((x) => <option key={x.id} value={`simple:${x.id}`}>{x.label}</option>)}</optgroup>
-          <optgroup label="Pixel">{SIMPLE_PX.map((k) => { const l = PIXEL_LIBRARY.find((x) => x.key === k); return l && <option key={k} value={`spx:${k}`}>{l.label}</option>; })}</optgroup>
-          <optgroup label="Brightness"><option value="fadein">Fade in</option><option value="fadeout">Fade out</option><option value="level">Level / CCT ramp</option></optgroup>
-        </select>
-        <select aria-label="Add REC" title="Your own effects made in FX / PIXEL and REC sequences" value={addKind} onChange={(e) => { addClip(e.target.value); setAddKind(""); }} className="rounded-md border border-input bg-secondary px-2 py-2 text-sm font-medium text-secondary-foreground">
-          <option value="">+ REC</option>
-          <optgroup label="REC sequences">{recordings.map((r) => <option key={r.id} value={`rec:${r.id}`}>{r.name}</option>)}</optgroup>
-          <optgroup label="Saved light effects"><option value="fxsel">Effect from selected light</option>{lib.lib.fx.map((x) => <option key={x.id} value={`fx:${x.id}`}>{x.name}</option>)}</optgroup>
-          <optgroup label="Saved pixel effects">
-            {layers.map((l) => <option key={l.id} value={`pxlayer:${l.id}`}>{l.name} (PIXEL layer)</option>)}
-            {lib.lib.pixel.map((x) => <option key={x.id} value={`pixel:${x.id}`}>{x.name}</option>)}
-          </optgroup>
-        </select>
-        <span className="text-xs text-muted-foreground">on</span>
-        <select aria-label="Layer" value={targetTrack} onChange={(e) => setTrack(e.target.value)} className="rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm">
-          {timeline.tracks.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
+        <AddMenu label="Fixture" onPick={addClip} search sections={[{ title: "Lights", items: fixtures.map((f, i) => ({ value: `light:${f.uid}`, label: f.name, hint: `${i + 1}` })), empty: "Patch lights first" }]} />
+        <AddMenu label="Group" onPick={addClip} sections={[
+          ...(selected.length > 1 ? [{ title: "Selection", items: [{ value: "on", label: "Selected lights", hint: `${selected.length}` }] }] : []),
+          { title: "Groups", items: groups.map((g) => ({ value: `group:${g}`, label: g, hint: `${membersOf(fixtures, g).length}` })), empty: "No groups yet — make one in Groups" },
+        ]} />
+        <AddMenu label="Effect" onPick={addClip} sections={[
+          { title: "Light", items: SIMPLE_FX.map((x) => ({ value: `simple:${x.id}`, label: x.label })) },
+          { title: "Pixel", items: SIMPLE_PX.flatMap((k) => { const l = PIXEL_LIBRARY.find((x) => x.key === k); return l ? [{ value: `spx:${k}`, label: l.label }] : []; }) },
+          { title: "Brightness", items: [{ value: "fadein", label: "Fade in" }, { value: "fadeout", label: "Fade out" }, { value: "level", label: "Level / CCT ramp" }] },
+        ]} />
+        <AddMenu label="REC" onPick={addClip} search sections={[
+          { title: "REC sequences", items: recordings.map((r) => ({ value: `rec:${r.id}`, label: r.name })), empty: "Nothing recorded yet" },
+          { title: "Saved light effects", items: [{ value: "fxsel", label: "From selected light" }, ...lib.lib.fx.map((x) => ({ value: `fx:${x.id}`, label: x.name }))] },
+          { title: "Saved pixel effects", items: [...layers.map((l) => ({ value: `pxlayer:${l.id}`, label: l.name, hint: "PIXEL" })), ...lib.lib.pixel.map((x) => ({ value: `pixel:${x.id}`, label: x.name }))], empty: "None saved yet" },
+        ]} />
+        <Button variant={magnet ? "default" : "secondary"} size="sm" aria-pressed={magnet} title="Magnet — clips snap to the ends of other clips and the playhead" onClick={() => setMagnet((m) => !m)}><Magnet />Magnet</Button>
         <Button variant="secondary" size="sm" title="Playback stops here until GO" onClick={() => { const m = timeline.markers ?? []; setTimeline({ ...timeline, markers: [...m, { id: newId(), t: Math.round(time * 10) / 10, name: `M${m.length + 1}` }].sort((a, b) => a.t - b.t) }); }}><Flag />Marker</Button>
         <Button variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />Layer</Button>
         <Button variant="secondary" size="sm" title="Adjustment layer — changes brightness and colour of every layer below it" onClick={addAdjust}><SlidersHorizontal />Adjustment layer</Button>
@@ -245,7 +278,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           {/* ruler */}
           <div className="sticky top-0 z-[35] flex h-7 border-b border-border bg-surface">
             <div className="sticky left-0 z-50 shrink-0 border-r border-border bg-surface" style={{ width: HEAD }} />
-            <div className="relative flex-1 cursor-pointer" onPointerDown={seekAt}>
+            <div className="relative flex-1 cursor-pointer touch-none" onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); seekAt(e); }} onPointerMove={(e) => { if (e.buttons) seekAt(e); }}>
               {Array.from({ length: Math.ceil(len) + 1 }, (_, s) => s).filter((s) => s % (zoom < 15 ? 10 : zoom < 40 ? 5 : 1) === 0).map((s) => (
                 <span key={s} className="absolute top-0 h-full border-l border-border pl-1 text-[10px] text-muted-foreground" style={{ left: s * zoom }}>{fmt(s).replace(/\.0$/, "")}</span>
               ))}
@@ -312,6 +345,12 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           </div>)}
           {marq && <div className="pointer-events-none absolute z-30 border border-primary bg-primary/20" style={{ left: HEAD + marq.a * zoom, width: Math.max(2, (marq.b - marq.a) * zoom), top: 28 + marq.t0 * ROW, height: (marq.t1 - marq.t0 + 1) * ROW }} />}
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: HEAD + time * zoom }} />
+          <div aria-label="Playhead — drag along the time bar" title="Drag to move the playhead"
+            className="absolute top-0 z-[37] h-0 w-0 -translate-x-1/2 cursor-ew-resize touch-none border-x-[8px] border-t-[12px] border-x-transparent border-t-destructive"
+            style={{ left: HEAD + time * zoom }}
+            onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); phDrag.current = { x: e.clientX, t: time }; }}
+            onPointerMove={(e) => { const d = phDrag.current; if (!d) return; onSeek(snapT(Math.max(0, d.t + (e.clientX - d.x) / zoom), [])); }}
+            onPointerUp={() => { phDrag.current = null; }} />
         </div>
         {timeline.clips.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.</p>}
         {timeline.clips.length > 0 && <p className="px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
@@ -413,12 +452,12 @@ function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures
         <MonitorPlay className="h-3.5 w-3.5" />Visualiser<span className="font-normal text-muted-foreground">{list.length} lights · drag to move, corner to resize</span>
         <button aria-label="Close visualiser" onPointerDown={(e) => e.stopPropagation()} onClick={onClose} className="ml-auto text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
       </div>
-      <div className="grid flex-1 auto-rows-fr gap-1.5 overflow-auto p-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))" }}>
+      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-auto p-3">
         {list.map((f) => { const c = colorOf?.(f) ?? [0, 0, 0]; return (
-          <div key={f.uid} className="flex min-h-12 flex-col justify-end rounded-md border border-border p-1 text-[10px] font-semibold" style={{ background: `rgb(${c[0]},${c[1]},${c[2]})`, boxShadow: `0 0 18px rgb(${c[0]},${c[1]},${c[2]} / 0.6)` }}>
+          <div key={f.uid} title={f.name} className="flex h-11 w-11 shrink-0 flex-col justify-end overflow-hidden rounded border border-border p-0.5 text-[8px] font-semibold leading-tight" style={{ background: `rgb(${c[0]},${c[1]},${c[2]})`, boxShadow: `0 0 10px rgb(${c[0]},${c[1]},${c[2]} / 0.5)` }}>
             <span className="truncate">{f.name}</span>
           </div>); })}
-        {!list.length && <p className="col-span-full p-4 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
+        {!list.length && <p className="w-full p-4 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
       </div>
       <div aria-label="Resize visualiser" onPointerDown={start("size")} className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize touch-none border-b-2 border-r-2 border-muted-foreground" />
     </div>

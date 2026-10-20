@@ -72,3 +72,19 @@ describe("adjustment boost and layer stretch", () => {
     expect(s.clips[1]).toMatchObject({ start: 10, length: 4, rate: 0.5 });
   });
 });
+
+import { placeAtTop, snapTime } from "@/components/console/TimelinePanel";
+describe("new clips go to the highest free layer", () => {
+  it("uses layer 1 when free, the next layer when busy, and adds a layer when all are busy", () => {
+    const t = tl();
+    const c = { id: "n", track: "bottom", kind: "level" as const, name: "n", start: 7, length: 2 };
+    expect(placeAtTop(t, c).clips.find((x) => x.id === "n")?.track).toBe("top");
+    const busy = placeAtTop(t, { ...c, start: 3 });
+    expect(busy.clips.find((x) => x.id === "n")?.track).not.toBe("top");
+    expect(busy.tracks.length).toBe(3);
+  });
+  it("magnet snaps within range only", () => {
+    expect(snapTime(4.1, [4, 8], 0.25)).toBe(4);
+    expect(snapTime(5, [4, 8], 0.25)).toBe(5);
+  });
+});
