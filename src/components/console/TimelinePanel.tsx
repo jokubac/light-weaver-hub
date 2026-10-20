@@ -347,7 +347,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: HEAD + time * zoom }} />
           <div aria-label="Playhead — drag along the time bar" title="Drag to move the playhead"
             className="absolute z-[37] h-0 w-0 -translate-x-1/2 cursor-ew-resize touch-none border-x-[8px] border-t-[12px] border-x-transparent border-t-destructive"
-            style={{ left: HEAD + time * zoom, top: ROW === 0 ? 0 : 16 }}
+            style={{ left: HEAD + time * zoom, top: 16 }}
             onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); phDrag.current = { x: e.clientX, t: time }; }}
             onPointerMove={(e) => { const d = phDrag.current; if (!d) return; onSeek(snapT(Math.max(0, d.t + (e.clientX - d.x) / zoom), [])); }}
             onPointerUp={() => { phDrag.current = null; }} />
