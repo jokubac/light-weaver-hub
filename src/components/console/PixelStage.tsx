@@ -163,10 +163,12 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         {layer && onLayer && (
           <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 text-xs" aria-label="Effect motion">
             <span className="font-semibold">Motion</span>
-            <label className="flex items-center gap-1">Rotate
+            <span className="flex items-center gap-1"><span className="font-semibold">Rotate</span>
+              <input type="number" step={5} min={-180} max={180} aria-label="Rotate degrees" value={Math.round(layer.angle ?? 0)} onChange={(e) => { const v = Number(e.target.value); if (!Number.isNaN(v)) setAngle(((v + 540) % 360) - 180); }} className="w-14 rounded bg-surface-elevated px-1 py-0.5 tabular-nums" />°
               <input type="range" min={-180} max={180} value={Math.round(layer.angle ?? 0)} onChange={(e) => setAngle(Number(e.target.value))} className="w-28" />
-              <span className="w-9 tabular-nums">{Math.round(layer.angle ?? 0)}°</span>
-            </label>
+              <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 45 + 540) % 360) - 180)}>45°</Button>
+              <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 90 + 540) % 360) - 180)}>90°</Button>
+            </span>
             <label className="flex items-center gap-1">Spin
               <input type="number" step={5} value={layer.spin ?? 0} onChange={(e) => onLayer({ spin: Number(e.target.value) || 0 })} className="w-16 rounded bg-surface-elevated px-1 py-0.5" />°/s
             </label>
