@@ -20,14 +20,13 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   onLayer?: (patch: Partial<PixelLayer>) => void;
 }) {
   const [cell, setCell] = useState(20);
-  // whole-map view rotation (degrees); zoom is the cell size so drag maths stay in exact grid units
-  const [view, setView] = useState(0);
+  // zoom is the cell size so drag maths stay in exact grid units; the map itself never rotates
   const scroller = useRef<HTMLDivElement>(null);
   const board = useRef<HTMLDivElement>(null);
   const touches = useRef(new Map<number, { x: number; y: number }>());
-  const gesture = useRef<{ d: number; a: number; mx: number; my: number; cell: number; view: number; effect: null | { area: { x: number; y: number; w: number; h: number }; angle: number } } | null>(null);
-  /** screen delta → grid delta, undoing the map rotation */
-  const toLocal = (dx: number, dy: number) => { const r = (-view * Math.PI) / 180; return [(dx * Math.cos(r) - dy * Math.sin(r)) / cell, (dx * Math.sin(r) + dy * Math.cos(r)) / cell] as const; };
+  const gesture = useRef<{ d: number; a: number; mx: number; my: number; cell: number; effect: null | { area: { x: number; y: number; w: number; h: number }; angle: number } } | null>(null);
+  /** screen delta → grid delta */
+  const toLocal = (dx: number, dy: number) => [dx / cell, dy / cell] as const;
   const [addOpen, setAddOpen] = useState(false);
   const now = useClock();
   const px = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos);
@@ -61,7 +60,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     const g = pair(); const [gx, gy] = toGrid(g.mx, g.my); const a = baseArea;
     // two fingers inside the selected effect box move/scale/rotate the effect, elsewhere the whole map
     const onEffect = !!layer && onLayer && gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h;
-    gesture.current = { ...g, cell, view, effect: onEffect ? { area: a, angle: layer!.angle ?? 0 } : null };
+    gesture.current = { ...g, cell, effect: onEffect ? { area: a, angle: layer!.angle ?? 0 } : null };
   };
   const gMove = (e: React.PointerEvent) => {
     if (!touches.current.has(e.pointerId)) return;
@@ -78,7 +77,6 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       onLayer?.({ area: area2, angle: ang }); sample(area2.x, area2.y, ang);
     } else {
       setCell(Math.max(4, Math.min(60, s0.cell * k)));
-      setView(s0.view + rot);
       const sc = scroller.current; if (sc) { sc.scrollLeft -= g.mx - s0.mx; sc.scrollTop -= g.my - s0.my; }
       gesture.current = { ...s0, mx: g.mx, my: g.my };
     }
@@ -89,10 +87,10 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   useEffect(() => {
     const el = scroller.current; if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.altKey) return;
+      if (!e.ctrlKey) return;
       e.preventDefault();
       const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
-      if (e.altKey) setView((v) => v + dy * 0.2); else setCell((c) => Math.max(4, Math.min(60, c * Math.exp(-dy * 0.0015))));
+      setCell((c) => Math.max(4, Math.min(60, c * Math.exp(-dy * 0.0015))));
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -133,14 +131,12 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
           <span className="font-semibold">Pixel canvas</span>
-          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom, turn and move the map (Ctrl/Alt + wheel on a mouse) · every effect plays on all lights on the map · ✕ on a light removes it</span>
+          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom and move the map (Ctrl + wheel on a mouse) · the map itself never turns, only the effect does · every effect plays on all lights on the map · ✕ on a light removes it</span>
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
-            <Button size="sm" variant="secondary" aria-label="Rotate map" onClick={() => setView((v) => v + 90)}><RotateCw />{Math.round(((view % 360) + 360) % 360)}°</Button>
-            {view % 360 !== 0 && <Button size="sm" variant="ghost" onClick={() => setView(0)}>Reset view</Button>}
           </div>
         </div>
         {layer && onLayer && (
@@ -174,7 +170,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         <div ref={scroller} className="flex min-h-0 flex-1 touch-none overflow-auto p-3"
           onPointerDownCapture={gDown} onPointerMoveCapture={gMove} onPointerUpCapture={gUp} onPointerCancelCapture={gUp}>
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No lights on the pixel map yet. Press “Add fixtures” to add pixel lights.</p> : (
-            <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ transform: view ? `rotate(${view}deg)` : undefined, width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
+            <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
 
               {layers.filter((l) => l.id !== layer?.id).map((l) => { const a = layerArea(l, stage); return (
