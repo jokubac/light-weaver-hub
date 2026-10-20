@@ -131,14 +131,12 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
           <span className="font-semibold">Pixel canvas</span>
-          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom, turn and move the map (Ctrl/Alt + wheel on a mouse) · every effect plays on all lights on the map · ✕ on a light removes it</span>
+          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom and move the map (Ctrl + wheel on a mouse) · the map itself never turns, only the effect does · every effect plays on all lights on the map · ✕ on a light removes it</span>
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
-            <Button size="sm" variant="secondary" aria-label="Rotate map" onClick={() => setView((v) => v + 90)}><RotateCw />{Math.round(((view % 360) + 360) % 360)}°</Button>
-            {view % 360 !== 0 && <Button size="sm" variant="ghost" onClick={() => setView(0)}>Reset view</Button>}
           </div>
         </div>
         {layer && onLayer && (
@@ -172,7 +170,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         <div ref={scroller} className="flex min-h-0 flex-1 touch-none overflow-auto p-3"
           onPointerDownCapture={gDown} onPointerMoveCapture={gMove} onPointerUpCapture={gUp} onPointerCancelCapture={gUp}>
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No lights on the pixel map yet. Press “Add fixtures” to add pixel lights.</p> : (
-            <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ transform: view ? `rotate(${view}deg)` : undefined, width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
+            <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
 
               {layers.filter((l) => l.id !== layer?.id).map((l) => { const a = layerArea(l, stage); return (
