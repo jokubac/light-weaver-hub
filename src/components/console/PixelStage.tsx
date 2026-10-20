@@ -20,14 +20,13 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   onLayer?: (patch: Partial<PixelLayer>) => void;
 }) {
   const [cell, setCell] = useState(20);
-  // whole-map view rotation (degrees); zoom is the cell size so drag maths stay in exact grid units
-  const [view, setView] = useState(0);
+  // zoom is the cell size so drag maths stay in exact grid units; the map itself never rotates
   const scroller = useRef<HTMLDivElement>(null);
   const board = useRef<HTMLDivElement>(null);
   const touches = useRef(new Map<number, { x: number; y: number }>());
-  const gesture = useRef<{ d: number; a: number; mx: number; my: number; cell: number; view: number; effect: null | { area: { x: number; y: number; w: number; h: number }; angle: number } } | null>(null);
-  /** screen delta → grid delta, undoing the map rotation */
-  const toLocal = (dx: number, dy: number) => { const r = (-view * Math.PI) / 180; return [(dx * Math.cos(r) - dy * Math.sin(r)) / cell, (dx * Math.sin(r) + dy * Math.cos(r)) / cell] as const; };
+  const gesture = useRef<{ d: number; a: number; mx: number; my: number; cell: number; effect: null | { area: { x: number; y: number; w: number; h: number }; angle: number } } | null>(null);
+  /** screen delta → grid delta */
+  const toLocal = (dx: number, dy: number) => [dx / cell, dy / cell] as const;
   const [addOpen, setAddOpen] = useState(false);
   const now = useClock();
   const px = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos);
