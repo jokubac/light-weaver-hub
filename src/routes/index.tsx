@@ -1330,13 +1330,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
           onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
           onSelect={setActivePixelId}
           addFixtures={<PatchPanel fixtures={fixtures} pixelOnly defaultMap={false} showPatched={false}
-            onAdd={(fs) => { const px = fs.filter((f) => pixelCount(f) > 1); if (!px.length) return; const placed: typeof px = []; for (const f of px) placed.push({ ...f, pixelPos: freeCanvasSpot([...fixtures, ...placed], f) }); setFixtures((x) => [...x, ...placed]); }}
+            onAdd={(fs) => { const px = fs.filter((f) => pixelCount(f) > 1); if (!px.length) return; const placed: typeof px = []; for (const f of px) placed.push({ ...f, pixelPos: freeCanvasSpot([...fixtures, ...placed], f) }); setFixtures((x) => [...x, ...placed]); const actId = (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id; setLayers(layers.map((l) => (l.id === actId ? { ...l, order: [...l.order, ...placed.map((f) => f.uid).filter((u) => !l.order.includes(u))] } : l))); }}
             onRemove={() => {}} onUpdate={(id, p) => updateOne(id, p)} />}
           onPlay={(id) => setLayers(layers.map((l) => (l.id === id ? { ...l, playing: !l.playing, pausedAt: undefined } : l)))}
           onPause={(id) => setLayers(layers.map((l) => { if (l.id !== id) return l; const now = performance.now() / 1000; return l.pausedAt != null ? { ...l, pausedAt: undefined, phase: (l.phase ?? 0) + (l.pausedAt - now) * l.speed } : { ...l, pausedAt: now }; }))}
           onRemoveLayer={(id) => { const rest = layers.filter((l) => l.id !== id); if (!rest.length) return; setLayers(rest); if (activePixelId === id) setActivePixelId(rest[0]!.id); }}
           onRemoveLight={(uid) => updateOne(uid, { pixelPos: undefined })}
-          onAdd={() => { const l = defaultLayer(`Layer ${layers.length + 1}`, fixtures.filter(isPixelFixture).map((f) => f.uid)); setLayers([...layers, l]); setActivePixelId(l.id); }}
+          onAdd={() => { const l = defaultLayer(`Layer ${layers.length + 1}`, []); setLayers([...layers, l]); setActivePixelId(l.id); }}
           onLayer={(patch) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, ...patch } : l))}
           onArea={(area) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, area } : l))}
           onToggle={(id) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, order: l.order.includes(id) ? l.order.filter((u) => u !== id) : [...l.order, id] } : l))} />
