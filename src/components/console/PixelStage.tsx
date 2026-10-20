@@ -79,10 +79,15 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const gMove = (e: React.PointerEvent) => {
     if (!touches.current.has(e.pointerId)) return;
     touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const ed = effDrag.current;
-    if (ed && touches.current.size === 1) {
-      const [lx, ly] = toLocal(e.clientX - ed.x, e.clientY - ed.y);
-      setArea(layerArea({ area: { ...ed.a, x: ed.a.x + Math.round(lx), y: ed.a.y + Math.round(ly) } }, stage));
+    const m = marquee.current;
+    if (m && touches.current.size === 1 && e.pointerId === m.id) {
+      const [gx, gy] = toGrid(e.clientX, e.clientY);
+      const r = { x: Math.min(m.x0, gx), y: Math.min(m.y0, gy), w: Math.abs(gx - m.x0), h: Math.abs(gy - m.y0) };
+      setMq(r);
+      const hit = new Set<string>();
+      for (const f of px) { const p = pos.get(f.uid); if (!p) continue; const [w, h] = canvasSize({ ...f, pixelPos: p });
+        if (p.x < r.x + r.w && p.x + w > r.x && p.y < r.y + r.h && p.y + h > r.y) hit.add(f.uid); }
+      setSel(hit);
       return;
     }
     const s0 = gesture.current; if (!s0 || touches.current.size < 2) return;
@@ -101,7 +106,16 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       gesture.current = { ...s0, mx: g.mx, my: g.my };
     }
   };
-  const gUp = (e: React.PointerEvent) => { touches.current.delete(e.pointerId); if (touches.current.size === 0) effDrag.current = null; if (touches.current.size < 2) gesture.current = null; };
+  const gUp = (e: React.PointerEvent) => {
+    touches.current.delete(e.pointerId);
+    if (touches.current.size === 0) {
+      const m = marquee.current; marquee.current = null;
+      // a tap on an empty map spot (no drag) deselects everything
+      if (m && e.pointerId === m.id && mq && mq.w < 0.5 && mq.h < 0.5) setSel(new Set());
+      setMq(null);
+    }
+    if (touches.current.size < 2) gesture.current = null;
+  };
   // open centred on the map
   useEffect(() => { const sc = scroller.current; if (sc) { sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2; sc.scrollTop = (sc.scrollHeight - sc.clientHeight) / 2; } }, [px.length > 0]);
   useEffect(() => {
