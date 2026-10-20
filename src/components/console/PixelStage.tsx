@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type React from "react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus } from "lucide-react";
@@ -144,7 +145,27 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     ctx.putImageData(data, 0, 0);
   });
 
-  const autoArrange = () => { let x = 0, y = 0, rowH = 0; for (const f of px) { const [w, h] = canvasSize({ ...f, pixelPos: { x: 0, y: 0 } }); if (x + w > W) { x = 0; y += rowH + 1; rowH = 0; } onMove(f.uid, clampPos(f, x, y, 0)); x += w + 1; rowH = Math.max(rowH, h); } };
+  const [gap, setGap] = useState(1);
+  /** lay out the selected lights (or every light) in a chosen shape, centred on the map */
+  const autoArrange = (shape: "rows" | "row" | "column" | "grid" | "upright" | "circle") => {
+    const list = sel.size ? px.filter((f) => sel.has(f.uid)) : px; if (!list.length) return;
+    const r = shape === "upright" ? 90 : 0;
+    const sz = list.map((f) => canvasSize({ ...f, pixelPos: { x: 0, y: 0, r } }));
+    const spots: { x: number; y: number }[] = [];
+    if (shape === "circle") {
+      const R = Math.max(4, (list.length * (Math.max(...sz.map((s) => s[0])) + gap)) / (2 * Math.PI));
+      list.forEach((_, i) => { const a = (i / list.length) * Math.PI * 2 - Math.PI / 2; spots.push({ x: Math.round(W / 2 + Math.cos(a) * R - sz[i]![0] / 2), y: Math.round(H / 2 + Math.sin(a) * R - sz[i]![1] / 2) }); });
+    } else {
+      const perRow = shape === "row" || shape === "upright" ? Infinity : shape === "column" ? 1 : shape === "grid" ? Math.ceil(Math.sqrt(list.length)) : Infinity;
+      const maxW = shape === "rows" ? Math.min(W, Math.max(...sz.map((s) => s[0])) * Math.ceil(Math.sqrt(list.length)) * 2) : W;
+      let x = 0, y = 0, rowH = 0, n = 0;
+      list.forEach((_, i) => { const [w, h] = sz[i]!; if (n >= perRow || (n > 0 && x + w > maxW)) { x = 0; y += rowH + gap; rowH = 0; n = 0; } spots.push({ x, y }); x += w + gap; rowH = Math.max(rowH, h); n++; });
+      const bw = Math.max(...spots.map((s, i) => s.x + sz[i]![0])), bh = Math.max(...spots.map((s, i) => s.y + sz[i]![1]));
+      const ox = Math.round((W - bw) / 2), oy = Math.round((H - bh) / 2);
+      spots.forEach((s) => { s.x += ox; s.y += oy; });
+    }
+    list.forEach((f, i) => onMove(f.uid, clampPos(f, spots[i]!.x, spots[i]!.y, r)));
+  };
 
   const pixels = (f: PatchedFixture, size: number, rot: number) => {
     const [lc, lr] = pixelGrid(f);
@@ -168,7 +189,21 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · drag on an empty map spot to select lights, tap an empty spot to deselect · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom and move the map (Ctrl + wheel on a mouse) · every effect plays on all lights on the map · ✕ on a light removes it</span>
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
-            <Button size="sm" variant="secondary" onClick={autoArrange}><LayoutGrid />Arrange</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />Arrange{sel.size ? ` (${sel.size})` : ""}</Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{sel.size ? `Arrange ${sel.size} selected` : "Arrange all lights"}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => autoArrange("rows")}>Rows</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => autoArrange("grid")}>Square grid</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => autoArrange("row")}>One line (horizontal)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => autoArrange("upright")}>Side by side, upright</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => autoArrange("column")}>One column (stacked)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => autoArrange("circle")}>Circle</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Gap between lights</DropdownMenuLabel>
+                {[0, 1, 2, 4].map((g) => <DropdownMenuItem key={g} onSelect={(e) => { e.preventDefault(); setGap(g); }}>{gap === g ? "● " : "○ "}{g === 0 ? "No gap" : `${g} cell${g > 1 ? "s" : ""}`}</DropdownMenuItem>)}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
           </div>
