@@ -60,7 +60,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     const g = pair(); const [gx, gy] = toGrid(g.mx, g.my); const a = baseArea;
     // two fingers inside the selected effect box move/scale/rotate the effect, elsewhere the whole map
     const onEffect = !!layer && onLayer && gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h;
-    gesture.current = { ...g, cell, view, effect: onEffect ? { area: a, angle: layer!.angle ?? 0 } : null };
+    gesture.current = { ...g, cell, effect: onEffect ? { area: a, angle: layer!.angle ?? 0 } : null };
   };
   const gMove = (e: React.PointerEvent) => {
     if (!touches.current.has(e.pointerId)) return;
@@ -77,7 +77,6 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       onLayer?.({ area: area2, angle: ang }); sample(area2.x, area2.y, ang);
     } else {
       setCell(Math.max(4, Math.min(60, s0.cell * k)));
-      setView(s0.view + rot);
       const sc = scroller.current; if (sc) { sc.scrollLeft -= g.mx - s0.mx; sc.scrollTop -= g.my - s0.my; }
       gesture.current = { ...s0, mx: g.mx, my: g.my };
     }
@@ -88,10 +87,10 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   useEffect(() => {
     const el = scroller.current; if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.altKey) return;
+      if (!e.ctrlKey) return;
       e.preventDefault();
       const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
-      if (e.altKey) setView((v) => v + dy * 0.2); else setCell((c) => Math.max(4, Math.min(60, c * Math.exp(-dy * 0.0015))));
+      setCell((c) => Math.max(4, Math.min(60, c * Math.exp(-dy * 0.0015))));
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
