@@ -173,13 +173,11 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     const list = sel.size ? px.filter((f) => sel.has(f.uid)) : px; if (!list.length) return;
     if (how === "rotate") { list.forEach((f) => { const r = (f.pixelPos?.r ?? 0) === 90 ? 0 : 90; onMove(f.uid, clampPos(f, f.pixelPos!.x, f.pixelPos!.y, r)); }); return; }
     if (how === "row" || how === "column" || how === "grid" || how === "circle") { autoArrange(how === "row" ? "row" : how); return; }
-    const sz = list.map((f) => canvasSize(f));
-    const size = Math.max(...sz.flat());
-    const res = arrange(list.map((f) => ({ id: f.uid, x: f.pixelPos!.x, y: f.pixelPos!.y })), how, gap / size, 1);
-    const k = size + gap * 0; // arrange works in unit squares; scale back to cells
-    const r0 = res.map((p) => ({ ...p, x: p.x * (how.endsWith("center") || how.endsWith("space") ? 1 : k), y: p.y * (how.endsWith("center") || how.endsWith("space") ? 1 : k) }));
-    let out = r0;
-    if (how === "triangle" || how === "pentagon") { const bx = Math.max(...r0.map((p) => p.x)) + size, by = Math.max(...r0.map((p) => p.y)) + size; const mx = Math.min(...r0.map((p) => p.x)), my = Math.min(...r0.map((p) => p.y)); out = r0.map((p) => ({ ...p, x: p.x - mx + (W - (bx - mx)) / 2, y: p.y - my + (H - (by - my)) / 2 })); }
+    const size = Math.max(...list.map((f) => canvasSize(f)).flat());
+    const r0 = arrange(list.map((f) => ({ id: f.uid, x: f.pixelPos!.x, y: f.pixelPos!.y })), how, gap, size);
+    const mx = Math.min(...r0.map((p) => p.x)), my = Math.min(...r0.map((p) => p.y));
+    const bw = Math.max(...r0.map((p) => p.x)) + size - mx, bh = Math.max(...r0.map((p) => p.y)) + size - my;
+    const out = r0.map((p) => ({ ...p, x: p.x - mx + (W - bw) / 2, y: p.y - my + (H - bh) / 2 }));
     out.forEach((p) => { const f = list.find((x) => x.uid === p.id)!; onMove(f.uid, clampPos(f, Math.round(p.x), Math.round(p.y), f.pixelPos?.r ?? 0)); });
   };
 
