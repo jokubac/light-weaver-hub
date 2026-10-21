@@ -13,7 +13,8 @@ import { useClock } from "./PixelPanel";
 type RGB = [number, number, number];
 
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
-export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveLight, onLayer, addFixtures }: {
+export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveGroup, onAddEffect, onRemoveLight, onLayer, addFixtures }: {
+  onRemoveGroup?: (gid: string) => void; onAddEffect?: (gid: string) => void;
   addFixtures?: ReactNode;
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
@@ -168,6 +169,9 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   });
 
   const [gap, setGap] = useState(1);
+  const lastHow = useRef<Arrange | null>(null);
+  // moving the Spacing slider re-applies the last arrangement live
+  useEffect(() => { if (lastHow.current) gridArrange(lastHow.current); }, [gap]); // eslint-disable-line react-hooks/exhaustive-deps
   /** lay out the selected lights (or every light) in a chosen shape, centred on the map */
   const autoArrange = (shape: "rows" | "row" | "column" | "grid" | "upright" | "circle") => {
     const list = sel.size ? px.filter((f) => sel.has(f.uid)) : px; if (!list.length) return;
@@ -249,11 +253,11 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
               <DropdownMenuContent align="end" className="w-64 p-2">
                 <DropdownMenuLabel>{sel.size ? `Arrange ${sel.size} selected` : "Arrange all lights"}</DropdownMenuLabel>
                 <div className="grid grid-cols-3 gap-1">
-                  {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => gridArrange(k)} className="flex flex-col items-center gap-0.5 rounded-md bg-surface-elevated px-1 py-1.5 text-[10px] font-semibold active:scale-95">
+                  {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => { lastHow.current = k === "rotate" ? null : k; gridArrange(k); }} className="flex flex-col items-center gap-0.5 rounded-md bg-surface-elevated px-1 py-1.5 text-[10px] font-semibold active:scale-95">
                     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{GRID_ICON[k]}</svg>{l}</button>)}
                 </div>
                 <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
-                  <input type="range" min={0} max={4} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
+                  <input type="range" min={0} max={10} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
                   <span className="w-12 text-right font-mono">{gap} cell{gap === 1 ? "" : "s"}</span>
                 </label>
               </DropdownMenuContent>
@@ -281,14 +285,24 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         {onSelect && (
           <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-1.5 text-xs" aria-label="Effect layers">
             <span className="mr-1 font-semibold">Layers</span>
-            {layers.map((l) => (
-              <span key={l.id} className={`flex items-center overflow-hidden rounded-md ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
-                <button onClick={() => onPlay?.(l.id)} aria-label={`${l.playing ? "Stop" : "Play"} ${l.name}`} className="px-1.5 py-1">{l.playing ? "■" : "▶"}</button>
-                {l.playing && onPause && <button onClick={() => onPause(l.id)} aria-label={`${l.pausedAt != null ? "Resume" : "Pause"} ${l.name}`} className="px-1 py-1">{l.pausedAt != null ? "⏵" : "❚❚"}</button>}
-                <button onClick={() => onSelect(l.id)} className="py-1 pr-2 font-semibold">{l.name}{l.pausedAt != null && l.playing ? " (paused)" : ""}</button>
-                {onRemoveLayer && layers.length > 1 && <button onClick={() => { if (confirm(`Delete effect “${l.name}”?`)) onRemoveLayer(l.id); }} aria-label={`Delete ${l.name}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">✕</button>}
-              </span>
-            ))}
+            {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
+              const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
+              return (
+                <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
+                  <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} layer ${gi + 1}`} className="px-1.5 py-1">{h.playing ? "■" : "▶"}</button>
+                  {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} layer ${gi + 1}`} className="px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
+                  <span className="px-1 font-semibold text-muted-foreground">L{gi + 1}</span>
+                  {fx.map((l) => (
+                    <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
+                      <button onClick={() => onSelect(l.id)} className="px-2 py-1 font-semibold">{l.name}</button>
+                      {onRemoveLayer && fx.length > 1 && <button onClick={() => { if (confirm(`Delete effect “${l.name}”?`)) onRemoveLayer(l.id); }} aria-label={`Delete effect ${l.name}`} className="pr-1.5 opacity-70 hover:opacity-100">✕</button>}
+                    </span>
+                  ))}
+                  {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to layer ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">+ Effect</button>}
+                  {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete layer ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete layer ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">🗑</button>}
+                </span>
+              );
+            })}
             {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Layer</Button>}
           </div>
         )}
