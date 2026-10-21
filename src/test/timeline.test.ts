@@ -88,3 +88,26 @@ describe("new clips go to the highest free layer", () => {
     expect(snapTime(5, [4, 8], 0.25)).toBe(5);
   });
 });
+
+import { applyFilter } from "@/lib/timeline";
+describe("adjustment filter and layer mixing", () => {
+  it("hue shift of 90° turns a red light green-ish (hue 90)", () => {
+    expect(applyFilter({ intensity: 1, hue: 0, saturation: 1, cctOnly: false }, { hueShift: 90 }).hue).toBe(90);
+  });
+  it("CCT shift +800K moves cct by 0.1", () => {
+    expect(applyFilter({ cct: 0.5 }, { cctShift: 800 }).cct).toBeCloseTo(0.6);
+  });
+  it("layer at 50% opacity mixes halfway with the layer below", () => {
+    const t = tl(); t.tracks[0]!.opacity = 0.5;
+    // below 0.2, top clip at t=4 is 0.5 → 0.35
+    expect(timelineAt(t, 4, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.35);
+  });
+  it("HTP keeps the brighter of the two layers", () => {
+    const t = tl(); t.tracks[0]!.blend = "htp";
+    expect(timelineAt(t, 2.4, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.2);
+  });
+  it("solo plays only the solo layer", () => {
+    const t = tl(); t.tracks[1]!.solo = true;
+    expect(timelineAt(t, 4, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.2);
+  });
+});
