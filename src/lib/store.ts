@@ -6,6 +6,8 @@ import type { PixelLayer, PixelMap } from "./pixels";
 export interface Scene {
   id: string;
   name: string;
+  /** Accent colour for this scene's own listings; falls back to the project colour. */
+  color?: string;
   createdAt: number;
   fixtures: PatchedFixture[];
   master: number;
