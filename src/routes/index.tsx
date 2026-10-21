@@ -344,6 +344,7 @@ function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, on
                   </div>
                   {isOpen && (
                     <div className="space-y-1 pb-3 pl-10 pr-3">
+                      <div className="pb-1"><NewItemForm placeholder="New scene (e.g. Interview, Night, Fire)" onCreate={(n) => onCreateScene(p.id, n)} /></div>
                       {p.scenes.map((s) => (
                         <div key={s.id} onClick={() => onOpenScene(p.id, s.id)} className="flex cursor-pointer items-center gap-3 rounded-lg border-l-2 bg-surface-elevated px-3 py-2 hover:bg-primary/10" style={{ borderColor: p.color }}>
                           <Clapperboard className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -356,7 +357,6 @@ function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, on
                           </div>
                         </div>
                       ))}
-                      <div className="pt-1"><NewItemForm placeholder="New scene (e.g. Interview, Night, Fire)" onCreate={(n) => onCreateScene(p.id, n)} /></div>
                     </div>
                   )}
                 </div>
