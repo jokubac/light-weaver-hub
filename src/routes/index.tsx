@@ -72,6 +72,7 @@ import { deleteAudio, loadAudio, peaks as audioPeaksOf, saveAudio } from "@/lib/
 import { defaultLayer, freeCanvasSpot, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
+  sceneColor,
   loadProjects,
   saveProjects,
   loadConnection,
@@ -348,14 +349,14 @@ function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, on
                     <div className="space-y-1 pb-3 pl-10 pr-3">
                       <div className="pb-1"><NewItemForm placeholder="New scene (e.g. Interview, Night, Fire)" onCreate={(n) => onCreateScene(p.id, n)} /></div>
                       {p.scenes.map((s) => (
-                        <div key={s.id} onClick={() => onOpenScene(p.id, s.id)} className="flex cursor-pointer items-center gap-3 rounded-lg border-l-2 bg-surface-elevated px-3 py-2 hover:bg-primary/10" style={{ borderColor: s.color ?? p.color }}>
+                        <div key={s.id} onClick={() => onOpenScene(p.id, s.id)} className="flex cursor-pointer items-center gap-3 rounded-lg border-l-2 bg-surface-elevated px-3 py-2 hover:bg-primary/10" style={{ borderColor: sceneColor(s, p) }}>
                           <Clapperboard className="h-4 w-4 shrink-0 text-muted-foreground" />
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-sm font-semibold">{s.name}</div>
                             <div className="text-[10px] text-muted-foreground">{s.fixtures.length} fixtures · {fmtDate(s.createdAt)}</div>
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
-                            <ItemMenu name={s.name} color={s.color ?? p.color} onColor={(c) => onColorScene(p.id, s.id, c)} onDuplicate={() => onDuplicateScene(p.id, s.id)} onDelete={() => onDeleteScene(p.id, s.id)} onRename={(n) => onRenameScene(p.id, s.id, n)} />
+                            <ItemMenu name={s.name} color={sceneColor(s, p)} onColor={(c) => onColorScene(p.id, s.id, c)} onDuplicate={() => onDuplicateScene(p.id, s.id)} onDelete={() => onDeleteScene(p.id, s.id)} onRename={(n) => onRenameScene(p.id, s.id, n)} />
                           </div>
                         </div>
                       ))}

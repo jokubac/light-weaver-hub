@@ -19,6 +19,11 @@ export interface Scene {
   timeline?: import("./timeline").Timeline;
 }
 
+/** A scene shows the accent picked for it; when none was picked it uses the project's colour. */
+export function sceneColor(scene: Pick<Scene, "color">, project: { color: string }): string {
+  return scene.color ?? project.color;
+}
+
 /** A saved snapshot of fixture settings, recallable from any scene in the project. */
 export type LookState = Pick<PatchedFixture, "intensity" | "cct" | "gm" | "hue" | "saturation" | "crossfade" | "cctOnly" | "fx" | "on" | "fxPlaying" | "fan" | "gel" | "beam">;
 export interface Look {
