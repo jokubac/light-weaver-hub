@@ -29,6 +29,7 @@ import { FixtureControls } from "@/components/console/FixtureControls";
 import { FixtureGlyph } from "@/components/console/FixtureGlyph";
 import { copyFixtureSettings, type FixtureSettings } from "@/lib/fixture-settings";
 import { PixelPanel } from "@/components/console/PixelPanel";
+import { PixelAddPatched } from "@/components/console/PixelAddPatched";
 import { PixelStage } from "@/components/console/PixelStage";
 import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
@@ -1329,9 +1330,13 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
         <PixelStage fixtures={fixtures} layers={layers} activeId={activePixelId} frame={frame} controls={pixelPanel(true)}
           onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
           onSelect={setActivePixelId}
-          addFixtures={<PatchPanel fixtures={fixtures} pixelOnly defaultMap={false} showPatched={false}
-            onAdd={(fs) => { const px = fs.filter((f) => pixelCount(f) > 1); if (!px.length) return; const placed: typeof px = []; for (const f of px) placed.push({ ...f, pixelPos: freeCanvasSpot([...fixtures, ...placed], f) }); setFixtures((x) => [...x, ...placed]); const actId = (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id; setLayers(layers.map((l) => (l.id === actId ? { ...l, order: [...l.order, ...placed.map((f) => f.uid).filter((u) => !l.order.includes(u))] } : l))); }}
-            onRemove={() => {}} onUpdate={(id, p) => updateOne(id, p)} />}
+          addFixtures={<PixelAddPatched fixtures={fixtures} onAdd={(uids) => {
+            const placed: typeof fixtures = [];
+            for (const u of uids) { const f = fixtures.find((x) => x.uid === u); if (f) placed.push({ ...f, pixelPos: freeCanvasSpot([...fixtures.filter((x) => !uids.includes(x.uid)), ...placed], { ...f, pixelPos: { x: 0, y: 0, r: 0 } }) }); }
+            setFixtures((x) => x.map((f) => placed.find((p) => p.uid === f.uid) ?? f));
+            const actId = (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id;
+            setLayers(layers.map((l) => (l.id === actId ? { ...l, order: [...l.order, ...uids.filter((u) => !l.order.includes(u))] } : l)));
+          }} />}
           onPlay={(id) => setLayers(layers.map((l) => (l.id === id ? { ...l, playing: !l.playing, pausedAt: undefined } : l)))}
           onPause={(id) => setLayers(layers.map((l) => { if (l.id !== id) return l; const now = performance.now() / 1000; return l.pausedAt != null ? { ...l, pausedAt: undefined, phase: (l.phase ?? 0) + (l.pausedAt - now) * l.speed } : { ...l, pausedAt: now }; }))}
           onRemoveLayer={(id) => { const rest = layers.filter((l) => l.id !== id); if (!rest.length) return; setLayers(rest); if (activePixelId === id) setActivePixelId(rest[0]!.id); }}

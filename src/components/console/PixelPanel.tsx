@@ -61,7 +61,10 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
     }
   };
 
-  const { placed, W, H, frame: preview } = pixelPreview({ ...layer, order: inMap }, fixtures, frame, now);
+  // preview only the lights placed on the PIXEL map (when any are placed)
+  const mapUids = new Set(fixtures.filter((f) => f.pixelPos).map((f) => f.uid));
+  const onlyMap = (u: string) => !mapUids.size || mapUids.has(u);
+  const { placed, W, H, frame: preview } = pixelPreview({ ...layer, order: inMap.filter(onlyMap) }, fixtures, new Map([...frame].filter(([u]) => onlyMap(u))), now);
 
   return (
     <div className="space-y-4">

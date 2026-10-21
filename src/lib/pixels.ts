@@ -190,12 +190,13 @@ export function migrateLayers(s: { pixelLayers?: PixelLayer[]; pixelMap?: PixelM
   return [defaultLayer()];
 }
 
-export const pixelCount = (f: PatchedFixture) => (f.split ? 0 : getMode(f).pixels ?? 0);
+/** Non-pixel lights placed on the PIXEL map act as one pixel. */
+export const pixelCount = (f: PatchedFixture) => (f.split ? 0 : getMode(f).pixels ?? (f.pixelPos ? 1 : 0));
 export const isPixelFixture = (f: PatchedFixture) => pixelCount(f) > 0;
 /** Physical pixel grid of one fixture [cols, rows]; pixels are numbered row by row from top-left. */
 export const pixelGrid = (f: PatchedFixture): [number, number] => {
   const mo = getMode(f);
-  return mo.grid ?? [mo.pixels ?? 0, 1];
+  return mo.grid ?? [pixelCount(f), 1];
 };
 
 /** Position [x, y] of DMX pixel i inside the fixture's grid, following the manufacturer's numbering. */
