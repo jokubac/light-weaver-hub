@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
-import { arrange, GRID_ARRANGE, GRID_ICON, type Arrange } from "./GridBoard";
+import { GRID_ARRANGE, GRID_ICON, type Arrange } from "./GridBoard";
 import { useClock } from "./PixelPanel";
 
 type RGB = [number, number, number];
@@ -175,7 +175,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     const sz = list.map((f) => canvasSize({ ...f, pixelPos: { x: 0, y: 0, r } }));
     const spots: { x: number; y: number }[] = [];
     if (shape === "circle") {
-      const R = Math.max(4, (list.length * (Math.max(...sz.map((s) => s[0])) + gap)) / (2 * Math.PI));
+      const R = Math.max(4, (list.length * (Math.max(...sz.map((s) => Math.hypot(s[0], s[1]))) + gap)) / (2 * Math.PI));
       list.forEach((_, i) => { const a = (i / list.length) * Math.PI * 2 - Math.PI / 2; spots.push({ x: Math.round(W / 2 + Math.cos(a) * R - sz[i]![0] / 2), y: Math.round(H / 2 + Math.sin(a) * R - sz[i]![1] / 2) }); });
     } else {
       const perRow = shape === "row" || shape === "upright" ? Infinity : shape === "column" ? 1 : shape === "grid" ? Math.ceil(Math.sqrt(list.length)) : Infinity;
