@@ -190,6 +190,6 @@
 - [x] Scenes: colour can be set from the scene's right-hand menu (same swatches as projects); the scene's own accent shows in its list row, otherwise the project colour is used.
 
 ## PIXEL — corner rotate/resize (in progress)
-- [ ] Verify: two fingers no longer rotate effect; bottom-right corner rotates; double-tap corner switches to resize.
+- [x] Verified on screen: corner drag rotates (angle 20°), double-tap switches to resize (box 122x72 -> 119x70 and back), hint text and "Pixel canvas" label removed.
 - [ ] (Jokubas) "Remove button prie pixel" — check a Remove button in PIXEL window and address it.
 - [x] (Jokubas) "clear" — removed the long hint text and the "Pixel canvas" label above the PIXEL canvas.
