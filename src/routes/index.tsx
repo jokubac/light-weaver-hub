@@ -152,21 +152,42 @@ function App() {
 
   if (!loaded) return <div className="min-h-screen bg-background" />;
 
-  if (view.name === "projects") {
+  const createScene = (projectId: string, name: string) => {
+    const src = projects.find((p) => p.id === projectId);
+    if (!src) return;
+    const prev = src.scenes[0];
+    const s: Scene = {
+      id: uid(), name, createdAt: Date.now(),
+      // new scenes inherit the patch from the latest scene
+      fixtures: prev ? prev.fixtures.map((f) => ({ ...f, intensity: 0, fx: { ...f.fx, kind: "none" as const }, trigger: null })) : [],
+      master: 1,
+    };
+    updateProject(projectId, (p) => ({ ...p, scenes: [s, ...p.scenes] }));
+    setView({ name: "console", projectId, sceneId: s.id });
+  };
+  const sceneOps = {
+    onOpenScene: (projectId: string, sceneId: string) => setView({ name: "console", projectId, sceneId }),
+    onCreateScene: createScene,
+    onDuplicateScene: (projectId: string, sceneId: string) => updateProject(projectId, (p) => {
+      const src = p.scenes.find((s) => s.id === sceneId);
+      if (!src) return p;
+      return { ...p, scenes: [{ ...structuredClone(src), id: uid(), name: `${src.name} copy`, createdAt: Date.now() }, ...p.scenes] };
+    }),
+    onDeleteScene: (projectId: string, sceneId: string) => updateProject(projectId, (p) => ({ ...p, scenes: p.scenes.filter((s) => s.id !== sceneId) })),
+    onRenameScene: (projectId: string, sceneId: string, name: string) => updateProject(projectId, (p) => ({ ...p, scenes: p.scenes.map((s) => (s.id === sceneId ? { ...s, name } : s)) })),
+  };
+
+  if (view.name === "projects" || view.name === "scenes") {
     return (
       <ProjectsScreen
         projects={projects}
+        initialOpen={view.name === "scenes" ? view.projectId : null}
         account={<AccountButton email={user?.email ?? null} sync={sync} />}
-        onOpen={(id) => setView({ name: "scenes", projectId: id })}
+        {...sceneOps}
         onCreate={(name, color) => {
-          const p: Project = {
-            id: uid(),
-            name,
-            color,
-            createdAt: Date.now(),
-            scenes: [],
-          };
+          const p: Project = { id: uid(), name, color, createdAt: Date.now(), scenes: [] };
           setProjects((ps) => [p, ...ps]);
+          setView({ name: "scenes", projectId: p.id });
         }}
         onDelete={(id) => setProjects((ps) => ps.filter((p) => p.id !== id))}
         onUpdate={updateProject}
@@ -175,48 +196,10 @@ function App() {
     );
   }
 
-  const projectId = "projectId" in view ? view.projectId : null;
-  const project = projects.find((p) => p.id === projectId);
+  const project = projects.find((p) => p.id === view.projectId);
   if (!project) {
     setView({ name: "projects" });
     return null;
-  }
-
-  if (view.name === "scenes") {
-    return (
-      <ScenesScreen
-        project={project}
-        onBack={() => setView({ name: "projects" })}
-        onOpen={(sceneId) => setView({ name: "console", projectId: project.id, sceneId })}
-        onCreate={(name) => {
-          const prev = project.scenes[0];
-          const s: Scene = {
-            id: uid(),
-            name,
-            createdAt: Date.now(),
-            // new scenes inherit the patch from the latest scene
-            fixtures: prev ? prev.fixtures.map((f) => ({ ...f, intensity: 0, fx: { ...f.fx, kind: "none" as const }, trigger: null })) : [],
-            master: 1,
-          };
-          updateProject(project.id, (p) => ({ ...p, scenes: [s, ...p.scenes] }));
-          setView({ name: "console", projectId: project.id, sceneId: s.id });
-        }}
-        onDuplicate={(sceneId) =>
-          updateProject(project.id, (p) => {
-            const src = p.scenes.find((s) => s.id === sceneId);
-            if (!src) return p;
-            const copy: Scene = { ...structuredClone(src), id: uid(), name: `${src.name} copy`, createdAt: Date.now() };
-            return { ...p, scenes: [copy, ...p.scenes] };
-          })
-        }
-        onDelete={(sceneId) =>
-          updateProject(project.id, (p) => ({ ...p, scenes: p.scenes.filter((s) => s.id !== sceneId) }))
-        }
-        onRename={(sceneId, name) =>
-          updateProject(project.id, (p) => ({ ...p, scenes: p.scenes.map((s) => (s.id === sceneId ? { ...s, name } : s)) }))
-        }
-      />
-    );
   }
 
   const scene = project.scenes.find((s) => s.id === view.sceneId);
@@ -230,6 +213,8 @@ function App() {
       key={scene.id}
       project={project}
       scene={scene}
+      projects={projects}
+      onSwitch={(projectId, sceneId) => setView({ name: "console", projectId, sceneId })}
       onSave={(next) =>
         updateProject(project.id, (p) => ({
           ...p,
