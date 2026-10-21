@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
+import { arrange, GRID_ARRANGE, GRID_ICON, type Arrange } from "./GridBoard";
 import { useClock } from "./PixelPanel";
 
 type RGB = [number, number, number];
@@ -167,6 +168,21 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     list.forEach((f, i) => onMove(f.uid, clampPos(f, spots[i]!.x, spots[i]!.y, r)));
   };
 
+  /** Same shapes as GRID Arrange; each light keeps its own size and stays centred on the map. */
+  const gridArrange = (how: Arrange) => {
+    const list = sel.size ? px.filter((f) => sel.has(f.uid)) : px; if (!list.length) return;
+    if (how === "rotate") { list.forEach((f) => { const r = (f.pixelPos?.r ?? 0) === 90 ? 0 : 90; onMove(f.uid, clampPos(f, f.pixelPos!.x, f.pixelPos!.y, r)); }); return; }
+    if (how === "row" || how === "column" || how === "grid" || how === "circle") { autoArrange(how === "row" ? "row" : how); return; }
+    const sz = list.map((f) => canvasSize(f));
+    const size = Math.max(...sz.flat());
+    const res = arrange(list.map((f) => ({ id: f.uid, x: f.pixelPos!.x, y: f.pixelPos!.y })), how, gap / size, 1);
+    const k = size + gap * 0; // arrange works in unit squares; scale back to cells
+    const r0 = res.map((p) => ({ ...p, x: p.x * (how.endsWith("center") || how.endsWith("space") ? 1 : k), y: p.y * (how.endsWith("center") || how.endsWith("space") ? 1 : k) }));
+    let out = r0;
+    if (how === "triangle" || how === "pentagon") { const bx = Math.max(...r0.map((p) => p.x)) + size, by = Math.max(...r0.map((p) => p.y)) + size; const mx = Math.min(...r0.map((p) => p.x)), my = Math.min(...r0.map((p) => p.y)); out = r0.map((p) => ({ ...p, x: p.x - mx + (W - (bx - mx)) / 2, y: p.y - my + (H - (by - my)) / 2 })); }
+    out.forEach((p) => { const f = list.find((x) => x.uid === p.id)!; onMove(f.uid, clampPos(f, Math.round(p.x), Math.round(p.y), f.pixelPos?.r ?? 0)); });
+  };
+
   const pixels = (f: PatchedFixture, size: number, rot: number) => {
     const [lc, lr] = pixelGrid(f);
     const cols = preview.get(f.uid) ?? frame.get(f.uid);
@@ -191,17 +207,16 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />Arrange{sel.size ? ` (${sel.size})` : ""}</Button></DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-64 p-2">
                 <DropdownMenuLabel>{sel.size ? `Arrange ${sel.size} selected` : "Arrange all lights"}</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => autoArrange("rows")}>Rows</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => autoArrange("grid")}>Square grid</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => autoArrange("row")}>One line (horizontal)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => autoArrange("upright")}>Side by side, upright</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => autoArrange("column")}>One column (stacked)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => autoArrange("circle")}>Circle</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Gap between lights</DropdownMenuLabel>
-                {[0, 1, 2, 4].map((g) => <DropdownMenuItem key={g} onSelect={(e) => { e.preventDefault(); setGap(g); }}>{gap === g ? "● " : "○ "}{g === 0 ? "No gap" : `${g} cell${g > 1 ? "s" : ""}`}</DropdownMenuItem>)}
+                <div className="grid grid-cols-3 gap-1">
+                  {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => gridArrange(k)} className="flex flex-col items-center gap-0.5 rounded-md bg-surface-elevated px-1 py-1.5 text-[10px] font-semibold active:scale-95">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{GRID_ICON[k]}</svg>{l}</button>)}
+                </div>
+                <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
+                  <input type="range" min={0} max={4} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
+                  <span className="w-12 text-right font-mono">{gap} cell{gap === 1 ? "" : "s"}</span>
+                </label>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
