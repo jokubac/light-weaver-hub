@@ -184,4 +184,4 @@
 - [x] TIMELINE: Delete button in the toolbar — removes the selected clips, greyed out until something is picked; browser verified single and group delete
 - [x] PIXEL window: canvas placement, all-lights strip, 50 generators, video layers
 - [x] PIXEL: Add fixtures button listing only pixel lights
-- [ ] PIXEL: Arrange like GRID; visualiser only lights placed in PIXEL
+- [x] PIXEL: Arrange like GRID; visualiser only lights placed in PIXEL
