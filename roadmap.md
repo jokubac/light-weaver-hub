@@ -185,3 +185,4 @@
 - [x] PIXEL window: canvas placement, all-lights strip, 50 generators, video layers
 - [x] PIXEL: Add fixtures button listing only pixel lights
 - [x] PIXEL: Arrange like GRID; visualiser only lights placed in PIXEL
+- [ ] TIMELINE: adjustment filter + layer solo/lock/opacity/blend/colour/reorder; right panel list of every point (step) editable
