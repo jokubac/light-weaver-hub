@@ -189,17 +189,39 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     list.forEach((f, i) => onMove(f.uid, clampPos(f, spots[i]!.x, spots[i]!.y, r)));
   };
 
-  /** Same shapes as GRID Arrange; each light keeps its own size and stays centred on the map. */
+  /** Same shapes as GRID Arrange, laid out with each light's real size on the pixel map (never overlapping). */
   const gridArrange = (how: Arrange) => {
     const list = sel.size ? px.filter((f) => sel.has(f.uid)) : px; if (!list.length) return;
     if (how === "rotate") { list.forEach((f) => { const r = (f.pixelPos?.r ?? 0) === 90 ? 0 : 90; onMove(f.uid, clampPos(f, f.pixelPos!.x, f.pixelPos!.y, r)); }); return; }
-    if (how === "row" || how === "column" || how === "grid" || how === "circle") { autoArrange(how === "row" ? "row" : how); return; }
-    const size = Math.max(...list.map((f) => canvasSize(f)).flat());
-    const r0 = arrange(list.map((f) => ({ id: f.uid, x: f.pixelPos!.x, y: f.pixelPos!.y })), how, gap, size);
-    const mx = Math.min(...r0.map((p) => p.x)), my = Math.min(...r0.map((p) => p.y));
-    const bw = Math.max(...r0.map((p) => p.x)) + size - mx, bh = Math.max(...r0.map((p) => p.y)) + size - my;
-    const out = r0.map((p) => ({ ...p, x: p.x - mx + (W - bw) / 2, y: p.y - my + (H - bh) / 2 }));
-    out.forEach((p) => { const f = list.find((x) => x.uid === p.id)!; onMove(f.uid, clampPos(f, Math.round(p.x), Math.round(p.y), f.pixelPos?.r ?? 0)); });
+    if (how === "row" || how === "hcenter" || how === "hspace") { autoArrange("row"); return; }
+    if (how === "column" || how === "vcenter" || how === "vspace") { autoArrange("column"); return; }
+    if (how === "grid") { autoArrange("grid"); return; }
+    if (how === "circle" && list.length < 3) { autoArrange("row"); return; }
+    // perimeter shapes: light centres spaced evenly along the outline, each spot big enough for the largest light
+    const sz = list.map((f) => canvasSize(f));
+    const step = Math.max(...sz.map(([w, h]) => Math.hypot(w, h))) + gap;
+    const n = list.length;
+    const P: [number, number][] = how === "triangle" ? [[0, -0.5774], [0.5, 0.2887], [-0.5, 0.2887]]
+      : how === "pentagon" ? Array.from({ length: 5 }, (_, i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5; return [Math.cos(a), Math.sin(a)] as [number, number]; })
+      : Array.from({ length: 64 }, (_, i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / 64; return [Math.cos(a), Math.sin(a)] as [number, number]; });
+    const per1 = P.reduce((s, v, i) => { const w = P[(i + 1) % P.length]!; return s + Math.hypot(w[0] - v[0], w[1] - v[1]); }, 0);
+    const r = (n * step) / per1;
+    const lens = P.map((v, i) => { const w = P[(i + 1) % P.length]!; return Math.hypot(w[0] - v[0], w[1] - v[1]) * r; });
+    const per = lens.reduce((a, b) => a + b, 0);
+    const pts: { x: number; y: number }[] = [];
+    let edge = 0, acc = 0;
+    for (let i = 0; i < n; i++) {
+      const target = (i * per) / n;
+      while (edge < P.length - 1 && acc + lens[edge]! < target) { acc += lens[edge]!; edge++; }
+      const t = lens[edge]! > 0 ? (target - acc) / lens[edge]! : 0;
+      const v = P[edge]!, w = P[(edge + 1) % P.length]!;
+      pts.push({ x: (v[0] + (w[0] - v[0]) * t) * r, y: (v[1] + (w[1] - v[1]) * t) * r });
+    }
+    const lefts = pts.map((p, i) => p.x - sz[i]![0] / 2), tops = pts.map((p, i) => p.y - sz[i]![1] / 2);
+    const mx = Math.min(...lefts), my = Math.min(...tops);
+    const bw = Math.max(...lefts.map((l, i) => l + sz[i]![0])) - mx, bh = Math.max(...tops.map((t, i) => t + sz[i]![1])) - my;
+    const ox = (W - bw) / 2 - mx, oy = (H - bh) / 2 - my;
+    list.forEach((f, i) => onMove(f.uid, clampPos(f, Math.round(lefts[i]! + ox), Math.round(tops[i]! + oy), f.pixelPos?.r ?? 0)));
   };
 
   const pixels = (f: PatchedFixture, size: number, rot: number) => {
