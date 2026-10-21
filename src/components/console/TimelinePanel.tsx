@@ -83,7 +83,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   audioPeaks: number[] | null; onAudio: (f: File) => void; onRemoveAudio: () => void;
   colorOf?: (f: PatchedFixture) => [number, number, number];
 }) {
-  const [viz, setViz] = useState(true);
+  const [viz, setViz] = useState(false);
   const lib = useFxLibrary();
   const [zoom, setZoom] = useState(40); // px per second
   const [track, setTrack] = useState(timeline.tracks[0]?.id ?? "");
@@ -386,6 +386,17 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
             <label className="flex items-center gap-1">To<NumberField aria-label="To intensity" min={0} max={100} value={Math.round(clip.to.intensity * 100)} onChange={(v) => v !== undefined && patch(clip.id, { to: { ...clip.to!, intensity: v / 100 } })} className={field} />%</label>
             <label className="flex items-center gap-1">CCT<NumberField aria-label="From CCT" allowEmpty placeholder="—" min={2000} max={10000} value={clip.from.cct != null ? c2k(clip.from.cct) : undefined} onChange={(v) => patch(clip.id, { from: { ...clip.from!, cct: v == null ? undefined : k2c(v) }, to: { ...clip.to!, cct: v == null ? undefined : clip.to!.cct ?? k2c(v) } })} className={field} />→
               <NumberField aria-label="To CCT" allowEmpty placeholder="—" min={2000} max={10000} value={clip.to.cct != null ? c2k(clip.to.cct) : undefined} onChange={(v) => patch(clip.id, { to: { ...clip.to!, cct: v == null ? undefined : k2c(v) }, from: { ...clip.from!, cct: v == null ? undefined : clip.from!.cct ?? k2c(v) } })} className={field} />K</label>
+          </>}
+          {clip.kind === "fx" && clip.fx && <>
+            <label className="flex items-center gap-1">Effect<select aria-label="Change effect" value={SIMPLE_FX.find((x) => x.fx.kind === clip.fx!.kind && x.fx.rate === clip.fx!.rate)?.id ?? ""} onChange={(e) => { const s = SIMPLE_FX.find((x) => x.id === e.target.value); if (s) patch(clip.id, { fx: { ...defaultFx(), ...s.fx }, name: s.label }); }} className="rounded border border-input bg-surface-elevated px-2 py-1 text-xs">
+              <option value="" disabled>{clip.fx.kind}</option>{SIMPLE_FX.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</select></label>
+            <label className="flex items-center gap-1">Speed<NumberField aria-label="Effect speed" min={0.05} max={30} step={0.05} value={+clip.fx.rate.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { fx: { ...clip.fx!, rate: Math.max(0.05, v) } })} className={field} />Hz</label>
+          </>}
+          {clip.kind === "pixel" && clip.layer && <>
+            <label className="flex items-center gap-1">Effect<select aria-label="Change pixel effect" value={PIXEL_LIBRARY.find((x) => x.kind === clip.layer!.kind && (x.gen ?? undefined) === (clip.layer!.gen ?? undefined))?.key ?? ""} onChange={(e) => { const look = PIXEL_LIBRARY.find((x) => x.key === e.target.value); if (look) { const { gen: _g, ...rest } = clip.layer!; patch(clip.id, { layer: { ...rest, kind: look.kind, ...(look.gen ? { gen: look.gen } : {}) } as PixelLayer, name: `Pixel ${look.label}` }); } }} className="max-w-44 rounded border border-input bg-surface-elevated px-2 py-1 text-xs">
+              <option value="" disabled>{clip.layer.kind}</option>{PIXEL_LIBRARY.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</select></label>
+            <label className="flex items-center gap-1">Speed<NumberField aria-label="Pixel speed" min={0.01} max={100} step={0.1} value={+clip.layer.speed.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { layer: { ...clip.layer!, speed: Math.max(0.01, v) } })} className={field} />×</label>
+            {clip.layer.colors[0] && <label className="flex items-center gap-1">Colour<input type="color" aria-label="Pixel colour" value={clip.layer.colors[0]} onChange={(e) => patch(clip.id, { layer: { ...clip.layer!, colors: [e.target.value, ...clip.layer!.colors.slice(1)] } })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>}
           </>}
           {hasKeys(clip) && (() => {
             const ks = keysOf(clip), k = clip.keys?.find((x) => x.id === keySel);
