@@ -20,7 +20,7 @@ export interface Scene {
 }
 
 /** A scene shows the accent picked for it; when none was picked it uses the project's colour. */
-export function sceneColor(scene: Pick<Scene, "color">, project: { color: string }): string {
+export function sceneColor(scene: { color?: string | undefined }, project: { color: string }): string {
   return scene.color ?? project.color;
 }
 
