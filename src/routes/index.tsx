@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
 import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { NoxLogo } from "@/components/NoxLogo";
 import { APP_VERSION } from "@/lib/app-version";
@@ -429,8 +431,8 @@ type Panel = "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRecordings, onBank, onCues, onCallSheet }: {
-  project: Project; scene: Scene; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
+function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onBank, onCues, onCallSheet }: {
+  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
 }) {
   const { fixtures, setFixtures, setUntrackedFixtures, begin: beginFixtureEdit, end: endFixtureEdit, undo, redo, canUndo, canRedo } = useFixtureHistory(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
@@ -1280,10 +1282,7 @@ function ConsoleScreen({ project, scene, onSave, onExit, onLooks, onSetups, onRe
     <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
         <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
-        <div className="min-w-0">
-          <div className="truncate font-display text-lg font-semibold">{scene.name}</div>
-          <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
-        </div>
+        <SceneSwitcher projects={projects} project={project} scene={scene} onPick={(pid, sid) => { save(); onSwitch(pid, sid); }} />
         <div className="flex-1" />
         <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
         <div className="flex items-center gap-2">
