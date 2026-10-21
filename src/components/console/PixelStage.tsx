@@ -5,8 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
-import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
-import { pixelPreview } from "./pixel-preview";
+import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, renderLayers, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
 import { GRID_ARRANGE, GRID_ICON, type Arrange } from "./GridBoard";
 import { useClock } from "./PixelPanel";
 
@@ -234,7 +233,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
 
   const pixels = (f: PatchedFixture, size: number, rot: number) => {
     const [lc, lr] = pixelGrid(f);
-    const cols = preview.get(f.uid) ?? frame.get(f.uid);
+    const cols = preview.get(f.uid);
     const [gw, gh] = rot === 90 ? [lr, lc] : [lc, lr];
     return (
       <div className="grid h-full w-full gap-px" style={{ gridTemplateColumns: `repeat(${gw}, 1fr)`, gridTemplateRows: `repeat(${gh}, 1fr)` }}>
