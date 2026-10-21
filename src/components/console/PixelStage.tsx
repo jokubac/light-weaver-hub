@@ -35,8 +35,12 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const px = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos);
   const layer = layers.find((l) => l.id === activeId) ?? layers[0];
   const pos = canvasPositions(fixtures);
-  // only playing layers paint the lights on the map — nothing applies until you press PLAY
-  const preview = layer ? pixelPreview({ ...layer, order: layer.order.filter((u) => px.some((f) => f.uid === u)) }, fixtures, frame, now, true).frame : frame;
+  // the map always previews every effect; PLAY only sends it to the real lights
+  const preview = (() => {
+    const all = layers.map((l) => ({ ...l, playing: true }));
+    const masks = new Map(all.filter((l) => l.kind === "text").map((l) => [l.id, textMask(l.text.toUpperCase(), layerArea(l, stageSize(fixtures)).h)] as const));
+    return renderLayers(all, fixtures, now, masks);
+  })();
   const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean; group: { f: PatchedFixture; p: { x: number; y: number; r?: number } }[] } | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const marquee = useRef<{ id: number; x0: number; y0: number } | null>(null);
@@ -159,7 +163,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const bg = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = bg.current; if (!c || !layer) return;
-    const shown = layers.filter((l) => l.playing);
+    const shown = layers.map((l) => ({ ...l, playing: true }));
     const { W: w, H: h, img } = renderCanvasComposite(shown, fixtures, now, (l) => (l.kind === "text" ? textMask(l.text.toUpperCase(), layerArea(l, stage).h) : null));
     c.width = w; c.height = h;
     const ctx = c.getContext("2d"); if (!ctx) return;
