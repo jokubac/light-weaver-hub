@@ -169,6 +169,9 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   });
 
   const [gap, setGap] = useState(1);
+  const lastHow = useRef<Arrange | null>(null);
+  // moving the Spacing slider re-applies the last arrangement live
+  useEffect(() => { if (lastHow.current) gridArrange(lastHow.current); }, [gap]); // eslint-disable-line react-hooks/exhaustive-deps
   /** lay out the selected lights (or every light) in a chosen shape, centred on the map */
   const autoArrange = (shape: "rows" | "row" | "column" | "grid" | "upright" | "circle") => {
     const list = sel.size ? px.filter((f) => sel.has(f.uid)) : px; if (!list.length) return;
@@ -250,11 +253,11 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
               <DropdownMenuContent align="end" className="w-64 p-2">
                 <DropdownMenuLabel>{sel.size ? `Arrange ${sel.size} selected` : "Arrange all lights"}</DropdownMenuLabel>
                 <div className="grid grid-cols-3 gap-1">
-                  {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => gridArrange(k)} className="flex flex-col items-center gap-0.5 rounded-md bg-surface-elevated px-1 py-1.5 text-[10px] font-semibold active:scale-95">
+                  {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => { lastHow.current = k; gridArrange(k); }} className="flex flex-col items-center gap-0.5 rounded-md bg-surface-elevated px-1 py-1.5 text-[10px] font-semibold active:scale-95">
                     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{GRID_ICON[k]}</svg>{l}</button>)}
                 </div>
                 <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
-                  <input type="range" min={0} max={4} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
+                  <input type="range" min={0} max={10} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
                   <span className="w-12 text-right font-mono">{gap} cell{gap === 1 ? "" : "s"}</span>
                 </label>
               </DropdownMenuContent>

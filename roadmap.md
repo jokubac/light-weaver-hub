@@ -194,5 +194,5 @@
 - [ ] (Jokubas) "Remove button prie pixel" — check a Remove button in PIXEL window and address it.
 - [x] (Jokubas) "clear" — removed the long hint text and the "Pixel canvas" label above the PIXEL canvas.
 - [x] (Jokubas) adding lights no longer applies the effect — lights stay muted until PLAY (verified: muted colours before, effect colours after PLAY).
-- [ ] PIXEL: several effects per layer, delete effects
-- [ ] PIXEL: Arrange spacing slider fix
+- [x] PIXEL: several effects per layer, delete effects
+- [x] PIXEL: Arrange spacing slider fix
