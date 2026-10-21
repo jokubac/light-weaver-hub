@@ -303,15 +303,19 @@ function AccountButton({ email, sync }: { email: string | null; sync: "off" | "s
   );
 }
 
-function ProjectsScreen({ projects, account, onOpen, onCreate, onDelete, onUpdate, onDuplicate }: {
-  projects: Project[]; account: React.ReactNode; onOpen: (id: string) => void; onCreate: (n: string, color: string) => void; onDelete: (id: string) => void;
+function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, onUpdate, onDuplicate, onOpenScene, onCreateScene, onDuplicateScene, onDeleteScene, onRenameScene }: {
+  projects: Project[]; account: React.ReactNode; initialOpen: string | null; onCreate: (n: string, color: string) => void; onDelete: (id: string) => void;
   onUpdate: (id: string, fn: (p: Project) => Project) => void; onDuplicate: (id: string) => void;
+  onOpenScene: (p: string, s: string) => void; onCreateScene: (p: string, n: string) => void; onDuplicateScene: (p: string, s: string) => void;
+  onDeleteScene: (p: string, s: string) => void; onRenameScene: (p: string, s: string, n: string) => void;
 }) {
   const [color, setColor] = useState(PROJECT_COLORS[0]!);
+  const [open, setOpen] = useState<Set<string>>(() => new Set(initialOpen ? [initialOpen] : projects[0] ? [projects[0].id] : []));
+  const toggle = (id: string) => setOpen((o) => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   return (
     <div className="min-h-screen">
-      <Header title="NOX" subtitle="Projects" right={account} />
-      <main className="mx-auto max-w-5xl space-y-6 p-5">
+      <Header title="NOX" subtitle="Projects & scenes" right={account} />
+      <main className="mx-auto max-w-3xl space-y-6 p-5">
         <div className="space-y-3">
           <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={(n) => onCreate(n, color)} />
           <ColorSwatches value={color} onChange={setColor} />
@@ -319,12 +323,43 @@ function ProjectsScreen({ projects, account, onOpen, onCreate, onDelete, onUpdat
         {projects.length === 0 ? (
           <Empty icon={<Folder className="h-10 w-10" />} text="No projects yet. Create one to start patching lights." />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((p) => (
-              <Card key={p.id} color={p.color} title={p.name} meta={`${p.scenes.length} scenes · ${fmtDate(p.createdAt)}`} onClick={() => onOpen(p.id)}
-                menu={<ItemMenu name={p.name} color={p.color} onDuplicate={() => onDuplicate(p.id)} onDelete={() => onDelete(p.id)}
-                  onRename={(name) => onUpdate(p.id, (x) => ({ ...x, name }))} onColor={(c) => onUpdate(p.id, (x) => ({ ...x, color: c }))} />} />
-            ))}
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            {projects.map((p) => {
+              const isOpen = open.has(p.id);
+              return (
+                <div key={p.id} className="border-b border-border last:border-b-0">
+                  <div className="flex cursor-pointer items-center gap-3 px-3 py-3 hover:bg-surface-elevated" onClick={() => toggle(p.id)} aria-expanded={isOpen}>
+                    {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: p.color }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-display font-semibold">{p.name}</div>
+                      <div className="text-[11px] text-muted-foreground">{p.scenes.length} scenes · {fmtDate(p.createdAt)}</div>
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <ItemMenu name={p.name} color={p.color} onDuplicate={() => onDuplicate(p.id)} onDelete={() => onDelete(p.id)}
+                        onRename={(name) => onUpdate(p.id, (x) => ({ ...x, name }))} onColor={(c) => onUpdate(p.id, (x) => ({ ...x, color: c }))} />
+                    </div>
+                  </div>
+                  {isOpen && (
+                    <div className="space-y-1 pb-3 pl-10 pr-3">
+                      {p.scenes.map((s) => (
+                        <div key={s.id} onClick={() => onOpenScene(p.id, s.id)} className="flex cursor-pointer items-center gap-3 rounded-lg border-l-2 bg-surface-elevated px-3 py-2 hover:bg-primary/10" style={{ borderColor: p.color }}>
+                          <Clapperboard className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-semibold">{s.name}</div>
+                            <div className="text-[10px] text-muted-foreground">{s.fixtures.length} fixtures · {fmtDate(s.createdAt)}</div>
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <ItemMenu name={s.name} onDuplicate={() => onDuplicateScene(p.id, s.id)} onDelete={() => onDeleteScene(p.id, s.id)} onRename={(n) => onRenameScene(p.id, s.id, n)} />
+                          </div>
+                        </div>
+                      ))}
+                      <div className="pt-1"><NewItemForm placeholder="New scene (e.g. Interview, Night, Fire)" onCreate={(n) => onCreateScene(p.id, n)} /></div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
@@ -332,31 +367,37 @@ function ProjectsScreen({ projects, account, onOpen, onCreate, onDelete, onUpdat
   );
 }
 
-/* ---------------- Scenes ---------------- */
-
-function ScenesScreen({ project, onBack, onOpen, onCreate, onDuplicate, onDelete, onRename }: {
-  project: Project; onBack: () => void; onOpen: (id: string) => void; onCreate: (n: string) => void;
-  onDuplicate: (id: string) => void; onDelete: (id: string) => void; onRename: (id: string, n: string) => void;
-}) {
+/** Project › Scene switcher in the console header: jump straight to any scene of any project. */
+function SceneSwitcher({ projects, project, scene, onPick }: { projects: Project[]; project: Project; scene: Scene; onPick: (p: string, s: string) => void }) {
   return (
-    <div className="min-h-screen">
-      <Header title={project.name} subtitle="Scenes" onBack={onBack} />
-      <main className="mx-auto max-w-5xl space-y-6 p-5">
-        <NewItemForm placeholder="New scene name (e.g. Interview, Night, Fire)" onCreate={onCreate} />
-        {project.scenes.length === 0 ? (
-          <Empty icon={<Clapperboard className="h-10 w-10" />} text="No scenes yet. Create your first scene." />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {project.scenes.map((s) => (
-              <Card key={s.id} color={project.color} title={s.name} meta={`${s.fixtures.length} fixtures · ${fmtDate(s.createdAt)}`} onClick={() => onOpen(s.id)}
-                menu={<ItemMenu name={s.name} onDuplicate={() => onDuplicate(s.id)} onDelete={() => onDelete(s.id)} onRename={(n) => onRename(s.id, n)} />} />
-            ))}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left hover:bg-surface-elevated" aria-label="Switch project or scene">
+          <div className="min-w-0">
+            <div className="truncate font-display text-lg font-semibold">{scene.name}</div>
+            <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
           </div>
-        )}
-      </main>
-    </div>
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-[70vh] w-72 overflow-y-auto">
+        {projects.map((p) => (
+          <div key={p.id}>
+            <DropdownMenuLabel className="flex items-center gap-2 text-xs"><span className="h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />{p.name}</DropdownMenuLabel>
+            {p.scenes.length === 0 && <div className="px-6 pb-1 text-[11px] text-muted-foreground">No scenes</div>}
+            {p.scenes.map((s) => (
+              <DropdownMenuItem key={s.id} className="pl-6" disabled={s.id === scene.id} onSelect={() => onPick(p.id, s.id)}>
+                {s.id === scene.id ? <Check className="h-3.5 w-3.5" /> : <Clapperboard className="h-3.5 w-3.5" />}{s.name}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+          </div>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
+
 
 function Card({ color, title, meta, onClick, menu }: { color: string; title: string; meta: string; onClick: () => void; menu: React.ReactNode }) {
   return (
