@@ -18,9 +18,22 @@ export interface TimelineClip {
   keys?: TimelineKey[] | undefined;
   /** playback speed of the clip's content (REC sequences); set when a layer/clip is stretched */
   rate?: number | undefined;
+  /** adjustment-layer filter settings (applied on top of keyframes) */
+  adj?: AdjustFilter | undefined;
 }
+/** Filter an adjustment clip lays over the lights below it. */
+export interface AdjustFilter {
+  contrast?: number | undefined; // 1 = unchanged, 0 = all 50%, 2 = twice the difference
+  cctShift?: number | undefined; // Kelvin, +warmer? no: + = cooler (higher K)
+  gmShift?: number | undefined; // -1..1
+  hueShift?: number | undefined; // degrees
+  satMul?: number | undefined; // 1 = unchanged
+  tint?: string | undefined; // hex colour
+  tintAmt?: number | undefined; // 0..1
+}
+export type BlendMode = "replace" | "add" | "htp";
 /** adjust layers hold adjustment clips that scale/recolour everything on the layers below */
-export interface TimelineTrack { id: string; name: string; muted?: boolean; adjust?: boolean }
+export interface TimelineTrack { id: string; name: string; muted?: boolean; adjust?: boolean; solo?: boolean; locked?: boolean; opacity?: number; blend?: BlendMode; color?: string }
 
 type Val = { intensity: number; cct?: number | undefined; hue?: number | undefined; sat?: number | undefined };
 const lerpField = (keys: TimelineKey[], t: number, get: (k: TimelineKey) => number | undefined) => {
@@ -69,38 +82,51 @@ export function timelineAt(tl: Timeline, t: number, fixtures: PatchedFixture[], 
   const active: string[] = [];
   const merge = (uid: string, p: TimelinePatch) => states.set(uid, { ...states.get(uid), ...p });
   const base = (uid: string) => fixtures.find((f) => f.uid === uid);
+  const anySolo = tl.tracks.some((x) => x.solo);
   // bottom layer first so upper layers override
   for (const track of [...tl.tracks].reverse()) {
-    if (track.muted) continue;
+    if (track.muted || (anySolo && !track.solo)) continue;
+    const op = Math.max(0, Math.min(1, track.opacity ?? 1)), blend = track.blend ?? "replace";
+    // collect this layer's own patches, then mix them over what's below
+    const own = new Map<string, TimelinePatch>();
+    const put = (uid: string, p: TimelinePatch) => own.set(uid, { ...own.get(uid), ...p });
+    const below = (uid: string) => ({ ...fixtureLook(base(uid)), ...states.get(uid), ...own.get(uid) });
     for (const c of tl.clips.filter((x) => x.track === track.id && t >= x.start && t < x.start + x.length).sort((a, b) => a.start - b.start)) {
       active.push(c.id);
       const local = t - c.start, env = envelope(c, local);
       if (c.kind === "rec") {
         const rec = recordings.find((r) => r.id === c.recId);
         const res = rec ? statesAt(rec, fixtures, origin, local * (c.rate ?? 1)) : null;
-        res?.states.forEach((s, uid) => { const { mix: _m, ...st } = s; merge(uid, { ...st, intensity: st.intensity * env }); });
+        res?.states.forEach((s, uid) => { const { mix: _m, ...st } = s; put(uid, { ...st, intensity: st.intensity * env }); });
       } else if (c.kind === "fx" && c.fx) {
-        for (const uid of c.uids ?? []) { const f = base(uid); merge(uid, { fx: c.fx, fxPlaying: true, on: true, intensity: (states.get(uid)?.intensity ?? (f?.intensity || 1)) * env }); }
+        for (const uid of c.uids ?? []) { const f = base(uid); put(uid, { fx: c.fx, fxPlaying: true, on: true, intensity: (states.get(uid)?.intensity ?? (f?.intensity || 1)) * env }); }
       } else if (c.kind === "level" && (c.keys?.length || (c.from && c.to))) {
         const v = clipValue(c, local);
         for (const uid of c.uids ?? []) {
           const p: TimelinePatch = { on: true, intensity: v.intensity * env };
           if (v.cct != null) { p.cct = v.cct; p.cctOnly = true; }
           if (v.hue != null) { p.hue = v.hue; p.saturation = v.sat ?? 1; p.cctOnly = false; }
-          merge(uid, p);
+          put(uid, p);
         }
       } else if (c.kind === "adjust") {
         const v = clipValue(c, local);
         for (const uid of c.uids?.length ? c.uids : fixtures.map((f) => f.uid)) {
-          const cur = states.get(uid), f = base(uid);
-          const p: TimelinePatch = { intensity: Math.min(1, (cur?.intensity ?? f?.intensity ?? 0) * (1 + (v.intensity - 1) * env)) };
+          const cur = below(uid);
+          const p: TimelinePatch = { intensity: Math.min(1, (cur.intensity ?? 0) * (1 + (v.intensity - 1) * env)) };
           if (v.cct != null) { p.cct = v.cct; p.cctOnly = true; }
           if (v.hue != null) { p.hue = v.hue; p.saturation = v.sat ?? 1; p.cctOnly = false; }
-          merge(uid, p);
+          Object.assign(p, applyFilter({ ...cur, ...p }, c.adj, env));
+          put(uid, p);
         }
       } else if (c.kind === "pixel" && c.layer) {
         pixels.unshift({ ...c.layer, id: `tl-${c.id}`, playing: true, order: c.uids?.length ? c.uids : c.layer.order });
       }
+    }
+    for (const [uid, p] of own) {
+      const prev = states.get(uid), lo = prev?.intensity ?? (prev ? 0 : base(uid)?.on === false ? 0 : 0);
+      const hi = p.intensity ?? lo;
+      const intensity = blend === "add" ? Math.min(1, lo + hi * op) : blend === "htp" ? Math.max(lo, hi * op) : lo + (hi - lo) * op;
+      merge(uid, track.adjust || op >= 0.5 || blend !== "replace" ? { ...p, intensity } : { intensity });
     }
   }
   return { states, pixels: pixels.length ? pixels : null, active };
@@ -117,4 +143,33 @@ export function stretchTrack(tl: Timeline, trackId: string, factor: number): Tim
     ...(c.keys ? { keys: c.keys.map((k) => ({ ...k, t: k.t * factor })) } : {}),
     ...(c.kind === "rec" ? { rate: (c.rate ?? 1) / factor } : {}),
   }) };
+}
+
+type Look = { intensity?: number | undefined; cct?: number | undefined; hue?: number | undefined; saturation?: number | undefined; gm?: number | undefined; cctOnly?: boolean | undefined };
+const fixtureLook = (f: PatchedFixture | undefined): Look => (f ? { intensity: f.intensity, cct: f.cct, hue: f.hue, saturation: f.saturation, gm: f.gm, cctOnly: f.cctOnly } : {});
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const hexHs = (hex: string): [number, number] => {
+  const n = parseInt(hex.replace("#", ""), 16), r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [((h * 60) + 360) % 360, mx ? d / mx : 0];
+};
+/** Apply an adjustment filter (scaled by env 0..1) to a light's look. */
+export function applyFilter(cur: Look, a: AdjustFilter | undefined, env = 1): TimelinePatch {
+  if (!a) return {};
+  const p: TimelinePatch = {};
+  const i0 = cur.intensity ?? 0;
+  if (a.contrast != null && a.contrast !== 1) p.intensity = clamp(i0 + ((0.5 + (i0 - 0.5) * a.contrast) - i0) * env, 0, 1);
+  if (a.cctShift) p.cct = clamp((cur.cct ?? 0.45) + (a.cctShift / 8000) * env, 0, 1);
+  if (a.gmShift) p.gm = clamp((cur.gm ?? 0) + a.gmShift * env, -1, 1);
+  let hue = cur.hue ?? 0, sat = cur.saturation ?? 0, coloured = !cur.cctOnly;
+  if (a.hueShift && coloured) { hue = (((hue + a.hueShift * env) % 360) + 360) % 360; p.hue = hue; }
+  if (a.satMul != null && a.satMul !== 1 && coloured) { sat = clamp(sat * (1 + (a.satMul - 1) * env), 0, 1); p.saturation = sat; }
+  if (a.tint && (a.tintAmt ?? 0) > 0) {
+    const [th, ts] = hexHs(a.tint), k = clamp((a.tintAmt ?? 0) * env, 0, 1);
+    if (!coloured) { hue = th; sat = 0; }
+    const dh = ((th - hue + 540) % 360) - 180;
+    p.hue = (hue + dh * k + 360) % 360; p.saturation = clamp(sat + (ts - sat) * k, 0, 1); p.cctOnly = false;
+  }
+  return p;
 }
