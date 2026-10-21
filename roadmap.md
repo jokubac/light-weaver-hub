@@ -193,4 +193,4 @@
 - [x] Verified on screen: corner drag rotates (angle 20°), double-tap switches to resize (box 122x72 -> 119x70 and back), hint text and "Pixel canvas" label removed.
 - [ ] (Jokubas) "Remove button prie pixel" — check a Remove button in PIXEL window and address it.
 - [x] (Jokubas) "clear" — removed the long hint text and the "Pixel canvas" label above the PIXEL canvas.
-- [ ] (Jokubas) "kai pixel pridedi lempas nedek effekto is karto" — adding lights to the pixel map must not start/apply the effect immediately.
+- [x] (Jokubas) adding lights no longer applies the effect — lights stay muted until PLAY (verified: muted colours before, effect colours after PLAY).
