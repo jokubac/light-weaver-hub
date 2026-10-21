@@ -33,7 +33,7 @@ export interface AdjustFilter {
 }
 export type BlendMode = "replace" | "add" | "htp";
 /** adjust layers hold adjustment clips that scale/recolour everything on the layers below */
-export interface TimelineTrack { id: string; name: string; muted?: boolean; adjust?: boolean; solo?: boolean; locked?: boolean; opacity?: number; blend?: BlendMode; color?: string }
+export interface TimelineTrack { id: string; name: string; muted?: boolean; adjust?: boolean; solo?: boolean; locked?: boolean; opacity?: number; blend?: BlendMode; color?: string | undefined }
 
 type Val = { intensity: number; cct?: number | undefined; hue?: number | undefined; sat?: number | undefined };
 const lerpField = (keys: TimelineKey[], t: number, get: (k: TimelineKey) => number | undefined) => {
