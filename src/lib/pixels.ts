@@ -16,6 +16,8 @@ export type PixelLayout = "line" | "stack" | "upright" | "canvas";
 export interface PixelLayer {
   id: string;
   name: string;
+  /** effects sharing a group id form one layer (shared lights, play/pause); unset = its own layer */
+  group?: string | undefined;
   playing: boolean;
   /** frozen effect time (seconds, performance clock) while paused */
   pausedAt?: number | undefined;
