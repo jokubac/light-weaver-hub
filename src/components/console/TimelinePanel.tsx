@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent } from "react";
-import { Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown } from "lucide-react";
+import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NumberField } from "@/components/console/NumberField";
@@ -8,7 +8,7 @@ import { membersOf } from "@/lib/fixture-groups";
 import { defaultFx, type FxParams, type PatchedFixture } from "@/lib/dmx";
 import { PIXEL_LIBRARY, defaultLayer, isPixelFixture, type PixelLayer } from "@/lib/pixels";
 import type { Recording } from "@/lib/store";
-import { clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey } from "@/lib/timeline";
+import { clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey, type TimelineTrack, type AdjustFilter, type BlendMode } from "@/lib/timeline";
 
 const ROW = 52, HEAD = 150;
 const KIND_STYLE: Record<ClipKind, string> = {
@@ -103,6 +103,9 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const clip = sel.length === 1 ? timeline.clips.find((c) => c.id === sel[0]) : undefined;
   const selClips = timeline.clips.filter((c) => sel.includes(c.id));
   const set = (clips: TimelineClip[]) => setTimeline({ ...timeline, clips });
+  const [layerOpen, setLayerOpen] = useState<string | null>(null);
+  const setTrackP = (id: string, p: Partial<TimelineTrack>) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === id ? { ...x, ...p } : x)) });
+  const moveTrack = (id: string, d: number) => { const ts = [...timeline.tracks]; const i = ts.findIndex((x) => x.id === id), j = i + d; if (i < 0 || j < 0 || j >= ts.length) return; [ts[i], ts[j]] = [ts[j]!, ts[i]!]; setTimeline({ ...timeline, tracks: ts }); };
   const patch = (id: string, p: Partial<TimelineClip>) => set(timeline.clips.map((c) => (c.id === id ? { ...c, ...p } : c)));
   const targetTrack = timeline.tracks.find((t) => t.id === track)?.id ?? timeline.tracks[0]?.id;
   /** Shared value across the selection, or undefined when the clips disagree. */
@@ -288,13 +291,17 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
             <div key={t.id} className={`flex border-b border-border ${t.muted ? "opacity-40" : ""}`} style={{ height: ROW }}>
               <div className="sticky left-0 z-40 flex shrink-0 items-center gap-1 border-r border-border bg-surface px-2" style={{ width: HEAD, backgroundImage: track === t.id ? "linear-gradient(color-mix(in oklab, var(--primary) 15%, transparent), color-mix(in oklab, var(--primary) 15%, transparent))" : undefined }} onClick={() => setTrack(t.id)}>
                 <input aria-label="Layer name" value={t.name} onChange={(e) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)) })} className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-foreground outline-none" />
+                {t.color && <span aria-hidden="true" className="h-3 w-1.5 shrink-0 rounded-sm" style={{ background: t.color }} />}
+                <button aria-label="Solo layer" title="Solo — play only this layer" onClick={(e) => { e.stopPropagation(); setTrackP(t.id, { solo: !t.solo }); }} className={`text-[10px] font-bold ${t.solo ? "text-warning" : "text-muted-foreground"}`}>S</button>
+                <button aria-label={t.locked ? "Unlock layer" : "Lock layer"} title={t.locked ? "Unlock layer" : "Lock layer — no accidental edits"} onClick={(e) => { e.stopPropagation(); setTrackP(t.id, { locked: !t.locked }); }} className={t.locked ? "text-primary" : "text-muted-foreground"}>{t.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}</button>
+                <button aria-label="Layer settings" title="Layer settings and every step" onClick={(e) => { e.stopPropagation(); setLayerOpen(layerOpen === t.id ? null : t.id); }} className={layerOpen === t.id ? "text-primary" : "text-muted-foreground hover:text-foreground"}><SlidersHorizontal className="h-3.5 w-3.5" /></button>
                 <button aria-label="Stretch layer" title="Stretch layer — change the speed of everything on it" onClick={() => { const v = prompt(`Speed of ${t.name} in % (50 = twice as slow, 200 = twice as fast)`, "100"); const pct = Number(v); if (v && pct > 0) setTimeline(stretchTrack(timeline, t.id, 100 / pct)); }} className="text-muted-foreground hover:text-foreground"><MoveHorizontal className="h-3.5 w-3.5" /></button>
                 <button aria-label={t.muted ? "Show layer" : "Hide layer"} title={t.muted ? "Turn layer on" : "Turn layer off"} onClick={() => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, muted: !x.muted } : x)) })} className="text-muted-foreground">{t.muted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button>
                 {timeline.tracks.length > 1 && <button aria-label="Delete layer" onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) { setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); setSel([]); } }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
               </div>
-              <div data-track={t.id} className={`relative flex-1 ${i % 2 ? "bg-muted/15" : ""}`} onPointerDown={(e) => laneDown(e, t.id)} onPointerMove={laneMove} onPointerUp={laneUp}>
+              <div data-track={t.id} className={`relative flex-1 ${i % 2 ? "bg-muted/15" : ""} ${t.locked ? "[&>div]:cursor-not-allowed" : ""}`} style={t.opacity != null && t.opacity < 1 ? { opacity: 0.4 + 0.6 * t.opacity } : undefined} onPointerDown={(e) => laneDown(e, t.id)} onPointerMove={laneMove} onPointerUp={laneUp}>
                 {timeline.clips.filter((c) => c.track === t.id).map((c) => (
-                  <div key={c.id} onPointerDown={(e) => down(e, c, "move")} onDoubleClick={(e) => addKey(e, c)}
+                  <div key={c.id} onPointerDown={(e) => { if (t.locked) { e.stopPropagation(); setSel([c.id]); return; } down(e, c, "move"); }} onDoubleClick={(e) => { if (!t.locked) addKey(e, c); }}
                     className={`absolute top-1 bottom-1 cursor-grab touch-none select-none overflow-hidden rounded-md border px-2 text-xs text-foreground ${KIND_STYLE[c.kind]} ${sel.includes(c.id) ? "ring-2 ring-foreground" : ""} ${activeClips.includes(c.id) ? "brightness-125" : ""}`}
                     style={{ left: c.start * zoom, width: Math.max(8, c.length * zoom) }}>
                     {(c.fadeIn ?? 0) > 0 && <div className="pointer-events-none absolute inset-y-0 left-0 bg-gradient-to-r from-background/70 to-transparent" style={{ width: (c.fadeIn ?? 0) * zoom }} />}
@@ -356,7 +363,8 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         {timeline.clips.length > 0 && <p className="px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
       </div>
 
-      {(sel.length > 0) && <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3 text-xs [&>div]:flex-col [&>div]:items-stretch [&>div]:border-0 [&>div]:p-0" aria-label="Clip settings">
+      {(sel.length > 0 || layerOpen) && <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3 text-xs [&>div]:flex-col [&>div]:items-stretch [&>div]:border-0 [&>div]:p-0" aria-label="Clip settings">
+        {layerOpen && <LayerSettings key={layerOpen} timeline={timeline} trackId={layerOpen} onTrack={(p) => setTrackP(layerOpen, p)} onMove={(d) => moveTrack(layerOpen, d)} onClip={patch} onClose={() => setLayerOpen(null)} />}
       {sel.length > 1 && (
         <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs">
           <span className="font-semibold">{sel.length} clips selected</span>
@@ -398,6 +406,8 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
             <label className="flex items-center gap-1">Speed<NumberField aria-label="Pixel speed" min={0.01} max={100} step={0.1} value={+clip.layer.speed.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { layer: { ...clip.layer!, speed: Math.max(0.01, v) } })} className={field} />×</label>
             {clip.layer.colors[0] && <label className="flex items-center gap-1">Colour<input type="color" aria-label="Pixel colour" value={clip.layer.colors[0]} onChange={(e) => patch(clip.id, { layer: { ...clip.layer!, colors: [e.target.value, ...clip.layer!.colors.slice(1)] } })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>}
           </>}
+          {clip.kind === "adjust" && <AdjustControls value={clip.adj ?? {}} onChange={(adj) => patch(clip.id, { adj })} />}
+          {hasKeys(clip) && <StepList clip={clip} onKeys={(keys) => patch(clip.id, { keys })} />}
           {hasKeys(clip) && (() => {
             const ks = keysOf(clip), k = clip.keys?.find((x) => x.id === keySel);
             const upd = (p: Partial<TimelineKey>) => k && setKeys(clip, ks.map((x) => (x.id === k.id ? { ...x, ...p } : x)));
@@ -473,4 +483,77 @@ function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures
       <div aria-label="Resize visualiser" onPointerDown={start("size")} className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize touch-none border-b-2 border-r-2 border-muted-foreground" />
     </div>
   );
+}
+
+const BLENDS: [BlendMode, string][] = [["replace", "Replace"], ["add", "Add"], ["htp", "Brightest (HTP)"]];
+const LAYER_COLOURS = ["#e5484d", "#f5a524", "#30a46c", "#0090ff", "#8e4ec6", "#e93d82", "#a1a1aa"];
+const sel3 = "rounded border border-input bg-surface-elevated px-2 py-1 text-xs";
+
+function LayerSettings({ timeline, trackId, onTrack, onMove, onClip, onClose }: { timeline: Timeline; trackId: string; onTrack: (p: Partial<TimelineTrack>) => void; onMove: (d: number) => void; onClip: (id: string, p: Partial<TimelineClip>) => void; onClose: () => void }) {
+  const t = timeline.tracks.find((x) => x.id === trackId);
+  if (!t) return null;
+  const clips = timeline.clips.filter((c) => c.track === t.id).sort((a, b) => a.start - b.start);
+  return <section className="space-y-2 rounded border border-primary/50 p-2" aria-label="Layer settings">
+    <div className="flex items-center gap-1"><b className="flex-1 truncate">{t.name}{t.adjust ? " · adjustment" : ""}</b>
+      <Button size="icon" variant="ghost" aria-label="Move layer up" onClick={() => onMove(-1)}><ArrowUp /></Button>
+      <Button size="icon" variant="ghost" aria-label="Move layer down" onClick={() => onMove(1)}><ArrowDown /></Button>
+      <Button size="icon" variant="ghost" aria-label="Close layer settings" onClick={onClose}><X /></Button></div>
+    <label className="flex items-center gap-2">Name<input aria-label="Layer name (settings)" value={t.name} onChange={(e) => onTrack({ name: e.target.value })} className={`${sel3} min-w-0 flex-1`} /></label>
+    <div className="flex flex-wrap items-center gap-1">Colour
+      {LAYER_COLOURS.map((c) => <button key={c} aria-label={`Layer colour ${c}`} onClick={() => onTrack({ color: t.color === c ? undefined : c })} className={`h-5 w-5 rounded-full border-2 ${t.color === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
+    <label className="flex items-center gap-2">Opacity<input type="range" min={0} max={100} value={Math.round((t.opacity ?? 1) * 100)} onChange={(e) => onTrack({ opacity: +e.target.value / 100 })} className="flex-1" /><span className="w-9 text-right font-mono">{Math.round((t.opacity ?? 1) * 100)}%</span></label>
+    {!t.adjust && <label className="flex items-center gap-2">Blend<select aria-label="Blend mode" value={t.blend ?? "replace"} onChange={(e) => onTrack({ blend: e.target.value as BlendMode })} className={sel3}>{BLENDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>}
+    <div className="flex gap-1">
+      <Button size="sm" variant={t.solo ? "default" : "secondary"} onClick={() => onTrack({ solo: !t.solo })}>Solo</Button>
+      <Button size="sm" variant={t.locked ? "default" : "secondary"} onClick={() => onTrack({ locked: !t.locked })}>{t.locked ? "Locked" : "Lock"}</Button>
+      <Button size="sm" variant={t.muted ? "default" : "secondary"} onClick={() => onTrack({ muted: !t.muted })}>{t.muted ? "Off" : "On"}</Button>
+    </div>
+    <h4 className="pt-1 text-[10px] font-semibold uppercase text-muted-foreground">Every step on this layer</h4>
+    {!clips.length && <p className="text-muted-foreground">No clips on this layer yet.</p>}
+    {clips.map((c) => <div key={c.id} className="space-y-1 rounded bg-surface-elevated p-1.5">
+      <div className="flex items-center gap-2"><b className="flex-1 truncate">{c.name}</b><span className="font-mono text-muted-foreground">{c.start.toFixed(1)}–{(c.start + c.length).toFixed(1)}s</span></div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-1">Start<NumberField aria-label={`${c.name} start`} min={0} step={0.1} value={+c.start.toFixed(2)} onChange={(v) => v !== undefined && !t.locked && onClip(c.id, { start: Math.max(0, v) })} className={field} /></label>
+        <label className="flex items-center gap-1">Len<NumberField aria-label={`${c.name} length`} min={0.2} step={0.1} value={+c.length.toFixed(2)} onChange={(v) => v !== undefined && !t.locked && onClip(c.id, { length: Math.max(0.2, v) })} className={field} /></label>
+      </div>
+      {(c.kind === "level" || c.kind === "adjust") && <StepList clip={c} disabled={t.locked} onKeys={(keys) => onClip(c.id, { keys })} />}
+      {c.kind === "adjust" && <AdjustControls value={c.adj ?? {}} disabled={t.locked} onChange={(adj) => onClip(c.id, { adj })} />}
+    </div>)}
+  </section>;
+}
+
+/** Table of every point in a clip: time, intensity, CCT, colour — all editable, with add/remove. */
+function StepList({ clip, onKeys, disabled }: { clip: TimelineClip; onKeys: (k: TimelineKey[]) => void; disabled?: boolean | undefined }) {
+  const ks = clip.keys?.length ? [...clip.keys].sort((a, b) => a.t - b.t) : [
+    { id: newId(), t: 0, intensity: clip.from?.intensity ?? 1, cct: clip.from?.cct }, { id: newId(), t: clip.length, intensity: clip.to?.intensity ?? clip.from?.intensity ?? 1, cct: clip.to?.cct }];
+  const max = clip.kind === "adjust" ? 200 : 100;
+  const upd = (id: string, p: Partial<TimelineKey>) => !disabled && onKeys(ks.map((k) => (k.id === id ? { ...k, ...p } : k)));
+  return <div className="space-y-1">
+    <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-1 text-[10px] uppercase text-muted-foreground"><span>Time s</span><span>{clip.kind === "adjust" ? "Level %" : "Int %"}</span><span>CCT K</span><span>Col</span><span /></div>
+    {ks.map((k) => <div key={k.id} className="grid grid-cols-[1fr_1fr_1fr_auto_auto] items-center gap-1">
+      <NumberField aria-label="Step time" min={0} max={clip.length} step={0.1} value={+k.t.toFixed(2)} onChange={(v) => v !== undefined && upd(k.id, { t: Math.max(0, Math.min(clip.length, v)) })} className={`${field} w-full`} />
+      <NumberField aria-label="Step intensity" min={0} max={max} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd(k.id, { intensity: v / 100 })} className={`${field} w-full`} />
+      <NumberField aria-label="Step CCT" allowEmpty placeholder="—" min={2000} max={10000} step={100} value={k.cct != null ? c2k(k.cct) : undefined} onChange={(v) => upd(k.id, { cct: v == null ? undefined : k2c(v), ...(v != null ? { hue: undefined, sat: undefined } : {}) })} className={`${field} w-full`} />
+      <input type="color" aria-label="Step colour" value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd(k.id, { hue: h, sat: sa, cct: undefined }); }} className="h-6 w-7 cursor-pointer rounded border border-input bg-transparent" />
+      <button aria-label="Delete step" disabled={disabled || ks.length <= 1} onClick={() => onKeys(ks.filter((x) => x.id !== k.id))} className="text-muted-foreground hover:text-destructive disabled:opacity-30"><X className="h-3.5 w-3.5" /></button>
+    </div>)}
+    <Button size="sm" variant="secondary" disabled={disabled} onClick={() => { const last = ks[ks.length - 1]; onKeys([...ks, { id: newId(), t: Math.min(clip.length, (last?.t ?? 0) + 1), intensity: last?.intensity ?? 1 }]); }}><Plus />Step</Button>
+  </div>;
+}
+
+/** Filter controls for an adjustment clip. */
+function AdjustControls({ value: a, onChange, disabled }: { value: AdjustFilter; onChange: (a: AdjustFilter) => void; disabled?: boolean | undefined }) {
+  const set = (p: Partial<AdjustFilter>) => !disabled && onChange({ ...a, ...p });
+  const row = (label: string, v: number, min: number, max: number, step: number, unit: string, on: (n: number) => void) =>
+    <label className="flex items-center gap-2"><span className="w-20">{label}</span><input type="range" min={min} max={max} step={step} value={v} onChange={(e) => on(+e.target.value)} className="flex-1" /><span className="w-14 text-right font-mono">{v}{unit}</span></label>;
+  return <div className="space-y-1 rounded border border-border p-2">
+    <div className="flex items-center"><b className="flex-1">Filter</b><Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange({})}>Reset</Button></div>
+    {row("Contrast", Math.round((a.contrast ?? 1) * 100), 0, 200, 5, "%", (n) => set({ contrast: n / 100 }))}
+    {row("CCT shift", a.cctShift ?? 0, -3000, 3000, 100, "K", (n) => set({ cctShift: n }))}
+    {row("Green/Mag", Math.round((a.gmShift ?? 0) * 100), -100, 100, 5, "", (n) => set({ gmShift: n / 100 }))}
+    {row("Hue shift", a.hueShift ?? 0, -180, 180, 5, "°", (n) => set({ hueShift: n }))}
+    {row("Saturation", Math.round((a.satMul ?? 1) * 100), 0, 200, 5, "%", (n) => set({ satMul: n / 100 }))}
+    <label className="flex items-center gap-2"><span className="w-20">Tint / gel</span><input type="color" aria-label="Tint colour" value={a.tint ?? "#ff8800"} onChange={(e) => set({ tint: e.target.value, tintAmt: a.tintAmt || 0.5 })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" />
+      <input type="range" aria-label="Tint amount" min={0} max={100} value={Math.round((a.tintAmt ?? 0) * 100)} onChange={(e) => set({ tintAmt: +e.target.value / 100, tint: a.tint ?? "#ff8800" })} className="flex-1" /><span className="w-14 text-right font-mono">{Math.round((a.tintAmt ?? 0) * 100)}%</span></label>
+  </div>;
 }
