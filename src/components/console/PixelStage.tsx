@@ -26,7 +26,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const scroller = useRef<HTMLDivElement>(null);
   const board = useRef<HTMLDivElement>(null);
   const touches = useRef(new Map<number, { x: number; y: number }>());
-  const gesture = useRef<{ d: number; a: number; mx: number; my: number; cell: number; effect: null | { area: { x: number; y: number; w: number; h: number }; angle: number } } | null>(null);
+  const gesture = useRef<{ d: number; a: number; mx: number; my: number; cell: number; effect: null | { area: { x: number; y: number; w: number; h: number } } } | null>(null);
   /** screen delta → grid delta */
   const toLocal = (dx: number, dy: number) => [dx / cell, dy / cell] as const;
   const [addOpen, setAddOpen] = useState(false);
@@ -74,9 +74,9 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     if (touches.current.size !== 2) return;
     drag.current = null; areaDrag.current = null;
     const g = pair(); const [gx, gy] = toGrid(g.mx, g.my); const a = baseArea;
-    // two fingers inside the selected effect box move/scale/rotate the effect, elsewhere the whole map
+    // two fingers inside the selected effect box move/pinch it (never rotate it), elsewhere the whole map
     const onEffect = !!layer && onLayer && gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h;
-    gesture.current = { ...g, cell, effect: onEffect ? { area: a, angle: layer!.angle ?? 0 } : null };
+    gesture.current = { ...g, cell, effect: onEffect ? { area: a } : null };
   };
   const gMove = (e: React.PointerEvent) => {
     if (!touches.current.has(e.pointerId)) return;
@@ -94,14 +94,13 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     }
     const s0 = gesture.current; if (!s0 || touches.current.size < 2) return;
     e.stopPropagation(); drag.current = null; areaDrag.current = null;
-    const g = pair(), k = g.d / s0.d, rot = g.a - s0.a;
+    const g = pair(), k = g.d / s0.d;
     if (s0.effect) {
       const a0 = s0.effect.area; const [dx, dy] = toLocal(g.mx - s0.mx, g.my - s0.my);
       const w = Math.max(1, Math.min(W, Math.round(a0.w * k))), h = Math.max(1, Math.min(H, Math.round(a0.h * k)));
       const cx = a0.x + a0.w / 2 + dx, cy = a0.y + a0.h / 2 + dy;
       const area2 = layerArea({ area: { x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w, h } }, stage);
-      const ang = ((s0.effect.angle + rot + 540) % 360) - 180;
-      onLayer?.({ area: area2, angle: ang }); sample(area2.x, area2.y, ang);
+      onLayer?.({ area: area2 }); sample(area2.x, area2.y, layer?.angle ?? 0);
     } else {
       setCell(Math.max(4, Math.min(60, s0.cell * k)));
       const sc = scroller.current; if (sc) { sc.scrollLeft -= g.mx - s0.mx; sc.scrollTop -= g.my - s0.my; }
@@ -132,6 +131,27 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
   const areaDrag = useRef<{ mode: "move" | "size"; x: number; y: number; a: typeof area } | null>(null);
+  // bottom-right corner of the effect box: drag turns (rotates) the effect; a double tap switches it to resize
+  const [cornerMode, setCornerMode] = useState<"rotate" | "resize">("rotate");
+  const cornerDrag = useRef<{ mode: "rotate" | "resize"; x: number; y: number; a: { x: number; y: number; w: number; h: number }; a0: number; ang: number } | null>(null);
+  const lastCornerTap = useRef(0);
+  const cornerCenter = (el: HTMLElement) => { const r = (el.parentElement as HTMLElement).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2] as const; };
+  const startCorner = (e: React.PointerEvent) => {
+    e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const t = performance.now();
+    if (t - lastCornerTap.current < 300) { lastCornerTap.current = 0; cornerDrag.current = null; setCornerMode((m) => (m === "rotate" ? "resize" : "rotate")); return; }
+    lastCornerTap.current = t;
+    const mode = cornerMode;
+    cornerDrag.current = { mode, x: e.clientX, y: e.clientY, a: baseArea, a0: 0, ang: layer?.angle ?? 0 };
+    if (mode === "rotate") { const [cx, cy] = cornerCenter(e.currentTarget as HTMLElement); cornerDrag.current.a0 = (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI; }
+  };
+  const moveCorner = (e: React.PointerEvent) => {
+    const d = cornerDrag.current; if (!d) return; e.stopPropagation();
+    if (d.mode === "rotate") { const [cx, cy] = cornerCenter(e.currentTarget as HTMLElement); const a1 = (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI; setAngle((((d.ang + a1 - d.a0) + 540) % 360) - 180); return; }
+    const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly);
+    setArea(layerArea({ area: { ...d.a, w: Math.min(W - d.a.x, d.a.w + dx), h: Math.min(H - d.a.y, d.a.h + dy) } }, stage));
+  };
+  const endCorner = () => { cornerDrag.current = null; };
   const clampPos = (f: PatchedFixture, x: number, y: number, r = 0) => { const [w, h] = canvasSize({ ...f, pixelPos: { x: 0, y: 0, r } }); return { x: Math.max(0, Math.min(W - w, x)), y: Math.max(0, Math.min(H - h, y)), r }; };
   // effect painted over the whole canvas, like a video; lights pick up the spot they sit on
   const bg = useRef<HTMLCanvasElement>(null);
@@ -199,8 +219,6 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
-          <span className="font-semibold">Pixel canvas</span>
-          <span className="text-muted-foreground">All playing layers combine on one canvas · drag the dashed box to move the selected effect, its corner to resize it · drag on an empty map spot to select lights, tap an empty spot to deselect · two fingers on the effect: move, pinch, turn it · two fingers elsewhere: zoom and move the map (Ctrl + wheel on a mouse) · every effect plays on all lights on the map · ✕ on a light removes it</span>
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <DropdownMenu>
@@ -234,7 +252,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
               <input type="number" step={5} value={layer.spin ?? 0} onChange={(e) => onLayer({ spin: Number(e.target.value) || 0 })} className="w-16 rounded bg-surface-elevated px-1 py-0.5" />°/s
             </label>
             <Button size="sm" variant={recording ? "destructive" : "secondary"} onClick={toggleRec}>{recording ? "■ Stop REC" : "● REC move"}</Button>
-            {layer.motion?.length ? <><span className="text-muted-foreground">Recorded {layer.motionLen?.toFixed(1)} s · loops</span><Button size="sm" variant="secondary" onClick={() => onLayer({ motion: [], motionLen: 0 })}>Clear move</Button></> : <span className="text-muted-foreground">{recording ? "Drag the box and rotate now…" : "Press REC, then drag/rotate the box"}</span>}
+            {layer.motion?.length ? <><span className="text-muted-foreground">Recorded {layer.motionLen?.toFixed(1)} s · loops</span><Button size="sm" variant="secondary" onClick={() => onLayer({ motion: [], motionLen: 0 })}>Clear move</Button></> : <span className="text-muted-foreground">{recording ? "Drag the box or its bottom-right corner now…" : "Press REC, then drag the box or its corner"}</span>}
           </div>
         )}
         {onSelect && (
@@ -278,8 +296,11 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                           className={`rounded-t px-1.5 text-[10px] font-semibold ${area.w === Math.round(W / d) && area.h === Math.round(H / d) ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{l}</button>
                       ))}
                     </div>
-                    <div title="Resize effect area" aria-label="Resize effect area" onPointerDown={start("size")} onPointerMove={move} onPointerUp={end}
-                      className="pointer-events-auto absolute -bottom-2 -right-2 h-4 w-4 cursor-nwse-resize touch-none rounded-sm border-2 border-background bg-primary" />
+                    <div title={cornerMode === "rotate" ? "Drag to rotate the effect · double-tap to switch to resize" : "Drag to resize the effect · double-tap to switch to rotate"} aria-label={`${cornerMode === "rotate" ? "Rotate" : "Resize"} effect area`}
+                      onPointerDown={startCorner} onPointerMove={moveCorner} onPointerUp={endCorner} onPointerCancel={endCorner}
+                      className={`pointer-events-auto absolute -bottom-2 -right-2 flex h-4 w-4 touch-none items-center justify-center rounded-sm border-2 border-background bg-primary ${cornerMode === "rotate" ? "cursor-grab" : "cursor-nwse-resize"}`}>
+                      {cornerMode === "rotate" ? <RotateCw className="h-2.5 w-2.5 text-primary-foreground" /> : <span className="h-1.5 w-1.5 rounded-[1px] bg-primary-foreground" />}
+                    </div>
                   </div>
                 );
               })()}

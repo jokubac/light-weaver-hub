@@ -188,3 +188,8 @@
 - [x] TIMELINE: adjustment filter + layer solo/lock/opacity/blend/colour/reorder; right panel list of every point (step) editable
 - [x] Projects screen: "New scene" box always sits above the scene list inside an expanded project; browser verified ordering with three scenes.
 - [x] Scenes: colour can be set from the scene's right-hand menu (same swatches as projects); the scene's own accent shows in its list row, otherwise the project colour is used.
+
+## PIXEL — corner rotate/resize (in progress)
+- [ ] Verify: two fingers no longer rotate effect; bottom-right corner rotates; double-tap corner switches to resize.
+- [ ] (Jokubas) "Remove button prie pixel" — check a Remove button in PIXEL window and address it.
+- [x] (Jokubas) "clear" — removed the long hint text and the "Pixel canvas" label above the PIXEL canvas.
