@@ -223,6 +223,15 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
 }
 
 /** One Uint8Array(512) per universe that has lights patched. */
+/** A non-pixel light on the PIXEL map takes its one pixel as colour + brightness. */
+export function asSinglePixel(f: PatchedFixture, px: RGB[] | undefined): PatchedFixture {
+  const c = px?.[0];
+  if (!c || getMode(f).pixels || f.split) return f;
+  const m = Math.max(c[0], c[1], c[2]);
+  const [h, s] = m > 0 ? rgbToHs(c[0] / m, c[1] / m, c[2] / m) : [0, 0];
+  return { ...f, intensity: f.intensity * (m / 255), hue: h * 360, saturation: s, cctOnly: s < 0.02, crossfade: 1, fx: { ...f.fx, kind: "none" }, fxPlaying: false, mix: undefined };
+}
+
 export function buildUniverses(fixtures: PatchedFixture[], t: number, level: number, frame: Map<string, RGB[]>, conn?: Connection) {
   const out = new Map<number, Uint8Array>();
   const tx = conn?.autoMap && conn.transport !== "bluetooth" ? getTransmitter(conn.transmitter ?? undefined) : undefined;
@@ -233,7 +242,7 @@ export function buildUniverses(fixtures: PatchedFixture[], t: number, level: num
     const u = tx ? f.universe + (conn!.protocol === "artnet" ? tx.artnetStart : tx.sacnStart - 1) : f.universe;
     let buf = out.get(u);
     if (!buf) { buf = new Uint8Array(512); out.set(u, buf); }
-    encode(f, buf, t, level, frame.get(f.uid), order);
+    encode(asSinglePixel(f, frame.get(f.uid)), buf, t, level, frame.get(f.uid), order);
   }
   return out;
 }
