@@ -6,6 +6,8 @@ import type { PixelLayer, PixelMap } from "./pixels";
 export interface Scene {
   id: string;
   name: string;
+  /** Accent colour for this scene's own listings; falls back to the project colour. */
+  color?: string;
   createdAt: number;
   fixtures: PatchedFixture[];
   master: number;
@@ -15,6 +17,11 @@ export interface Scene {
   plot?: import("@/components/console/PlotPanel").Plot;
   grid?: import("@/components/console/GridBoard").GridLayout;
   timeline?: import("./timeline").Timeline;
+}
+
+/** A scene shows the accent picked for it; when none was picked it uses the project's colour. */
+export function sceneColor(scene: { color?: string | undefined }, project: { color: string }): string {
+  return scene.color ?? project.color;
 }
 
 /** A saved snapshot of fixture settings, recallable from any scene in the project. */

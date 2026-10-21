@@ -186,3 +186,5 @@
 - [x] PIXEL: Add fixtures button listing only pixel lights
 - [x] PIXEL: Arrange like GRID; visualiser only lights placed in PIXEL
 - [x] TIMELINE: adjustment filter + layer solo/lock/opacity/blend/colour/reorder; right panel list of every point (step) editable
+- [x] Projects screen: "New scene" box always sits above the scene list inside an expanded project; browser verified ordering with three scenes.
+- [x] Scenes: colour can be set from the scene's right-hand menu (same swatches as projects); the scene's own accent shows in its list row, otherwise the project colour is used.

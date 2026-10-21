@@ -72,6 +72,7 @@ import { deleteAudio, loadAudio, peaks as audioPeaksOf, saveAudio } from "@/lib/
 import { defaultLayer, freeCanvasSpot, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
+  sceneColor,
   loadProjects,
   saveProjects,
   loadConnection,
@@ -177,6 +178,7 @@ function App() {
     }),
     onDeleteScene: (projectId: string, sceneId: string) => updateProject(projectId, (p) => ({ ...p, scenes: p.scenes.filter((s) => s.id !== sceneId) })),
     onRenameScene: (projectId: string, sceneId: string, name: string) => updateProject(projectId, (p) => ({ ...p, scenes: p.scenes.map((s) => (s.id === sceneId ? { ...s, name } : s)) })),
+    onColorScene: (projectId: string, sceneId: string, color: string) => updateProject(projectId, (p) => ({ ...p, scenes: p.scenes.map((s) => (s.id === sceneId ? { ...s, color } : s)) })),
   };
 
   if (view.name === "projects" || view.name === "scenes") {
@@ -305,11 +307,12 @@ function AccountButton({ email, sync }: { email: string | null; sync: "off" | "s
   );
 }
 
-function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, onUpdate, onDuplicate, onOpenScene, onCreateScene, onDuplicateScene, onDeleteScene, onRenameScene }: {
+function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, onUpdate, onDuplicate, onOpenScene, onCreateScene, onDuplicateScene, onDeleteScene, onRenameScene, onColorScene }: {
   projects: Project[]; account: React.ReactNode; initialOpen: string | null; onCreate: (n: string, color: string) => void; onDelete: (id: string) => void;
   onUpdate: (id: string, fn: (p: Project) => Project) => void; onDuplicate: (id: string) => void;
   onOpenScene: (p: string, s: string) => void; onCreateScene: (p: string, n: string) => void; onDuplicateScene: (p: string, s: string) => void;
   onDeleteScene: (p: string, s: string) => void; onRenameScene: (p: string, s: string, n: string) => void;
+  onColorScene: (p: string, s: string, c: string) => void;
 }) {
   const [color, setColor] = useState(PROJECT_COLORS[0]!);
   const [open, setOpen] = useState<Set<string>>(() => new Set(initialOpen ? [initialOpen] : projects[0] ? [projects[0].id] : []));
@@ -344,19 +347,19 @@ function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, on
                   </div>
                   {isOpen && (
                     <div className="space-y-1 pb-3 pl-10 pr-3">
+                      <div className="pb-1"><NewItemForm placeholder="New scene (e.g. Interview, Night, Fire)" onCreate={(n) => onCreateScene(p.id, n)} /></div>
                       {p.scenes.map((s) => (
-                        <div key={s.id} onClick={() => onOpenScene(p.id, s.id)} className="flex cursor-pointer items-center gap-3 rounded-lg border-l-2 bg-surface-elevated px-3 py-2 hover:bg-primary/10" style={{ borderColor: p.color }}>
+                        <div key={s.id} onClick={() => onOpenScene(p.id, s.id)} className="flex cursor-pointer items-center gap-3 rounded-lg border-l-2 bg-surface-elevated px-3 py-2 hover:bg-primary/10" style={{ borderColor: sceneColor(s, p) }}>
                           <Clapperboard className="h-4 w-4 shrink-0 text-muted-foreground" />
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-sm font-semibold">{s.name}</div>
                             <div className="text-[10px] text-muted-foreground">{s.fixtures.length} fixtures · {fmtDate(s.createdAt)}</div>
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
-                            <ItemMenu name={s.name} onDuplicate={() => onDuplicateScene(p.id, s.id)} onDelete={() => onDeleteScene(p.id, s.id)} onRename={(n) => onRenameScene(p.id, s.id, n)} />
+                            <ItemMenu name={s.name} color={sceneColor(s, p)} onColor={(c) => onColorScene(p.id, s.id, c)} onDuplicate={() => onDuplicateScene(p.id, s.id)} onDelete={() => onDeleteScene(p.id, s.id)} onRename={(n) => onRenameScene(p.id, s.id, n)} />
                           </div>
                         </div>
                       ))}
-                      <div className="pt-1"><NewItemForm placeholder="New scene (e.g. Interview, Night, Fire)" onCreate={(n) => onCreateScene(p.id, n)} /></div>
                     </div>
                   )}
                 </div>
