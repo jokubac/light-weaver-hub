@@ -7,7 +7,7 @@ import { groupNamesOf, membersOf } from "@/lib/fixture-groups";
 import { PaletteEditor } from "./PaletteEditor";
 import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
-import { PIXEL_LIBRARY, PIXEL_GROUPS, lookOf, POLICE_FLASHES, defaultLayer, isPixelFixture, pixelCount, pixelGrid, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelEffectClipboard } from "@/lib/pixels";
+import { PIXEL_LIBRARY, PIXEL_GROUPS, lookOf, POLICE_FLASHES, defaultLayer, initArea, isPixelFixture, pixelCount, pixelGrid, stageSize, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelEffectClipboard } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
 import { saveVideo, videoMissing } from "@/lib/pixel-media";
 
@@ -42,7 +42,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
   };
   const usedElsewhere = (u: string) => layers.filter((l) => l.id !== layer.id && l.order.includes(u)).map((l) => l.name);
   const addLayer = () => {
-    const l = defaultLayer(`Layer ${layers.length + 1}`, selPx.map((f) => f.uid));
+    const l = { ...defaultLayer(`Layer ${layers.length + 1}`, selPx.map((f) => f.uid)), area: initArea(stageSize()) };
     setLayers([...layers, l]);
     setActiveId(l.id);
   };
