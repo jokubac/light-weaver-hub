@@ -375,7 +375,6 @@ export function renderLayer(layer0: PixelLayer, fixtures: PatchedFixture[], t: n
 
 /** The effect painted over the whole PIXEL canvas, like a video frame (row-major, W×H). */
 export function renderCanvasImage(layer0: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null) {
-  if (layer0.empty) return out;
   const layer = layerAt(layer0, t);
   const { W, H } = stageSize(fixtures);
   const pt = picturePoint(layer, { W, H });
