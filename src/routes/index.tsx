@@ -158,11 +158,10 @@ function App() {
   const createScene = (projectId: string, name: string) => {
     const src = projects.find((p) => p.id === projectId);
     if (!src) return;
-    const prev = src.scenes[0];
+    // new scenes start completely empty (no inherited patch)
     const s: Scene = {
       id: uid(), name, createdAt: Date.now(),
-      // new scenes inherit the patch from the latest scene
-      fixtures: prev ? prev.fixtures.map((f) => ({ ...f, intensity: 0, fx: { ...f.fx, kind: "none" as const }, trigger: null })) : [],
+      fixtures: [],
       master: 1,
     };
     updateProject(projectId, (p) => ({ ...p, scenes: [s, ...p.scenes] }));
