@@ -191,7 +191,7 @@ export function migrateLayers(s: { pixelLayers?: PixelLayer[]; pixelMap?: PixelM
     const { vertical: _v, ...rest } = s.pixelMap;
     return [normalizeLayer({ ...defaultLayer(), ...rest, playing: false })];
   }
-  return [{ ...defaultLayer("Page 1"), empty: true }];
+  return [{ ...defaultLayer("Effect 1"), empty: true }];
 }
 
 /** Non-pixel lights placed on the PIXEL map act as one pixel. */
@@ -528,5 +528,30 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
 export function renderLayers(layers: PixelLayer[], fixtures: PatchedFixture[], t: number, masks: Map<string, ReturnType<typeof textMask>>) {
   const out = new Map<string, RGB[]>();
   for (const l of layers) if (l.playing) renderLayer(l, fixtures, l.pausedAt ?? t, masks.get(l.id) ?? null, out);
+  return out;
+}
+
+/** Newly added lights: in order, columns of up to 8, a new column whenever the model changes; centred on the map. */
+export function placeInColumns(list: PatchedFixture[], perCol = 8): Map<string, { x: number; y: number; r: number }> {
+  const cols: PatchedFixture[][] = [];
+  let key = "";
+  for (const f of list) {
+    const k = `${f.defId}#${f.modeIdx}`;
+    const last = cols[cols.length - 1];
+    if (!last || k !== key || last.length >= perCol) cols.push([f]); else last.push(f);
+    key = k;
+  }
+  const size = (f: PatchedFixture) => canvasSize({ ...f, pixelPos: { x: 0, y: 0, r: 0 } });
+  const widths = cols.map((c) => Math.max(...c.map((f) => size(f)[0])));
+  const heights = cols.map((c) => c.reduce((s, f) => s + size(f)[1], 0) + c.length - 1);
+  const [W, H] = STAGE_MIN;
+  const totalW = widths.reduce((s, w) => s + w, 0) + cols.length - 1;
+  let x = Math.max(0, Math.floor((W - totalW) / 2));
+  const out = new Map<string, { x: number; y: number; r: number }>();
+  cols.forEach((c, i) => {
+    let y = Math.max(0, Math.floor((H - Math.max(...heights)) / 2));
+    for (const f of c) { out.set(f.uid, { x: Math.min(x, W - size(f)[0]), y: Math.min(y, H - size(f)[1]), r: 0 }); y += size(f)[1] + 1; }
+    x += widths[i]! + 1;
+  });
   return out;
 }
