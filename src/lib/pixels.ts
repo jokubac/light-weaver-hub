@@ -19,6 +19,8 @@ export interface PixelLayer {
   /** effects sharing a group id form one layer (shared lights, play/pause); unset = its own layer */
   group?: string | undefined;
   playing: boolean;
+  /** page/effect slot with no effect picked yet — renders nothing */
+  empty?: boolean | undefined;
   /** frozen effect time (seconds, performance clock) while paused */
   pausedAt?: number | undefined;
   kind: PixelFx;
@@ -189,7 +191,7 @@ export function migrateLayers(s: { pixelLayers?: PixelLayer[]; pixelMap?: PixelM
     const { vertical: _v, ...rest } = s.pixelMap;
     return [normalizeLayer({ ...defaultLayer(), ...rest, playing: false })];
   }
-  return [defaultLayer()];
+  return [{ ...defaultLayer("Page 1"), empty: true }];
 }
 
 /** Non-pixel lights placed on the PIXEL map act as one pixel. */
@@ -362,6 +364,7 @@ export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
 
 /** Colours (0-255) per fixture uid, one entry per pixel. */
 export function renderLayer(layer0: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null, out = new Map<string, RGB[]>()) {
+  if (layer0.empty) return out;
   const layer = layerAt(layer0, t);
   const { placed, W, H, S } = layoutLayer(layer, fixtures);
   if (!placed.length) return out;
@@ -372,6 +375,7 @@ export function renderLayer(layer0: PixelLayer, fixtures: PatchedFixture[], t: n
 
 /** The effect painted over the whole PIXEL canvas, like a video frame (row-major, W×H). */
 export function renderCanvasImage(layer0: PixelLayer, fixtures: PatchedFixture[], t: number, mask: ReturnType<typeof textMask> | null) {
+  if (layer0.empty) return out;
   const layer = layerAt(layer0, t);
   const { W, H } = stageSize(fixtures);
   const pt = picturePoint(layer, { W, H });
@@ -389,6 +393,7 @@ export function renderCanvasComposite(layers: PixelLayer[], fixtures: PatchedFix
   const { W, H } = stageSize(fixtures);
   const img: RGB[] = Array.from({ length: W * H }, () => BLACK);
   for (const l0 of layers) {
+    if (l0.empty) continue;
     const l = layerAt(l0, l0.pausedAt ?? t);
     const pt = picturePoint(l, { W, H });
     const { at, finish } = makeSampler(l, W, H, W, l0.pausedAt ?? t, maskOf(l));
