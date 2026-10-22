@@ -158,11 +158,10 @@ function App() {
   const createScene = (projectId: string, name: string) => {
     const src = projects.find((p) => p.id === projectId);
     if (!src) return;
-    const prev = src.scenes[0];
+    // new scenes start completely empty (no inherited patch)
     const s: Scene = {
       id: uid(), name, createdAt: Date.now(),
-      // new scenes inherit the patch from the latest scene
-      fixtures: prev ? prev.fixtures.map((f) => ({ ...f, intensity: 0, fx: { ...f.fx, kind: "none" as const }, trigger: null })) : [],
+      fixtures: [],
       master: 1,
     };
     updateProject(projectId, (p) => ({ ...p, scenes: [s, ...p.scenes] }));
@@ -1362,8 +1361,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             const placed: typeof fixtures = [];
             for (const u of uids) { const f = fixtures.find((x) => x.uid === u); if (f) placed.push({ ...f, pixelPos: freeCanvasSpot([...fixtures.filter((x) => !uids.includes(x.uid)), ...placed], { ...f, pixelPos: { x: 0, y: 0, r: 0 } }) }); }
             setFixtures((x) => x.map((f) => placed.find((p) => p.uid === f.uid) ?? f));
-            const act = layers.find((x) => x.id === activePixelId) ?? layers[0]; const gid = act ? (act.group ?? act.id) : null;
-            setLayers(layers.map((l) => ((l.group ?? l.id) === gid ? { ...l, order: [...l.order, ...uids.filter((u) => !l.order.includes(u))] } : l)));
+            // lights only go on the map; effects are added separately with + Layer / + Effect
           }} />}
           onPlay={(id) => { const g = layers.find((l) => l.id === id); if (!g) return; const gid = g.group ?? g.id; const on = !g.playing; setLayers(layers.map((l) => ((l.group ?? l.id) === gid ? { ...l, playing: on, pausedAt: undefined } : l))); }}
           onPause={(id) => { const g = layers.find((l) => l.id === id); if (!g) return; const gid = g.group ?? g.id; const resume = g.pausedAt != null; const now = performance.now() / 1000; setLayers(layers.map((l) => { if ((l.group ?? l.id) !== gid) return l; return resume ? { ...l, pausedAt: undefined, phase: (l.phase ?? 0) + ((l.pausedAt ?? now) - now) * l.speed } : { ...l, pausedAt: now }; })); }}
@@ -1371,7 +1369,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           onRemoveGroup={(gid) => { const rest = layers.filter((l) => (l.group ?? l.id) !== gid); if (!rest.length) return; setLayers(rest); if (!rest.some((l) => l.id === activePixelId)) setActivePixelId(rest[0]!.id); }}
           onAddEffect={(gid) => { const g = layers.filter((l) => (l.group ?? l.id) === gid); const first = g[0]; if (!first) return; const l = { ...defaultLayer(`Effect ${g.length + 1}`, [...first.order]), area: initArea(stageSize(fixtures)), group: gid, playing: first.playing }; setLayers(layers.flatMap((x) => (x.id === g[g.length - 1]!.id ? [x.group ? x : x, l] : [x])).map((x) => (x.id === first.id && !x.group ? { ...x, group: gid } : x))); setActivePixelId(l.id); }}
           onRemoveLight={(uid) => updateOne(uid, { pixelPos: undefined })}
-          onAdd={() => { const l = { ...defaultLayer(`Layer ${layers.length + 1}`, []), area: initArea(stageSize(fixtures)) }; setLayers([...layers, l]); setActivePixelId(l.id); }}
+          onAdd={() => { const l = { ...defaultLayer(`Layer ${layers.length + 1}`, fixtures.filter((f) => f.pixelPos).map((f) => f.uid)), area: initArea(stageSize(fixtures)) }; setLayers([...layers, l]); setActivePixelId(l.id); }}
           onLayer={(patch) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, ...patch } : l))}
           onArea={(area) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, area } : l))}
           onToggle={(id) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, order: l.order.includes(id) ? l.order.filter((u) => u !== id) : [...l.order, id] } : l))} />
