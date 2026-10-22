@@ -69,7 +69,7 @@ import { CallSheet } from "@/components/console/CallSheet";
 import { TimelinePanel } from "@/components/console/TimelinePanel";
 import { emptyTimeline, timelineAt, timelineLength, type Timeline } from "@/lib/timeline";
 import { deleteAudio, loadAudio, peaks as audioPeaksOf, saveAudio } from "@/lib/timeline-audio";
-import { defaultLayer, freeCanvasSpot, initArea, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, stageSize, textMask, type PixelLayer } from "@/lib/pixels";
+import { defaultLayer, freeCanvasSpot, placeInColumns, initArea, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, stageSize, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
   sceneColor,
@@ -1368,10 +1368,11 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           onPlay={(id) => { const g = layers.find((l) => l.id === id); if (!g) return; const gid = g.group ?? g.id; const on = !g.playing; setLayers(layers.map((l) => ((l.group ?? l.id) === gid ? { ...l, playing: on, pausedAt: undefined } : l))); }}
           onPause={(id) => { const g = layers.find((l) => l.id === id); if (!g) return; const gid = g.group ?? g.id; const resume = g.pausedAt != null; const now = performance.now() / 1000; setLayers(layers.map((l) => { if ((l.group ?? l.id) !== gid) return l; return resume ? { ...l, pausedAt: undefined, phase: (l.phase ?? 0) + ((l.pausedAt ?? now) - now) * l.speed } : { ...l, pausedAt: now }; })); }}
           onRemoveLayer={(id) => { const rest = layers.filter((l) => l.id !== id); if (!rest.length) return; setLayers(rest); if (activePixelId === id) setActivePixelId(rest[0]!.id); }}
+          onDuplicateGroup={(gid) => { const g = layers.filter((l) => (l.group ?? l.id) === gid); if (!g.length) return; const ng = uid(); const copies = g.map((l) => ({ ...l, id: uid(), group: ng, playing: false, pausedAt: undefined })); const lastIdx = layers.indexOf(g[g.length - 1]!); setLayers([...layers.slice(0, lastIdx + 1), ...copies, ...layers.slice(lastIdx + 1)]); setActivePixelId(copies[0]!.id); }}
           onRemoveGroup={(gid) => { const rest = layers.filter((l) => (l.group ?? l.id) !== gid); if (!rest.length) return; setLayers(rest); if (!rest.some((l) => l.id === activePixelId)) setActivePixelId(rest[0]!.id); }}
           onAddEffect={(gid) => { const g = layers.filter((l) => (l.group ?? l.id) === gid); const first = g[0]; if (!first) return; const l = { ...defaultLayer(`Effect ${g.length + 1}`, [...first.order]), empty: true, area: initArea(stageSize(fixtures)), group: gid, playing: first.playing }; setLayers(layers.flatMap((x) => (x.id === g[g.length - 1]!.id ? [x.group ? x : x, l] : [x])).map((x) => (x.id === first.id && !x.group ? { ...x, group: gid } : x))); setActivePixelId(l.id); }}
           onRemoveLight={(uid) => updateOne(uid, { pixelPos: undefined })}
-          onAdd={() => { const l = { ...defaultLayer(`Page ${new Set(layers.map((x) => x.group ?? x.id)).size + 1}`, []), empty: true, area: initArea(stageSize(fixtures)) }; setLayers([...layers, l]); setActivePixelId(l.id); }}
+          onAdd={() => { const l = { ...defaultLayer("Effect 1", []), empty: true, area: initArea(stageSize(fixtures)) }; setLayers([...layers, l]); setActivePixelId(l.id); }}
           onLayer={(patch) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, ...patch } : l))}
           onArea={(area) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, area } : l))}
           onToggle={(id) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, order: l.order.includes(id) ? l.order.filter((u) => u !== id) : [...l.order, id] } : l))} />

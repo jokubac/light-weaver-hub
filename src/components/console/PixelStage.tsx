@@ -12,8 +12,8 @@ import { useClock } from "./PixelPanel";
 type RGB = [number, number, number];
 
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
-export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveGroup, onAddEffect, onRemoveLight, onLayer, addFixtures }: {
-  onRemoveGroup?: (gid: string) => void; onAddEffect?: (gid: string) => void;
+export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveGroup, onDuplicateGroup, onAddEffect, onRemoveLight, onLayer, addFixtures }: {
+  onRemoveGroup?: (gid: string) => void; onDuplicateGroup?: (gid: string) => void; onAddEffect?: (gid: string) => void;
   addFixtures?: ReactNode;
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
@@ -306,6 +306,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                     </span>
                   ))}
                   {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to page ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">+ Effect</button>}
+                  {onDuplicateGroup && <button onClick={() => onDuplicateGroup(gid)} aria-label={`Duplicate page ${gi + 1}`} title="Duplicate page" className="px-1.5 py-1 opacity-70 hover:opacity-100">⧉</button>}
                   {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete page ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete page ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">🗑</button>}
                 </span>
               );
