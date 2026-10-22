@@ -249,7 +249,7 @@ interface Placed { f: PatchedFixture; cells: { x: number; y: number; s: number }
 /** Positions of every pixel of every fixture in the layer on one shared grid. */
 export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number; S: number } {
   const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
-  if (layer.layout === "canvas") { const st = stageSize(fixtures); const placedOnMap = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos); const use = placedOnMap.length ? placedOnMap : list; const pos = new Map(canvasPositions(fixtures)); let fy = 0; for (const f of use) if (!pos.has(f.uid)) { pos.set(f.uid, { x: 0, y: fy, r: 0 }); fy += canvasSize(f)[1] + 1; } return layoutCanvas(use, pos, st, picturePoint(layer, st)); }
+  if (layer.layout === "canvas") { const st = stageSize(fixtures); const placedOnMap = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos); const use = placedOnMap.length ? list.filter((f) => !!f.pixelPos) : list; const pos = new Map(canvasPositions(fixtures)); let fy = 0; for (const f of use) if (!pos.has(f.uid)) { pos.set(f.uid, { x: 0, y: fy, r: 0 }); fy += canvasSize(f)[1] + 1; } return layoutCanvas(use, pos, st, picturePoint(layer, st)); }
   const placed: Placed[] = [];
   let ox = 0, oy = 0, W = 0, H = 0, seq = 0;
   for (const f of list) {
