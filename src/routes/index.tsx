@@ -1359,7 +1359,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           onSelect={setActivePixelId}
           addFixtures={<PixelAddPatched fixtures={fixtures} exclude={(() => { const act = layers.find((x) => x.id === activePixelId) ?? layers[0]; const gid = act ? (act.group ?? act.id) : null; return layers.filter((l) => (l.group ?? l.id) === gid).flatMap((l) => l.order); })()} onAdd={(uids) => {
             const placed: typeof fixtures = [];
-            for (const u of uids) { const f = fixtures.find((x) => x.uid === u); if (f) placed.push({ ...f, pixelPos: freeCanvasSpot([...fixtures.filter((x) => !uids.includes(x.uid)), ...placed], { ...f, pixelPos: { x: 0, y: 0, r: 0 } }) }); }
+            const add = fixtures.filter((x) => uids.includes(x.uid)); const spots = placeInColumns(add);
+            for (const f of add) placed.push({ ...f, pixelPos: spots.get(f.uid) ?? freeCanvasSpot(fixtures, f) });
             setFixtures((x) => x.map((f) => placed.find((p) => p.uid === f.uid) ?? f));
             // lights join the active page only; no effect starts until one is picked
             const act = layers.find((x) => x.id === activePixelId) ?? layers[0]; const gid = act ? (act.group ?? act.id) : null;
