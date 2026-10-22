@@ -331,7 +331,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                     <div title="Move effect area" onPointerDown={start("move")} onPointerMove={move} onPointerUp={end}
                       className="pointer-events-auto absolute -top-5 left-0 cursor-move touch-none rounded-t bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">Effect {area.w}×{area.h}</div>
                     <div className="pointer-events-auto absolute -top-5 right-0 flex gap-px">
-                      {([["Full", 1], ["1/2", 2], ["1/4", 4]] as const).map(([l, d]) => (
+                      {([["Full", 1], ["1/2", 2], ["1/4", 4], ["1/8", 8], ["1/16", 16]] as const).map(([l, d]) => (
                         <button key={l} onPointerDown={(e) => e.stopPropagation()} onClick={() => setArea(d === 1 ? { x: 0, y: 0, w: W, h: H } : layerArea({ area: { x: area.x, y: area.y, w: Math.round(W / d), h: Math.round(H / d) } }, stage))}
                           className={`rounded-t px-1.5 text-[10px] font-semibold ${area.w === Math.round(W / d) && area.h === Math.round(H / d) ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{l}</button>
                       ))}
