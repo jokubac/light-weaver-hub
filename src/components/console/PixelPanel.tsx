@@ -130,8 +130,8 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{g}</div>
               <div className="grid grid-cols-3 gap-1">
                 {PIXEL_LIBRARY.filter((x) => x.group === g).map((x) => {
-                  const on = lookOf(layer)?.key === x.key;
-                  return <button key={x.key} aria-pressed={on} onClick={() => set(x.gen ? { kind: x.kind, gen: x.gen } : { kind: x.kind })}
+                  const on = !layer.empty && lookOf(layer)?.key === x.key;
+                  return <button key={x.key} aria-pressed={on} onClick={() => set(x.gen ? { kind: x.kind, gen: x.gen, empty: false } : { kind: x.kind, empty: false })}
                     className={`rounded-md px-1 py-1.5 text-[11px] font-semibold ${on ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{x.label}</button>;
                 })}
               </div>

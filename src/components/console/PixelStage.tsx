@@ -31,12 +31,16 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const toLocal = (dx: number, dy: number) => [dx / cell, dy / cell] as const;
   const [addOpen, setAddOpen] = useState(false);
   const now = useClock();
-  const px = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos);
   const layer = layers.find((l) => l.id === activeId) ?? layers[0];
+  // pages: only the active page's effects and lights are shown
+  const pageId = layer ? (layer.group ?? layer.id) : null;
+  const pageLayers = layers.filter((l) => (l.group ?? l.id) === pageId);
+  const pageUids = new Set(pageLayers.flatMap((l) => l.order));
+  const px = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos && pageUids.has(f.uid));
   const pos = canvasPositions(fixtures);
   // the map always previews every effect; PLAY only sends it to the real lights
   const preview = (() => {
-    const all = layers.map((l) => ({ ...l, playing: true }));
+    const all = pageLayers.map((l) => ({ ...l, playing: true }));
     const masks = new Map(all.filter((l) => l.kind === "text").map((l) => [l.id, textMask(l.text.toUpperCase(), layerArea(l, stageSize(fixtures)).h)] as const));
     return renderLayers(all, fixtures, now, masks);
   })();
@@ -162,7 +166,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const bg = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = bg.current; if (!c || !layer) return;
-    const shown = layers.map((l) => ({ ...l, playing: true }));
+    const shown = pageLayers.map((l) => ({ ...l, playing: true }));
     const { W: w, H: h, img } = renderCanvasComposite(shown, fixtures, now, (l) => (l.kind === "text" ? textMask(l.text.toUpperCase(), layerArea(l, stage).h) : null));
     c.width = w; c.height = h;
     const ctx = c.getContext("2d"); if (!ctx) return;
@@ -287,26 +291,26 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         )}
         {onSelect && (
           <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-1.5 text-xs" aria-label="Effect layers">
-            <span className="mr-1 font-semibold">Layers</span>
+            <span className="mr-1 font-semibold">Pages</span>
             {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
               const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
               return (
                 <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
-                  <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} layer ${gi + 1}`} className="px-1.5 py-1">{h.playing ? "■" : "▶"}</button>
-                  {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} layer ${gi + 1}`} className="px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
-                  <span className="px-1 font-semibold text-muted-foreground">L{gi + 1}</span>
+                  <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="px-1.5 py-1">{h.playing ? "■" : "▶"}</button>
+                  {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
+                  <span className="px-1 font-semibold text-muted-foreground">P{gi + 1}</span>
                   {fx.map((l) => (
                     <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
                       <button onClick={() => onSelect(l.id)} className="px-2 py-1 font-semibold">{l.name}</button>
                       {onRemoveLayer && fx.length > 1 && <button onClick={() => { if (confirm(`Delete effect “${l.name}”?`)) onRemoveLayer(l.id); }} aria-label={`Delete effect ${l.name}`} className="pr-1.5 opacity-70 hover:opacity-100">✕</button>}
                     </span>
                   ))}
-                  {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to layer ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">+ Effect</button>}
-                  {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete layer ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete layer ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">🗑</button>}
+                  {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to page ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">+ Effect</button>}
+                  {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete page ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete page ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">🗑</button>}
                 </span>
               );
             })}
-            {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Layer</Button>}
+            {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Page</Button>}
           </div>
         )}
         <div ref={scroller} className="flex min-h-0 flex-1 touch-none overflow-auto p-3"
