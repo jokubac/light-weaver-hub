@@ -297,8 +297,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
               const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
               return (
                 <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
-                  <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="px-1.5 py-1">{h.playing ? "■" : "▶"}</button>
-                  {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
+                  <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.playing ? "■" : "▶"}</button>
+                  {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
                   <span className="px-1 font-semibold text-muted-foreground">P{gi + 1}</span>
                   {fx.map((l) => (
                     <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>

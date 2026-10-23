@@ -376,7 +376,12 @@ export function renderLayer(layer0: PixelLayer, fixtures: PatchedFixture[], t: n
   const { placed, W, H, S } = layoutLayer(layer, fixtures);
   if (!placed.length) return out;
   const { at, finish } = makeSampler(layer, W, H, S, t, mask);
-  for (const p of placed) out.set(p.f.uid, p.cells.map((c, i) => (c.s < 0 ? out.get(p.f.uid)?.[i] ?? BLACK : finish(at(c.x, c.y, c.s)))));
+  for (const p of placed) {
+    const prev = out.get(p.f.uid);
+    // a light the effect box doesn't cover at all stays as the layers below left it — never painted black
+    if (!prev && p.cells.every((c) => c.s < 0)) continue;
+    out.set(p.f.uid, p.cells.map((c, i) => (c.s < 0 ? prev?.[i] ?? BLACK : finish(at(c.x, c.y, c.s)))));
+  }
   return out;
 }
 
