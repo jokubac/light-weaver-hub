@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PatchedFixture } from "@/lib/dmx";
 import { getMode } from "@/lib/dmx";
+import { PixelAddClose } from "@/components/console/pixel-add-context";
 
 /** Pick already-patched lights (pixel or not) to place on the PIXEL map. */
 export function PixelAddPatched({ fixtures, onAdd, exclude }: { fixtures: PatchedFixture[]; onAdd: (uids: string[]) => void; exclude?: string[] }) {
