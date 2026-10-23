@@ -65,3 +65,16 @@ describe("shrunk effect keeps its pattern", () => {
     expect(half.img.slice(0, 6)).toEqual(full.img.slice(0, 6));
   });
 });
+
+describe("spread and edge fade", () => {
+  it("edge fade darkens the box edge and spread softens a hard chase", () => {
+    const f = fixture("A", 0, 0);
+    const base = { ...defaultLayer("L", [f.uid]), kind: "chase" as const, colors: ["#ff0000", "#0000ff"], size: 1, area: { x: 0, y: 0, w: 20, h: 10 } };
+    const plain = renderCanvasImage(base, [f], 0, null).img[5 * 122 + 5]!;
+    const spread = renderCanvasImage({ ...base, spread: 2 }, [f], 0, null).img[5 * 122 + 5]!;
+    expect(spread[0] > 0 && spread[2] > 0).toBe(true);
+    expect(spread).not.toEqual(plain);
+    const faded = renderCanvasImage({ ...base, kind: "solid" as const, feather: 4 }, [f], 0, null).img;
+    expect(faded[5 * 122 + 0]![0]).toBeLessThan(faded[5 * 122 + 10]![0]);
+  });
+});

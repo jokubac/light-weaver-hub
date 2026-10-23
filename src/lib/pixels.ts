@@ -27,6 +27,10 @@ export interface PixelLayer {
   colors: string[];
   /** Optional tint for generated-colour effects (rainbow, plasma, fire). */
   tint?: string;
+  /** blur radius in cells: pixels spread into their neighbours */
+  spread?: number;
+  /** soft edge in cells: the effect fades out towards its box edges */
+  feather?: number;
   /** Opt-in so existing generated-colour effects retain their original look. */
   customPalette?: boolean;
   speed: number; // 0.001–100 multiplier
@@ -524,7 +528,18 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
   const brightness = Math.min(1, Math.max(0, layer.brightness ?? 1));
   const background = Math.min(1, Math.max(0, layer.background ?? 0));
   const finish = (c: RGB): RGB => scale(mix(cols[0] ?? BLACK, c, 1 - background), brightness);
-  return { at, finish };
+  const r = Math.max(0, layer.spread ?? 0), fe = Math.max(0, layer.feather ?? 0);
+  const soft = (x: number, y: number, s: number): RGB => {
+    let c: RGB = at(x, y, s);
+    if (r > 0) {
+      const n = Math.min(3, Math.ceil(r)); let R = 0, G = 0, B = 0, k = 0;
+      for (let j = -n; j <= n; j++) for (let i = -n; i <= n; i++) { const o = at(Math.round(x + (i * r) / n), Math.round(y + (j * r) / n), Math.round(s + (i * r) / n)); R += o[0]; G += o[1]; B += o[2]; k++; }
+      c = [Math.round(R / k), Math.round(G / k), Math.round(B / k)];
+    }
+    if (fe > 0) { const d = Math.min(x + 0.5, y + 0.5, W - x - 0.5, H - y - 0.5); if (d < fe) c = scale(c, Math.max(0, d / fe)); }
+    return c;
+  };
+  return { at: soft, finish };
 }
 
 /** Renders all playing layers; later layers override earlier ones on shared fixtures. */
