@@ -4,11 +4,11 @@ import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
-import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, Link2, Unlink, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
-export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined }
+export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined; lk?: string | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
 /** A brand-new scene's GRID starts with two default macro tables — MACROS (intensity/CCT) and TOOLS (edit tools) — laid out like the user's own setup. */
 export function emptyGrid(): GridLayout {
@@ -608,6 +608,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <button onClick={() => { setLive(true); setEsel([]); setMode("select"); }} aria-pressed={live} className={chip(live)}><Play className="h-3.5 w-3.5" />Live</button>
             <button onClick={() => setLive(false)} aria-pressed={!live} className={chip(!live)}><Pencil className="h-3.5 w-3.5" />Edit</button>
           </div>
+          {(() => {
+            const ids = new Set(selItems.map((i) => i.id));
+            const linked = selItems.some((i) => i.lk);
+            return (<>
+              <button disabled={selItems.length < 2} onClick={() => { const lk = `lk-${Date.now().toString(36)}`; setGrid({ ...grid, items: grid.items.map((i) => (ids.has(i.id) ? { ...i, lk } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Group selected lights"><Link2 className="h-3.5 w-3.5" />Group</button>
+              <button disabled={!linked} onClick={() => { const lks = new Set(selItems.map((i) => i.lk).filter(Boolean)); setGrid({ ...grid, items: grid.items.map((i) => (i.lk && lks.has(i.lk) ? { ...i, lk: undefined } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Ungroup selected lights"><Unlink className="h-3.5 w-3.5" />Ungroup</button>
+            </>);
+          })()}
           <button onClick={() => setView(HOME)} className={chip(false)} aria-label="Recenter grid"><LocateFixed className="h-3.5 w-3.5" />Recenter</button>
           <span className="font-mono text-[10px] text-muted-foreground">{Math.round(view.z * 100)}%</span>
           {!live && (<>
@@ -679,7 +687,12 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 setGrid({ ...grid, items: layoutTables(dropIntoTables(moved, ids, sz), sz) });
               }
               else if (live) {
-                if (it?.kind === "fixture") onToggle(it.uid!);
+                if (it?.kind === "fixture" && it.lk) {
+                  // grouped section: one tap picks (or drops) every light in it
+                  const ms = grid.items.filter((g) => g.kind === "fixture" && g.lk === it.lk).map((g) => g.uid!);
+                  onSelect(ms.every((u) => selected.includes(u)) ? selected.filter((u) => !ms.includes(u)) : [...new Set([...selected, ...ms])]);
+                }
+                else if (it?.kind === "fixture") onToggle(it.uid!);
                 else if (it?.kind === "macro" && !MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.fader) {
                   onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount, param: it.macro!.param, release: MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.hold || undefined });
                   // Double-tap a group macro in Live to switch which group it targets.
