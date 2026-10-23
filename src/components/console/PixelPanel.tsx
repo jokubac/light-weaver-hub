@@ -194,6 +194,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       {layer.kind === "strobe" && <Slider label="On time" value={layer.duty ?? 0.5} min={0.001} max={1} display={`${+((layer.duty ?? 0.5) * 100).toFixed(1)}%`} onChange={(duty) => set({ duty })} />}
       {layer.kind === "sparkle" && <Slider label="Density" value={layer.density ?? 0.15} min={0} max={1} display={`${Math.round((layer.density ?? 0.15) * 100)}%`} onChange={(density) => set({ density })} />}
       <Slider label="Spread" value={layer.spread ?? 0} min={0} max={8} step={0.5} display={`${layer.spread ?? 0} px`} onChange={(spread) => set({ spread })} />
+      <Slider label="Blur" value={layer.blur ?? 0} min={0} max={8} step={0.5} display={`${layer.blur ?? 0} px`} onChange={(blur) => set({ blur })} />
       <Slider label="Edge fade" value={layer.feather ?? 0} min={0} max={20} step={1} display={`${layer.feather ?? 0} px`} onChange={(feather) => set({ feather })} />
       <Slider label="Phase offset" value={layer.phase ?? 0} min={0} max={1} display={`${Math.round((layer.phase ?? 0) * 100)}%`} onChange={(phase) => set({ phase })} />
       {layer.kind === "runner" && <Slider label="Runners" value={layer.runners ?? 1} min={1} max={8} step={1} display={`${layer.runners ?? 1}`} onChange={(v) => set({ runners: v })} />}

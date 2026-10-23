@@ -27,8 +27,10 @@ export interface PixelLayer {
   colors: string[];
   /** Optional tint for generated-colour effects (rainbow, plasma, fire). */
   tint?: string;
-  /** blur radius in cells: pixels spread into their neighbours */
+  /** widen in cells: every lit pixel grows into its neighbours (brightest wins) */
   spread?: number;
+  /** blur radius in cells: neighbours are averaged */
+  blur?: number;
   /** soft edge in cells: the effect fades out towards its box edges */
   feather?: number;
   /** Opt-in so existing generated-colour effects retain their original look. */
@@ -528,14 +530,20 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
   const brightness = Math.min(1, Math.max(0, layer.brightness ?? 1));
   const background = Math.min(1, Math.max(0, layer.background ?? 0));
   const finish = (c: RGB): RGB => scale(mix(cols[0] ?? BLACK, c, 1 - background), brightness);
-  const r = Math.max(0, layer.spread ?? 0), fe = Math.max(0, layer.feather ?? 0);
-  const soft = (x: number, y: number, s: number): RGB => {
-    let c: RGB = at(x, y, s);
-    if (r > 0) {
-      const n = Math.min(3, Math.ceil(r)); let R = 0, G = 0, B = 0, k = 0;
-      for (let j = -n; j <= n; j++) for (let i = -n; i <= n; i++) { const o = at(Math.round(x + (i * r) / n), Math.round(y + (j * r) / n), Math.round(s + (i * r) / n)); R += o[0]; G += o[1]; B += o[2]; k++; }
-      c = [Math.round(R / k), Math.round(G / k), Math.round(B / k)];
+  const sp = Math.max(0, layer.spread ?? 0), bl = Math.max(0, layer.blur ?? 0), fe = Math.max(0, layer.feather ?? 0);
+  const kernel = (src: (x: number, y: number, s: number) => RGB, r: number, avg: boolean) => (x: number, y: number, s: number): RGB => {
+    const n = Math.min(3, Math.ceil(r)); let R = 0, G = 0, B = 0, k = 0;
+    for (let j = -n; j <= n; j++) for (let i = -n; i <= n; i++) {
+      const o = src(Math.round(x + (i * r) / n), Math.round(y + (j * r) / n), Math.round(s + (i * r) / n));
+      if (avg) { R += o[0]; G += o[1]; B += o[2]; k++; } else { R = Math.max(R, o[0]); G = Math.max(G, o[1]); B = Math.max(B, o[2]); }
     }
+    return avg ? [Math.round(R / k), Math.round(G / k), Math.round(B / k)] : [R, G, B];
+  };
+  let src = at;
+  if (sp > 0) src = kernel(src, sp, false);
+  if (bl > 0) src = kernel(src, bl, true);
+  const soft = (x: number, y: number, s: number): RGB => {
+    let c = src(x, y, s);
     if (fe > 0) { const d = Math.min(x + 0.5, y + 0.5, W - x - 0.5, H - y - 0.5); if (d < fe) c = scale(c, Math.max(0, d / fe)); }
     return c;
   };
