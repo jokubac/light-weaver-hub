@@ -8,6 +8,7 @@ import { PixelAddClose } from "@/components/console/pixel-add-context";
 export function PixelAddPatched({ fixtures, onAdd, exclude }: { fixtures: PatchedFixture[]; onAdd: (uids: string[]) => void; exclude?: string[] }) {
   const [q, setQ] = useState("");
   const [pick, setPick] = useState<string[]>([]);
+  const close = useContext(PixelAddClose);
   const free = fixtures.filter((f) => (exclude ? !exclude.includes(f.uid) : !f.pixelPos) && !f.split && f.name.toLowerCase().includes(q.toLowerCase()));
   return <div className="space-y-2">
     <input aria-label="Search lights" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search patched lights" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
