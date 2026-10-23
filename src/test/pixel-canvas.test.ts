@@ -40,8 +40,8 @@ describe("resizable effect area", () => {
   });
   it("a small effect above a full one doesn't black out the lights outside its box", () => {
     const a = fixture("A", 30, 10);
-    const full = { ...defaultLayer("Full", [a.uid]), kind: "solid" as const, colors: ["#ff0000"], area: { x: 0, y: 0, w: 122, h: 72 } };
-    const small = { ...defaultLayer("Small", [a.uid]), kind: "solid" as const, colors: ["#0000ff"], area: { x: 0, y: 0, w: 8, h: 5 } };
+    const full = { ...defaultLayer("Full", [a.uid]), kind: "solid" as const, colors: ["#ff0000"], playing: true, area: { x: 0, y: 0, w: 122, h: 72 } };
+    const small = { ...defaultLayer("Small", [a.uid]), kind: "solid" as const, colors: ["#0000ff"], playing: true, area: { x: 0, y: 0, w: 8, h: 5 } };
     const out = renderLayers([full, small], [a], 1, new Map());
     expect(out.get(a.uid)![0]).toEqual([255, 0, 0]);
   });
