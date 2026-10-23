@@ -1,3 +1,4 @@
+import { pixelLayout } from "@/lib/pixel-layout";
 import type { FixtureIcon } from "@/lib/fixture-icons";
 
 /** Recognisable fixture bodies, with a stable common stage and model-relative tube lengths. */
@@ -37,7 +38,8 @@ export function FixtureGlyph({ model, icon = "auto", colour, pixels, className =
         <path d="M30 34v40h100V34M80 74v12m-13 0h26" fill="none" />
         <rect x="32" y="18" width="96" height="52" rx="4" fill="var(--color-surface-elevated)" />
         <rect x="37" y="23" width="86" height="42" rx="2" fill={colour} stroke="var(--color-border)" />
-        {pixels?.map((c,i) => <rect key={i} x={37+(i%4)*21.5} y={23+Math.floor(i/4)*42/Math.ceil(pixels.length/4)} width={21.5} height={42/Math.ceil(pixels.length/4)} fill={c} stroke="var(--color-border)" strokeWidth=".5" />)}
+        {pixels && (() => { const n = pixels.length; const [cols, rows] = pixelLayout(model, "", n) ?? [Math.min(4, n), Math.ceil(n / Math.min(4, n))]; const w = 86 / cols, h = 42 / rows;
+          return pixels.map((c,i) => <rect key={i} x={37+(i%cols)*w} y={23+Math.floor(i/cols)*h} width={w} height={h} fill={c} stroke="var(--color-border)" strokeWidth=".5" />); })()}
       </> : bulb ? <>
         <path d="M70 65h20v14H70zm3 17h14" fill="var(--color-surface-elevated)" />
         <circle cx="80" cy="44" r="24" fill={pixels?.[0] ?? colour} />
