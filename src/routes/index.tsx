@@ -1216,7 +1216,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                 {fixtures.map((f, i) => {
                   const def = getDef(f.defId);
                   const of = pulses[f.uid] || locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
-                  const color = fixtureColor(of, t, outLevel);
+                  const pix0 = frame.get(f.uid);
+                  const color = pix0?.length && pixelCount(f) <= 1 ? (() => { const pv0 = of.on === false ? 0 : of.intensity * outLevel; const [r, g, b] = [0, 1, 2].map((k) => Math.round((pix0.reduce((a, c) => a + c[k]!, 0) / pix0.length) * pv0)); return `rgb(${r},${g},${b})`; })() : fixtureColor(of, t, outLevel);
                   const isSel = selected.includes(f.uid);
                   const pix = frame.get(f.uid);
                   const pv = of.on === false ? 0 : of.intensity * outLevel;
@@ -1344,7 +1345,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       {gridOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected} groups={groups} onCreateGroup={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, g) : x)))}
-            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => fixtureColor(locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f, t, outLevel)} controls={controlPanel()}
+            onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const pv = of.on === false ? 0 : of.intensity * outLevel; const n = px.length; const [r, g, b] = [0, 1, 2].map((k) => Math.round((px.reduce((a, c) => a + c[k]!, 0) / n) * pv)); return `rgb(${r},${g},${b})`; } return fixtureColor(locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f, t, outLevel); }} controls={controlPanel()}
             pixelsOf={(f) => { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const pv = of.on === false ? 0 : of.intensity * outLevel; const pix = frame.get(f.uid); const [cols, rows] = pixelGrid(f); const m = getDef(f.defId).model.toLowerCase();
               const tube = f.icon && f.icon !== "auto" ? f.icon.startsWith("tube-") : /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip|batten|\bbar\b|dotline|pixel ?line|rr50|rr100|rainbow/.test(m);
               const n = cols * rows; let gc = cols, gr = rows; if (!getMode(f).grid && !tube && n > 2) { gc = Math.ceil(Math.sqrt(n)); gr = Math.ceil(n / gc); }
