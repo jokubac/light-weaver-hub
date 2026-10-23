@@ -8,6 +8,7 @@ import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, renderLayers, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
 import { GRID_ARRANGE, GRID_ICON, type Arrange } from "./GridBoard";
 import { useClock } from "./PixelPanel";
+import { PixelAddClose } from "./pixel-add-context";
 
 type RGB = [number, number, number];
 
@@ -392,7 +393,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
             <DialogHeader><DialogTitle>Add pixel fixtures</DialogTitle></DialogHeader>
             <p className="text-xs text-muted-foreground">Only pixel modes are shown.</p>
-            {addFixtures}
+            <PixelAddClose.Provider value={() => setAddOpen(false)}>{addFixtures}</PixelAddClose.Provider>
           </DialogContent>
         </Dialog>
       )}
