@@ -197,3 +197,6 @@
 - [x] PIXEL: several effects per layer, delete effects
 - [x] PIXEL: Arrange spacing slider fix
 - [x] PIXEL: Spread, Edge fade, Blur
+
+- [x] "Add to map" in PIXEL closes the picker as soon as the lights land; browser verified dialog gone.
+- [x] An effect box no longer paints lights outside itself black, so a small/second effect cannot blank a full-screen one; 2 tests passed.

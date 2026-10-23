@@ -8,6 +8,7 @@ import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, renderLayers, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
 import { GRID_ARRANGE, GRID_ICON, type Arrange } from "./GridBoard";
 import { useClock } from "./PixelPanel";
+import { PixelAddClose } from "./pixel-add-context";
 
 type RGB = [number, number, number];
 
@@ -296,8 +297,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
               const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
               return (
                 <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
-                  <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="px-1.5 py-1">{h.playing ? "■" : "▶"}</button>
-                  {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
+                  <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.playing ? "■" : "▶"}</button>
+                  {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
                   <span className="px-1 font-semibold text-muted-foreground">P{gi + 1}</span>
                   {fx.map((l) => (
                     <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
@@ -392,7 +393,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
             <DialogHeader><DialogTitle>Add pixel fixtures</DialogTitle></DialogHeader>
             <p className="text-xs text-muted-foreground">Only pixel modes are shown.</p>
-            {addFixtures}
+            <PixelAddClose.Provider value={() => setAddOpen(false)}>{addFixtures}</PixelAddClose.Provider>
           </DialogContent>
         </Dialog>
       )}
