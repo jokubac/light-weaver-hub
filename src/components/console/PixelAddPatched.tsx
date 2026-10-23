@@ -15,7 +15,7 @@ export function PixelAddPatched({ fixtures, onAdd, exclude }: { fixtures: Patche
     <div className="flex gap-1">
       <Button size="sm" variant="secondary" onClick={() => setPick(free.map((f) => f.uid))}>Select all</Button>
       <Button size="sm" variant="ghost" onClick={() => setPick([])}>Clear</Button>
-      <Button size="sm" className="ml-auto" disabled={!pick.length} onClick={() => { onAdd(pick); setPick([]); }}>Add {pick.length || ""} to map</Button>
+      <Button size="sm" className="ml-auto" disabled={!pick.length} onClick={() => { onAdd(pick); setPick([]); close(); }}>Add {pick.length || ""} to map</Button>
     </div>
     <div className="max-h-[50vh] space-y-1 overflow-auto">
       {!free.length && <p className="py-6 text-center text-sm text-muted-foreground">All patched lights are already on the map. Patch more lights in PATCH.</p>}
