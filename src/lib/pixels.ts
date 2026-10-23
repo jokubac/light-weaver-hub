@@ -251,7 +251,7 @@ interface Placed { f: PatchedFixture; cells: { x: number; y: number; s: number }
 /** Positions of every pixel of every fixture in the layer on one shared grid. */
 export function layoutLayer(layer: PixelLayer, fixtures: PatchedFixture[]): { placed: Placed[]; W: number; H: number; S: number } {
   const list = layer.order.map((u) => fixtures.find((f) => f.uid === u)).filter((f): f is PatchedFixture => !!f && isPixelFixture(f));
-  if (layer.layout === "canvas") { const st = stageSize(fixtures); const placedOnMap = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos); const use = placedOnMap.length ? list.filter((f) => !!f.pixelPos) : list; const pos = new Map(canvasPositions(fixtures)); let fy = 0; for (const f of use) if (!pos.has(f.uid)) { pos.set(f.uid, { x: 0, y: fy, r: 0 }); fy += canvasSize(f)[1] + 1; } return layoutCanvas(use, pos, st, picturePoint(layer, st)); }
+  if (layer.layout === "canvas") { const st = stageSize(fixtures); const placedOnMap = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos); const use = placedOnMap.length ? list.filter((f) => !!f.pixelPos) : list; const pos = new Map(canvasPositions(fixtures)); let fy = 0; for (const f of use) if (!pos.has(f.uid)) { pos.set(f.uid, { x: 0, y: fy, r: 0 }); fy += canvasSize(f)[1] + 1; } return layoutCanvas(use, pos, st, picturePoint(layer, st), layerArea(layer, st)); }
   const placed: Placed[] = [];
   let ox = 0, oy = 0, W = 0, H = 0, seq = 0;
   for (const f of list) {
@@ -335,11 +335,12 @@ export function picturePoint(layer: PixelLayer, stage: { W: number; H: number })
     const dx = X + 0.5 - cx, dy = Y + 0.5 - cy;
     const lx = dx * cs + dy * sn + a.w / 2, ly = -dx * sn + dy * cs + a.h / 2;
     if (lx < 0 || ly < 0 || lx >= a.w || ly >= a.h) return null;
-    return { x: Math.min(stage.W - 1, Math.floor((lx / a.w) * stage.W)), y: Math.min(stage.H - 1, Math.floor((ly / a.h) * stage.H)) };
+    // the effect is generated at the box's own resolution, so shrinking never skips or doubles cells
+    return { x: Math.min(a.w - 1, Math.floor(lx)), y: Math.min(a.h - 1, Math.floor(ly)) };
   };
 }
 
-function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>, stage: { W: number; H: number }, pt: ReturnType<typeof picturePoint>) {
+function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: number; r: number }>, stage: { W: number; H: number }, pt: ReturnType<typeof picturePoint>, box = layerArea({}, stage)) {
   const placed: Placed[] = [];
   for (const f of list) {
     const p = pos.get(f.uid)!;
@@ -355,7 +356,7 @@ function layoutCanvas(list: PatchedFixture[], pos: Map<string, { x: number; y: n
     }
     placed.push({ f, cells });
   }
-  return { placed, W: stage.W, H: stage.H, S: stage.W };
+  return { placed, W: box.w, H: box.h, S: box.w };
 }
 
 export function layerHeight(layer: PixelLayer, fixtures: PatchedFixture[]) {
@@ -378,7 +379,8 @@ export function renderCanvasImage(layer0: PixelLayer, fixtures: PatchedFixture[]
   const layer = layerAt(layer0, t);
   const { W, H } = stageSize(fixtures);
   const pt = picturePoint(layer, { W, H });
-  const { at, finish } = makeSampler(layer, W, H, W, t, mask);
+  const b = layerArea(layer, { W, H });
+  const { at, finish } = makeSampler(layer, b.w, b.h, b.w, t, mask);
   const img: RGB[] = [];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const q = pt(x, y);
@@ -395,7 +397,8 @@ export function renderCanvasComposite(layers: PixelLayer[], fixtures: PatchedFix
     if (l0.empty) continue;
     const l = layerAt(l0, l0.pausedAt ?? t);
     const pt = picturePoint(l, { W, H });
-    const { at, finish } = makeSampler(l, W, H, W, l0.pausedAt ?? t, maskOf(l));
+    const b = layerArea(l, { W, H });
+    const { at, finish } = makeSampler(l, b.w, b.h, b.w, l0.pausedAt ?? t, maskOf(l));
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const q = pt(x, y); if (q) img[y * W + x] = finish(at(q.x, q.y, q.x)); }
   }
   return { W, H, img };
