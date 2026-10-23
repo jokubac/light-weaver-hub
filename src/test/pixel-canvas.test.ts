@@ -31,12 +31,19 @@ describe("pixel canvas works like a video", () => {
 });
 
 describe("resizable effect area", () => {
-  it("lights outside a shrunk effect area stay dark, lights inside sample it", () => {
+  it("lights outside a shrunk effect area are left alone, lights inside sample it", () => {
     const a = fixture("A", 2, 1), b = fixture("B", 30, 10);
     const layer = { ...defaultLayer("L", [a.uid, b.uid]), kind: "solid" as const, colors: ["#ff0000"], area: { x: 0, y: 0, w: 10, h: 6 } };
     const out = renderLayer(layer, [a, b], 1, null);
     expect(out.get(a.uid)![0]).toEqual([255, 0, 0]);
-    expect(out.get(b.uid)!.every((c) => c[0] === 0 && c[1] === 0 && c[2] === 0)).toBe(true);
+    expect(out.get(b.uid)).toBeUndefined();
+  });
+  it("a small effect above a full one doesn't black out the lights outside its box", () => {
+    const a = fixture("A", 30, 10);
+    const full = { ...defaultLayer("Full", [a.uid]), kind: "solid" as const, colors: ["#ff0000"], area: { x: 0, y: 0, w: 122, h: 72 } };
+    const small = { ...defaultLayer("Small", [a.uid]), kind: "solid" as const, colors: ["#0000ff"], area: { x: 0, y: 0, w: 8, h: 5 } };
+    const out = renderLayers([full, small], [a], 1, new Map());
+    expect(out.get(a.uid)![0]).toEqual([255, 0, 0]);
   });
   it("canvas is fixed and the area is clamped inside it", () => {
     expect(stageSize([fixture("Far", 200, 200)])).toEqual({ W: 122, H: 72 });
