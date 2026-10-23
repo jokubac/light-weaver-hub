@@ -196,3 +196,4 @@
 - [x] (Jokubas) adding lights no longer applies the effect — lights stay muted until PLAY (verified: muted colours before, effect colours after PLAY).
 - [x] PIXEL: several effects per layer, delete effects
 - [x] PIXEL: Arrange spacing slider fix
+- [x] PIXEL: Spread, Edge fade, Blur
