@@ -55,3 +55,13 @@ describe("several effects in one window", () => {
     expect(px[3]).toEqual([0, 0, 255]);
   });
 });
+
+describe("shrunk effect keeps its pattern", () => {
+  it("a 1/2 box shows the same chase steps as the full box, not every second one", () => {
+    const f = fixture("A", 0, 0);
+    const base = { ...defaultLayer("L", [f.uid]), kind: "chase" as const, colors: ["#ff0000", "#00ff00", "#0000ff"], size: 1 };
+    const full = renderCanvasImage({ ...base, area: { x: 0, y: 0, w: 122, h: 72 } }, [f], 0, null);
+    const half = renderCanvasImage({ ...base, area: { x: 0, y: 0, w: 61, h: 36 } }, [f], 0, null);
+    expect(half.img.slice(0, 6)).toEqual(full.img.slice(0, 6));
+  });
+});
