@@ -57,7 +57,7 @@ export function snapWall(x1: number, y1: number, x2: number, y2: number) {
 export type Arrange = "hcenter" | "vcenter" | "hspace" | "vspace" | "row" | "column" | "grid" | "triangle" | "pentagon" | "circle" | "rotate";
 
 /** Arranges squares (top-left positions, cell units). `gap` is free space between squares; squares never end up stacked on each other. */
-export function arrange(pts: { id: string; x: number; y: number }[], how: Arrange, gap = 0.2, size = SIZE): { id: string; x: number; y: number }[] {
+export function arrange(pts: { id: string; x: number; y: number }[], how: Arrange, gap = 0.2, size = SIZE, cols = 0): { id: string; x: number; y: number }[] {
   if (pts.length < 2) return pts;
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
@@ -82,12 +82,15 @@ export function arrange(pts: { id: string; x: number; y: number }[], how: Arrang
     case "vspace": { const s = Math.max((maxY - minY) / (n - 1), step); return fit(byY.map((p, i) => ({ ...p, y: minY + s * i }))); }
     case "row": return fit(byX.map((p, i) => ({ ...p, x: minX + i * step, y: minY })));
     case "column": return fit(byY.map((p, i) => ({ ...p, x: minX, y: minY + i * step })));
-    case "grid":
+    case "grid": {
+      // matrix: lights laid out in reading order, `cols` per row (0 = near-square)
+      const c = Math.max(1, Math.min(n, cols || Math.ceil(Math.sqrt(n))));
+      return fit(byY.sort((a, b) => Math.round(a.y - b.y) || a.x - b.x).map((p, i) => ({ ...p, x: minX + (i % c) * step, y: minY + Math.floor(i / c) * step })));
+    }
     case "triangle":
     case "pentagon": {
       // shapes place squares only around the outside (perimeter), evenly spaced
       const unit: Record<string, [number, number][]> = {
-        grid: [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]],
         triangle: [[0, -0.5774], [0.5, 0.2887], [-0.5, 0.2887]],
         pentagon: Array.from({ length: 5 }, (_, i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5; return [Math.cos(a), Math.sin(a)] as [number, number]; }),
       };
@@ -328,12 +331,13 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [gelKind, setGelKind] = useState<"All" | "Correction" | "Effect">("All");
   const [gap, setGap] = useState(0.2);
   const [last, setLast] = useState<Arrange | null>(null);
+  const [gridCols, setGridCols] = useState(0);
   const sz = grid.size ?? SIZE;
   // Fixtures default to a 2×-scaled 3:2 (w:h) rectangle; tube/bar elongation is ignored — every light renders the same box shape.
   const FXW = fixtureBox(sz).w, FXH = fixtureBox(sz).h;
   const W = (i: GridItem) => boxOf(i, sz).w, H = (i: GridItem) => boxOf(i, sz).h;
   const selItems = live ? grid.items.filter((i) => i.kind === "fixture" && selected.includes(i.uid!)) : grid.items.filter((i) => esel.includes(i.id));
-  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, Math.max(size, FXW, FXH)); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
+  const apply = (how: Arrange, g: number, size: number) => { const r = arrange(selItems, how, g, Math.max(size, FXW, FXH), how === "grid" ? gridCols : 0); setGrid({ ...grid, size, items: grid.items.map((i) => { const m = r.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
   const doArrange = (how: Arrange) => { apply(how, gap, sz); setLast(LIVE.includes(how) ? how : null); };
   const rescale = (g: number, size: number) => {
     const grp = selItems.length > 1 ? selItems : [];
@@ -555,6 +559,16 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => doArrange(k)} aria-pressed={last === k} className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[10px] font-semibold active:scale-95 ${last === k ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{GRID_ICON[k]}</svg>{l}</button>)}
           </div>
+          {last === "grid" && selItems.length > 1 && (() => {
+            const n = selItems.length, c = Math.max(1, Math.min(n, gridCols || Math.ceil(Math.sqrt(n)))), rws = Math.ceil(n / c);
+            const setC = (v: number) => { const nc = Math.max(1, Math.min(n, v || 1)); setGridCols(nc); const res = arrange(selItems, "grid", gap, Math.max(sz, FXW, FXH), nc); setGrid({ ...grid, items: grid.items.map((i) => { const m = res.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
+            return (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <label className="flex items-center gap-1">Columns<input type="number" min={1} max={n} value={c} onChange={(e) => setC(+e.target.value)} className="w-12 rounded border border-border bg-background px-1 py-0.5 text-foreground" /></label>
+                <label className="flex items-center gap-1">Rows<input type="number" min={1} max={n} value={rws} onChange={(e) => setC(Math.ceil(n / Math.max(1, +e.target.value || 1)))} className="w-12 rounded border border-border bg-background px-1 py-0.5 text-foreground" /></label>
+              </div>
+            );
+          })()}
           <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
             <input type="range" min={0} max={2} step={0.05} value={gap} onChange={(e) => onGap(+e.target.value)} className="flex-1" />
             <span className="w-8 text-right font-mono">{Math.round(gap * 100)}%</span>
