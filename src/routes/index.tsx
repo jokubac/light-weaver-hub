@@ -46,7 +46,7 @@ import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { SavePopover } from "@/components/console/SavePopover";
 import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
-import { Settings as SettingsIcon, BatteryMedium, Pencil, History } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2 } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
 import { applyLook } from "@/components/console/LooksPanel";
@@ -658,6 +658,17 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     setFixtures((fs) => fs.map((f) => (targets.includes(f.uid) ? { ...f, trigger: { kind, at: now + (kind === "lightning" ? Math.random() * 0.25 : 0) } } : f)));
   };
 
+  // Timeline saves live on the project, apart from the scene's working timeline.
+  const saveTimeline = () => {
+    const name = tlName.trim() || `Timeline ${(project.timelines ?? []).length + 1}`;
+    onTimelines([{ id: uid(), name, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])]);
+    setTlName("");
+  };
+  const applyTimeline = (t: TimelineSave) => {
+    const tl = structuredClone(t.timeline);
+    setSeq(tl); latest.current.seq = tl; save();
+  };
+
   const splitPixels = (f: PatchedFixture) => {
     const n = pixelCount(f);
     const cpp = Math.max(1, Math.floor(getMode(f).channels / n));
@@ -1149,6 +1160,23 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
               setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
             }} /></CollapsibleSection>
             <CollapsibleSection title="REC"><RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></CollapsibleSection>
+            <CollapsibleSection title="Timelines">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <input aria-label="Timeline save name" value={tlName} onChange={(e) => setTlName(e.target.value)} placeholder="Timeline name"
+                    className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs" />
+                  <Button variant="secondary" className="h-7 shrink-0 px-2 text-[10px] font-bold" onClick={saveTimeline}>Save</Button>
+                </div>
+                {(project.timelines ?? []).length === 0 && <p className="text-[10px] text-muted-foreground">Nothing saved yet. Saving keeps the current timeline, with its layers and clips, apart from the scene.</p>}
+                {(project.timelines ?? []).map((t) => (
+                  <div key={t.id} className="flex items-center gap-1.5 rounded-md bg-surface-elevated px-2 py-1">
+                    <button onClick={() => applyTimeline(t)} className="min-w-0 flex-1 truncate text-left text-xs font-semibold">{t.name}</button>
+                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{Math.round(timelineLength(t.timeline))}s</span>
+                    <button aria-label={`Delete timeline ${t.name}`} onClick={() => onTimelines((project.timelines ?? []).filter((x) => x.id !== t.id))}><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
           </aside>
   );
   const outputEnabled = bo.target === 0;
