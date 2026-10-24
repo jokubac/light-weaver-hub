@@ -242,7 +242,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={up}>
-      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2 hw-bar">
         <Button size="icon" variant={playing ? "default" : "secondary"} aria-label={playing ? "Pause" : "Play"} onClick={playing ? onPause : onPlay}>{playing ? <Pause /> : <Play />}</Button>
         <Button size="icon" variant={waiting ? "default" : "secondary"} aria-label="GO — continue from marker" title="GO — continue from marker" disabled={!waiting} onClick={onGo} className={waiting ? "animate-pulse" : ""}><SkipForward /></Button>
         <Button size="icon" variant="secondary" aria-label="Stop" title="Stop — return lights to how they were" onClick={onStop}><Square /></Button>
@@ -279,7 +279,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: HEAD + len * zoom }}>
           {/* ruler */}
-          <div className="sticky top-0 z-[35] flex h-7 border-b border-border bg-surface">
+          <div className="sticky top-0 z-[35] flex h-7 border-b border-border bg-surface hw-ruler">
             <div className="sticky left-0 z-50 shrink-0 border-r border-border bg-surface" style={{ width: HEAD }} />
             <div className="relative flex-1 cursor-pointer touch-none" onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); seekAt(e); }} onPointerMove={(e) => { if (e.buttons) seekAt(e); }}>
               {Array.from({ length: Math.ceil(len) + 1 }, (_, s) => s).filter((s) => s % (zoom < 15 ? 10 : zoom < 40 ? 5 : 1) === 0).map((s) => (
@@ -353,7 +353,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           {marq && <div className="pointer-events-none absolute z-30 border border-primary bg-primary/20" style={{ left: HEAD + marq.a * zoom, width: Math.max(2, (marq.b - marq.a) * zoom), top: 28 + marq.t0 * ROW, height: (marq.t1 - marq.t0 + 1) * ROW }} />}
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: HEAD + time * zoom }} />
           <div aria-label="Playhead — drag along the time bar" title="Drag to move the playhead"
-            className="absolute z-[37] h-0 w-0 -translate-x-1/2 cursor-ew-resize touch-none border-x-[8px] border-t-[12px] border-x-transparent border-t-destructive"
+            className="absolute z-[37] h-0 w-0 -translate-x-1/2 cursor-ew-resize touch-none border-x-[8px] border-t-[12px] border-x-transparent border-t-destructive drop-shadow-[0_0_4px_var(--destructive)]"
             style={{ left: HEAD + time * zoom, top: 16 }}
             onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); phDrag.current = { x: e.clientX, t: time }; }}
             onPointerMove={(e) => { const d = phDrag.current; if (!d) return; onSeek(snapT(Math.max(0, d.t + (e.clientX - d.x) / zoom), [])); }}
@@ -366,7 +366,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       {(sel.length > 0 || layerOpen) && <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3 text-xs [&>div]:flex-col [&>div]:items-stretch [&>div]:border-0 [&>div]:p-0" aria-label="Clip settings">
         {layerOpen && <LayerSettings key={layerOpen} timeline={timeline} trackId={layerOpen} onTrack={(p) => setTrackP(layerOpen, p)} onMove={(d) => moveTrack(layerOpen, d)} onClip={patch} onClose={() => setLayerOpen(null)} />}
       {sel.length > 1 && (
-        <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs hw-bar" >
           <span className="font-semibold">{sel.length} clips selected</span>
           <label className="flex items-center gap-1">Fade in<NumberField aria-label="Fade in all" min={0} step={0.1} allowEmpty placeholder="—" value={shared((c) => c.fadeIn ?? 0)} onChange={(v) => set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, fadeIn: Math.max(0, v ?? 0) } : c)))} className={field} />s</label>
           <label className="flex items-center gap-1">Fade out<NumberField aria-label="Fade out all" min={0} step={0.1} allowEmpty placeholder="—" value={shared((c) => c.fadeOut ?? 0)} onChange={(v) => set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, fadeOut: Math.max(0, v ?? 0) } : c)))} className={field} />s</label>
@@ -382,7 +382,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       )}
 
       {clip && (
-        <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs hw-bar">
           <span className={`rounded px-1.5 py-0.5 font-bold ${KIND_STYLE[clip.kind]}`}>{KIND_LABEL[clip.kind]}</span>
           <input aria-label="Clip name" value={clip.name} onChange={(e) => patch(clip.id, { name: e.target.value })} className="w-40 rounded border border-input bg-surface-elevated px-2 py-1 text-xs" />
           <label className="flex items-center gap-1">Start<NumberField aria-label="Start" min={0} step={0.1} value={+clip.start.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { start: Math.max(0, v) })} className={field} />s</label>
