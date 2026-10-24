@@ -55,7 +55,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const W = stage.W, H = stage.H;
   const rec = useRef<{ start: number; pts: { t: number; x: number; y: number; a: number }[] } | null>(null);
   const [recording, setRecording] = useState(false);
-  const live = layer && !recording ? layerAt(layer, now) : layer;
+  // paused layers freeze the box display at the paused moment (spin and recorded motion stop with it)
+  const live = layer && !recording ? layerAt(layer, layer.pausedAt ?? now) : layer;
   const area = layerArea(live ?? {}, stage);
   const baseArea = layerArea(layer ?? {}, stage);
   const sample = (x: number, y: number, a: number) => { const r = rec.current; if (r) r.pts.push({ t: performance.now() / 1000 - r.start, x, y, a }); };
