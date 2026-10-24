@@ -1308,7 +1308,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   );
 
   return (
-    <div className="flex h-screen flex-col" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
+    <div className="flex h-screen min-w-0 flex-col overflow-hidden" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
         <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
         <SceneSwitcher projects={projects} project={project} scene={scene} onPick={(pid, sid) => { save(); onSwitch(pid, sid); }} />
@@ -1373,7 +1373,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         </div>
       )}
       {pixOpen && (
-        <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background lg:flex-row">
         <PixelStage fixtures={fixtures} layers={layers} activeId={activePixelId} frame={frame} controls={pixelPanel(true)}
           onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
           onSelect={setActivePixelId}

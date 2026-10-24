@@ -262,7 +262,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar">
           <div className="ml-auto flex gap-1">
@@ -328,7 +328,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Page</Button>}
           </div>
         )}
-        <div ref={scroller} className="flex min-h-0 flex-1 touch-none overflow-auto p-3"
+        <div ref={scroller} className="flex min-h-0 min-w-0 flex-1 touch-none overflow-auto p-3"
           onPointerDownCapture={gDown} onPointerMoveCapture={gMove} onPointerUpCapture={gUp} onPointerCancelCapture={gUp}>
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No lights on the pixel map yet. Press “Add fixtures” to add pixel lights.</p> : (
             <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border hw-screen" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
