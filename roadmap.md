@@ -208,3 +208,5 @@
 - [ ] Add a trigger button option to macros (fire a macro from a dedicated trigger button).
 
 - [ ] Save timelines separately (named timeline saves) with save/apply/delete, shown in the Groups · Looks · Effects · REC panel.
+
+- [ ] PIXEL: add a Recenter button that puts the map view back to its default zoom and position.
