@@ -960,6 +960,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       const { h, s: sat } = hexToHs(g.hex); return updateSelected({ hue: h, saturation: sat, crossfade: 1, cctOnly: false, gel: g.id });
     }
     if (m.action === "group") { const ids = m.param ? membersOf(fixtures, m.param).map((f) => f.uid) : []; setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; return; }
+    if (m.action === "trigger") { fire((m.param as TriggerKind) ?? "lightning"); return; }
     if (m.action === "group_new") {
       if (!selected.length) { window.alert("Select the lights for the new group first."); return; }
       const name = window.prompt(`New group name (${selected.length} selected light${selected.length > 1 ? "s" : ""}):`)?.trim();

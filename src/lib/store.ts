@@ -2,6 +2,7 @@
 
 import { normalizeFixture, type PatchedFixture } from "./dmx";
 import type { PixelLayer, PixelMap } from "./pixels";
+import type { Timeline } from "./timeline";
 
 export interface Scene {
   id: string;
@@ -88,6 +89,14 @@ export interface Cue {
   states: { uid: string; name: string; state: LookState }[];
 }
 
+/** A timeline saved on its own, apart from the scene's working timeline. */
+export interface TimelineSave {
+  id: string;
+  name: string;
+  createdAt: number;
+  timeline: Timeline;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -97,6 +106,7 @@ export interface Project {
   looks?: Look[];
   setups?: Scene[]; // named, complete scene snapshots shared within this project
   recordings?: Recording[];
+  timelines?: TimelineSave[]; // named timeline saves, shared within this project
   bank?: BankFader[];
   cues?: Cue[];
   callSheet?: CallSheetData;
