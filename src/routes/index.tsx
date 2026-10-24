@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
+import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -23,7 +23,7 @@ import {
   Unlock,
   X,
 } from "lucide-react";
-import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel";
+import { emptyPlot, type Plot } from "@/components/console/PlotPanel";
 import { GridBoard, emptyGrid, type GridLayout } from "@/components/console/GridBoard";
 import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
@@ -456,7 +456,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [pixelMix, setPixelMix] = useState<{ from: PixelLayer[]; k: number } | null>(null);
   const [locked, setLocked] = useState(true);
   const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
-  const [plotOpen, setPlotOpen] = useState(false);
   const [fixturesOpen, setFixturesOpen] = useState(false);
   const [gridOpen, setGridOpen] = useState(false);
   const [pixOpen, setPixOpen] = useState(false);
@@ -500,7 +499,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const save = () => onSave(currentScene());
   const restoreSetup = (setup: Scene) => {
     const restored = structuredClone(setup);
-    setPlotOpen(false);
     setFixtures(restored.fixtures);
     setMaster(restored.master);
     setPixelMaster(restored.pixelMaster ?? 1);
@@ -1151,15 +1149,14 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           </aside>
   );
   const outputEnabled = bo.target === 0;
-  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen || seqOpen || pixOpen;
+  const windowOpen = patchOpen || fixturesOpen || gridOpen || seqOpen || pixOpen;
   // One window at a time; tapping its tab again closes it and returns to the console
-  const openWin = (k: "plot" | "patch" | "fixtures" | "grid" | "timeline" | "pixels") => {
-    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : k === "pixels" ? pixOpen : fixturesOpen;
+  const openWin = (k: "patch" | "fixtures" | "grid" | "timeline" | "pixels") => {
+    const on = k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : k === "pixels" ? pixOpen : fixturesOpen;
     setPixOpen(k === "pixels" && !on);
     setGridOpen(k === "grid" && !on);
     setSeqOpen(k === "timeline" && !on);
     if (!on && (k === "fixtures" || k === "grid")) { setPanel("control"); setPanelOpen(true); }
-    setPlotOpen(k === "plot" && !on);
     setPatchOpen(k === "patch" && !on);
     setFixturesOpen(k === "fixtures" && !on);
   };
@@ -1305,27 +1302,18 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
         <Button variant="secondary" onClick={() => openWin("fixtures")} aria-pressed={fixturesOpen} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
-        <Button variant="secondary" onClick={() => openWin("grid")} aria-pressed={gridOpen} className="h-11 px-5 text-sm font-bold">GRID</Button>
+        <Button variant="secondary" onClick={() => openWin("grid")} aria-pressed={gridOpen} className="h-11 px-5 text-sm font-bold">PLOT</Button>
         <Button variant="secondary" onClick={() => openWin("timeline")} aria-pressed={seqOpen} className="h-11 px-5 text-sm font-bold">TIMELINE</Button>
         <Button variant="secondary" onClick={() => openWin("pixels")} aria-pressed={pixOpen} className="h-11 px-5 text-sm font-bold">PIXEL</Button>
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS</Button>
-
-        <Button variant="secondary" onClick={() => openWin("plot")} aria-pressed={plotOpen} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
         <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11"><History /></Button>
-        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen && !gridOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && (!windowOpen || gridOpen) ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen && (!windowOpen || gridOpen) ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && (!windowOpen || gridOpen) ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
         onSave={(name) => { onSetups([{ ...structuredClone(currentScene()), id: uid(), name, createdAt: Date.now() }, ...(project.setups ?? [])]); save(); setSavedFlash(true); }}
         onRestore={restoreSetup} onDelete={(id) => onSetups((project.setups ?? []).filter((s) => s.id !== id))} />
-      {plotOpen && (
-        <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
-          copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
-          colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
-          levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
-          onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
-      )}
       {fixturesOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
@@ -1353,6 +1341,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         </div>
       )}
       {pixOpen && (
+        <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
         <PixelStage fixtures={fixtures} layers={layers} activeId={activePixelId} frame={frame} controls={pixelPanel(true)}
           onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
           onSelect={setActivePixelId}
@@ -1376,8 +1365,11 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           onLayer={(patch) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, ...patch } : l))}
           onArea={(area) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, area } : l))}
           onToggle={(id) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, order: l.order.includes(id) ? l.order.filter((u) => u !== id) : [...l.order, id] } : l))} />
+          {groupsOpen && groupsAside()}
+        </div>
       )}
       {seqOpen && (
+        <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
         <TimelinePanel timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}
           onPlay={() => playSeq()} onPause={pauseSeq} onStop={stopSeq} onGo={goSeq} waiting={seqWait != null} repeat={seqRepeat} onRepeat={() => setSeqRepeat((r) => !r)} groups={groups} onSeek={seekSeq} fixtures={fixtures} selected={selected} recordings={recordings}
           layers={seqHold.current?.layers ?? layers} activeClips={seqActive} audioPeaks={audioPeaks}
@@ -1390,6 +1382,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             } catch { alert("This audio file could not be read. Try MP3 or WAV."); }
           }}
           onRemoveAudio={() => { void deleteAudio(audioKey); audioEl.current?.pause(); audioEl.current = null; setAudioPeaks(null); const tl = { ...latest.current.seq, audio: undefined }; setSeq(tl); latest.current.seq = tl; save(); }} />
+          {groupsOpen && groupsAside()}
+        </div>
       )}
       {patchOpen && (
         <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}

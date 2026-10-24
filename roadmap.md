@@ -201,3 +201,8 @@
 - [x] "Add to map" in PIXEL closes the picker as soon as the lights land; browser verified dialog gone.
 - [x] An effect box no longer paints lights outside itself black, so a small/second effect cannot blank a full-screen one; 2 tests passed.
 - [x] GEAR button deleted from the console top bar; PATCH moved up to the top bar and the macro-timeline button moved down into the console views row.
+
+- [ ] "Groups · Looks · Effects · REC" toggle must open its panel in every view: FIXTURES, GRID, TIMELINE and PIXEL (not only the plain console).
+
+- [ ] Rename the GRID tab to PLOT in the console views row.
+- [ ] Add a trigger button option to macros (fire a macro from a dedicated trigger button).
