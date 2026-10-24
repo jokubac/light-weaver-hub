@@ -211,4 +211,4 @@
 
 - [x] PIXEL gained a Recenter button that returns the map to default zoom and centres it; browser verified (2440 → 4766 → 2440 px)
 
-- [ ] Fresh scene: PIXEL shows a missing/gone page and will not let you add a fixture — the page must exist and Add fixtures must work on a brand-new scene.
+- [x] Fresh scene: PIXEL lost the page and its lights after reopening — the light loader now keeps the map position, battery and moving-head values; browser verified the light stays on the map after a reload
