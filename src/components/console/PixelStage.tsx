@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type React from "react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus } from "lucide-react";
+import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus, Lock, LockOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, renderLayers, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
@@ -47,6 +47,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   })();
   const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean; group: { f: PatchedFixture; p: { x: number; y: number; r?: number } }[] } | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
+  // locked effects ignore touches so lights underneath can be selected and moved freely
+  const [lockedFx, setLockedFx] = useState<Set<string>>(new Set());
   const marquee = useRef<{ id: number; x0: number; y0: number } | null>(null);
   const [mq, setMq] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const stage = stageSize(fixtures);
@@ -85,7 +87,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     drag.current = null; areaDrag.current = null;
     const g = pair(); const [gx, gy] = toGrid(g.mx, g.my); const a = baseArea;
     // two fingers inside the selected effect box move/pinch it (never rotate it), elsewhere the whole map
-    const onEffect = !!layer && onLayer && gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h;
+    const onEffect = !!layer && onLayer && !lockedFx.has(layer.id) && gx >= a.x && gy >= a.y && gx <= a.x + a.w && gy <= a.y + a.h;
     gesture.current = { ...g, cell, effect: onEffect ? { area: a } : null };
   };
   const gMove = (e: React.PointerEvent) => {
@@ -333,8 +335,13 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                 const move = (e: React.PointerEvent) => { const d = areaDrag.current; if (!d) return; const [lx, ly] = toLocal(e.clientX - d.x, e.clientY - d.y); const dx = Math.round(lx), dy = Math.round(ly);
                   setArea(layerArea({ area: d.mode === "move" ? { ...d.a, x: d.a.x + dx, y: d.a.y + dy } : { ...d.a, w: Math.min(W - d.a.x, d.a.w + dx), h: Math.min(H - d.a.y, d.a.h + dy) } }, stage)); };
                 const end = () => { areaDrag.current = null; };
+                const lk = lockedFx.has(layer.id);
+                const toggleLock = (e: React.MouseEvent) => { e.stopPropagation(); setLockedFx((s) => { const n = new Set(s); if (n.has(layer.id)) n.delete(layer.id); else n.add(layer.id); return n; }); };
                 return (
                   <div aria-label="Effect area" className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-primary" style={{ left: area.x * cell, top: area.y * cell, width: area.w * cell, height: area.h * cell, transform: `rotate(${live?.angle ?? 0}deg)` }}>
+                    <button type="button" aria-label={lk ? "Unlock effect" : "Lock effect"} aria-pressed={lk} title={lk ? "Effect locked: tap to unlock" : "Lock effect so lights underneath can be selected"} onPointerDown={(e) => e.stopPropagation()} onClick={toggleLock}
+                      className={`pointer-events-auto absolute -top-5 -left-6 flex h-5 w-5 items-center justify-center rounded-t ${lk ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{lk ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}</button>
+                    {!lk && <>
                     <div title="Move effect area" onPointerDown={start("move")} onPointerMove={move} onPointerUp={end}
                       className="pointer-events-auto absolute -top-5 left-0 cursor-move touch-none rounded-t bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">Effect {area.w}×{area.h}</div>
                     <div className="pointer-events-auto absolute -top-5 right-0 flex gap-px">
@@ -348,6 +355,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                       className={`pointer-events-auto absolute -bottom-2 -right-2 flex h-4 w-4 touch-none items-center justify-center rounded-sm border-2 border-background bg-primary ${cornerMode === "rotate" ? "cursor-grab" : "cursor-nwse-resize"}`}>
                       {cornerMode === "rotate" ? <RotateCw className="h-2.5 w-2.5 text-primary-foreground" /> : <span className="h-1.5 w-1.5 rounded-[1px] bg-primary-foreground" />}
                     </div>
+                    </>}
                   </div>
                 );
               })()}
