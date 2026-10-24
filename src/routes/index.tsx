@@ -1326,6 +1326,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
             {controlPanel()}
           </aside>
+          {groupsOpen && groupsAside()}
         </div>
       )}
       {gridOpen && (

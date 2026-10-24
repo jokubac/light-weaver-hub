@@ -6,12 +6,12 @@ export type MacroAction =
   | "next" | "prev" | "select" | "flash" | "go" | "back" | "play" | "pause" | "blackout" | "undo" | "redo" | "deselect" | "all"
   | "next_add" | "prev_add" | "invert" | "copy" | "paste" | "keypad" | "int_half" | "light_toggle" | "cue_reset" | "fx_toggle" | "pixel_toggle"
   | "int_fader" | "cct_fader" | "gm_fader" | "filter" | "hue_up" | "hue_down" | "sat_up" | "sat_down"
-  | "group" | "group_new" | "strike" | "checkout" | "locate" | "wrap";
+  | "group" | "group_new" | "strike" | "checkout" | "locate" | "wrap" | "trigger";
 
 /** param: gel id (Filters) or group name (Group). release: the button was let go (hold macros). */
 export interface Macro { id: string; key: string | null; action: MacroAction; amount: number; param?: string | undefined; release?: boolean | undefined }
 
-export const MACRO_ACTIONS: { id: MacroAction; label: string; unit?: "%" | "K"; def?: number; fader?: boolean; hold?: boolean; pick?: "gel" | "group" }[] = [
+export const MACRO_ACTIONS: { id: MacroAction; label: string; unit?: "%" | "K"; def?: number; fader?: boolean; hold?: boolean; pick?: "gel" | "group" | "trigger" }[] = [
   { id: "int_up", label: "Intensity +", unit: "%", def: 5 },
   { id: "int_down", label: "Intensity −", unit: "%", def: 5 },
   { id: "int_set", label: "Intensity set", unit: "%", def: 50 },
@@ -43,6 +43,7 @@ export const MACRO_ACTIONS: { id: MacroAction; label: string; unit?: "%" | "K"; 
   { id: "select", label: "Select" },
   { id: "invert", label: "Invert selection" },
   { id: "group", label: "Group", pick: "group" },
+  { id: "trigger", label: "Trigger", pick: "trigger" },
   { id: "group_new", label: "+ Group" },
   { id: "strike", label: "Lamp Reset (Strike)" },
   { id: "checkout", label: "Check out!", hold: true },
