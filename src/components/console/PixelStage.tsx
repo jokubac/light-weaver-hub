@@ -256,6 +256,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
+            <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />Arrange{sel.size ? ` (${sel.size})` : ""}</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-2">
