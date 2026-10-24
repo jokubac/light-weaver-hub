@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type React from "react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus, Lock, LockOpen } from "lucide-react";
+import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus, Lock, LockOpen, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, renderLayers, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
@@ -30,6 +30,14 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const gesture = useRef<{ d: number; a: number; mx: number; my: number; cell: number; effect: null | { area: { x: number; y: number; w: number; h: number } } } | null>(null);
   /** screen delta → grid delta */
   const toLocal = (dx: number, dy: number) => [dx / cell, dy / cell] as const;
+  /** back to the default zoom with the middle of the map in view */
+  const recenter = () => {
+    setCell(20);
+    requestAnimationFrame(() => {
+      const s = scroller.current, b = board.current;
+      if (s && b) s.scrollTo({ left: Math.max(0, (b.offsetWidth - s.clientWidth) / 2), top: Math.max(0, (b.offsetHeight - s.clientHeight) / 2) });
+    });
+  };
   const [addOpen, setAddOpen] = useState(false);
   const now = useClock();
   const layer = layers.find((l) => l.id === activeId) ?? layers[0];
@@ -276,6 +284,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             </DropdownMenu>
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
+            <Button size="icon" variant="secondary" aria-label="Recenter" title="Recenter the map" onClick={recenter}><Crosshair /></Button>
           </div>
         </div>
         {layer && onLayer && (

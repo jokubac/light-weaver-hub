@@ -581,6 +581,10 @@ export function normalizeFixture(raw: Record<string, unknown>): PatchedFixture {
     ...(r.fan ? { fan: r.fan } : {}),
     ...(r.gel ? { gel: r.gel } : {}),
     ...(r.split ? { split: r.split } : {}),
+    // map position, battery and moving-head values are part of the saved light
+    ...(r.pixelPos ? { pixelPos: r.pixelPos } : {}),
+    ...(r.power ? { power: r.power } : {}),
+    ...(r.beam && typeof r.beam === "object" ? { beam: r.beam } : {}),
   };
 }
 

@@ -46,7 +46,7 @@ import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { SavePopover } from "@/components/console/SavePopover";
 import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
-import { Settings as SettingsIcon, BatteryMedium, Pencil, History } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2 } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
 import { applyLook } from "@/components/console/LooksPanel";
@@ -56,7 +56,7 @@ import { CollapsibleSection } from "@/components/console/CollapsibleSection";
 import { PatchPage } from "@/components/console/PatchPage";
 import { mixFrames, statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
-import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
+import type { Recording, LookState, Cue, BankFader, CallSheetData, TimelineSave } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { EffectsRail } from "@/components/console/EffectsRail";
@@ -227,6 +227,7 @@ function App() {
       onLooks={(looks) => updateProject(project.id, (p) => ({ ...p, looks }))}
       onSetups={(setups) => updateProject(project.id, (p) => ({ ...p, setups }))}
       onRecordings={(recordings) => updateProject(project.id, (p) => ({ ...p, recordings }))}
+      onTimelines={(timelines) => updateProject(project.id, (p) => ({ ...p, timelines }))}
       onBank={(bank) => updateProject(project.id, (p) => ({ ...p, bank }))}
       onCues={(cues) => updateProject(project.id, (p) => ({ ...p, cues }))}
       onCallSheet={(callSheet) => updateProject(project.id, (p) => ({ ...p, callSheet }))}
@@ -432,8 +433,8 @@ type Panel = "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onBank, onCues, onCallSheet }: {
-  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
+function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onTimelines, onBank, onCues, onCallSheet }: {
+  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onTimelines: (t: TimelineSave[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
 }) {
   const { fixtures, setFixtures, setUntrackedFixtures, begin: beginFixtureEdit, end: endFixtureEdit, undo, redo, canUndo, canRedo } = useFixtureHistory(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
@@ -470,6 +471,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [savedFlash, setSavedFlash] = useState(false);
   const [setupsOpen, setSetupsOpen] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(false);
+  const [tlName, setTlName] = useState("");
   const [fadersOpen, setFadersOpen] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
   const [pulses, setPulses] = useState<Record<string, { at: number; base: number; target: number }>>({});
@@ -654,6 +656,17 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     const targets = selected.length ? selected : fixtures.map((f) => f.uid);
     const now = clock.current;
     setFixtures((fs) => fs.map((f) => (targets.includes(f.uid) ? { ...f, trigger: { kind, at: now + (kind === "lightning" ? Math.random() * 0.25 : 0) } } : f)));
+  };
+
+  // Timeline saves live on the project, apart from the scene's working timeline.
+  const saveTimeline = () => {
+    const name = tlName.trim() || `Timeline ${(project.timelines ?? []).length + 1}`;
+    onTimelines([{ id: uid(), name, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])]);
+    setTlName("");
+  };
+  const applyTimeline = (t: TimelineSave) => {
+    const tl = structuredClone(t.timeline);
+    setSeq(tl); latest.current.seq = tl; save();
   };
 
   const splitPixels = (f: PatchedFixture) => {
@@ -960,6 +973,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       const { h, s: sat } = hexToHs(g.hex); return updateSelected({ hue: h, saturation: sat, crossfade: 1, cctOnly: false, gel: g.id });
     }
     if (m.action === "group") { const ids = m.param ? membersOf(fixtures, m.param).map((f) => f.uid) : []; setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; return; }
+    if (m.action === "trigger") { fire((m.param as TriggerKind) ?? "lightning"); return; }
     if (m.action === "group_new") {
       if (!selected.length) { window.alert("Select the lights for the new group first."); return; }
       const name = window.prompt(`New group name (${selected.length} selected light${selected.length > 1 ? "s" : ""}):`)?.trim();
@@ -1146,6 +1160,23 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
               setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
             }} /></CollapsibleSection>
             <CollapsibleSection title="REC"><RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></CollapsibleSection>
+            <CollapsibleSection title="Timelines">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <input aria-label="Timeline save name" value={tlName} onChange={(e) => setTlName(e.target.value)} placeholder="Timeline name"
+                    className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs" />
+                  <Button variant="secondary" className="h-7 shrink-0 px-2 text-[10px] font-bold" onClick={saveTimeline}>Save</Button>
+                </div>
+                {(project.timelines ?? []).length === 0 && <p className="text-[10px] text-muted-foreground">Nothing saved yet. Saving keeps the current timeline, with its layers and clips, apart from the scene.</p>}
+                {(project.timelines ?? []).map((t) => (
+                  <div key={t.id} className="flex items-center gap-1.5 rounded-md bg-surface-elevated px-2 py-1">
+                    <button onClick={() => applyTimeline(t)} className="min-w-0 flex-1 truncate text-left text-xs font-semibold">{t.name}</button>
+                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{Math.round(timelineLength(t.timeline))}s</span>
+                    <button aria-label={`Delete timeline ${t.name}`} onClick={() => onTimelines((project.timelines ?? []).filter((x) => x.id !== t.id))}><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
           </aside>
   );
   const outputEnabled = bo.target === 0;
@@ -1326,6 +1357,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
             {controlPanel()}
           </aside>
+          {groupsOpen && groupsAside()}
         </div>
       )}
       {gridOpen && (
