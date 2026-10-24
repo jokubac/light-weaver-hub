@@ -3,15 +3,19 @@ import { Button } from "@/components/ui/button";
 import type { PatchedFixture } from "@/lib/dmx";
 import { getMode } from "@/lib/dmx";
 import { PixelAddClose } from "@/components/console/pixel-add-context";
+import { FixtureFilterBar, matchFilter, useFixtureFilter } from "@/components/console/FixtureFilterBar";
 
 /** Pick already-patched lights (pixel or not) to place on the PIXEL map. */
 export function PixelAddPatched({ fixtures, onAdd, exclude }: { fixtures: PatchedFixture[]; onAdd: (uids: string[]) => void; exclude?: string[] }) {
   const [q, setQ] = useState("");
   const [pick, setPick] = useState<string[]>([]);
+  const [flt, setFlt] = useFixtureFilter();
   const close = useContext(PixelAddClose);
-  const free = fixtures.filter((f) => (exclude ? !exclude.includes(f.uid) : !f.pixelPos) && !f.split && f.name.toLowerCase().includes(q.toLowerCase()));
+  const avail = fixtures.filter((f) => (exclude ? !exclude.includes(f.uid) : !f.pixelPos) && !f.split);
+  const free = avail.filter((f) => f.name.toLowerCase().includes(q.toLowerCase()) && matchFilter(f, flt));
   return <div className="space-y-2">
     <input aria-label="Search lights" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search patched lights" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+    <FixtureFilterBar fixtures={avail} value={flt} onChange={setFlt} />
     <div className="flex gap-1">
       <Button size="sm" variant="secondary" onClick={() => setPick(free.map((f) => f.uid))}>Select all</Button>
       <Button size="sm" variant="ghost" onClick={() => setPick([])}>Clear</Button>
