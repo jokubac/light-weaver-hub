@@ -51,8 +51,8 @@ describe("resizable effect area", () => {
   });
   it("an empty default effect starts at 1/16 of the map, not full", () => {
     const [l] = migrateLayers({});
-    expect(l.empty).toBe(true);
-    expect(l.area).toEqual({ x: 0, y: 0, w: Math.round(122 / 16), h: Math.round(72 / 16) });
+    expect(l!.empty).toBe(true);
+    expect(l!.area).toEqual({ x: 0, y: 0, w: Math.round(122 / 16), h: Math.round(72 / 16) });
   });
 });
 
