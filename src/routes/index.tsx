@@ -56,7 +56,7 @@ import { CollapsibleSection } from "@/components/console/CollapsibleSection";
 import { PatchPage } from "@/components/console/PatchPage";
 import { mixFrames, statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
-import type { Recording, LookState, Cue, BankFader, CallSheetData } from "@/lib/store";
+import type { Recording, LookState, Cue, BankFader, CallSheetData, TimelineSave } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { EffectsRail } from "@/components/console/EffectsRail";
@@ -227,6 +227,7 @@ function App() {
       onLooks={(looks) => updateProject(project.id, (p) => ({ ...p, looks }))}
       onSetups={(setups) => updateProject(project.id, (p) => ({ ...p, setups }))}
       onRecordings={(recordings) => updateProject(project.id, (p) => ({ ...p, recordings }))}
+      onTimelines={(timelines) => updateProject(project.id, (p) => ({ ...p, timelines }))}
       onBank={(bank) => updateProject(project.id, (p) => ({ ...p, bank }))}
       onCues={(cues) => updateProject(project.id, (p) => ({ ...p, cues }))}
       onCallSheet={(callSheet) => updateProject(project.id, (p) => ({ ...p, callSheet }))}
@@ -432,8 +433,8 @@ type Panel = "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onBank, onCues, onCallSheet }: {
-  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
+function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onTimelines, onBank, onCues, onCallSheet }: {
+  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onTimelines: (t: TimelineSave[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
 }) {
   const { fixtures, setFixtures, setUntrackedFixtures, begin: beginFixtureEdit, end: endFixtureEdit, undo, redo, canUndo, canRedo } = useFixtureHistory(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
@@ -470,6 +471,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [savedFlash, setSavedFlash] = useState(false);
   const [setupsOpen, setSetupsOpen] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(false);
+  const [tlName, setTlName] = useState("");
   const [fadersOpen, setFadersOpen] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
   const [pulses, setPulses] = useState<Record<string, { at: number; base: number; target: number }>>({});
