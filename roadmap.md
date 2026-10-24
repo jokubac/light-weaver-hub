@@ -203,3 +203,6 @@
 - [x] GEAR button deleted from the console top bar; PATCH moved up to the top bar and the macro-timeline button moved down into the console views row.
 
 - [ ] "Groups · Looks · Effects · REC" toggle must open its panel in every view: FIXTURES, GRID, TIMELINE and PIXEL (not only the plain console).
+
+- [ ] Rename the GRID tab to PLOT in the console views row.
+- [ ] Add a trigger button option to macros (fire a macro from a dedicated trigger button).
