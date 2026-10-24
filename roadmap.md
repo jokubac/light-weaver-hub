@@ -212,3 +212,4 @@
 - [x] PIXEL gained a Recenter button that returns the map to default zoom and centres it; browser verified (2440 → 4766 → 2440 px)
 
 - [x] Fresh scene: PIXEL lost the page and its lights after reopening — the light loader now keeps the map position, battery and moving-head values; browser verified the light stays on the map after a reload
+- [x] PIXEL Recenter verified in the browser; the pixel view no longer stretches the window — the map now scrolls inside its own pane so lights and the side panel stay reachable
