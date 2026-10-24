@@ -255,7 +255,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs">
+        <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar">
           <div className="ml-auto flex gap-1">
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>
@@ -278,7 +278,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           </div>
         </div>
         {layer && onLayer && (
-          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 text-xs" aria-label="Effect motion">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar" aria-label="Effect motion">
             <span className="font-semibold">Motion</span>
             <span className="flex items-center gap-1"><span className="font-semibold">Rotate</span>
               <input type="number" step={5} min={-180} max={180} aria-label="Rotate degrees" value={Math.round(layer.angle ?? 0)} onChange={(e) => { const v = Number(e.target.value); if (!Number.isNaN(v)) setAngle(((v + 540) % 360) - 180); }} className="w-14 rounded bg-surface-elevated px-1 py-0.5 tabular-nums" />°
@@ -294,7 +294,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           </div>
         )}
         {onSelect && (
-          <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-1.5 text-xs" aria-label="Effect layers">
+          <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar" aria-label="Effect layers">
             <span className="mr-1 font-semibold">Pages</span>
             {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
               const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
@@ -321,7 +321,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
         <div ref={scroller} className="flex min-h-0 flex-1 touch-none overflow-auto p-3"
           onPointerDownCapture={gDown} onPointerMoveCapture={gMove} onPointerUpCapture={gUp} onPointerCancelCapture={gUp}>
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No lights on the pixel map yet. Press “Add fixtures” to add pixel lights.</p> : (
-            <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
+            <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border hw-screen" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
 
               {layers.filter((l) => l.id !== layer?.id).map((l) => { const a = layerArea(l, stage); return (
@@ -385,7 +385,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             </div>
           )}
         </div>
-        <section aria-label="All pixel lights" className="shrink-0 border-t border-border bg-surface p-2">
+        <section aria-label="All pixel lights" className="shrink-0 border-t border-border bg-surface p-2 hw-bar">
           <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">All lights ({px.length})</div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {px.map((f) => { const [c, r] = pixelGrid(f); const tall = r > c; return (
