@@ -200,3 +200,4 @@
 
 - [x] "Add to map" in PIXEL closes the picker as soon as the lights land; browser verified dialog gone.
 - [x] An effect box no longer paints lights outside itself black, so a small/second effect cannot blank a full-screen one; 2 tests passed.
+- [x] GEAR button deleted from the console top bar; PATCH moved up to the top bar and the macro-timeline button moved down into the console views row.
