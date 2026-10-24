@@ -206,3 +206,5 @@
 
 - [ ] Rename the GRID tab to PLOT in the console views row.
 - [ ] Add a trigger button option to macros (fire a macro from a dedicated trigger button).
+
+- [ ] Save timelines separately (named timeline saves) with save/apply/delete, shown in the Groups · Looks · Effects · REC panel.
