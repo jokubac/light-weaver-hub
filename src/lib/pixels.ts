@@ -192,12 +192,13 @@ export function normalizeLayer(l: PixelLayer): PixelLayer {
 }
 
 export function migrateLayers(s: { pixelLayers?: PixelLayer[]; pixelMap?: PixelMap }): PixelLayer[] {
-  if (s.pixelLayers?.length) return s.pixelLayers.map((l) => normalizeLayer({ ...defaultLayer(), ...l, playing: false }));
+  const withArea = (l: PixelLayer): PixelLayer => (l.empty && !l.area ? { ...l, area: initArea(stageSize()) } : l);
+  if (s.pixelLayers?.length) return s.pixelLayers.map((l) => withArea(normalizeLayer({ ...defaultLayer(), ...l, playing: false })));
   if (s.pixelMap) {
     const { vertical: _v, ...rest } = s.pixelMap;
-    return [normalizeLayer({ ...defaultLayer(), ...rest, playing: false })];
+    return [withArea(normalizeLayer({ ...defaultLayer(), ...rest, playing: false }))];
   }
-  return [{ ...defaultLayer("Effect 1"), empty: true }];
+  return [withArea({ ...defaultLayer("Effect 1"), empty: true })];
 }
 
 /** Non-pixel lights placed on the PIXEL map act as one pixel. */

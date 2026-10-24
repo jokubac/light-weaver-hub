@@ -49,6 +49,11 @@ describe("resizable effect area", () => {
     expect(stageSize([fixture("Far", 200, 200)])).toEqual({ W: 122, H: 72 });
     expect(layerArea({ area: { x: 40, y: -3, w: 20, h: 5 } }, { W: 48, H: 24 })).toEqual({ x: 28, y: 0, w: 20, h: 5 });
   });
+  it("an empty default effect starts at 1/16 of the map, not full", () => {
+    const [l] = migrateLayers({});
+    expect(l!.empty).toBe(true);
+    expect(l!.area).toEqual({ x: 0, y: 0, w: Math.round(122 / 16), h: Math.round(72 / 16) });
+  });
 });
 
 describe("several effects in one window", () => {
