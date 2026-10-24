@@ -210,3 +210,5 @@
 - [ ] Save timelines separately (named timeline saves) with save/apply/delete, shown in the Groups · Looks · Effects · REC panel.
 
 - [x] PIXEL gained a Recenter button that returns the map to default zoom and centres it; browser verified (2440 → 4766 → 2440 px)
+
+- [ ] Fresh scene: PIXEL shows a missing/gone page and will not let you add a fixture — the page must exist and Add fixtures must work on a brand-new scene.
