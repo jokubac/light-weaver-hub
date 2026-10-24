@@ -202,11 +202,11 @@
 - [x] An effect box no longer paints lights outside itself black, so a small/second effect cannot blank a full-screen one; 2 tests passed.
 - [x] GEAR button deleted from the console top bar; PATCH moved up to the top bar and the macro-timeline button moved down into the console views row.
 
-- [ ] "Groups · Looks · Effects · REC" toggle must open its panel in every view: FIXTURES, GRID, TIMELINE and PIXEL (not only the plain console).
+- [x] "Groups · Looks · Effects · REC" opens in every view: FIXTURES, PLOT, TIMELINE and PIXEL; browser verified: FIXTURES, GRID, TIMELINE and PIXEL (not only the plain console).
 
-- [ ] Rename the GRID tab to PLOT in the console views row.
-- [ ] Add a trigger button option to macros (fire a macro from a dedicated trigger button).
+- [x] GRID tab renamed to PLOT in the console views row; browser verified
+- [x] Macros gained a Trigger action with a Lightning / Flash / Switch ON / Switch OFF picker; browser verified
 
 - [ ] Save timelines separately (named timeline saves) with save/apply/delete, shown in the Groups · Looks · Effects · REC panel.
 
-- [ ] PIXEL: add a Recenter button that puts the map view back to its default zoom and position.
+- [x] PIXEL gained a Recenter button that returns the map to default zoom and centres it; browser verified (2440 → 4766 → 2440 px)
