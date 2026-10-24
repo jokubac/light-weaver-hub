@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, Map as MapIcon, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
+import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -23,7 +23,7 @@ import {
   Unlock,
   X,
 } from "lucide-react";
-import { PlotPanel, emptyPlot, type Plot } from "@/components/console/PlotPanel";
+import { emptyPlot, type Plot } from "@/components/console/PlotPanel";
 import { GridBoard, emptyGrid, type GridLayout } from "@/components/console/GridBoard";
 import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
@@ -456,7 +456,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [pixelMix, setPixelMix] = useState<{ from: PixelLayer[]; k: number } | null>(null);
   const [locked, setLocked] = useState(true);
   const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
-  const [plotOpen, setPlotOpen] = useState(false);
   const [fixturesOpen, setFixturesOpen] = useState(false);
   const [gridOpen, setGridOpen] = useState(false);
   const [pixOpen, setPixOpen] = useState(false);
@@ -500,7 +499,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const save = () => onSave(currentScene());
   const restoreSetup = (setup: Scene) => {
     const restored = structuredClone(setup);
-    setPlotOpen(false);
     setFixtures(restored.fixtures);
     setMaster(restored.master);
     setPixelMaster(restored.pixelMaster ?? 1);
@@ -1151,15 +1149,14 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           </aside>
   );
   const outputEnabled = bo.target === 0;
-  const windowOpen = plotOpen || patchOpen || fixturesOpen || gridOpen || seqOpen || pixOpen;
+  const windowOpen = patchOpen || fixturesOpen || gridOpen || seqOpen || pixOpen;
   // One window at a time; tapping its tab again closes it and returns to the console
-  const openWin = (k: "plot" | "patch" | "fixtures" | "grid" | "timeline" | "pixels") => {
-    const on = k === "plot" ? plotOpen : k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : k === "pixels" ? pixOpen : fixturesOpen;
+  const openWin = (k: "patch" | "fixtures" | "grid" | "timeline" | "pixels") => {
+    const on = k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : k === "pixels" ? pixOpen : fixturesOpen;
     setPixOpen(k === "pixels" && !on);
     setGridOpen(k === "grid" && !on);
     setSeqOpen(k === "timeline" && !on);
     if (!on && (k === "fixtures" || k === "grid")) { setPanel("control"); setPanelOpen(true); }
-    setPlotOpen(k === "plot" && !on);
     setPatchOpen(k === "patch" && !on);
     setFixturesOpen(k === "fixtures" && !on);
   };
@@ -1310,22 +1307,13 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <Button variant="secondary" onClick={() => openWin("pixels")} aria-pressed={pixOpen} className="h-11 px-5 text-sm font-bold">PIXEL</Button>
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
           className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS</Button>
-
-        <Button variant="secondary" onClick={() => openWin("plot")} aria-pressed={plotOpen} className="h-11 px-5 text-sm font-bold"><MapIcon />PLOT</Button>
         <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11"><History /></Button>
-        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen && !gridOpen) { setPlotOpen(false); setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && (!windowOpen || gridOpen) ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen && (!windowOpen || gridOpen) ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && (!windowOpen || gridOpen) ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (windowOpen && !gridOpen) { setPatchOpen(false); setFixturesOpen(false); setGridOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-label={groupsOpen && (!windowOpen || gridOpen) ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen && (!windowOpen || gridOpen) ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen && (!windowOpen || gridOpen) ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
         onSave={(name) => { onSetups([{ ...structuredClone(currentScene()), id: uid(), name, createdAt: Date.now() }, ...(project.setups ?? [])]); save(); setSavedFlash(true); }}
         onRestore={restoreSetup} onDelete={(id) => onSetups((project.setups ?? []).filter((s) => s.id !== id))} />
-      {plotOpen && (
-        <PlotPanel plot={plot} setPlot={setPlot} fixtures={fixtures} selected={selected} setSelected={setSelected} update={updateOne}
-          copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
-          colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const n = px.length; return [0, 1, 2].map((k) => Math.round(px.reduce((a, c) => a + c[k]!, 0) / n)) as RGB; } return fixtureState(f, t, outLevel).rgb.map(Math.round) as RGB; }}
-          levelOf={(f) => (frame.get(f.uid) ? (f.on === false ? 0 : f.intensity * outLevel) : fixtureState(f, t, outLevel).v)}
-          onClose={() => { setPlotOpen(false); save(); }} onOpenControls={() => { setPlotOpen(false); setPanel("control"); setPanelOpen(true); }} />
-      )}
       {fixturesOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
