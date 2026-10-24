@@ -617,6 +617,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const ids = new Set(selItems.map((i) => i.id));
             const linked = selItems.some((i) => i.lk);
             return (<>
+              <button onClick={() => { const fx = grid.items.filter((i) => i.kind === "fixture"); if (live) onSelect(fx.map((i) => i.uid!)); else setEsel(fx.map((i) => i.id)); }} className={chip(false)} aria-label="Select all lights on grid">Select all</button>
               <button disabled={selItems.length < 2} onClick={() => { const lk = `lk-${Date.now().toString(36)}`; setGrid({ ...grid, items: grid.items.map((i) => (ids.has(i.id) ? { ...i, lk } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Group selected lights"><Link2 className="h-3.5 w-3.5" />Group</button>
               <button disabled={!linked} onClick={() => { const lks = new Set(selItems.map((i) => i.lk).filter(Boolean)); setGrid({ ...grid, items: grid.items.map((i) => (i.lk && lks.has(i.lk) ? { ...i, lk: undefined } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Ungroup selected lights"><Unlink className="h-3.5 w-3.5" />Ungroup</button>
             </>);
