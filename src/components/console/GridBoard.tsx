@@ -6,6 +6,7 @@ import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
 import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, Link2, Unlink, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FixtureFilterBar, matchFilter, useFixtureFilter } from "@/components/console/FixtureFilterBar";
 
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
 export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined; lk?: string | undefined }
@@ -320,6 +321,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [nextUid, setNextUid] = useState<string | null>(null);
   const [pickGroup, setPickGroup] = useState<string | null>(null);
   const [lq, setLq] = useState("");
+  const [flt, setFlt] = useFixtureFilter();
   const [box, setBox] = useState<{ x1: number; y1: number; x2: number; y2: number; add: boolean } | null>(null);
   const [picker, setPicker] = useState<string | null>(null);
   const [action, setAction] = useState<MacroAction>("cct_up");
@@ -502,7 +504,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
       {(() => {
         const cur = fixtures.find((g) => g.uid === nextUid) ?? fixtures.find((g) => !placed.has(g.uid));
         const q = lq.trim().toLowerCase();
-        const list = fixtures.map((f, i) => ({ f, n: i + 1 })).filter(({ f, n }) => !q || f.name.toLowerCase().includes(q) || String(n) === q);
+        const list = fixtures.map((f, i) => ({ f, n: i + 1 })).filter(({ f, n }) => (!q || f.name.toLowerCase().includes(q) || String(n) === q) && matchFilter(f, flt));
+        const placeAll = () => { let items = grid.items; const add: string[] = []; for (const { f } of list) if (!placed.has(f.uid)) { const id = nid(); add.push(id); items = [...items, { id, kind: "fixture", uid: f.uid, ...freeSpot(items) }]; } setGrid({ ...grid, items }); setEsel(add); };
         return (
           <div className="space-y-1.5">
             {mode !== "light" && <p className="text-[10px] text-muted-foreground">Pick a light or a group below, then tap the grid to place it there.</p>}
@@ -519,6 +522,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               </div>
             )}
             <input value={lq} onChange={(e) => setLq(e.target.value)} placeholder="Search light name or #" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+            <FixtureFilterBar fixtures={fixtures} value={flt} onChange={setFlt} />
+            <Button size="sm" variant="secondary" className="w-full" disabled={list.every(({ f }) => placed.has(f.uid))} onClick={placeAll}>Select all ({list.filter(({ f }) => !placed.has(f.uid)).length}) → place on grid</Button>
             <div className="max-h-72 space-y-1 overflow-y-auto">
               {list.map(({ f, n }) => { const done = placed.has(f.uid); const on = !pickGroup && cur?.uid === f.uid; return (
                 <button key={f.uid} onClick={() => { setMode("light"); setPickGroup(null); setNextUid(f.uid); }} aria-pressed={on}
