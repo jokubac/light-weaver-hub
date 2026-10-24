@@ -53,6 +53,7 @@ export interface PixelLayer {
   duty?: number; // strobe on-time fraction
   density?: number; // sparkle probability
   phase?: number; // time offset in effect units
+  spinT?: number; // wall-clock seconds while the layer was paused, so spin resumes where it froze
   /** generator kind: id from PIXEL_GENERATORS */
   gen?: string;
   /** video kind: id of the clip stored on this device */
@@ -81,7 +82,7 @@ export function layerAt<L extends PixelLayer>(l: L, t: number): L {
     const k = q && q.t > p.t ? (tt - p.t) / (q.t - p.t) : 0;
     x = p.x + ((q?.x ?? p.x) - p.x) * k; y = p.y + ((q?.y ?? p.y) - p.y) * k; a = p.a + ((q?.a ?? p.a) - p.a) * k;
   }
-  a += (l.spin ?? 0) * t;
+  a += (l.spin ?? 0) * (t - (l.spinT ?? 0));
   if (!a && !m?.length) return l;
   return { ...l, angle: a, area: l.area && x != null && y != null ? { ...l.area, x, y } : l.area };
 }
