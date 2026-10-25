@@ -241,13 +241,14 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const seekAt = (e: RPE<HTMLDivElement>) => { const r = e.currentTarget.getBoundingClientRect(); onSeek(Math.max(0, (e.clientX - r.left) / zoom)); };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={up}>
-      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2 hw-bar">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={up}>
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
         <Button size="icon" variant={playing ? "default" : "secondary"} aria-label={playing ? "Pause" : "Play"} onClick={playing ? onPause : onPlay}>{playing ? <Pause /> : <Play />}</Button>
         <Button size="icon" variant={waiting ? "default" : "secondary"} aria-label="GO — continue from marker" title="GO — continue from marker" disabled={!waiting} onClick={onGo} className={waiting ? "animate-pulse" : ""}><SkipForward /></Button>
         <Button size="icon" variant="secondary" aria-label="Stop" title="Stop — return lights to how they were" onClick={onStop}><Square /></Button>
         <Button size="icon" variant={repeat ? "default" : "secondary"} aria-label="Repeat" aria-pressed={repeat} title="Repeat" onClick={onRepeat}><Repeat /></Button>
         <span className="w-20 font-mono text-sm tabular-nums">{fmt(time)}</span>
+        <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <AddMenu label="Fixture" onPick={addClip} search sections={[{ title: "Lights", items: fixtures.map((f, i) => ({ value: `light:${f.uid}`, label: f.name, hint: `${i + 1}` })), empty: "Patch lights first" }]} />
         <AddMenu label="Group" onPick={addClip} sections={[
           ...(selected.length > 1 ? [{ title: "Selection", items: [{ value: "on", label: "Selected lights", hint: `${selected.length}` }] }] : []),
@@ -263,12 +264,14 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
           { title: "Saved light effects", items: [{ value: "fxsel", label: "From selected light" }, ...lib.lib.fx.map((x) => ({ value: `fx:${x.id}`, label: x.name }))] },
           { title: "Saved pixel effects", items: [...layers.map((l) => ({ value: `pxlayer:${l.id}`, label: l.name, hint: "PIXEL" })), ...lib.lib.pixel.map((x) => ({ value: `pixel:${x.id}`, label: x.name }))], empty: "None saved yet" },
         ]} />
+        <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <Button variant={magnet ? "default" : "secondary"} size="sm" aria-pressed={magnet} title="Magnet — clips snap to the ends of other clips and the playhead" onClick={() => setMagnet((m) => !m)}><Magnet />Magnet</Button>
         <Button variant="secondary" size="sm" title="Playback stops here until GO" onClick={() => { const m = timeline.markers ?? []; setTimeline({ ...timeline, markers: [...m, { id: newId(), t: Math.round(time * 10) / 10, name: `M${m.length + 1}` }].sort((a, b) => a.t - b.t) }); }}><Flag />Marker</Button>
         <Button variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />Layer</Button>
-        <Button variant="secondary" size="sm" title="Adjustment layer — changes brightness and colour of every layer below it" onClick={addAdjust}><SlidersHorizontal />Adjustment layer</Button>
+        <Button variant="secondary" size="sm" title="Adjustment layer — changes brightness and colour of every layer below it" onClick={addAdjust}><SlidersHorizontal />Adjust</Button>
         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? "Replace audio" : "Add audio"}</Button>
         <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
+        <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <Button variant={viz ? "default" : "secondary"} size="sm" title="Show or hide the light visualiser" onClick={() => setViz((v) => !v)}><MonitorPlay />Visualiser</Button>
         <Button variant="secondary" size="sm" title="Select every clip" onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />Select all</Button>
         <Button variant="secondary" size="sm" aria-label="Delete selected" title="Delete the selected clips" disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 />Delete</Button>
@@ -359,8 +362,8 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
             onPointerMove={(e) => { const d = phDrag.current; if (!d) return; onSeek(snapT(Math.max(0, d.t + (e.clientX - d.x) / zoom), [])); }}
             onPointerUp={() => { phDrag.current = null; }} />
         </div>
-        {timeline.clips.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.</p>}
-        {timeline.clips.length > 0 && <p className="px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
+        {timeline.clips.length === 0 && <p className="sticky left-0 mx-auto max-w-2xl p-6 text-center text-sm text-muted-foreground">Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.</p>}
+        {timeline.clips.length > 0 && <p className="sticky left-0 mx-auto max-w-3xl px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
       </div>
 
       {(sel.length > 0 || layerOpen) && <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3 text-xs [&>div]:flex-col [&>div]:items-stretch [&>div]:border-0 [&>div]:p-0" aria-label="Clip settings">
