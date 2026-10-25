@@ -86,3 +86,10 @@ describe("Aputure LS 600c Pro official chart V1.6", () => {
     expect(a.modes.map((m) => m.channels)).toEqual([8, 4, 8, 5, 5, 6, 4, 5, 10, 5, 11, 15, 7, 15, 9, 9, 7, 7, 6, 12, 10, 16]);
   });
 });
+
+describe("Aputure Nova P600c official chart V1.1.1", () => {
+  it("28 profiles with chart footprints", () => {
+    const n = byId("gdtf-aputure-nova-p600c");
+    expect(n.modes.map((m) => m.channels)).toEqual([8, 4, 8, 5, 5, 6, 4, 5, 21, 5, 28, 16, 12, 22, 15, 7, 15, 9, 9, 7, 7, 6, 35, 10, 56, 32, 24, 36]);
+  });
+});
