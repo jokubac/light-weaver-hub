@@ -60,6 +60,11 @@ export function modelKey(brand: string, model: string): string {
     };
     m = aliases[m] ?? m;
   }
+  if (brand === "Aputure") {
+    // Same physical light published under a typo / short name.
+    const aliases: Record<string, string> = { strom1200x: "storm1200x", nova600c: "novap600c" };
+    m = aliases[m] ?? m;
+  }
   return m;
 }
 

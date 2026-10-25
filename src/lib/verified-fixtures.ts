@@ -518,5 +518,9 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string }
   // ARRI L-Series Plus DMX Protocol V4.4 (07/2024): modes 1–10, 16–27 and Extended Color Control (+8/+16) match.
   ...["L5C Plus", "L7C Plus"].map((model) => ({ brand: "ARRI", model, chart: "ARRI L-Series Plus DMX Protocol V4.4" })),
   // ARRI L-Series DMX Protocol V3.3, Lx-C section: modes 1–10 = 8/3/6/5/3/16/6/12/10/6 channels.
+  // Aputure LS 600d DMX Profile Spec V1.0.1 (04/2022): modes 2/3 = 4/5 ch (1-ch mode 1 is dropped library-wide).
+  { brand: "Aputure", model: "LS 600d", chart: "Aputure LS 600d DMX Profile Specification V1.0.1" },
+  // Aputure LS 600d Pro / LS 300d II common spec V1.0.1 (02/2022): single Lighting & Effect mode, 5 ch.
+  { brand: "Aputure", model: "LS600d pro", chart: "Aputure LS 600d Pro DMX Profile Specification V1.0.1" },
   ...["L5-C", "L7C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI L-Series DMX Protocol V3.3" })),
 ];
