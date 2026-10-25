@@ -77,40 +77,115 @@ function mm(name: string, parts: [Slot[], boolean][], pixels?: { count: number; 
 const SP: Slot = "Spare";
 const XY: Slot[] = [["Spare", 0.3127], ["Spare", 0.329]];
 
-// Creamsource Vortex DMX Tables V3.1 rev A (knowledge.creamsource.com). CCT 2200–15000K. Fan + Control are 8-bit tail slots.
-const V_TAIL: Slot[] = [SP, SP];
-const V_CCTRGBW: Slot[] = ["Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue", "White"];
-const V_CCT: Slot[] = ["Dimmer", "CCT", GM];
-const V_CCTHS: Slot[] = ["Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation"];
+// Creamsource Vortex DMX Tables V3.1 rev B (knowledge.creamsource.com, CreamOS 3.1+). CCT 2200–15000K.
+// Every mode ends with Fan Mode + Control Channel; Split/Bars modes add Zone Orientation.
+const lab = (label: string): ChannelMapEntry => ({ attr: "Spare", label });
+const V_FAN = lab("Fan Mode"), V_CTRL = lab("Control Channel"), V_ORIENT = lab("Zone Orientation");
+const V_FX: Slot[] = ["Spare", "Spare", "Spare", "Spare", "Spare", "Spare"];
+const V_FX_LABELS = ["Effects Mode", "Effects Ch 1", "Effects Ch 2", "Effects Ch 3", "Effects Ch 4", "Effects Ch 5"];
+const V_GEL: Slot[] = ["Spare", "Spare", "Spare"];
+const V_GEL_LABELS = ["Gel Library", "Gel Swatch", "Gel Source"];
+const V_BUMP: Slot[] = [["Spare", 134 / 255], ["Spare", 134 / 255], ["Spare", 134 / 255], ["Spare", 134 / 255]];
+const V_BUMP_LABELS = ["Bump Red/Cyan", "Bump Green/Magenta", "Bump Blue/Yellow", "Bump Saturation"];
+const V_CCTRGBW: Slot[] = ["Dimmer", "CCT", "GM", "Crossfade", "Red", "Green", "Blue", "White"];
+const V_CCT: Slot[] = ["Dimmer", "CCT", "GM"];
+const V_CCTHS: Slot[] = ["Dimmer", "CCT", "GM", "Crossfade", "Hue", "Saturation"];
 const V_RGBW: Slot[] = ["Dimmer", "Red", "Green", "Blue", "White"];
+const V_RGBW_BARE: Slot[] = ["Red", "Green", "Blue", "White"];
 const V_HS: Slot[] = ["Dimmer", "Hue", "Saturation"];
 const V_XY: Slot[] = ["Dimmer", ...XY];
-const V_CCTXY: Slot[] = ["Dimmer", "CCT", GM, "Crossfade", ...XY];
+const V_CCTXY: Slot[] = ["Dimmer", "CCT", "GM", "Crossfade", ...XY];
+const V_DIM: Slot[] = ["Dimmer"];
+/** Labelled Spare slots (effects, gels, bumps) expanded at the mode's resolution. */
+const labelled = (slots: Slot[], labels: string[], wide: boolean): ChannelMapEntry[] =>
+  expand(slots, wide).map((e, i) => ({ ...e, label: labels[wide ? Math.floor(i / 2) : i] }));
+type VPart = Slot[] | ChannelMapEntry[];
+const isEntries = (p: VPart): p is ChannelMapEntry[] => p.length > 0 && typeof p[0] === "object" && !Array.isArray(p[0]);
+function vSingle(name: string, wide: boolean, ...parts: VPart[]): FixtureMode {
+  const channelMap = [...parts.flatMap((p) => (isEntries(p) ? p : expand(p as Slot[], wide))), V_FAN, V_CTRL];
+  return { name, channels: channelMap.length, kind: "full", source: "manufacturer", channelMap };
+}
+function vZones(name: string, wide: boolean, block: Slot[], zones: number, grid: [number, number], tail: ChannelMapEntry[], master: Slot[] = []): FixtureMode {
+  const channelMap = [...Array.from({ length: zones }, () => expand(block, wide)).flat(), ...expand(master, wide), ...tail];
+  return { name, channels: channelMap.length, kind: "full", source: "manufacturer", channelMap, pixels: zones, grid };
+}
 const VORTEX_GRID: Record<number, [number, number]> = { 4: [2, 2], 8: [4, 2], 24: [6, 4] };
+const VORTEX_BARS: Record<number, number> = { 4: 2, 8: 4, 24: 6 };
 // Zone order matches the panel: zone 1 top-left, left→right, then next row (Creamsource zoning photo).
-const vz = (m: FixtureMode, zones: number): FixtureMode => ({ ...m, pixels: zones, grid: VORTEX_GRID[zones] ?? [zones, 1] });
-const vortexModes = (zones: number): FixtureMode[] => [
-  mm("1 CCT RGBW 8-bit", [[V_CCTRGBW, false], [V_TAIL, false]]),
-  mm("2 CCT 8-bit", [[V_CCT, false], [V_TAIL, false]]),
-  mm("3 CCT HS 8-bit", [[V_CCTHS, false], [V_TAIL, false]]),
-  mm("4 RGBW 8-bit", [[V_RGBW, false], [V_TAIL, false]]),
-  mm("5 HS 8-bit", [[V_HS, false], [V_TAIL, false]]),
-  mm("6 CCT RGBW 16-bit", [[V_CCTRGBW, true], [V_TAIL, false]]),
-  mm("7 CCT 16-bit", [[V_CCT, true], [V_TAIL, false]]),
-  mm("8 CCT HS 16-bit", [[V_CCTHS, true], [V_TAIL, false]]),
-  mm("9 RGBW 16-bit", [[V_RGBW, true], [V_TAIL, false]]),
-  mm("10 HS 16-bit", [[V_HS, true], [V_TAIL, false]]),
-  mm("11 xy 8-bit", [[V_XY, false], [V_TAIL, false]]),
-  mm("12 CCT xy 8-bit", [[V_CCTXY, false], [V_TAIL, false]]),
-  mm("13 xy 16-bit", [[V_XY, true], [V_TAIL, false]]),
-  mm("14 CCT xy 16-bit", [[V_CCTXY, true], [V_TAIL, false]]),
-  ...(zones > 1
-    ? [
-        vz(mm(`32 Multi-Zone CCT RGBW 8-bit (${zones} zones)`, [[Array.from({ length: zones }, () => V_CCTRGBW).flat(), false], [[SP], false]]), zones),
-        vz(mm(`38 Multi-Zone CCT HS 8-bit (${zones} zones)`, [[Array.from({ length: zones }, () => V_CCTHS).flat(), false], [[SP], false]]), zones),
-      ]
-    : []),
-];
+const vortexModes = (zones: number): FixtureMode[] => {
+  const multi = zones > 1;
+  const grid = VORTEX_GRID[zones] ?? [zones, 1];
+  const bars = VORTEX_BARS[zones] ?? 2;
+  const MZ = (n: number, label: string, wide: boolean, block: Slot[]) => vZones(`${n} Multi-Zone ${label} ${wide ? 16 : 8}-bit (${zones} zones)`, wide, block, zones, grid, [V_FAN, V_CTRL]);
+  const SZ = (n: number, label: string, wide: boolean, block: Slot[]) => vZones(`${n} Split Zone ${label} ${wide ? 16 : 8}-bit (2 zones)`, wide, block, 2, [2, 1], [V_FAN, V_CTRL, V_ORIENT]);
+  const BZ = (n: number, label: string, wide: boolean, block: Slot[]) => vZones(`${n} Bars Zone ${label} ${wide ? 16 : 8}-bit (${bars} bars)`, wide, block, bars, [bars, 1], [V_FAN, V_CTRL, V_ORIENT]);
+  const GZ = (n: number, label: string, wide: boolean, block: Slot[]) => vZones(`${n} Grid Zone ${label} ${wide ? 16 : 8}-bit (4 zones)`, wide, block, 4, [2, 2], [V_FAN, V_CTRL]);
+  const fx = (w: boolean) => labelled(V_FX, V_FX_LABELS, false).map((e) => e) && labelled(V_FX, V_FX_LABELS, false);
+  const gel = labelled(V_GEL, V_GEL_LABELS, false);
+  const bump = (w: boolean) => labelled(V_BUMP, V_BUMP_LABELS, w);
+  const flexLen = zones === 24 ? 387 : zones === 8 ? 131 : zones === 4 ? 67 : 131;
+  // Saved projects store mode indices: the first 16 entries keep their original order, the rest follow.
+  return [
+    vSingle("1 CCT RGBW 8-bit", false, V_CCTRGBW),
+    vSingle("2 CCT 8-bit", false, V_CCT),
+    vSingle("3 CCT HS 8-bit", false, V_CCTHS),
+    vSingle("4 RGBW 8-bit", false, V_RGBW),
+    vSingle("5 HS 8-bit", false, V_HS),
+    vSingle("6 CCT RGBW 16-bit", true, V_CCTRGBW),
+    vSingle("7 CCT 16-bit", true, V_CCT),
+    vSingle("8 CCT HS 16-bit", true, V_CCTHS),
+    vSingle("9 RGBW 16-bit", true, V_RGBW),
+    vSingle("10 HS 16-bit", true, V_HS),
+    vSingle("11 xy 8-bit", false, V_XY),
+    vSingle("12 CCT xy 8-bit", false, V_CCTXY),
+    vSingle("13 xy 16-bit", true, V_XY),
+    vSingle("14 CCT xy 16-bit", true, V_CCTXY),
+    ...(multi ? [MZ(32, "CCT RGBW", false, V_CCTRGBW), MZ(38, "CCT HS", false, V_CCTHS)] : []),
+    vSingle("15 CCT HS + Effects 8-bit", false, V_CCTHS, fx(false)),
+    vSingle("16 CCT RGBW + Effects 8-bit", false, V_CCTRGBW, fx(false)),
+    vSingle("17 CCT xy + Effects 8-bit", false, V_CCTXY, fx(false)),
+    vSingle("18 CCT HS + Effects 16-bit", true, V_CCTHS, fx(true)),
+    vSingle("19 CCT RGBW + Effects 16-bit", true, V_CCTRGBW, fx(true)),
+    vSingle("20 CCT xy + Effects 16-bit", true, V_CCTXY, fx(true)),
+    vSingle("21 Gels 8-bit", false, V_DIM, gel),
+    vSingle("22 CCT Gels 8-bit", false, V_CCT, ["Crossfade"], gel),
+    vSingle("23 CCT Gels + Effects 8-bit", false, V_CCT, ["Crossfade"], gel, fx(false)),
+    vSingle("24 Gels 16-bit", true, V_DIM, gel),
+    vSingle("25 CCT Gels 16-bit", true, V_CCT, ["Crossfade"], gel),
+    vSingle("26 CCT Gels + Effects 16-bit", true, V_CCT, ["Crossfade"], gel, fx(true)),
+    vSingle("27 Gels + Colour Bump 8-bit", false, V_DIM, gel, bump(false)),
+    vSingle("28 CCT Gels + Colour Bump 8-bit", false, V_CCT, ["Crossfade"], gel, bump(false)),
+    vSingle("29 Gels + Colour Bump 16-bit", true, V_DIM, gel, bump(true)),
+    vSingle("30 CCT Gels + Colour Bump 16-bit", true, V_CCT, ["Crossfade"], gel, bump(true)),
+    ...(multi
+      ? [
+          { name: `31 FLEX (${flexLen} ch)`, channels: flexLen, kind: "full" as const, source: "manufacturer" as const, channelMap: [lab("Flex Mode Select"), ...Array.from({ length: flexLen - 1 }, () => ({ attr: "Spare" as ChannelAttr }))] },
+          MZ(33, "HS", false, V_HS),
+          MZ(34, "xy", false, V_XY),
+          MZ(35, "CCT RGBW", true, V_CCTRGBW),
+          MZ(36, "HS", true, V_HS),
+          MZ(37, "xy", true, V_XY),
+          MZ(39, "CCT HS", true, V_CCTHS),
+          SZ(40, "CCT RGBW", false, V_CCTRGBW), SZ(41, "HS", false, V_HS), SZ(42, "xy", false, V_XY), SZ(43, "CCT HS", false, V_CCTHS),
+          SZ(44, "CCT RGBW", true, V_CCTRGBW), SZ(45, "HS", true, V_HS), SZ(46, "xy", true, V_XY), SZ(47, "CCT HS", true, V_CCTHS),
+          BZ(48, "CCT RGBW", false, V_CCTRGBW), BZ(49, "HS", false, V_HS), BZ(50, "xy", false, V_XY), BZ(51, "CCT HS", false, V_CCTHS),
+          BZ(52, "CCT RGBW", true, V_CCTRGBW), BZ(53, "HS", true, V_HS), BZ(54, "xy", true, V_XY), BZ(55, "CCT HS", true, V_CCTHS),
+          GZ(56, "CCT RGBW", false, V_CCTRGBW), GZ(57, "HS", false, V_HS), GZ(58, "xy", false, V_XY), GZ(59, "CCT HS", false, V_CCTHS),
+          GZ(60, "CCT RGBW", true, V_CCTRGBW), GZ(61, "HS", true, V_HS), GZ(62, "xy", true, V_XY), GZ(63, "CCT HS", true, V_CCTHS),
+          vZones(`64 Multi-Zone RGBW Bare 8-bit (${zones} zones)`, false, V_RGBW_BARE, zones, grid, []),
+          vZones(`65 Multi-Zone RGBW + Master CCT 8-bit (${zones} zones)`, false, V_RGBW_BARE, zones, grid, [V_FAN, V_CTRL], V_CCT),
+          vZones(`66 Multi-Zone RGBW Bare 16-bit (${zones} zones)`, true, V_RGBW_BARE, zones, grid, []),
+          vZones(`67 Multi-Zone RGBW + Master CCT 16-bit (${zones} zones)`, true, V_RGBW_BARE, zones, grid, [V_FAN, V_CTRL], V_CCT),
+          MZ(68, "CCT xy", false, V_CCTXY),
+          MZ(69, "CCT xy", true, V_CCTXY),
+          SZ(70, "CCT xy", false, V_CCTXY), SZ(71, "CCT xy", true, V_CCTXY),
+          BZ(72, "CCT xy", false, V_CCTXY), BZ(73, "CCT xy", true, V_CCTXY),
+          GZ(74, "CCT xy", false, V_CCTXY), GZ(75, "CCT xy", true, V_CCTXY),
+        ]
+      : []),
+  ];
+};
+export const vortexProfileModes = vortexModes;
 
 // Creamsource Sky/SpaceX DMX Tables V2.0 (RGBWA engine, Fan last). CCT 2200–15000K.
 const X_CCTRGBWA: Slot[] = ["Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue", "White", "Amber"];
