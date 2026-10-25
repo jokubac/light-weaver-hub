@@ -490,7 +490,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const discovery = useTransmitterDiscovery(conn);
   const [savedFlash, setSavedFlash] = useState(false);
   const [setupsOpen, setSetupsOpen] = useState(false);
-  const [groupsOpen, setGroupsOpen] = useState(false);
+  // The Groups / Looks / Effects / REC rail is open unless the user explicitly closed it before.
+  const [groupsOpen, setGroupsOpen] = useState(() => typeof window === "undefined" || localStorage.getItem("nox-groups-open") !== "0");
+  useEffect(() => { localStorage.setItem("nox-groups-open", groupsOpen ? "1" : "0"); }, [groupsOpen]);
   const [tlName, setTlName] = useState("");
   // Persisted so a re-render, scene switch or reload never slams the fader bar shut.
   const [fadersOpen, setFadersOpen] = useState(() => typeof window !== "undefined" && localStorage.getItem("nox-faders-open") === "1");
