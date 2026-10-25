@@ -71,6 +71,8 @@ export interface PixelLayer {
   motionLen?: number;
   /** sound-reactive settings (brightness/speed/spin/size/colour follow mic, line input or TIMELINE audio) */
   audio?: import("./audio-react").AudioReact;
+  /** false = preview only on screen (programming); lights get it only after LIVE. Unset = live (old saves). */
+  live?: boolean | undefined;
 }
 
 /** Layer as it sits at time t: recorded motion and spin applied to area/angle. */
@@ -176,6 +178,7 @@ export const defaultLayer = (name = "Layer 1", order: string[] = []): PixelLayer
   id: newId(),
   name,
   playing: false,
+  live: false,
   kind: "chase",
   colors: ["#ff0040", "#00e5ff", "#ffea00"],
   speed: 1,

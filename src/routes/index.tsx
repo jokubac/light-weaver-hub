@@ -544,7 +544,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maskKey]);
-  const baseFrame = layers.some((l) => l.playing) ? renderLayers(layers, fixtures, t, masks) : new Map<string, RGB[]>();
+  const liveLayers = layers.filter((l) => l.live !== false); // preview-only pages never reach the lights
+  const baseFrame = liveLayers.some((l) => l.playing) ? renderLayers(liveLayers, fixtures, t, masks) : new Map<string, RGB[]>();
   // REC overlap: the outgoing cue's pixels keep running and dissolve into the incoming ones
   const mixFrom = pixelMix?.from;
   const mixMasks = useMemo(() => {
@@ -1428,6 +1429,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             setLayers(layers.map((l) => ((l.group ?? l.id) === gid ? { ...l, order: [...l.order, ...uids.filter((u) => !l.order.includes(u))] } : l)));
           }} />}
           onPlay={(id) => { const g = layers.find((l) => l.id === id); if (!g) return; const gid = g.group ?? g.id; const on = !g.playing; setLayers(layers.map((l) => ((l.group ?? l.id) === gid ? { ...l, playing: on, pausedAt: undefined } : l))); }}
+          onLive={(gid, live) => setLayers(layers.map((l) => ((l.group ?? l.id) === gid ? { ...l, live } : l)))}
           onPause={(id) => { const g = layers.find((l) => l.id === id); if (!g) return; const gid = g.group ?? g.id; const resume = g.pausedAt != null; const now = performance.now() / 1000; setLayers(layers.map((l) => { if ((l.group ?? l.id) !== gid) return l; return resume ? { ...l, pausedAt: undefined, phase: (l.phase ?? 0) + ((l.pausedAt ?? now) - now) * l.speed, spinT: (l.spinT ?? 0) + (now - (l.pausedAt ?? now)) } : { ...l, pausedAt: now }; })); }}
           onRemoveLayer={(id) => { const rest = layers.filter((l) => l.id !== id); if (!rest.length) return; setLayers(rest); if (activePixelId === id) setActivePixelId(rest[0]!.id); }}
           onDuplicateGroup={(gid) => { const g = layers.filter((l) => (l.group ?? l.id) === gid); if (!g.length) return; const ng = uid(); const copies = g.map((l) => ({ ...l, id: uid(), group: ng, playing: false, pausedAt: undefined })); const lastIdx = layers.indexOf(g[g.length - 1]!); setLayers([...layers.slice(0, lastIdx + 1), ...copies, ...layers.slice(lastIdx + 1)]); setActivePixelId(copies[0]!.id); }}
