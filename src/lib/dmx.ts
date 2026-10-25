@@ -847,3 +847,6 @@ export function stepsState(fx: FxParams, t: number): { level: number; rgb: [numb
 export function sampleEffect(fx: FxParams, t: number, seed = 0.3) {
   return fx.kind === "none" ? 1 : fx.min + (fx.max - fx.min) * rawEffect(fx, t, seed);
 }
+
+/** Highest universe the protocols address (Art-Net 15-bit port address); effectively unlimited. */
+export const MAX_UNIVERSE = 32768;
