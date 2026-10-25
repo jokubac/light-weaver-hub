@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
-import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown, Undo2, Redo2, Scissors, Repeat2 } from "lucide-react";
+import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown, Undo2, Redo2, Scissors, Repeat2, ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NumberField } from "@/components/console/NumberField";
@@ -8,7 +8,7 @@ import { membersOf } from "@/lib/fixture-groups";
 import { defaultFx, type FxParams, type PatchedFixture } from "@/lib/dmx";
 import { PIXEL_LIBRARY, defaultLayer, isPixelFixture, type PixelLayer } from "@/lib/pixels";
 import type { Recording } from "@/lib/store";
-import { beats, splitClip, type Ease, clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey, type TimelineTrack, type AdjustFilter, type BlendMode } from "@/lib/timeline";
+import { beats, splitClip, setLightKeyAt, type Ease, clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey, type TimelineTrack, type AdjustFilter, type BlendMode } from "@/lib/timeline";
 import { editHistory } from "@/lib/edit-history";
 
 const ROW = 52, HEAD = 150;
@@ -84,7 +84,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
   audioPeaks: number[] | null; onAudio: (f: File) => void; onRemoveAudio: () => void;
   colorOf?: (f: PatchedFixture) => [number, number, number];
 }) {
-  const [viz, setViz] = useState(false);
+  const [viz, setViz] = useState(true);
   const hist = useRef(editHistory<Timeline>(80)), lastPush = useRef(0), [, bump] = useState(0);
   /** Every edit is undoable; rapid changes (a drag) collapse into one step. */
   const setTimeline = (t: Timeline) => { const now = Date.now(); if (now - lastPush.current > 400) hist.current.push(timeline); lastPush.current = now; setTimelineRaw(t); };
@@ -314,6 +314,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
 
       <div className="flex min-h-0 flex-1">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {viz && <TimelineVisualiser fixtures={fixtures} timeline={timeline} time={time} setTimeline={setTimeline} colorOf={colorOf} onClose={() => setViz(false)} onPicked={(id) => { setSel([id]); setKeySel(null); }} />}
       <Minimap timeline={timeline} len={len} time={time} zoom={zoom} scroller={scroller} />
       <div ref={scroller} className="min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: HEAD + len * zoom }}>
@@ -479,7 +480,6 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
       )}
       </aside>}
       </div>
-      {viz && <TimelineVisualiser fixtures={fixtures} timeline={timeline} colorOf={colorOf} onClose={() => setViz(false)} />}
     </div>
   );
 }
@@ -496,37 +496,57 @@ const SIMPLE_FX: { id: string; label: string; fx: Partial<FxParams> }[] = [
 ];
 const SIMPLE_PX = ["solid", "rainbow", "chase", "runner", "wave", "sparkle", "strobe", "police"];
 
-/** Floating, movable, resizable window showing the lights live while the timeline plays. */
-function TimelineVisualiser({ fixtures, timeline, colorOf, onClose }: { fixtures: PatchedFixture[]; timeline: Timeline; colorOf?: ((f: PatchedFixture) => [number, number, number]) | undefined; onClose: () => void }) {
-  const [pos, setPos] = useState(() => ({ x: Math.max(0, (typeof window !== "undefined" ? window.innerWidth : 1280) - 400), y: 80 }));
-  const [size, setSize] = useState({ w: 360, h: 260 });
-  const d = useRef<{ x: number; y: number; ox: number; oy: number; mode: "move" | "size" } | null>(null);
+/** Docked stage above the overview: place lights over a photo, watch them play, tap a light to set its value at the playhead. */
+function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, onClose, onPicked }: { fixtures: PatchedFixture[]; timeline: Timeline; time: number; setTimeline: (t: Timeline) => void; colorOf?: ((f: PatchedFixture) => [number, number, number]) | undefined; onClose: () => void; onPicked: (clipId: string) => void }) {
+  const viz = timeline.viz ?? {};
+  const [h, setH] = useState(viz.h ?? 220);
+  const [edit, setEdit] = useState<string | null>(null);
+  const stage = useRef<HTMLDivElement>(null), photo = useRef<HTMLInputElement>(null);
+  const drag = useRef<{ uid: string; moved: boolean; pos: [number, number] } | null>(null);
+  const [dragPos, setDragPos] = useState<{ uid: string; p: [number, number] } | null>(null);
   const used = new Set(timeline.clips.flatMap((c) => c.uids?.length ? c.uids : c.layer?.order ?? []));
   const list = used.size ? fixtures.filter((f) => used.has(f.uid)) : fixtures;
-  const start = (mode: "move" | "size") => (e: RPE) => {
-    e.preventDefault(); e.stopPropagation();
-    d.current = { x: e.clientX, y: e.clientY, ox: mode === "move" ? pos.x : size.w, oy: mode === "move" ? pos.y : size.h, mode };
-    const move = (ev: PointerEvent) => { const r = d.current; if (!r) return; const dx = ev.clientX - r.x, dy = ev.clientY - r.y;
-      if (r.mode === "move") setPos({ x: Math.min(window.innerWidth - 60, Math.max(0, r.ox + dx)), y: Math.min(window.innerHeight - 30, Math.max(0, r.oy + dy)) });
-      else setSize({ w: Math.max(180, r.ox + dx), h: Math.max(120, r.oy + dy) }); };
-    const up = () => { d.current = null; window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
-    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
-  };
+  const posOf = (f: PatchedFixture, i: number): [number, number] => dragPos?.uid === f.uid ? dragPos.p : viz.pos?.[f.uid] ?? [((i % 10) + 0.5) / 10, (Math.floor(i / 10) + 0.5) / Math.max(1, Math.ceil(list.length / 10)) * 0.8 + 0.1];
+  const setViz = (p: Partial<NonNullable<Timeline["viz"]>>) => setTimeline({ ...timeline, viz: { ...viz, ...p } });
+  const toStage = (e: { clientX: number; clientY: number }): [number, number] => { const r = stage.current!.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
+  const loadPhoto = (file: File) => { const img = new Image(); img.onload = () => { const s = Math.min(1, 1280 / img.width); const c = document.createElement("canvas"); c.width = img.width * s; c.height = img.height * s; c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height); setViz({ image: c.toDataURL("image/jpeg", 0.75) }); URL.revokeObjectURL(img.src); }; img.src = URL.createObjectURL(file); };
+  const resize = (e: RPE) => { e.preventDefault(); const y0 = e.clientY, h0 = h; let last = h0;
+    const mv = (ev: PointerEvent) => { last = Math.max(120, Math.min(700, h0 + ev.clientY - y0)); setH(last); };
+    const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); setViz({ h: last }); };
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up); };
+  const ef = fixtures.find((f) => f.uid === edit);
+  const cur = (() => { if (!ef) return null; const c = timeline.clips.find((x) => x.kind === "level" && x.uids?.length === 1 && x.uids[0] === ef.uid && time >= x.start && time <= x.start + x.length);
+    return c ? clipValue(c, time - c.start) : { intensity: ef.intensity, cct: ef.cctOnly === false ? undefined : ef.cct, hue: ef.cctOnly === false ? ef.hue : undefined, sat: ef.saturation }; })();
+  const setVal = (p: Partial<TimelineKey>) => { if (!ef || !cur) return; const r = setLightKeyAt(timeline, ef.uid, ef.name, time, { ...cur, ...p }); setTimeline(r.timeline); if (r.clipId) onPicked(r.clipId); };
   return (
-    <div className="fixed z-[200] flex flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-2xl" style={{ left: pos.x, top: pos.y, width: size.w, height: size.h }}>
-      <div className="flex cursor-move touch-none select-none items-center gap-2 border-b border-border bg-surface-elevated px-2 py-1 text-xs font-semibold"
-        onPointerDown={start("move")}>
-        <MonitorPlay className="h-3.5 w-3.5" />Visualiser<span className="font-normal text-muted-foreground">{list.length} lights · drag to move, corner to resize</span>
-        <button aria-label="Close visualiser" onPointerDown={(e) => e.stopPropagation()} onClick={onClose} className="ml-auto text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+    <div className="relative shrink-0 border-b border-border bg-background" style={{ height: h }} aria-label="Visualiser">
+      <div className="absolute left-2 top-1 z-10 flex items-center gap-1 text-xs">
+        <span className="rounded bg-surface/80 px-1.5 py-0.5 font-semibold"><MonitorPlay className="mr-1 inline h-3.5 w-3.5" />Visualiser · {time.toFixed(1)}s</span>
+        <Button size="sm" variant="secondary" className="h-6" onClick={() => photo.current?.click()}><ImagePlus />{viz.image ? "Photo" : "Add photo"}</Button>
+        {viz.image && <Button size="sm" variant="ghost" className="h-6" aria-label="Remove photo" onClick={() => setViz({ image: undefined })}><X /></Button>}
+        <input ref={photo} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) loadPhoto(f); e.target.value = ""; }} />
+        <span className="text-muted-foreground">drag lights to place · tap to set at the red line</span>
       </div>
-      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-auto p-3">
-        {list.map((f) => { const c = colorOf?.(f) ?? [0, 0, 0]; return (
-          <div key={f.uid} title={f.name} className="flex h-11 w-11 shrink-0 flex-col justify-end overflow-hidden rounded border border-border p-0.5 text-[8px] font-semibold leading-tight" style={{ background: `rgb(${c[0]},${c[1]},${c[2]})`, boxShadow: `0 0 10px rgb(${c[0]},${c[1]},${c[2]} / 0.5)` }}>
-            <span className="truncate">{f.name}</span>
+      <button aria-label="Close visualiser" onClick={onClose} className="absolute right-2 top-1 z-10 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+      <div ref={stage} className="absolute inset-0 overflow-hidden bg-cover bg-center" style={viz.image ? { backgroundImage: `url(${viz.image})` } : undefined} onPointerDown={(e) => { if (e.target === e.currentTarget) setEdit(null); }}>
+        {list.map((f, i) => { const c = colorOf?.(f) ?? [0, 0, 0], [x, y] = posOf(f, i); const rgb = `rgb(${c[0]},${c[1]},${c[2]})`; return (
+          <div key={f.uid} title={f.name} className={`absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none select-none items-end justify-center overflow-hidden rounded-full border-2 text-[8px] font-semibold ${edit === f.uid ? "border-primary" : "border-border"}`}
+            style={{ left: `${x * 100}%`, top: `${y * 100}%`, background: rgb, boxShadow: `0 0 18px 4px ${rgb.replace("rgb", "rgba").replace(")", ",0.55)")}` }}
+            onPointerDown={(e) => { e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); drag.current = { uid: f.uid, moved: false, pos: [x, y] }; }}
+            onPointerMove={(e) => { const d = drag.current; if (!d || d.uid !== f.uid) return; const p = toStage(e); if (!d.moved && Math.hypot(p[0] - d.pos[0], p[1] - d.pos[1]) < 0.01) return; d.moved = true; d.pos = p; setDragPos({ uid: f.uid, p }); }}
+            onPointerUp={() => { const d = drag.current; drag.current = null; if (!d) return; if (d.moved) { setViz({ pos: { ...viz.pos, [f.uid]: d.pos } }); setDragPos(null); } else setEdit(edit === f.uid ? null : f.uid); }}>
+            <span className="max-w-full truncate px-0.5">{f.name}</span>
           </div>); })}
-        {!list.length && <p className="w-full p-4 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
+        {!list.length && <p className="p-10 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
       </div>
-      <div aria-label="Resize visualiser" onPointerDown={start("size")} className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize touch-none border-b-2 border-r-2 border-muted-foreground" />
+      {ef && cur && <div className="absolute bottom-2 right-2 z-20 w-64 space-y-1.5 rounded-lg border border-border bg-surface p-2 text-xs shadow-2xl" aria-label="Light at playhead">
+        <div className="flex items-center gap-1"><b className="flex-1 truncate">{ef.name} @ {time.toFixed(1)}s</b><button aria-label="Close light editor" onClick={() => setEdit(null)}><X className="h-3.5 w-3.5" /></button></div>
+        <label className="flex items-center gap-2">Int<input type="range" min={0} max={100} value={Math.round(cur.intensity * 100)} onChange={(e) => setVal({ intensity: +e.target.value / 100 })} className="flex-1" /><span className="w-9 text-right font-mono">{Math.round(cur.intensity * 100)}%</span></label>
+        <label className="flex items-center gap-2">CCT<input type="range" min={2000} max={10000} step={100} value={c2k(cur.cct ?? k2c(5600))} onChange={(e) => setVal({ cct: k2c(+e.target.value), hue: undefined, sat: undefined })} className="flex-1" /><span className="w-12 text-right font-mono">{cur.hue != null ? "—" : `${c2k(cur.cct ?? k2c(5600))}K`}</span></label>
+        <label className="flex items-center gap-2">Colour<input type="color" aria-label="Light colour at playhead" value={cur.hue != null ? hsvHex(cur.hue, cur.sat ?? 1) : "#ffffff"} onChange={(e) => { const [hh, sa] = hexHs(e.target.value); setVal({ hue: hh, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>
+        <p className="text-muted-foreground">Each change adds a point at the red line; move the line and change again to make the light fade between them.</p>
+      </div>}
+      <div aria-label="Resize visualiser" onPointerDown={resize} className="absolute inset-x-0 bottom-0 z-10 h-1.5 cursor-ns-resize touch-none bg-border/60 hover:bg-primary" />
     </div>
   );
 }
