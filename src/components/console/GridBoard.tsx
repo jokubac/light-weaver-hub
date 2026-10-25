@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
+import { MACRO_ACTIONS, FADER_RANGE, faderLimits, type Macro, type MacroAction } from "@/lib/macros";
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
@@ -802,13 +802,19 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                       onPointerDown={() => { if (live && a?.hold) onRun({ id: it.id, key: null, action: a.id, amount: it.macro!.amount }); }}>{macroLabel(it.macro!)}</div>;
                     // Fader: drives the selected lights; shows the first selected light's value.
                     const f0 = fixtures.find((f) => selected.includes(f.uid));
-                    const [min, max, step, val, show] = a.id === "int_fader" ? [0, 100, 1, Math.round((f0?.intensity ?? 0) * 100), (v: number) => `${v}%`]
-                      : a.id === "cct_fader" ? [2000, 10000, 50, Math.round(kelvin(f0?.cct ?? 0.45)), (v: number) => `${v}K`]
-                      : [-100, 100, 1, Math.round((f0?.gm ?? 0) * 100), (v: number) => (v > 0 ? `G${v}` : v < 0 ? `M${-v}` : "0")];
+                    const [val, show] = a.id === "int_fader" ? [Math.round((f0?.intensity ?? 0) * 100), (v: number) => `${v}%`] as const
+                      : a.id === "cct_fader" ? [Math.round(kelvin(f0?.cct ?? 0.45)), (v: number) => `${v}K`] as const
+                      : a.id === "hue_fader" ? [Math.round(f0?.hue ?? 0), (v: number) => `${v}°`] as const
+                      : a.id === "sat_fader" ? [Math.round((f0?.saturation ?? 0) * 100), (v: number) => `${v}%`] as const
+                      : [Math.round((f0?.gm ?? 0) * 100), (v: number) => (v > 0 ? `G${v}` : v < 0 ? `M${-v}` : "0")] as const;
+                    // User limits (e.g. 5%..70%) become the slider's ends, so the fader can never leave them.
+                    const [min, max] = faderLimits(a.id, it.macro!.lo, it.macro!.hi), step = FADER_RANGE[a.id]?.[2] ?? 1;
+                    const limited = it.macro!.lo != null || it.macro!.hi != null;
                     // The box itself detects the double tap (tapFader); the slider only drags.
                     return <div className="flex flex-1 flex-col justify-center gap-0.5 px-1">
                       <div className="nox-outline-2 flex justify-between text-[10px] font-bold text-foreground"><span className="truncate">{it.macro!.label || a.label}</span><span className="font-mono">{show(val)}</span></div>
-                      <input type="range" aria-label={a.label} min={min} max={max} step={step} value={val} disabled={!live || !f0}
+                      {limited && <div className="flex justify-between font-mono text-[9px] text-muted-foreground"><span>{show(min)}</span><span>{show(max)}</span></div>}
+                      <input type="range" aria-label={a.label} min={min} max={max} step={step} value={Math.max(min, Math.min(max, val))} disabled={!live || !f0}
                         onPointerDown={(e) => e.stopPropagation()}
                         onChange={(e) => onRun({ id: it.id, key: null, action: a.id, amount: +e.target.value })}
                         className="w-full accent-primary" />
