@@ -188,11 +188,9 @@ body { text-shadow: var(--text-outline); }
   box-shadow: none !important;
 }
 .nox-tab:hover { color: var(--foreground); background: var(--surface-elevated); }
-.nox-tab {
-  transition: color 0.2s ease;
-}
-.nox-tab[aria-pressed="true"] {
+.nox-tab[aria-pressed="true"], .nox-tab[aria-pressed="true"]:hover {
   color: var(--primary-foreground);
+  background: transparent;
   text-shadow: none;
   box-shadow: none !important;
 }
