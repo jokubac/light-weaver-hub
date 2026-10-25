@@ -143,3 +143,11 @@ describe("Aputure Electro Storm CS15 official chart V1.1", () => {
     for (const [no, r] of Object.entries(chart)) expect(range(Number(no))).toEqual(r);
   });
 });
+
+describe("Aputure Electro Storm XT26 official chart V1.1", () => {
+  it("matches the chart's channel ranges", () => {
+    const modes = VERIFIED_FIXTURES.find((d) => d.model === "XT26")!.modes;
+    const r = (no: number) => { const c = modes.filter((m) => m.name.startsWith(`Mode ${no} -`)).map((m) => m.channels); return [Math.min(...c), Math.max(...c)]; };
+    expect([1, 2, 3, 4, 5, 6].map(r)).toEqual([[4, 9], [4, 9], [7, 12], [7, 15], [5, 13], [10, 18]]);
+  });
+});

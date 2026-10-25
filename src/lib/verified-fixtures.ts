@@ -578,7 +578,26 @@ const CS15_MODES: FixtureMode[] = CS_CORES.flatMap(([no, name, wide, core]) =>
   }),
 );
 
+// Aputure Electro Storm XT26 DMX Profile Specification V1.1. CCT 2700–6500K. Same Motor/Config variants as CS15.
+// FX 16-bit follows the table (5 base ch: Int16, Trigger, Effect, Frequency); the TOC's "4–12" is a typo.
+const XT_FX: ChannelMapEntry[] = [lab("FX Trigger"), lab("FX Selection"), lab("FX Frequency")];
+const XT_CORES: [number, string, boolean, ChannelMapEntry[]][] = [
+  [1, "CCT", false, csCore(false, ["Dimmer", "CCT", GM], [MC_ST])],
+  [2, "FX", false, csCore(false, ["Dimmer"], XT_FX)],
+  [3, "CCT & FX", false, csCore(false, ["Dimmer", "CCT", GM], [lab("CCT / FX"), ...XT_FX])],
+  [4, "CCT", true, csCore(true, ["Dimmer", "CCT", GM], [MC_ST])],
+  [5, "FX", true, csCore(true, ["Dimmer"], XT_FX)],
+  [6, "CCT & FX", true, csCore(true, ["Dimmer", "CCT", GM], [lab("CCT / FX"), ...XT_FX])],
+];
+const variants = (cores: [number, string, boolean, ChannelMapEntry[]][]): FixtureMode[] => cores.flatMap(([no, name, wide, core]) =>
+  ([["", []], [" + Config", CS_CONF], [" + Motor", CS_MOTOR(wide)], [" + Motor + Config", [...CS_MOTOR(wide), ...CS_CONF]]] as [string, ChannelMapEntry[]][]).map(([suf, extra]) => {
+    const channelMap = [...core, ...extra];
+    return { name: `Mode ${no} - ${name} ${wide ? 16 : 8}-bit${suf}`, channels: channelMap.length, kind: "full" as const, source: "manufacturer" as const, channelMap };
+  }),
+);
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-aputure-xt26", brand: "Aputure", model: "XT26", cctRange: [2700, 6500], lightType: "LED bi-colour", modes: variants(XT_CORES) },
   { id: "gdtf-aputure-electro-storm-cs15", brand: "Aputure", model: "Electro Storm CS15", cctRange: [2000, 10000], lightType: "LED colour", modes: CS15_MODES },
   { id: "gdtf-nanlux-tk-140b", brand: "Nanlux", model: "TK-140B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
   { id: "gdtf-nanlux-tk-280b", brand: "Nanlux", model: "TK-280B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
