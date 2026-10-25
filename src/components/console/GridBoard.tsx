@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ViewTabs } from "./ViewTabs";
 import { MACRO_ACTIONS, FADER_RANGE, faderLimits, type Macro, type MacroAction } from "@/lib/macros";
 let lastPlotView: { x: number; y: number; z: number } | null = null;
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
@@ -612,9 +613,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
-          <div className="mr-2 flex gap-1 rounded-md">
-            <button onClick={() => { setLive(true); setEsel([]); setMode("select"); }} aria-pressed={live} className={chip(live)}><Play className="h-3.5 w-3.5" />Live</button>
-            <button onClick={() => setLive(false)} aria-pressed={!live} className={chip(!live)}><Pencil className="h-3.5 w-3.5" />Edit</button>
+          <div className="mr-2">
+            <ViewTabs tabs={[
+              { key: "live", label: "Live", on: live, onClick: () => { setLive(true); setEsel([]); setMode("select"); } },
+              { key: "edit", label: "Edit", on: !live, onClick: () => setLive(false) },
+            ]} />
           </div>
           {(() => {
             const ids = new Set(selItems.map((i) => i.id));
