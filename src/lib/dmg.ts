@@ -11,7 +11,7 @@ const L = (label: string, wide = false): Ch => ["Spare", label, wide];
 const DIM = C("Dimmer"), CCT = C("CCT"), GM = C("GM"), HUE = C("Hue"), SAT = C("Saturation", false);
 const MEM = [L("Gel mem 100"), L("Gel mem 10"), L("Gel mem 1")];
 const GELADJ = [L("Gel CCT"), L("Gel Hue"), L("Gel Sat")];
-const STROBE = L("Light Strobe"), CTRL = L("Control Channel");
+const STROBE = L("Light Strobe");
 const PARAMS = (w: boolean) => Array.from({ length: 8 }, (_, i) => L(`Colour param ${i + 1}`, w));
 
 /** Per-zone blocks (Control channel excluded). `w` = 16-bit profile. */
@@ -59,7 +59,6 @@ export const DMG_MODES: Record<number, FixtureMode> = {
   19: build("Mode 19 MAXI Global 16b", GLOBAL(true), true, 2, true),
   20: build("Mode 20 MAXI New Gel 8b", NEWGEL, false, 2, false),
 };
-void CTRL;
 
 /** Old profile's modes first in their old order, so saved mode indices keep working; the rest follow. */
 const pick = (first: number[], all: number[]) => [...first, ...all.filter((n) => !first.includes(n))].map((n) => DMG_MODES[n]!);
