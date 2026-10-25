@@ -15,11 +15,11 @@ describe("Godox official DMX charts", () => {
     expect(f["14 X-Y 16-bit"]).toBe(6);
     expect(f["15 FX 16-bit + Extend"]).toBe(13);
     expect(f["16 GEL 16-bit + Extend"]).toBe(12);
-    expect(GODOX_M600R_MODES[0].channels).toBe(8);
+    expect(GODOX_M600R_MODES[0]?.channels).toBe(8);
   });
   it("AM1600R keeps its old 11-ch mode first and Ultimate matches", () => {
     const f = fp(GODOX_AM1600R_MODES);
-    expect(GODOX_AM1600R_MODES[0].channels).toBe(11);
+    expect(GODOX_AM1600R_MODES[0]?.channels).toBe(11);
     expect(f["17 Ultimate 8-bit + Extend"]).toBe(11);
     expect(f["18 Ultimate 16-bit + Extend"]).toBe(14);
     expect(f["05 X-Y 8-bit"]).toBe(3);

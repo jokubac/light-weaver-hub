@@ -4,7 +4,7 @@
 import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode } from "./dmx";
 
 /** [attr, label?, 16-bit in 16-bit modes?, home 0-1?] */
-type Ch = [ChannelAttr, string | undefined, boolean, number?];
+type Ch = [ChannelAttr, string | undefined, boolean, number | undefined];
 const C = (attr: ChannelAttr, wide = true, label?: string, home?: number): Ch => [attr, label, wide, home];
 const L = (label: string, wide = false, home?: number): Ch => ["Spare", label, wide, home];
 
