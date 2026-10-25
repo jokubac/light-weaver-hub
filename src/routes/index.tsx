@@ -926,14 +926,13 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const gotoRef = useRef(gotoCue); gotoRef.current = gotoCue;
   useEffect(() => {
     if (!tcOn) { setTcNow(null); return; }
-    const nav = navigator as Navigator & { requestMIDIAccess?: (o?: { sysex?: boolean }) => Promise<{ inputs: Map<string, { onmidimessage: ((e: { data: Uint8Array }) => void) | null }> }> };
-    if (!nav.requestMIDIAccess) { alert("This device has no MIDI timecode input (Web MIDI is not available)."); setTcOn(false); return; }
+    if (!("requestMIDIAccess" in navigator)) { alert("This device has no MIDI timecode input (Web MIDI is not available)."); setTcOn(false); return; }
     let alive = true; const dec = new MtcDecoder(); let last = -1; let shown = 0;
-    const inputs: { onmidimessage: ((e: { data: Uint8Array }) => void) | null }[] = [];
-    nav.requestMIDIAccess({ sysex: true }).catch(() => nav.requestMIDIAccess!()).then((acc) => {
+    const inputs: MIDIInput[] = [];
+    navigator.requestMIDIAccess({ sysex: true }).catch(() => navigator.requestMIDIAccess()).then((acc) => {
       if (!alive) return;
       acc.inputs.forEach((inp) => { inputs.push(inp); inp.onmidimessage = (e) => {
-        const sec = dec.message(e.data); if (sec == null) return;
+        if (!e.data) return; const sec = dec.message(e.data); if (sec == null) return;
         const hit = last >= 0 ? cueAtTimecode(sortCues(cuesRef.current), last, sec) : null;
         last = sec; if (hit) gotoRef.current(hit.id);
         const now = performance.now(); if (now - shown > 100) { shown = now; setTcNow(sec); }

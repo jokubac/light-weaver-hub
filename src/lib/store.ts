@@ -88,9 +88,9 @@ export interface Cue {
   fade: number;
   states: { uid: string; name: string; state: LookState }[];
   /** tracking (default) carries values forward; cue-only reverts them when the next cue runs */
-  mode?: "track" | "cueonly";
+  mode?: "track" | "cueonly" | undefined;
   /** MIDI timecode trigger, in seconds */
-  tc?: number;
+  tc?: number | undefined;
 }
 
 /** A timeline saved on its own, apart from the scene's working timeline. */
