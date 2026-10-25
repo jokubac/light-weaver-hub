@@ -1464,8 +1464,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <ShowMonitor open={monitorOpen} onOpenChange={setMonitorOpen} fixtures={fixtures} level={outLevel} parked={parked} setParked={onParked} />
       </div>
       <div aria-label="Console views" hidden={patchOpen} className={`${patchOpen ? "hidden" : "flex"} shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar`}>
-        <ViewTabs tabs={([["fixtures", "FIXTURES", fixturesOpen || !(gridOpen || seqOpen || pixOpen)], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => openWin(k as "fixtures" | "grid" | "timeline" | "pixels") }))} />
-        <button onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} className={`${chip(groupsOpen)} ml-auto`}>
+        <ViewTabs fill tabs={([["fixtures", "FIXTURES", fixturesOpen || !(gridOpen || seqOpen || pixOpen)], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => openWin(k as "fixtures" | "grid" | "timeline" | "pixels") }))} />
+        <button onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} className={`${chip(groupsOpen)} shrink-0`}>
           <span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}
         </button>
       </div>
