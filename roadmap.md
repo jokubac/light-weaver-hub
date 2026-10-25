@@ -259,3 +259,4 @@
 - [ ] More rental-house fixtures with official manufacturer charts (one maker per round).
 - [ ] Double-check every unverified model against official manufacturer patch charts (user request; ongoing, maker by maker).
 - [x] Aputure Nova P300c from official chart V1.1 (9 modes).
+- [x] Aputure LS 600d / LS 600d Pro chart-checked; duplicate STROM 1200X and NOVA600C merged (2518 lights).
