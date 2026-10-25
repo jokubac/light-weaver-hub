@@ -1436,7 +1436,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           <NumberField aria-label="Master percent" min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
         </div>
         <span className="h-6 w-px bg-border" />
-        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className={`text-xs font-bold ${patchOpen ? "bg-primary text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] hover:bg-primary/90" : ""}`}>PATCH</Button>
+        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className={`text-xs font-bold tracking-wider border ${patchOpen ? "border-primary bg-primary text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] hover:bg-primary/90" : "border-primary/70 text-primary"}`}>PATCH</Button>
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="text-xs font-bold">FADERS</Button>
         <span className="h-6 w-px bg-border" />
         <Button variant="secondary" onClick={toggleBlind} aria-pressed={blind} title={blind ? "BLIND on — stage is frozen. Tap to send your changes live" : "BLIND — edit without changing the stage"}

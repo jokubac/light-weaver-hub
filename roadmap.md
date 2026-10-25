@@ -233,3 +233,4 @@
 - [x] FIXTURES REC opens as a dropdown like + Group / + Look
 - [x] PATCH button glows amber while the patch sheet is open
 - [x] REC create panel drops down from REC like Groups\/Looks
+- [x] Top bar regroup + PATCH distinct style
