@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type React from "react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -264,8 +265,53 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar">
-          <div className="ml-auto flex gap-1">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar">
+          {onSelect && (
+            <div className="flex min-w-0 flex-wrap items-center gap-1" aria-label="Effect layers">
+              {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
+                const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
+                return (
+                  <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
+                    <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.playing ? "■" : "▶"}</button>
+                    {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
+                    <span className="px-1 font-semibold text-muted-foreground">P{gi + 1}</span>
+                    {fx.map((l) => (
+                      <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
+                        <button onClick={() => onSelect(l.id)} className="px-2 py-1 font-semibold">{l.name}</button>
+                        {onRemoveLayer && fx.length > 1 && <button onClick={() => { if (confirm(`Delete effect “${l.name}”?`)) onRemoveLayer(l.id); }} aria-label={`Delete effect ${l.name}`} className="pr-1.5 opacity-70 hover:opacity-100">✕</button>}
+                      </span>
+                    ))}
+                    {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to page ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">+ Effect</button>}
+                    {onDuplicateGroup && <button onClick={() => onDuplicateGroup(gid)} aria-label={`Duplicate page ${gi + 1}`} title="Duplicate page" className="px-1.5 py-1 opacity-70 hover:opacity-100">⧉</button>}
+                    {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete page ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete page ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">🗑</button>}
+                  </span>
+                );
+              })}
+              {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Page</Button>}
+            </div>
+          )}
+          <div className="ml-auto flex flex-wrap gap-1">
+            {layer && onLayer && (
+              <Popover>
+                <PopoverTrigger asChild><Button size="sm" variant={recording ? "destructive" : "secondary"} aria-label="Effect motion"><RotateCw />Motion {Math.round(layer.angle ?? 0)}°{layer.spin ? ` · ${layer.spin}°/s` : ""}{recording ? " ●" : ""}</Button></PopoverTrigger>
+                <PopoverContent align="end" className="w-72 space-y-2 p-3 text-xs">
+                  <div className="flex items-center gap-1.5"><span className="w-12 font-semibold">Rotate</span>
+                    <input type="number" step={5} min={-180} max={180} aria-label="Rotate degrees" value={Math.round(layer.angle ?? 0)} onChange={(e) => { const v = Number(e.target.value); if (!Number.isNaN(v)) setAngle(((v + 540) % 360) - 180); }} className="w-14 rounded bg-surface-elevated px-1 py-0.5 tabular-nums" />°
+                    <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 45 + 540) % 360) - 180)}>45°</Button>
+                    <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 90 + 540) % 360) - 180)}>90°</Button>
+                  </div>
+                  <input type="range" min={-180} max={180} value={Math.round(layer.angle ?? 0)} onChange={(e) => setAngle(Number(e.target.value))} className="w-full" aria-label="Rotate slider" />
+                  <label className="flex items-center gap-1.5"><span className="w-12 font-semibold">Spin</span>
+                    <input type="number" step={5} value={layer.spin ?? 0} onChange={(e) => onLayer({ spin: Number(e.target.value) || 0 })} className="w-16 rounded bg-surface-elevated px-1 py-0.5" />°/s
+                  </label>
+                  <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+                    <Button size="sm" variant={recording ? "destructive" : "secondary"} onClick={toggleRec}>{recording ? "■ Stop REC" : "● REC move"}</Button>
+                    {layer.motion?.length ? <Button size="sm" variant="secondary" onClick={() => onLayer({ motion: [], motionLen: 0 })}>Clear move</Button> : null}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">{layer.motion?.length ? `Recorded ${layer.motionLen?.toFixed(1)} s · loops` : recording ? "Drag the box or its bottom-right corner now…" : "Press REC, then drag the box or its corner"}</p>
+                </PopoverContent>
+              </Popover>
+            )}
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>
             <DropdownMenu>
@@ -287,47 +333,6 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             <Button size="icon" variant="secondary" aria-label="Recenter" title="Recenter the map" onClick={recenter}><Crosshair /></Button>
           </div>
         </div>
-        {layer && onLayer && (
-          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar" aria-label="Effect motion">
-            <span className="font-semibold">Motion</span>
-            <span className="flex items-center gap-1"><span className="font-semibold">Rotate</span>
-              <input type="number" step={5} min={-180} max={180} aria-label="Rotate degrees" value={Math.round(layer.angle ?? 0)} onChange={(e) => { const v = Number(e.target.value); if (!Number.isNaN(v)) setAngle(((v + 540) % 360) - 180); }} className="w-14 rounded bg-surface-elevated px-1 py-0.5 tabular-nums" />°
-              <input type="range" min={-180} max={180} value={Math.round(layer.angle ?? 0)} onChange={(e) => setAngle(Number(e.target.value))} className="w-28" />
-              <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 45 + 540) % 360) - 180)}>45°</Button>
-              <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 90 + 540) % 360) - 180)}>90°</Button>
-            </span>
-            <label className="flex items-center gap-1">Spin
-              <input type="number" step={5} value={layer.spin ?? 0} onChange={(e) => onLayer({ spin: Number(e.target.value) || 0 })} className="w-16 rounded bg-surface-elevated px-1 py-0.5" />°/s
-            </label>
-            <Button size="sm" variant={recording ? "destructive" : "secondary"} onClick={toggleRec}>{recording ? "■ Stop REC" : "● REC move"}</Button>
-            {layer.motion?.length ? <><span className="text-muted-foreground">Recorded {layer.motionLen?.toFixed(1)} s · loops</span><Button size="sm" variant="secondary" onClick={() => onLayer({ motion: [], motionLen: 0 })}>Clear move</Button></> : <span className="text-muted-foreground">{recording ? "Drag the box or its bottom-right corner now…" : "Press REC, then drag the box or its corner"}</span>}
-          </div>
-        )}
-        {onSelect && (
-          <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar" aria-label="Effect layers">
-            <span className="mr-1 font-semibold">Pages</span>
-            {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
-              const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
-              return (
-                <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
-                  <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.playing ? "■" : "▶"}</button>
-                  {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
-                  <span className="px-1 font-semibold text-muted-foreground">P{gi + 1}</span>
-                  {fx.map((l) => (
-                    <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
-                      <button onClick={() => onSelect(l.id)} className="px-2 py-1 font-semibold">{l.name}</button>
-                      {onRemoveLayer && fx.length > 1 && <button onClick={() => { if (confirm(`Delete effect “${l.name}”?`)) onRemoveLayer(l.id); }} aria-label={`Delete effect ${l.name}`} className="pr-1.5 opacity-70 hover:opacity-100">✕</button>}
-                    </span>
-                  ))}
-                  {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to page ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">+ Effect</button>}
-                  {onDuplicateGroup && <button onClick={() => onDuplicateGroup(gid)} aria-label={`Duplicate page ${gi + 1}`} title="Duplicate page" className="px-1.5 py-1 opacity-70 hover:opacity-100">⧉</button>}
-                  {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete page ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete page ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">🗑</button>}
-                </span>
-              );
-            })}
-            {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Page</Button>}
-          </div>
-        )}
         <div ref={scroller} className="flex min-h-0 min-w-0 flex-1 touch-none overflow-auto p-3"
           onPointerDownCapture={gDown} onPointerMoveCapture={gMove} onPointerUpCapture={gUp} onPointerCancelCapture={gUp}>
           {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No lights on the pixel map yet. Press “Add fixtures” to add pixel lights.</p> : (
