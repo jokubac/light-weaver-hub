@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { applyAudio, follow } from "@/lib/audio-react";
 import { defaultLayer } from "@/lib/pixels";
 const lv = { bass: 1, mid: 0, high: 0.5, level: 0.5, beat: true };
-it("loud bass doubles... speeds up a speed-on-bass effect, quiet leaves it", () => {
+it("loud bass speeds up a speed-on-bass effect, quiet leaves it", () => {
   const l = { ...defaultLayer(), speed: 1, audio: { enabled: true, speed: { on: true, band: "bass" as const, amount: 0.5 } } };
   expect(applyAudio(l, lv).speed).toBe(3);
   expect(applyAudio(l, { ...lv, bass: 0 }).speed).toBe(1);
