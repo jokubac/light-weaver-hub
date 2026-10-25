@@ -1429,10 +1429,14 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <SceneSwitcher projects={projects} project={project} scene={scene} onPick={(pid, sid) => { save(); onSwitch(pid, sid); }} />
         <div className="flex-1" />
         <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-elevated/60 px-2.5 py-1">
+        <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-amber-glow">MASTER</span>
           <input aria-label="Master" type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
           <NumberField aria-label="Master percent" min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
+          <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
+            {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
+            {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
+          </Button>
         </div>
         <span className="h-6 w-px bg-border" />
         <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className={`text-xs font-bold tracking-wider border ${patchOpen ? "border-primary bg-primary text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] hover:bg-primary/90" : "border-primary/70 text-primary"}`}>PATCH</Button>
@@ -1440,10 +1444,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <span className="h-6 w-px bg-border" />
         <Button variant="secondary" onClick={toggleBlind} aria-pressed={blind} title={blind ? "BLIND on — stage is frozen. Tap to send your changes live" : "BLIND — edit without changing the stage"}
           className={`text-xs font-bold ${blind ? "animate-pulse bg-warning text-primary-foreground" : ""}`}>{blind ? "APPLY" : "BLIND"}</Button>
-        <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
-          {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
-          {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
-        </Button>
         <Button variant="secondary" size="icon" onClick={() => setScreenLocked(true)} aria-label="Lock screen" title="Lock screen — prevents accidental touches"><Lock /></Button>
         {screenLocked && <ScreenLock onUnlock={() => setScreenLocked(false)} />}
         <span className="h-6 w-px bg-border" />

@@ -234,3 +234,5 @@
 - [x] PATCH button glows amber while the patch sheet is open
 - [x] REC create panel drops down from REC like Groups\/Looks
 - [x] Top bar regroup + PATCH distinct style
+
+- [x] Top bar: MASTER fader and the lightbulb (Blackout) button restored to their original plain grouping — no framed box, bulb sits right after the percent field; PATCH/FADERS/BLIND/lock/CONNECT/⋯ grouping kept; browser verified.
