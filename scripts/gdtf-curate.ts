@@ -32,6 +32,8 @@ for (const x of VERIFIED_EXTRA_MODES) {
 }
 for (const c of CHART_CHECKED_GDTF) {
   const d = best.get(`${c.brand}|${modelKey(c.brand, c.model)}`);
+  const src = c.modesFrom ? best.get(`${c.brand}|${modelKey(c.brand, c.modesFrom)}`) : null;
+  if (d && src) d.modes = src.modes;
   if (d) d.modes = d.modes.map((m: any) => ({ ...m, source: "manufacturer" }));
   else console.warn("chart-checked model missing:", c.brand, c.model);
 }

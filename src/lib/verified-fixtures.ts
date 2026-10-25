@@ -514,7 +514,11 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
 
 /** Library GDTF profiles whose footprints were checked mode-by-mode against the manufacturer's own chart;
  *  gdtf-curate tags their modes as manufacturer-sourced so PATCH shows them as official. */
-export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string }[] = [
+export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; modesFrom?: string }[] = [
+  // Aputure STORM 1000c & 80c DMX Profile Spec V1.3 (05/2026): profiles 1–32 footprints 7/14/17/26/10/20/20/32/3/6/5/10/15/22/8/16/18/28/3/6/3/6/4/8/6/12/3/6/4/7/5/6 match.
+  { brand: "Aputure", model: "STORM 1000C", chart: "Aputure STORM 1000c & 80c DMX Profile Specification V1.3" },
+  // Same chart covers the 80c; its community profile (VRGB modes) is wrong, so it takes the 1000c's checked modes.
+  { brand: "Aputure", model: "STORM 80C", chart: "Aputure STORM 1000c & 80c DMX Profile Specification V1.3", modesFrom: "STORM 1000C" },
   // ARRI SkyPanel DMX Protocol Specification V4.4 (12/2022): modes 1–10, 16–23, 30 footprints match exactly.
   ...["SkyPanel S30C", "SkyPanel S60C", "SkyPanel S120C", "SkyPanel S360C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI SkyPanel DMX Protocol V4.4" })),
   // Same V4.4 document, Sxx-RP section: modes 1/2 = 5/6 channels.
