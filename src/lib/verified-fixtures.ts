@@ -481,7 +481,45 @@ const NOVA_P300C_MODES: FixtureMode[] = [
   nm("Mode 9 - FX 8-bit", lab("FX Selection"), "Dimmer", ...Array.from({ length: 8 }, (_, i) => lab(`FX Param ${i + 1}`))),
 ];
 
+// Aputure MC Pro DMX Profile Specification V2.0 (02/2025, FW 2.0). CCT 2000–10000K; 16-bit modes widen every
+// continuous channel (incl. ±Green) but keep Strobe, Gel and Source selectors 8-bit.
+const MC_ST = lab("Strobe");
+const MC_P = (n: number): Slot[] => Array.from({ length: n }, () => "Spare" as Slot);
+const MC_GEL: ChannelMapEntry[] = [lab("Gel CCT 3200/5600"), lab("Rosco / Lee"), lab("Gel Series"), lab("Gel Category")];
+const mcx = (name: string, parts: [Slot[], boolean][], tail: ChannelMapEntry[]): FixtureMode => {
+  const m = mm(name, parts);
+  const channelMap = [...(m.channelMap ?? []), ...tail];
+  return { ...m, channels: channelMap.length, channelMap };
+};
+const MC_PRO_MODES: FixtureMode[] = [
+  nm("Mode 1 - CCT & RGB 8-bit", "Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue", MC_ST),
+  nm("Mode 2 - CCT 8-bit", "Dimmer", "CCT", GM, MC_ST),
+  nm("Mode 3 - CCT & HSI 8-bit", "Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation", MC_ST),
+  nm("Mode 4 - RGB 8-bit", "Dimmer", "Red", "Green", "Blue", MC_ST),
+  nm("Mode 5 - HSIC 8-bit", "Dimmer", "Hue", "Saturation", "CCT", MC_ST),
+  nm("Mode 6 - Gel 8-bit", "Dimmer", ...MC_GEL, MC_ST),
+  nm("Mode 7 - xy 8-bit", "Dimmer", { attr: "Spare", label: "X", home: 0.3127 / 0.8 }, { attr: "Spare", label: "Y", home: 0.329 / 0.8 }, MC_ST),
+  nm("Mode 8 - Source 8-bit", "Dimmer", lab("Source"), lab("Source x offset"), lab("Source y offset"), MC_ST),
+  nm("Mode 9 - FX 8-bit", "Dimmer", lab("FX Selection"), ...Array.from({ length: 8 }, (_, i) => lab(`FX Param ${i + 1}`))),
+  nm("Mode 10 - WWRGB 8-bit", "White", "White", "Red", "Green", "Blue"),
+  nm("Mode 11 - Ultimate 8-bit", "Dimmer", lab("Lighting Mode"), ...Array.from({ length: 9 }, (_, i) => lab(`Param ${i + 1}`))),
+  nm("Mode 12 - HSIC+ 8-bit", "Dimmer", "CCT", GM, "Hue", "Saturation", MC_ST),
+  mcx("Mode 13 - CCT & RGB 16-bit", [[["Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue"], true]], [MC_ST]),
+  mcx("Mode 14 - CCT 16-bit", [[["Dimmer", "CCT", GM], true]], [MC_ST]),
+  mcx("Mode 15 - CCT & HSI 16-bit", [[["Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation"], true]], [MC_ST]),
+  mcx("Mode 16 - RGB 16-bit", [[["Dimmer", "Red", "Green", "Blue"], true]], [MC_ST]),
+  mcx("Mode 17 - HSIC 16-bit", [[["Dimmer", "Hue", "Saturation", "CCT"], true]], [MC_ST]),
+  mcx("Mode 18 - Gel 16-bit", [[["Dimmer"], true]], [...MC_GEL, MC_ST]),
+  mcx("Mode 19 - xy 16-bit", [[["Dimmer", ...XY], true]], [MC_ST]),
+  mcx("Mode 20 - Source 16-bit", [[["Dimmer"], true]], [lab("Source"), lab("Source x offset"), lab("Source y offset"), MC_ST]),
+  mcx("Mode 21 - FX 16-bit", [[["Dimmer"], true]], [lab("FX Selection"), ...Array.from({ length: 8 }, (_, i) => lab(`FX Param ${i + 1}`))]),
+  mcx("Mode 22 - WWRGB 16-bit", [[["White", "White", "Red", "Green", "Blue"], true]], []),
+  mcx("Mode 23 - Ultimate 16-bit", [[["Dimmer"], true], [MC_P(0), false]], [lab("Lighting Mode"), ...Array.from({ length: 13 }, (_, i) => lab(`Param ${i + 1}`))]),
+  mcx("Mode 24 - HSIC+ 16-bit", [[["Dimmer", "CCT", GM, "Hue", "Saturation"], true]], [MC_ST]),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-aputure-mc-pro", brand: "Aputure", model: "MC Pro", watts: 15, cctRange: [2000, 10000], lightType: "LED colour", modes: MC_PRO_MODES },
   // STORM XT52 DMX Profile Spec V1.3 (06/2026, FW 1.6): profiles 1–32 unified with STORM 1200x; Aputure states 700x/400x share them.
   { id: "gdtf-aputure-storm-xt52", brand: "Aputure", model: "STORM XT52", watts: 5200, lightType: "LED daylight", modes: STORM1200X_MODES },
   { id: "gdtf-aputure-storm-700x", brand: "Aputure", model: "STORM 700x", watts: 700, lightType: "LED daylight", modes: STORM1200X_MODES },
