@@ -1298,9 +1298,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                 <button onClick={() => setSelected([])} className={chip(false)}>Clear</button>
                  <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
                   className={chip(sweep)}>Sweep {sweep ? "on" : "off"}</button>
+                <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
                  <button aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
                    onClick={() => setKeypadOpen((o) => !o)} className={chip(keypadOpen)}><Keyboard /></button>
-                 <button aria-label="Macro timeline" title="Macro timeline" onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
                  <FanPopover count={selected.length} className={chip(false)} onApply={(attr, vals) => {
                    // on-screen order (tile order), not the order lights were tapped
                    setFixtures((fs) => {
@@ -1317,19 +1317,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                    <button aria-pressed={allParked} title={allParked ? "Unpark the selected lights" : "Park — hold the selected lights at their current output, whatever cues or effects do"}
                      onClick={() => { if (!selected.length) { setMonitorOpen(true); return; } const next = { ...parked }; if (allParked) selected.forEach((u) => delete next[u]); else outFixtures.filter((f) => selected.includes(f.uid)).forEach((f) => { next[f.uid] = lookStateOf(f); }); onParked(next); }}
                      className={chip(allParked)}><ParkingSquare />{allParked ? "Unpark" : "Park"}{n > 0 && <span className="ml-1 font-mono text-[10px] text-warning">{n}</span>}</button>); })()}
-                 <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
-                   onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
-                   onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
-                   onContextMenu={(e) => e.preventDefault()}
-                   onClick={() => { if (!recHold.current.fired) setRecOpen(true); }} className="h-8 gap-1.5 rounded-md px-3 text-xs font-bold shadow-sm select-none">
-                   <span className={`h-2.5 w-2.5 rounded-full bg-destructive ${play ? "animate-pulse" : ""}`} />REC
-                 </Button>
-                 <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={`h-8 w-8 rounded-md shadow-sm ${locked ? "" : "bg-amber-glow text-primary-foreground"}`}>
-                   {locked ? <Lock /> : <Unlock />}
-                 </Button>
-                 <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
-                   onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
-                   className={`h-8 w-8 rounded-md shadow-sm ${swapping ? "bg-primary text-primary-foreground" : ""}`}><ArrowLeftRight className="h-4 w-4" /></Button>
+                <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
                 <SavePopover label="+ Group" kind="Group" canCreate={selected.length > 0}
                    items={groups.map((g) => ({ id: g, name: g, color: groupMeta.colors[g], info: `${membersOf(fixtures, g).length}` }))}
                   onCreate={(name, color) => { setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, name) : x))); saveGroupMeta({ order: [...groupMeta.order.filter((o) => o !== name), name], colors: { ...groupMeta.colors, [name]: color } }); }}
@@ -1346,6 +1334,21 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   onCreate={(name, color) => { const src = fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
                   onChange={(items) => { const looks = project.looks ?? []; onLooks(items.map((it) => ({ ...looks.find((l) => l.id === it.id)!, name: it.name, ...(it.color ? { color: it.color } : {}) }))); }}
                   onDelete={(id) => onLooks((project.looks ?? []).filter((l) => l.id !== id))} />
+                 <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
+                   onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
+                   onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
+                   onContextMenu={(e) => e.preventDefault()}
+                   onClick={() => { if (!recHold.current.fired) setRecOpen(true); }} className="h-8 gap-1.5 rounded-md px-3 text-xs font-bold shadow-sm select-none">
+                   <span className={`h-2.5 w-2.5 rounded-full bg-destructive ${play ? "animate-pulse" : ""}`} />REC
+                 </Button>
+                <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+                 <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
+                   onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
+                   className={`h-8 w-8 rounded-md shadow-sm ${swapping ? "bg-primary text-primary-foreground" : ""}`}><ArrowLeftRight className="h-4 w-4" /></Button>
+                 <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={`h-8 w-8 rounded-md shadow-sm ${locked ? "" : "bg-amber-glow text-primary-foreground"}`}>
+                   {locked ? <Lock /> : <Unlock />}
+                 </Button>
+                 <button aria-label="Macro timeline" title="Macro timeline" onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
                 <span className="ml-auto font-mono text-[10px] text-muted-foreground">{selected.length} selected</span>
               </div>
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}

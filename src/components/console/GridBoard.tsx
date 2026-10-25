@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MACRO_ACTIONS, FADER_RANGE, faderLimits, type Macro, type MacroAction } from "@/lib/macros";
+let lastPlotView: { x: number; y: number; z: number } | null = null;
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
@@ -363,9 +364,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const pt = (e: { clientX: number; clientY: number }) => { const r = vp.current!.getBoundingClientRect(); return { x: (e.clientX - r.left - view.x) / (CELL * view.z), y: (e.clientY - r.top - view.y) / (CELL * view.z) }; };
   // Endless canvas: wheel pans, ctrl/pinch-wheel zooms about the cursor; middle/right drag pans; two fingers pinch-zoom and pan.
   const HOME = { x: 12, y: 12, z: 1 };
-  const [view, setView] = useState(HOME);
+  // Leaving PLOT and coming back keeps the same pan and zoom (remembered for this session).
+  const [view, setView] = useState(() => lastPlotView ?? HOME);
   const vp = useRef<HTMLDivElement>(null);
-  const viewRef = useRef(view); viewRef.current = view;
+  const viewRef = useRef(view); viewRef.current = view; lastPlotView = view;
   const zoomAt = (px: number, py: number, next: number) => { const v = viewRef.current; const z = Math.max(0.2, Math.min(4, next)), k = z / v.z; setView({ z, x: px - (px - v.x) * k, y: py - (py - v.y) * k }); };
   useEffect(() => {
     const el = vp.current; if (!el) return;
