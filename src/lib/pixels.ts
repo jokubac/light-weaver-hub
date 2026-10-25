@@ -60,6 +60,8 @@ export interface PixelLayer {
   /** video kind: id of the clip stored on this device */
   videoId?: string;
   videoName?: string;
+  /** live sound-driven video FX, set only at render time by withAudio (never stored) */
+  vfx?: import("./audio-react").VideoFx;
   /** canvas cells the effect covers; whole canvas when unset */
   area?: { x: number; y: number; w: number; h: number };
   /** effect rotation in degrees around the area centre */
@@ -451,8 +453,7 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
       }
       case "video": {
         if (!vid) return BLACK;
-        const i = (Math.max(0, Math.min(H - 1, y)) * W + Math.max(0, Math.min(W - 1, layer.reverse ? W - 1 - x : x))) * 4;
-        return tinted([vid[i]!, vid[i + 1]!, vid[i + 2]!]);
+        return tinted(videoFx(vid, W, H, layer.reverse ? W - 1 - x : x, y, layer.vfx, t));
       }
       case "solid": return cols[0]!;
       case "chase": return col(Math.floor((sd - tt * 8) / size));
