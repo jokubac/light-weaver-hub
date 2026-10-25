@@ -381,7 +381,46 @@ export const VERIFIED_EXTRA_MODES: { brand: string; model: string; modes: Fixtur
   { brand: "Nanlux", model: "Dyno 1200C", modes: DYNO_ULTIMATE },
 ];
 
+// Aputure LS 600c Pro / Pro II DMX Profile Specification V1.6 (docs.aputure.com, April 2026). CCT 2300–10000K.
+// G/M 0–10 = neutral, so the console's G/M 0 (raw 0) is exactly neutral. Strobe 0–19 = no effect.
+const A_STROBE = lab("Strobe");
+const A_BASE = lab("HSI Base CCT");
+const A_GEL = ["Gel CCT 3200/5600", "Rosco / Lee", "Gel Series", "Gel Category"].map(lab);
+const A_SRC = ["Source", "Source x offset", "Source y offset"].map(lab);
+const aBase = (wide: boolean): ChannelMapEntry[] => (wide ? [lab("HSI Base CCT"), { attr: "Spare", fine: true, label: "HSI Base CCT" }] : [A_BASE]);
+const aMode = (name: string, wide: boolean, ...parts: VPart[]): FixtureMode => {
+  const channelMap = parts.flatMap((p) => (isEntries(p) ? p : expand(p as Slot[], wide)));
+  return { name, channels: channelMap.length, kind: "full", source: "manufacturer", channelMap };
+};
+const aFx = (n: number) => Array.from({ length: n }, (_, i) => lab(i === 0 ? "FX Effect" : `FX Param ${i}`));
+const APUTURE_600C_MODES: FixtureMode[] = [
+  aMode("1 CCT & RGB 8-bit", false, ["Dimmer", "CCT", "GM", "Crossfade", "Red", "Green", "Blue"], [A_STROBE]),
+  aMode("2 CCT 8-bit", false, ["Dimmer", "CCT", "GM"], [A_STROBE]),
+  aMode("3 CCT & HSI 8-bit", false, ["Dimmer", "CCT", "GM", "Crossfade", "Hue", "Saturation"], aBase(false), [A_STROBE]),
+  aMode("4 RGB 8-bit", false, ["Dimmer", "Red", "Green", "Blue"], [A_STROBE]),
+  aMode("5 HSI 8-bit", false, ["Dimmer", "Hue", "Saturation"], aBase(false), [A_STROBE]),
+  aMode("6 GEL 8-bit", false, ["Dimmer"], A_GEL, [A_STROBE]),
+  aMode("7 xy 8-bit", false, ["Dimmer", ...XY], [A_STROBE]),
+  aMode("8 Source 8-bit", false, ["Dimmer"], A_SRC, [A_STROBE]),
+  aMode("9 FX 8-bit", false, ["Dimmer"], aFx(9)),
+  aMode("10 WW & RGB 8-bit", false, ["White", "White", "Red", "Green", "Blue"]),
+  aMode("11 Ultimate 8-bit", false, ["Dimmer"], [lab("Lighting Mode")], ["CCT", "GM", "Crossfade", "Red", "Green", "Blue"], [A_STROBE, lab("Ultimate param"), lab("Ultimate param")]),
+  aMode("12 CCT & RGB 16-bit", true, ["Dimmer", "CCT", "GM", "Crossfade", "Red", "Green", "Blue"], [A_STROBE]),
+  aMode("13 CCT 16-bit", true, ["Dimmer", "CCT", "GM"], [A_STROBE]),
+  aMode("14 CCT & HSI 16-bit", true, ["Dimmer", "CCT", "GM", "Crossfade", "Hue", "Saturation"], aBase(true), [A_STROBE]),
+  aMode("15 RGB 16-bit", true, ["Dimmer", "Red", "Green", "Blue"], [A_STROBE]),
+  aMode("16 HSI 16-bit", true, ["Dimmer", "Hue", "Saturation"], aBase(true), [A_STROBE]),
+  aMode("17 GEL 16-bit", true, ["Dimmer"], A_GEL, [A_STROBE]),
+  aMode("18 xy 16-bit", true, ["Dimmer", ...XY], [A_STROBE]),
+  aMode("19 Source 16-bit", true, ["Dimmer"], A_SRC, [A_STROBE]),
+  aMode("20 FX 16-bit", true, ["Dimmer"], aFx(10)),
+  aMode("21 WW & RGB 16-bit", true, ["White", "White", "Red", "Green", "Blue"]),
+  aMode("22 Ultimate 16-bit", true, ["Dimmer"], [lab("Lighting Mode")], ["CCT", "GM", "Crossfade", "Red", "Green", "Blue"], [A_STROBE]),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-aputure-ls-600c-pro", brand: "Aputure", model: "LS 600c Pro", watts: 600, cctRange: [2300, 10000], lightType: "LED colour", modes: APUTURE_600C_MODES },
+  { id: "gdtf-aputure-ls-600c-pro-ii", brand: "Aputure", model: "LS 600c Pro II", watts: 600, cctRange: [2300, 10000], lightType: "LED colour", modes: APUTURE_600C_MODES },
   { id: "gdtf-nanlux-evoke-150c", brand: "Nanlux", model: "Evoke 150C", watts: 150, cctRange: [1000, 20000], lightType: "LED colour", modes: C8_MODES },
   { id: "gdtf-nanlux-evoke-600c", brand: "Nanlux", model: "Evoke 600C", cctRange: [1000, 20000], lightType: "LED colour", modes: C8_MODES },
   { id: "gdtf-nanlux-evoke-1200", brand: "Nanlux", model: "Evoke 1200", watts: 1200, lightType: "LED daylight", modes: EVOKE1200_MODES },

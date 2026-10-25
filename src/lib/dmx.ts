@@ -260,7 +260,7 @@ const customDefs = (): FixtureDef[] => {
 };
 // Built-in entries whose model has an official manufacturer chart use that chart instead of generic guesses.
 {
-  const key = (brand: string, model: string) => `${brand}|${model}`.toLowerCase().replace(/[^a-z0-9|]/g, "");
+  const key = (brand: string, model: string) => `${brand}|${model.replace(/^LS\s+/i, "")}`.toLowerCase().replace(/[^a-z0-9|]/g, "");
   const verified = new Map(VERIFIED_FIXTURES.map((v) => [key(v.brand, v.model), v]));
   for (const d of FIXTURE_LIBRARY) {
     const v = verified.get(key(d.brand, d.model));
