@@ -48,9 +48,9 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const pageUids = new Set(pageLayers.flatMap((l) => l.order));
   const px = fixtures.filter((f) => isPixelFixture(f) && !!f.pixelPos && pageUids.has(f.uid));
   const pos = canvasPositions(fixtures);
-  // the map always previews every effect; PLAY only sends it to the real lights
+  // the map shows only playing effects; STOP clears them from the map too
   const preview = (() => {
-    const all = pageLayers.map((l) => ({ ...l, playing: true }));
+    const all = pageLayers.filter((l) => l.playing);
     const masks = new Map(all.filter((l) => l.kind === "text").map((l) => [l.id, textMask(l.text.toUpperCase(), layerArea(l, stageSize(fixtures)).h)] as const));
     return renderLayers(all, fixtures, now, masks);
   })();
@@ -283,7 +283,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                     ))}
                     {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to page ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">+ Effect</button>}
                     {onDuplicateGroup && <button onClick={() => onDuplicateGroup(gid)} aria-label={`Duplicate page ${gi + 1}`} title="Duplicate page" className="px-1.5 py-1 opacity-70 hover:opacity-100">⧉</button>}
-                    {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete page ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete page ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100">🗑</button>}
+                    {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete page ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete page ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100 hover:text-destructive">✕</button>}
                   </span>
                 );
               })}
