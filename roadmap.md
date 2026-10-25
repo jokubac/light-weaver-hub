@@ -218,4 +218,4 @@
 - [x] PATCH: RDM valdymas vienam universui (adresas, režimas, pavadinimas, Identify, baterija jei praneša) per AsteraBox/tiltą
 
 ## Open
-- [ ] (Jokubas) Faderiai: atleidus faderi toliau valdyti lempas/valdymo elementai turi likti aktyvūs — patikslinti elgseną (kas tiksliai "pradangsta", klausiama vartotojo).
+- [x] (Jokubas) Faderiai: FADERS juosta dabar išliejama (localStorage nox-faders-open) — užsidaro tik paspaudus FADERS mygtuką. Vartotojo patvirtinti iPade.
