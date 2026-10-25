@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AudioLines } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AUDIO_TARGETS, audioRunning, defaultAudioSettings, levels, listInputs, setAudioSettings, startAudio, stopAudio, type AudioReact, type AudioSettings, type Band } from "@/lib/audio-react";
+import { AUDIO_TARGETS, VIDEO_AUDIO_TARGETS, audioRunning, defaultAudioSettings, levels, listInputs, setAudioSettings, startAudio, stopAudio, type AudioReact, type AudioSettings, type Band } from "@/lib/audio-react";
 import type { PixelLayer } from "@/lib/pixels";
 
 const KEY = "nox-audio-settings";
@@ -60,7 +60,7 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
         {slider("Release", "release", 0.02, 2, 0.02, (v) => `${Math.round(v * 1000)}ms`)}
         <label className="flex items-center gap-1.5 border-t border-border pt-2 font-semibold">
           <input type="checkbox" checked={a.enabled} onChange={(e) => setA({ enabled: e.target.checked })} />This effect reacts to sound</label>
-        {AUDIO_TARGETS.map(([k, label, band]) => {
+        {[...AUDIO_TARGETS, ...(layer.kind === "video" ? VIDEO_AUDIO_TARGETS : [])].map(([k, label, band]) => {
           const t = a[k] ?? { on: false, band, amount: 0.7 };
           return (
             <div key={k} className={`flex items-center gap-1.5 ${a.enabled ? "" : "opacity-50"}`}>
