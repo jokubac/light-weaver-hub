@@ -522,5 +522,7 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string }
   { brand: "Aputure", model: "LS 600d", chart: "Aputure LS 600d DMX Profile Specification V1.0.1" },
   // Aputure LS 600d Pro / LS 300d II common spec V1.0.1 (02/2022): single Lighting & Effect mode, 5 ch.
   { brand: "Aputure", model: "LS600d pro", chart: "Aputure LS 600d Pro DMX Profile Specification V1.0.1" },
+  // Aputure INFINIBAR DMX Profile Spec V2.0 (08/2024): modes 1–32 match (TOC lists RGB 16 px as 72 ch; the table itself is 64).
+  ...["INFINIBAR PB3", "INFINIBAR PB6", "INFINIBAR PB12"].map((model) => ({ brand: "Aputure", model, chart: "Aputure INFINIBAR DMX Profile Specification V2.0" })),
   ...["L5-C", "L7C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI L-Series DMX Protocol V3.3" })),
 ];
