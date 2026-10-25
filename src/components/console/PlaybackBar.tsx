@@ -6,6 +6,7 @@ import { NumberField } from "@/components/console/NumberField";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { BankFader, Cue, Look } from "@/lib/store";
 import { BANK_SIZE, BANK_PAGES, sortCues } from "@/lib/playback";
+import { fmtTc, parseTc } from "@/lib/show-control";
 
 export interface PlaybackProps {
   fixtures: PatchedFixture[]; selected: string[]; groups: string[]; looks: Look[];
@@ -16,6 +17,8 @@ export interface PlaybackProps {
   activeCue: string | null; fadeK: number | null;
   onGo: () => void; onBack: () => void; onGoto: (id: string) => void;
   onRecordCue: (name: string, after?: number) => void; onUpdateCueStates: (id: string) => void;
+  progCount?: number; onProgClear?: () => void; onProgUpdate?: () => void;
+  tcOn?: boolean; onTc?: () => void; tcNow?: number | null;
 }
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -57,6 +60,20 @@ export function PlaybackBar(p: PlaybackProps) {
           <div className="truncate text-muted-foreground">{next ? `Next: Q${next.number} ${next.name}` : sorted.length ? "End of list" : "Tap to add cues"}</div>
         </button>
         <Button variant="ghost" size="icon" aria-label="Cue list" onClick={() => setCuesOpen(true)}><ListOrdered /></Button>
+        <div className="flex flex-col gap-1">
+          <div className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${p.progCount ? "bg-warning/25 text-warning" : "bg-surface-elevated text-muted-foreground"}`}
+            title={cur ? "PROGRAMMER — lights changed since this cue was stored" : "Go to a cue to compare live vs stored"}>
+            PROG {p.progCount ?? 0}
+            {!!p.progCount && <>
+              <button onClick={p.onProgUpdate} className="rounded bg-background/40 px-1" title={`Store the changes into Q${cur?.number}`}>Update</button>
+              <button onClick={p.onProgClear} className="rounded bg-background/40 px-1" title="Throw away changes, back to the stored cue">Clear</button>
+            </>}
+          </div>
+          <button onClick={p.onTc} aria-pressed={!!p.tcOn} title="Follow MIDI timecode (MTC) — cues with a timecode fire automatically"
+            className={`rounded-md px-1.5 py-0.5 text-left font-mono text-[10px] font-bold ${p.tcOn ? "bg-primary/25 text-primary" : "bg-surface-elevated text-muted-foreground"}`}>
+            TC {p.tcOn ? (p.tcNow != null ? fmtTc(p.tcNow) : "waiting…") : "off"}
+          </button>
+        </div>
       </div>
       <div className="w-px shrink-0 bg-border" />
       <div aria-label="Fader banks" className="grid shrink-0 grid-cols-2 gap-1">
@@ -155,7 +172,7 @@ function CueDialog({ open, onOpenChange, cues, setCues, activeCue, onGoto, onRec
         </form>
         <div className="space-y-1.5">
           {sorted.map((c) => (
-            <div key={c.id} className={`grid grid-cols-[4rem_1fr_4.5rem_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-xs ${c.id === activeCue ? "bg-primary/15 ring-1 ring-primary" : "bg-surface-elevated"}`}>
+            <div key={c.id} className={`grid grid-cols-[4rem_1fr_6.5rem_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-xs ${c.id === activeCue ? "bg-primary/15 ring-1 ring-primary" : "bg-surface-elevated"}`}>
               <NumberField aria-label="Cue number" value={c.number} min={0} step={0.1} onChange={(v) => v != null && upd(c.id, { number: v })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-mono" />
               <div className="min-w-0 space-y-1">
                 <input value={c.name} onChange={(e) => upd(c.id, { name: e.target.value })} className="w-full font-semibold rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
@@ -163,6 +180,11 @@ function CueDialog({ open, onOpenChange, cues, setCues, activeCue, onGoto, onRec
               </div>
               <label className="text-[10px] text-muted-foreground">Fade s
                 <NumberField aria-label="Fade seconds" value={c.fade} min={0} step={0.5} onChange={(v) => v != null && upd(c.id, { fade: v })} className="w-full rounded border border-input bg-background px-1.5 py-1 font-mono text-foreground" />
+                <button onClick={() => upd(c.id, { mode: c.mode === "cueonly" ? "track" : "cueonly" })} aria-pressed={c.mode === "cueonly"}
+                  title="Track: values stay for the next cues. Cue only: values go back when the next cue runs."
+                  className={`mt-1 w-full rounded px-1 py-0.5 font-bold ${c.mode === "cueonly" ? "bg-warning/30 text-warning" : "bg-background text-foreground"}`}>{c.mode === "cueonly" ? "Cue only" : "Track"}</button>
+                <input key={c.tc ?? "none"} defaultValue={c.tc != null ? fmtTc(c.tc) : ""} placeholder="TC hh:mm:ss:ff" aria-label="Timecode"
+                  onBlur={(e) => upd(c.id, { tc: parseTc(e.target.value) })} className="mt-1 w-full rounded border border-input bg-background px-1 py-0.5 font-mono text-foreground" />
               </label>
               <div className="flex gap-1">
                 <Button size="icon" variant="secondary" aria-label={`Go to cue ${c.number}`} title="Go to this cue" onClick={() => onGoto(c.id)}><Play /></Button>

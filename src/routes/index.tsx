@@ -60,7 +60,7 @@ import { PatchPage } from "@/components/console/PatchPage";
 import { mixFrames, statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
 import type { Recording, LookState, Cue, BankFader, CallSheetData, TimelineSave } from "@/lib/store";
-import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
+import { applyBank, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { ShowMonitor } from "@/components/console/ShowMonitor";
 import { applyPark, blendTarget, cueAtTimecode, cueTarget, MtcDecoder, programmerDiff } from "@/lib/show-control";

@@ -204,3 +204,7 @@ body { text-shadow: var(--text-outline); }
   /* Comfortable tablet hit targets for small icon buttons. */
   @media (pointer: coarse) { button:where([class*="h-7"], [class*="h-8"]) { min-height: 2.5rem; } }
 }
+
+/* Red Shift: night mode — only red light leaves the screen */
+html.red-shift { filter: brightness(0.8); }
+html.red-shift body::after { content: ""; position: fixed; inset: 0; background: #ff0000; mix-blend-mode: multiply; pointer-events: none; z-index: 2147483647; }
