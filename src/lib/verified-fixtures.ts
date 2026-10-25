@@ -464,7 +464,25 @@ function orbiterModes(): FixtureMode[] {
   return out;
 }
 
+// Aputure Nova P300c DMX Profile Specification V1.1 (Sept 2022, controller FW 1.8). 8-bit only, CCT 2000–10000K.
+const nm = (name: string, ...entries: (Slot | ChannelMapEntry)[]): FixtureMode => {
+  const channelMap = entries.flatMap((e) => (typeof e === "object" && !Array.isArray(e) ? [e as ChannelMapEntry] : expand([e as Slot], false)));
+  return { name, channels: channelMap.length, kind: "full", source: "manufacturer", channelMap };
+};
+const NOVA_P300C_MODES: FixtureMode[] = [
+  nm("Mode 1 - CCT & RGB 8-bit", "Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue"),
+  nm("Mode 2 - CCT 8-bit", "Dimmer", "CCT", GM),
+  nm("Mode 3 - CCT & HSI 8-bit", "Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation"),
+  nm("Mode 4 - GEL 8-bit", "Dimmer", lab("Gel CCT 3200/5600"), lab("Rosco / Lee"), lab("Gel Series"), lab("Gel Category")),
+  nm("Mode 5 - HSI 8-bit", "Dimmer", "Hue", "Saturation"),
+  nm("Mode 6 - Source 8-bit", "Dimmer", lab("Source")),
+  nm("Mode 7 - RGB 8-bit", "Dimmer", "Red", "Green", "Blue"),
+  nm("Mode 8 - XY 8-bit", "Dimmer", { attr: "Spare", label: "X", home: 0.3127 / 0.8 }, { attr: "Spare", label: "Y", home: 0.329 / 0.8 }),
+  nm("Mode 9 - FX 8-bit", lab("FX Selection"), "Dimmer", ...Array.from({ length: 8 }, (_, i) => lab(`FX Param ${i + 1}`))),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-aputure-nova-p300c", brand: "Aputure", model: "Nova P300c", watts: 300, cctRange: [2000, 10000], lightType: "LED colour", modes: NOVA_P300C_MODES },
   { id: "gdtf-arri-orbiter", brand: "ARRI", model: "Orbiter", watts: 500, cctRange: [2000, 20000], lightType: "LED colour", modes: orbiterModes() },
   { id: "gdtf-aputure-nova-p600c", brand: "Aputure", model: "Nova P600c", watts: 600, cctRange: [2000, 10000], lightType: "LED colour", modes: NOVA_P600C_MODES },
   { id: "gdtf-aputure-ls-600c-pro", brand: "Aputure", model: "LS 600c Pro", watts: 600, cctRange: [2300, 10000], lightType: "LED colour", modes: APUTURE_600C_MODES },

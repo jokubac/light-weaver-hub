@@ -105,3 +105,10 @@ describe("ARRI Orbiter V5.0 chart", () => {
     expect(ch("Mode 14 - RGBACL 16bit")).toBe(23);
   });
 });
+
+describe("Aputure Nova P300c chart V1.1", () => {
+  it("has 9 modes with chart channel counts", () => {
+    const f = VERIFIED_FIXTURES.find((x) => x.model === "Nova P300c")!;
+    expect(f.modes.map((m) => m.channels)).toEqual([7, 3, 6, 5, 3, 2, 4, 3, 10]);
+  });
+});
