@@ -468,4 +468,10 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
 export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string }[] = [
   // ARRI SkyPanel DMX Protocol Specification V4.4 (12/2022): modes 1–10, 16–23, 30 footprints match exactly.
   ...["SkyPanel S30C", "SkyPanel S60C", "SkyPanel S120C", "SkyPanel S360C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI SkyPanel DMX Protocol V4.4" })),
+  // Same V4.4 document, Sxx-RP section: modes 1/2 = 5/6 channels.
+  { brand: "ARRI", model: "SkyPanel S60RP", chart: "ARRI SkyPanel DMX Protocol V4.4 (Sxx-RP)" },
+  // ARRI L-Series Plus DMX Protocol V4.4 (07/2024): modes 1–10, 16–27 and Extended Color Control (+8/+16) match.
+  ...["L5C Plus", "L7C Plus"].map((model) => ({ brand: "ARRI", model, chart: "ARRI L-Series Plus DMX Protocol V4.4" })),
+  // ARRI L-Series DMX Protocol V3.3, Lx-C section: modes 1–10 = 8/3/6/5/3/16/6/12/10/6 channels.
+  ...["L5-C", "L7C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI L-Series DMX Protocol V3.3" })),
 ];
