@@ -322,9 +322,10 @@ export function layerArea(layer: Pick<PixelLayer, "area">, stage: { W: number; H
   return { x: Math.max(0, Math.min(stage.W - w, Math.round(a.x))), y: Math.max(0, Math.min(stage.H - h, Math.round(a.y))), w, h };
 }
 
-/** A new effect starts small: 1/16 of the map, in the top-left corner. */
+/** A new effect starts small: 1/16 of the map, centred on the map. */
 export function initArea(stage: { W: number; H: number }) {
-  return layerArea({ area: { x: 0, y: 0, w: Math.max(1, Math.round(stage.W / 16)), h: Math.max(1, Math.round(stage.H / 16)) } }, stage);
+  const w = Math.max(1, Math.round(stage.W / 16)), h = Math.max(1, Math.round(stage.H / 16));
+  return layerArea({ area: { x: Math.round((stage.W - w) / 2), y: Math.round((stage.H - h) / 2), w, h } }, stage);
 }
 
 /** Whole canvas the effect is painted on, so every light samples the spot it sits on. */
