@@ -229,4 +229,5 @@
 - [x] Park holds a light completely: wherever you go and whatever you adjust, a parked light stays exactly as parked until unparked.
 
 - [ ] PIXEL 1920x1080 grid for Full HD video (waiting on user choice)
-- [ ] DMX universes unlimited (raise 128 cap)
+- [x] DMX universes up to 32768 (Art-Net max)
+- [ ] FIXTURES REC opens as a dropdown like + Group / + Look
