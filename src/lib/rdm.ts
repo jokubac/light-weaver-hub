@@ -46,3 +46,16 @@ export async function setRdm(bridge: string, nodeIp: string, universe: number, u
   if (!res.ok) throw new Error(`RDM change failed (${res.status})`);
   return (await res.json()) as RdmDevice | null;
 }
+
+/** Last RDM scan per universe, kept so the battery panel can list every light in one place. */
+const RDM_KEY = "nox-rdm-last";
+export interface RdmSnapshot { universe: number; at: number; devices: RdmDevice[] }
+export function rememberRdm(universe: number, devices: RdmDevice[]) {
+  try {
+    const all = loadRdmSnapshots().filter((s) => s.universe !== universe);
+    localStorage.setItem(RDM_KEY, JSON.stringify([...all, { universe, at: Date.now(), devices }]));
+  } catch { /* storage full or unavailable */ }
+}
+export function loadRdmSnapshots(): RdmSnapshot[] {
+  try { const v = JSON.parse(localStorage.getItem(RDM_KEY) ?? "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
+}

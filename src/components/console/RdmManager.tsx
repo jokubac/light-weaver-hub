@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BatteryMedium, Lightbulb, Radar } from "lucide-react";
 import { NumberField } from "./NumberField";
-import { RDM_PID, rdmData, scanRdm, setRdm, type RdmDevice } from "@/lib/rdm";
+import { RDM_PID, rdmData, rememberRdm, scanRdm, setRdm, type RdmDevice } from "@/lib/rdm";
 import { loadConnection } from "@/lib/store";
 
 /** RDM on one universe: find lights (e.g. Astera via AsteraBox), change address/mode/name, identify, read battery. */
@@ -15,13 +15,13 @@ export function RdmManager({ onAdd }: { onAdd: (dev: RdmDevice, universe: number
   const conn = () => { const c = loadConnection(); if (!c.node?.ip) throw new Error("Connect to the AsteraBox / node first (CONNECT)."); return { bridge: c.bridge, ip: c.node.ip }; };
   const scan = async () => {
     setBusy("scan"); setError(null);
-    try { const c = conn(); const d = await scanRdm(c.bridge, c.ip, universe); setDevices(d); if (!d.length) setError("No RDM lights found on this universe."); }
+    try { const c = conn(); const d = await scanRdm(c.bridge, c.ip, universe); setDevices(d); rememberRdm(universe, d); if (!d.length) setError("No RDM lights found on this universe."); }
     catch (e) { setError(e instanceof Error ? e.message : "Scan failed."); }
     finally { setBusy(null); }
   };
   const change = async (d: RdmDevice, pid: number, data: number[]) => {
     setBusy(d.uid); setError(null);
-    try { const c = conn(); const nd = await setRdm(c.bridge, c.ip, universe, d.uid, pid, data); if (nd) setDevices((l) => l?.map((x) => (x.uid === d.uid ? nd : x)) ?? null); }
+    try { const c = conn(); const nd = await setRdm(c.bridge, c.ip, universe, d.uid, pid, data); if (nd) setDevices((l) => { const n = l?.map((x) => (x.uid === d.uid ? nd : x)) ?? null; if (n) rememberRdm(universe, n); return n; }); }
     catch (e) { setError(e instanceof Error ? e.message : "Change failed."); }
     finally { setBusy(null); }
   };
