@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 export interface ViewTab {
   key: string;
@@ -38,6 +38,3 @@ export function ViewTabs({ tabs }: { tabs: ViewTab[] }) {
     </div>
   );
 }
-
-// ResizeObserver re-measures on window resizes; suppress the unused-import lint for useEffect
-void useEffect;
