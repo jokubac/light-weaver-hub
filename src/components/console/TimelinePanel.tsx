@@ -505,6 +505,10 @@ function TimelineVisualiser({ fixtures, timeline, time, recordings, setTimeline,
   const stage = useRef<HTMLDivElement>(null), photo = useRef<HTMLInputElement>(null);
   const drag = useRef<{ uid: string; moved: boolean; pos: [number, number] } | null>(null);
   const [dragPos, setDragPos] = useState<{ uid: string; p: [number, number] } | null>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const rot = viz.rot ?? 0;
+  useEffect(() => { const el = stage.current; if (!el) return; const ro = new ResizeObserver(([e]) => setBox({ w: e.contentRect.width, h: e.contentRect.height })); ro.observe(el); return () => ro.disconnect(); }, []);
+
   // Only lights that live in the timeline layers: clip targets, pixel layer orders, REC steps, or every light for a whole-scene adjustment clip.
   const used = new Set<string>();
   for (const c of timeline.clips) {
