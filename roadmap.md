@@ -252,3 +252,4 @@
 - [ ] Other brands
 - [ ] ARRI official charts (SkyPanel, Orbiter, L-Series)
 - [ ] Nanlite PavoTube II (pixel modes; chart downloaded)
+- [ ] ALL Nanlite, Nanlux and Aputure lights verified from official charts (user priority)
