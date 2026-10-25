@@ -40,7 +40,7 @@ function PixCanvas({ f, size, rot, cols }: { f: PatchedFixture; size: number; ro
 }
 
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
-export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveGroup, onDuplicateGroup, onAddEffect, onRemoveLight, onLayer, addFixtures }: {
+export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveGroup, onDuplicateGroup, onAddEffect, onRemoveLight, onLayer, addFixtures, onLive }: {
   onRemoveGroup?: (gid: string) => void; onDuplicateGroup?: (gid: string) => void; onAddEffect?: (gid: string) => void;
   addFixtures?: ReactNode;
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
@@ -48,6 +48,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void; onPause?: (id: string) => void; onRemoveLayer?: (id: string) => void; onRemoveLight?: (uid: string) => void;
   onArea?: (area: { x: number; y: number; w: number; h: number }) => void;
   onLayer?: (patch: Partial<PixelLayer>) => void;
+  onLive?: (gid: string, live: boolean) => void;
 }) {
   const [cell, setCell] = useState(20);
   // zoom is the cell size so drag maths stay in exact grid units; the map itself never rotates
@@ -290,6 +291,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                   <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
                     <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.playing ? "■" : "▶"}</button>
                     {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
+                    {onLive && <button onClick={() => onLive(gid, h.live === false)} aria-pressed={h.live !== false} aria-label={`${h.live !== false ? "Take page off the lights" : "Send page live to the lights"} ${gi + 1}`} title={h.live !== false ? "LIVE: lights follow this page. Tap for preview only." : "Preview only: lights don't see this page. Tap to go LIVE."} className={`rounded px-1.5 py-1 text-[10px] font-bold tracking-wide ${h.live !== false ? "bg-destructive text-destructive-foreground" : "border border-border text-muted-foreground"}`}>{h.live !== false ? "● LIVE" : "PREVIEW"}</button>}
                     <span className="px-1 font-semibold text-muted-foreground">P{gi + 1}</span>
                     {fx.map((l) => (
                       <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
