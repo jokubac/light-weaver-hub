@@ -482,6 +482,10 @@ const NOVA_P300C_MODES: FixtureMode[] = [
 ];
 
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  // STORM XT52 DMX Profile Spec V1.3 (06/2026, FW 1.6): profiles 1–32 unified with STORM 1200x; Aputure states 700x/400x share them.
+  { id: "gdtf-aputure-storm-xt52", brand: "Aputure", model: "STORM XT52", watts: 5200, lightType: "LED daylight", modes: STORM1200X_MODES },
+  { id: "gdtf-aputure-storm-700x", brand: "Aputure", model: "STORM 700x", watts: 700, lightType: "LED daylight", modes: STORM1200X_MODES },
+  { id: "gdtf-aputure-storm-400x", brand: "Aputure", model: "STORM 400x", watts: 400, lightType: "LED daylight", modes: STORM1200X_MODES },
   { id: "gdtf-aputure-nova-p300c", brand: "Aputure", model: "Nova P300c", watts: 300, cctRange: [2000, 10000], lightType: "LED colour", modes: NOVA_P300C_MODES },
   { id: "gdtf-arri-orbiter", brand: "ARRI", model: "Orbiter", watts: 500, cctRange: [2000, 20000], lightType: "LED colour", modes: orbiterModes() },
   { id: "gdtf-aputure-nova-p600c", brand: "Aputure", model: "Nova P600c", watts: 600, cctRange: [2000, 10000], lightType: "LED colour", modes: NOVA_P600C_MODES },
