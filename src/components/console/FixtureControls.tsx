@@ -34,7 +34,7 @@ import { hexToHs } from "@/lib/gels";
 import { NumberField } from "./NumberField";
 import { useClock } from "./PixelPanel";
 import { BeamControls, beamChannels } from "./BeamControls";
-import { IntensityMacros, GmMacros, FanControl, GelPicker } from "./AdvancedControls";
+import { IntensityMacros, FanControl, GelPicker } from "./AdvancedControls";
 
 export function Control({
   label, value, display, onChange, onReset, gradient, min = 0, max = 1, entry,
