@@ -529,7 +529,8 @@ function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, on
         <span className="text-muted-foreground">drag lights to place · tap to set at the red line</span>
       </div>
       <button aria-label="Close visualiser" onClick={onClose} className="absolute right-2 top-1 z-10 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-      <div ref={stage} className="absolute inset-0 overflow-hidden bg-cover bg-center" style={viz.image ? { backgroundImage: `url(${viz.image})` } : undefined} onPointerDown={(e) => { if (e.target === e.currentTarget) setEdit(null); }}>
+      <div ref={stage} className="absolute inset-0 overflow-hidden" onPointerDown={(e) => { if (e.target === e.currentTarget) setEdit(null); }}>
+        {viz.image && <div aria-hidden className="pointer-events-none absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${viz.image})`, filter: viz.invert ? "invert(1)" : undefined }} />}
         {list.map((f, i) => { const c = colorOf?.(f) ?? [0, 0, 0], [x, y] = posOf(f, i); const rgb = `rgb(${c[0]},${c[1]},${c[2]})`; return (
           <div key={f.uid} title={f.name} className={`absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none select-none items-end justify-center overflow-hidden rounded-full border-2 text-[8px] font-semibold ${edit === f.uid ? "border-primary" : "border-border"}`}
             style={{ left: `${x * 100}%`, top: `${y * 100}%`, background: rgb, boxShadow: `0 0 18px 4px ${rgb.replace("rgb", "rgba").replace(")", ",0.55)")}` }}
