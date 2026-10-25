@@ -225,3 +225,5 @@
 - [x] Sound: device audio source, WAV/audio file upload, input+output device picker (raw)
 - [x] Programmer (PROG count, Update/Clear), Park/Unpark, Track vs Cue-only cues, MIDI timecode cue triggers, Monitor (batteries, L1/L2/L3), Red Shift; 9 tests, Monitor and Red Shift browser checked
 - [ ] LTC (audio timecode) cue triggers — only MIDI timecode (MTC) implemented
+
+- [ ] Park holds a light completely: wherever you go and whatever you adjust, a parked light stays exactly as parked until unparked.
