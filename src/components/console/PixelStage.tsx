@@ -265,7 +265,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 text-xs hw-bar">
           {onSelect && (
             <div className="order-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1" aria-label="Effect layers">
               {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
@@ -287,10 +287,10 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                   </span>
                 );
               })}
-              {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Page</Button>}
+              {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}><Plus />Page</Button>}
             </div>
           )}
-          <div className="order-1 flex flex-wrap gap-1">
+          <div className="order-1 flex flex-wrap items-center gap-1.5">
             {layer && onLayer && (
               <Popover>
                 <PopoverTrigger asChild><Button size="sm" variant={recording ? "destructive" : "secondary"} aria-label="Effect motion"><RotateCw />Motion {Math.round(layer.angle ?? 0)}°{layer.spin ? ` · ${layer.spin}°/s` : ""}{recording ? " ●" : ""}</Button></PopoverTrigger>
@@ -312,6 +312,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                 </PopoverContent>
               </Popover>
             )}
+            <span aria-hidden className="mx-1 h-6 w-px bg-border" />
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>
             <DropdownMenu>
@@ -328,6 +329,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                 </label>
               </DropdownMenuContent>
             </DropdownMenu>
+            <span aria-hidden className="mx-1 h-6 w-px bg-border" />
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
             <Button size="icon" variant="secondary" aria-label="Recenter" title="Recenter the map" onClick={recenter}><Crosshair /></Button>
