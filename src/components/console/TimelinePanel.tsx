@@ -10,6 +10,7 @@ import { PIXEL_LIBRARY, defaultLayer, isPixelFixture, type PixelLayer } from "@/
 import type { Recording } from "@/lib/store";
 import { beats, splitClip, setLightKeyAt, type Ease, clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey, type TimelineTrack, type AdjustFilter, type BlendMode } from "@/lib/timeline";
 import { editHistory } from "@/lib/edit-history";
+import { ColorWheel } from "@/components/console/AdvancedControls";
 
 const ROW = 52, HEAD = 150;
 const KIND_STYLE: Record<ClipKind, string> = {
@@ -464,7 +465,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
               <label className="flex items-center gap-1">{clip.kind === "adjust" ? "Level" : "Intensity"}<NumberField aria-label="Point intensity" min={0} max={clip.kind === "adjust" ? 200 : 100} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd({ intensity: v / 100 })} className={field} />%</label>
               <label className="flex items-center gap-1">Curve<select aria-label="Point curve" value={k.ease ?? "linear"} onChange={(e) => upd({ ease: e.target.value as Ease })} className="rounded border border-input bg-surface-elevated px-1 py-0.5 text-xs"><option value="linear">Linear</option><option value="smooth">Smooth</option><option value="step">Step</option></select></label>
               <label className="flex items-center gap-1">CCT<NumberField aria-label="Point CCT" allowEmpty placeholder="—" min={2000} max={10000} step={100} value={k.cct != null ? c2k(k.cct) : undefined} onChange={(v) => upd({ cct: v == null ? undefined : k2c(v), ...(v != null ? { hue: undefined, sat: undefined } : {}) })} className={field} />K</label>
-              <label className="flex items-center gap-1">Colour<input type="color" aria-label="Point colour" value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd({ hue: h, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>
+              <div className="flex flex-wrap items-center gap-1"><span className="text-muted-foreground">Colour</span>{GELS.map((g) => <button key={g} aria-label={`Point gel ${g}`} title={g} onClick={() => { const [hh, sa] = hexHs(g); upd({ hue: hh, sat: sa, cct: undefined }); }} className="h-4 w-4 rounded-full border border-border" style={{ background: g }} />)}<input type="color" aria-label="Point colour" value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd({ hue: h, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></div>
               {(k.hue != null || k.cct != null) && <Button size="sm" variant="ghost" onClick={() => upd({ hue: undefined, sat: undefined, cct: undefined })}>No colour</Button>}
               <Button size="sm" variant="ghost" onClick={() => { setKeys(clip, ks.filter((x) => x.id !== k.id)); setKeySel(null); }}><Trash2 />Point</Button>
             </span>;
@@ -546,7 +547,9 @@ function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, on
         <div className="flex items-center gap-1"><b className="flex-1 truncate">{ef.name} @ {time.toFixed(1)}s</b><button aria-label="Close light editor" onClick={() => setEdit(null)}><X className="h-3.5 w-3.5" /></button></div>
         <label className="flex items-center gap-2">Int<input type="range" min={0} max={100} value={Math.round(cur.intensity * 100)} onChange={(e) => setVal({ intensity: +e.target.value / 100 })} className="flex-1" /><span className="w-9 text-right font-mono">{Math.round(cur.intensity * 100)}%</span></label>
         <label className="flex items-center gap-2">CCT<input type="range" min={2000} max={10000} step={100} value={c2k(cur.cct ?? k2c(5600))} onChange={(e) => setVal({ cct: k2c(+e.target.value), hue: undefined, sat: undefined })} className="flex-1" /><span className="w-12 text-right font-mono">{cur.hue != null ? "—" : `${c2k(cur.cct ?? k2c(5600))}K`}</span></label>
-        <label className="flex items-center gap-2">Colour<input type="color" aria-label="Light colour at playhead" value={cur.hue != null ? hsvHex(cur.hue, cur.sat ?? 1) : "#ffffff"} onChange={(e) => { const [hh, sa] = hexHs(e.target.value); setVal({ hue: hh, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>
+        <div className="flex flex-wrap gap-1" aria-label="Gel colours">{GELS.map((g) => <button key={g} aria-label={`Light gel ${g}`} title={g} onClick={() => { const [hh, sa] = hexHs(g); setVal({ hue: hh, sat: sa, cct: undefined }); }} className={`h-5 w-5 rounded-full border ${cur.hue != null && hsvHex(cur.hue, cur.sat ?? 1).toLowerCase() === g ? "border-foreground" : "border-border"}`} style={{ background: g }} />)}</div>
+        <ColorWheel hue={cur.hue ?? 0} sat={cur.sat ?? 1} crossfade={1} update={(p) => { if (p.hue != null) setVal({ hue: p.hue, sat: p.saturation ?? 1, cct: undefined }); }} />
+        <label className="flex items-center gap-2">Custom<input type="color" aria-label="Light colour at playhead" value={cur.hue != null ? hsvHex(cur.hue, cur.sat ?? 1) : "#ffffff"} onChange={(e) => { const [hh, sa] = hexHs(e.target.value); setVal({ hue: hh, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>
         <p className="text-muted-foreground">Each change adds a point at the red line; move the line and change again to make the light fade between them.</p>
       </div>}
       <div aria-label="Resize visualiser" onPointerDown={resize} className="absolute inset-x-0 bottom-0 z-10 h-1.5 cursor-ns-resize touch-none bg-border/60 hover:bg-primary" />
@@ -556,6 +559,7 @@ function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, on
 
 const BLENDS: [BlendMode, string][] = [["replace", "Replace"], ["add", "Add"], ["htp", "Brightest (HTP)"]];
 const LAYER_COLOURS = ["#e5484d", "#f5a524", "#30a46c", "#0090ff", "#8e4ec6", "#e93d82", "#a1a1aa"];
+const GELS = ["#ff0000", "#ff7f00", "#ffb300", "#ffee00", "#00ff00", "#00ffff", "#0066ff", "#8800ff", "#ff00ff", "#ff66b2", "#ffffff"];
 const sel3 = "rounded border border-input bg-surface-elevated px-2 py-1 text-xs";
 
 function LayerSettings({ timeline, trackId, onTrack, onMove, onClip, onClose }: { timeline: Timeline; trackId: string; onTrack: (p: Partial<TimelineTrack>) => void; onMove: (d: number) => void; onClip: (id: string, p: Partial<TimelineClip>) => void; onClose: () => void }) {
