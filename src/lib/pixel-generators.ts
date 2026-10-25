@@ -1,6 +1,8 @@
 // Procedural pixel generators. Each maps a pixel position on the layer's map to a colour.
 // Pure and browser-safe so the same output plays live, in REC and on the TIMELINE.
 
+import { levels } from "./audio-react";
+
 export type RGB = [number, number, number];
 export interface GenCtx {
   x: number; y: number; W: number; H: number; t: number;
@@ -106,6 +108,17 @@ export const PIXEL_GENERATORS: PixelGenerator[] = [
   { id: "split", label: "Split colours", group: "Colour", fn: (c) => { const left = c.x < c.W / 2; const sw = Math.floor(c.t * 0.5) % 2 === 1; return pick(c, left !== sw ? [255, 60, 0] : [0, 120, 255], 1, left !== sw ? 0 : 0.5); } },
   { id: "vertical", label: "Vertical gradient", group: "Colour", fn: (c) => { const k = c.H > 1 ? c.y / (c.H - 1) : fract(c.t * 0.2); return pick(c, ramp([[255, 0, 120], [255, 160, 0], [0, 200, 255]], fract(k + c.t * 0.1)), 1, fract(k + c.t * 0.1)); } },
   { id: "glitch", label: "Glitch", group: "Colour", fn: (c) => { const row = Math.floor(c.y) + Math.floor(c.t * 8) * 7; const on = hash(row) > 0.6; const sh = on ? Math.floor(hash(row + 1) * 6) : 0; const v = hash2(Math.floor((c.x + sh) / 3), Math.floor(c.t * 8)); return pick(c, on ? hsv(v, 1, 1) : sc([0, 200, 255], 0.15), on ? 1 : 0.15, v); } },
+  // Music: react live to the sound picked in Sound → Listen (silent/dark when nothing is listening)
+  { id: "vu-meter", label: "VU meter", group: "Music", fn: (c) => { const lv = levels(); const n = c.H > 1 ? 1 - c.y / (c.H - 1) : c.x / Math.max(1, c.W - 1); const on = n <= lv.level * 1.4 ? 1 : 0; return pick(c, sc(ramp([[0, 255, 60], [255, 220, 0], [255, 0, 0]], n), on), on, n); } },
+  { id: "spectrum", label: "Spectrum bars", group: "Music", fn: (c) => { const lv = levels(); const f = c.x / Math.max(1, c.W - 1); const v = f < 0.5 ? lerp(lv.bass, lv.mid, f * 2) : lerp(lv.mid, lv.high, f * 2 - 1); const n = c.H > 1 ? 1 - c.y / (c.H - 1) : 0; const on = n <= v * 1.3 ? 1 : 0; return pick(c, sc(hsv(f * 0.8), on), on, f); } },
+  { id: "bass-pulse", label: "Bass pulse", group: "Music", fn: (c) => { const lv = levels(); const k = clamp(lv.bass * 1.3); return pick(c, sc([255, 40, 120], k), k); } },
+  { id: "beat-flash", label: "Beat flash", group: "Music", fn: (c) => { const lv = levels(); const k = lv.beat ? 1 : clamp(lv.bass * 0.4); return pick(c, sc(WH, k), k); } },
+  { id: "beat-ring", label: "Beat rings", group: "Music", fn: (c) => { const lv = levels(); const d = Math.hypot(c.x - c.W / 2, c.y - c.H / 2) / Math.max(1, Math.hypot(c.W, c.H) / 2); const k = clamp(1 - Math.abs(d - lv.bass) * 5); return pick(c, sc(hsv(c.t * 0.05 + d * 0.3), k), k, d); } },
+  { id: "music-fire", label: "Music fire", group: "Music", fn: (c) => { const lv = levels(); const h = clamp(flame(c, 1 + lv.mid * 2, 0.4 + lv.bass * 1.6) * (0.3 + lv.level)); return pick(c, ramp(FIRE, h), h); } },
+  { id: "hi-sparkle", label: "Hi-hat sparkle", group: "Music", fn: (c) => { const lv = levels(); const k = hash2(c.x, c.y + Math.floor(c.t * 30) * 17) > 1 - lv.high * 0.6 ? 1 : 0; return pick(c, sc(WH, k), k); } },
+  { id: "colour-groove", label: "Colour groove", group: "Music", fn: (c) => { const lv = levels(); const k = clamp(0.2 + lv.level * 1.2); return pick(c, sc(hsv(c.t * 0.03 + lv.mid + c.x / Math.max(1, c.W) * 0.2), k), k, fract(lv.mid + c.x / Math.max(1, c.W))); } },
+  { id: "bass-wave", label: "Bass wave", group: "Music", fn: (c) => { const lv = levels(); const w = (Math.sin(c.x * 0.4 - c.t * (2 + lv.bass * 10)) + 1) / 2; const k = clamp(w * (0.15 + lv.bass * 1.2)); return pick(c, sc([0, 160, 255], k), k, w); } },
+  { id: "strobe-drop", label: "Drop strobe", group: "Music", fn: (c) => { const lv = levels(); const k = lv.level > 0.55 && fract(c.t * 12) < 0.5 ? 1 : 0; return pick(c, sc(WH, k), k); } },
 ];
 
 export const PIXEL_GENERATOR_GROUPS = [...new Set(PIXEL_GENERATORS.map((g) => g.group))];
