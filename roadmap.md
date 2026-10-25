@@ -239,4 +239,4 @@
 
 - [x] View tabs (FIXTURES/PLOT/TIMELINE/PIXEL) stretched across the whole screen width; Groups · Looks · Effects · REC toggle moved to the top bar as an icon next to ⋯; browser verified (tabs 309px each, amber tracks the active tab exactly, panel still opens).
 - [x] PLOT toolbar: ↻ 90° button rotates the selected lights' boxes 90° (same option as PIXEL); browser verified.
-- [ ] (Jokubas) TIMELINE: lengvesnis valdymas (easier clip/layer handling) + fixture spalvų pasirinkimas (colour picker for timeline fixtures) ir pan.
+- [x] (Jokubas) TIMELINE: lengvesnis valdymas + fixture spalvų pasirinkimas — vizualizatoriaus lempų editoriuje gel swatchai (11) + konsolės ColorWheel + Custom; keyframe point editoriuje gel swatchai; panelis telpa vizualizatoriuje; browser verified (gel click → keyframe hue 216).
