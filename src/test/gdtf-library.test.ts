@@ -13,10 +13,10 @@ describe("GDTF library search", () => {
 describe("curated bundled profiles", () => {
   const index = JSON.parse(readFileSync("public/gdtf-library/library.json", "utf8"));
   const library: LibraryDef[] = Array.from({ length: index.parts }, (_, i) => JSON.parse(readFileSync(`public/gdtf-library/library-${i + 1}.json`, "utf8"))).flat();
-  it("retains the uploaded AM1600R eleven-byte layout without guessing watts", () => {
+  it("keeps the AM1600R eleven-byte first mode (official chart: ch4 Dissolve) without guessing watts", () => {
     const fixture = library.find((d) => d.brand === "Godox" && d.model === "Knowled AM1600R");
     expect(fixture?.modes[0]?.channels).toBe(11);
-    expect(fixture?.modes[0]?.channelMap?.map((c) => c.attr)).toEqual(["Dimmer", "CCT", "GM", "Spare", "Red", "Green", "Blue", "White", "Spare", "Spare", "Spare"]);
+    expect(fixture?.modes[0]?.channelMap?.map((c) => c.attr)).toEqual(["Dimmer", "CCT", "GM", "Crossfade", "Red", "Green", "Blue", "White", "Spare", "Spare", "Spare"]);
     expect(fixture?.watts).toBeUndefined();
   });
   it("keeps the restored cinema manufacturers", () => {
