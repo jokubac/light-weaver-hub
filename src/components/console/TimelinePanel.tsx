@@ -523,7 +523,7 @@ function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, on
       <div className="absolute left-2 top-1 z-10 flex items-center gap-1 text-xs">
         <span className="rounded bg-surface/80 px-1.5 py-0.5 font-semibold"><MonitorPlay className="mr-1 inline h-3.5 w-3.5" />Visualiser · {time.toFixed(1)}s</span>
         <Button size="sm" variant="secondary" className="h-6" onClick={() => photo.current?.click()}><ImagePlus />{viz.image ? "Photo" : "Add photo"}</Button>
-        {viz.image && <Button size="sm" variant={viz.invert ? "secondary" : "ghost"} className="h-6" aria-label="Invert photo" aria-pressed={!!viz.invert} onClick={() => setViz({ invert: !viz.invert })}><Contrast />Invert</Button>}
+        {viz.image && <Button size="sm" variant={viz.invert ? "default" : "secondary"} className="h-6" aria-label="Invert photo" aria-pressed={!!viz.invert} onClick={() => setViz({ invert: !viz.invert })}><Contrast />Invert</Button>}
         {viz.image && <Button size="sm" variant="ghost" className="h-6" aria-label="Remove photo" onClick={() => setViz({ image: undefined })}><X /></Button>}
         <input ref={photo} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) loadPhoto(f); e.target.value = ""; }} />
         <span className="text-muted-foreground">drag lights to place · tap to set at the red line</span>
