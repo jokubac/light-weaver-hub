@@ -238,3 +238,5 @@
 - [x] Top bar: MASTER fader and the lightbulb (Blackout) button restored to their original plain grouping — no framed box, bulb sits right after the percent field; PATCH/FADERS/BLIND/lock/CONNECT/⋯ grouping kept; browser verified.
 
 - [x] View tabs (FIXTURES/PLOT/TIMELINE/PIXEL) stretched across the whole screen width; Groups · Looks · Effects · REC toggle moved to the top bar as an icon next to ⋯; browser verified (tabs 309px each, amber tracks the active tab exactly, panel still opens).
+- [x] PLOT toolbar: ↻ 90° button rotates the selected lights' boxes 90° (same option as PIXEL); browser verified.
+- [ ] (Jokubas) TIMELINE: lengvesnis valdymas (easier clip/layer handling) + fixture spalvų pasirinkimas (colour picker for timeline fixtures) ir pan.
