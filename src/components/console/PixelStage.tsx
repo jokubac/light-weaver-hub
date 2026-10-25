@@ -294,7 +294,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             {layer && onLayer && (
               <Popover>
                 <PopoverTrigger asChild><Button size="sm" variant={recording ? "destructive" : "secondary"} aria-label="Effect motion"><RotateCw />Motion {Math.round(layer.angle ?? 0)}°{layer.spin ? ` · ${layer.spin}°/s` : ""}{recording ? " ●" : ""}</Button></PopoverTrigger>
-                <PopoverContent align="end" className="w-72 space-y-2 p-3 text-xs">
+                <PopoverContent align="start" className="w-72 space-y-2 p-3 text-xs">
                   <div className="flex items-center gap-1.5"><span className="w-12 font-semibold">Rotate</span>
                     <input type="number" step={5} min={-180} max={180} aria-label="Rotate degrees" value={Math.round(layer.angle ?? 0)} onChange={(e) => { const v = Number(e.target.value); if (!Number.isNaN(v)) setAngle(((v + 540) % 360) - 180); }} className="w-14 rounded bg-surface-elevated px-1 py-0.5 tabular-nums" />°
                     <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 45 + 540) % 360) - 180)}>45°</Button>
