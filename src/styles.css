@@ -188,9 +188,13 @@ body { text-shadow: var(--text-outline); }
   box-shadow: none !important;
 }
 .nox-tab:hover { color: var(--foreground); background: var(--surface-elevated); }
+.nox-tab {
+  transition: color 0.2s ease;
+}
 .nox-tab[aria-pressed="true"] {
-  color: var(--primary-foreground); background: var(--primary); text-shadow: none;
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 60%, transparent), 0 4px 14px -6px color-mix(in oklab, var(--primary) 70%, transparent) !important;
+  color: var(--primary-foreground);
+  text-shadow: none;
+  box-shadow: none !important;
 }
 @layer base {
   /* Any pressed toggle reads as "on" without per-component styling. */
