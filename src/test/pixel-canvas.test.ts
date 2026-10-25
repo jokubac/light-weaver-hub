@@ -40,19 +40,19 @@ describe("resizable effect area", () => {
   });
   it("a small effect above a full one doesn't black out the lights outside its box", () => {
     const a = fixture("A", 30, 10);
-    const full = { ...defaultLayer("Full", [a.uid]), kind: "solid" as const, colors: ["#ff0000"], playing: true, area: { x: 0, y: 0, w: 122, h: 72 } };
+    const full = { ...defaultLayer("Full", [a.uid]), kind: "solid" as const, colors: ["#ff0000"], playing: true, area: { x: 0, y: 0, w: 128, h: 72 } };
     const small = { ...defaultLayer("Small", [a.uid]), kind: "solid" as const, colors: ["#0000ff"], playing: true, area: { x: 0, y: 0, w: 8, h: 5 } };
     const out = renderLayers([full, small], [a], 1, new Map());
     expect(out.get(a.uid)![0]).toEqual([255, 0, 0]);
   });
   it("canvas is fixed and the area is clamped inside it", () => {
-    expect(stageSize([fixture("Far", 200, 200)])).toEqual({ W: 122, H: 72 });
+    expect(stageSize([fixture("Far", 200, 200)])).toEqual({ W: 128, H: 72 });
     expect(layerArea({ area: { x: 40, y: -3, w: 20, h: 5 } }, { W: 48, H: 24 })).toEqual({ x: 28, y: 0, w: 20, h: 5 });
   });
   it("an empty default effect starts at 1/16 of the map, centred, not full", () => {
     const [l] = migrateLayers({});
     expect(l!.empty).toBe(true);
-    expect(l!.area).toEqual({ x: Math.round((122 - Math.round(122 / 16)) / 2), y: Math.round((72 - Math.round(72 / 16)) / 2), w: Math.round(122 / 16), h: Math.round(72 / 16) });
+    expect(l!.area).toEqual({ x: Math.round((128 - Math.round(128 / 16)) / 2), y: Math.round((72 - Math.round(72 / 16)) / 2), w: Math.round(128 / 16), h: Math.round(72 / 16) });
   });
 });
 
@@ -72,7 +72,7 @@ describe("shrunk effect keeps its pattern", () => {
   it("a 1/2 box shows the same chase steps as the full box, not every second one", () => {
     const f = fixture("A", 0, 0);
     const base = { ...defaultLayer("L", [f.uid]), kind: "chase" as const, colors: ["#ff0000", "#00ff00", "#0000ff"], size: 1 };
-    const full = renderCanvasImage({ ...base, area: { x: 0, y: 0, w: 122, h: 72 } }, [f], 0, null);
+    const full = renderCanvasImage({ ...base, area: { x: 0, y: 0, w: 128, h: 72 } }, [f], 0, null);
     const half = renderCanvasImage({ ...base, area: { x: 0, y: 0, w: 61, h: 36 } }, [f], 0, null);
     expect(half.img.slice(0, 6)).toEqual(full.img.slice(0, 6));
   });
@@ -82,12 +82,12 @@ describe("spread and edge fade", () => {
   it("edge fade darkens the box edge and spread softens a hard chase", () => {
     const f = fixture("A", 0, 0);
     const base = { ...defaultLayer("L", [f.uid]), kind: "chase" as const, colors: ["#ff0000", "#0000ff"], size: 1, area: { x: 0, y: 0, w: 20, h: 10 } };
-    const plain = renderCanvasImage(base, [f], 0, null).img[5 * 122 + 5]!;
-    const spread = renderCanvasImage({ ...base, blur: 2 }, [f], 0, null).img[5 * 122 + 5]!;
+    const plain = renderCanvasImage(base, [f], 0, null).img[5 * 128 + 5]!;
+    const spread = renderCanvasImage({ ...base, blur: 2 }, [f], 0, null).img[5 * 128 + 5]!;
     expect(spread[0] > 0 && spread[2] > 0).toBe(true);
     expect(spread).not.toEqual(plain);
     const faded = renderCanvasImage({ ...base, kind: "solid" as const, feather: 4 }, [f], 0, null).img;
-    expect(faded[5 * 122 + 0]![0]).toBeLessThan(faded[5 * 122 + 10]![0]);
+    expect(faded[5 * 128 + 0]![0]).toBeLessThan(faded[5 * 128 + 10]![0]);
   });
 });
 
@@ -95,6 +95,9 @@ it("spread widens a lit pixel into its neighbour at full strength", () => {
   const f = fixture("A", 0, 0);
   const base = { ...defaultLayer("L", [f.uid]), kind: "chase" as const, colors: ["#ff0000", "#000000"], size: 1, area: { x: 0, y: 0, w: 20, h: 10 } };
   const img = renderCanvasImage({ ...base, spread: 1 }, [f], 0, null).img;
-  expect(img[5 * 122 + 5]![0]).toBe(255);
-  expect(img[5 * 122 + 6]![0]).toBe(255);
+  expect(img[5 * 128 + 5]![0]).toBe(255);
+  expect(img[5 * 128 + 6]![0]).toBe(255);
 });
+
+import { STAGE_MIN as SM } from "@/lib/pixels";
+test("PIXEL map is exactly 16:9 like Full HD 1920×1080", () => { expect(SM[0] / SM[1]).toBeCloseTo(1920 / 1080, 5); });
