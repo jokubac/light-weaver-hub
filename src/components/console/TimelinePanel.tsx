@@ -76,7 +76,7 @@ const fits = (t: { adjust?: boolean | undefined } | undefined, c: TimelineClip) 
 const hasKeys = (c: TimelineClip) => c.kind === "level" || c.kind === "adjust";
 const field = "w-16 rounded border border-input bg-surface-elevated px-1 py-1 text-right font-mono text-xs";
 
-export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, onPause, onStop, onGo, waiting, repeat, onRepeat, groups, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio, colorOf }: {
+export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, playing, onPlay, onPause, onStop, onGo, waiting, repeat, onRepeat, groups, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio, colorOf }: {
   timeline: Timeline; setTimeline: (t: Timeline) => void; time: number; playing: boolean;
   onPlay: () => void; onPause: () => void; onStop: () => void; onGo: () => void; waiting: boolean; repeat: boolean; onRepeat: () => void; groups: string[]; onSeek: (t: number) => void;
   fixtures: PatchedFixture[]; selected: string[]; recordings: Recording[]; layers: PixelLayer[]; activeClips: string[];
@@ -84,6 +84,21 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   colorOf?: (f: PatchedFixture) => [number, number, number];
 }) {
   const [viz, setViz] = useState(false);
+  const hist = useRef(editHistory<Timeline>(80)), lastPush = useRef(0), [, bump] = useState(0);
+  /** Every edit is undoable; rapid changes (a drag) collapse into one step. */
+  const setTimeline = (t: Timeline) => { const now = Date.now(); if (now - lastPush.current > 400) hist.current.push(timeline); lastPush.current = now; setTimelineRaw(t); };
+  const undo = () => { const v = hist.current.undo(timeline); if (v) { setTimelineRaw(v); setSel([]); bump((n) => n + 1); } };
+  const redo = () => { const v = hist.current.redo(timeline); if (v) { setTimelineRaw(v); setSel([]); bump((n) => n + 1); } };
+  const scroller = useRef<HTMLDivElement>(null), taps = useRef<number[]>([]);
+  const split = () => {
+    const targets = (sel.length ? timeline.clips.filter((c) => sel.includes(c.id)) : timeline.clips).filter((c) => time > c.start && time < c.start + c.length && !timeline.tracks.find((t) => t.id === c.track)?.locked);
+    let clips = timeline.clips; const added: string[] = [];
+    for (const c of targets) { const p = splitClip(c, time); if (!p) continue; clips = clips.flatMap((x) => (x.id === c.id ? p : [x])); added.push(p[1].id); }
+    if (added.length) { setTimeline({ ...timeline, clips }); setSel(added); }
+  };
+  const setLoop = (p: Partial<NonNullable<Timeline["loop"]>>) => { const l = { a: 0, b: Math.max(4, time), on: false, ...timeline.loop, ...p }; if (l.b < l.a) [l.a, l.b] = [l.b, l.a]; setTimeline({ ...timeline, loop: l }); };
+  const addMarker = () => { const m = timeline.markers ?? []; setTimeline({ ...timeline, markers: [...m, { id: newId(), t: Math.round(time * 10) / 10, name: `M${m.length + 1}` }].sort((a, b) => a.t - b.t) }); };
+  const tap = () => { const now = performance.now(); taps.current = [...taps.current.filter((x) => now - x < 3000), now].slice(-8); const d = taps.current.slice(1).map((x, i) => x - taps.current[i]!); if (d.length >= 2) setTimeline({ ...timeline, bpm: Math.round(60000 / (d.reduce((a, b) => a + b, 0) / d.length)) }); };
   const lib = useFxLibrary();
   const [zoom, setZoom] = useState(40); // px per second
   const [track, setTrack] = useState(timeline.tracks[0]?.id ?? "");
@@ -96,7 +111,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
   const mdrag = useRef<{ id: string; x: number; t: number; moved: boolean } | null>(null);
   const phDrag = useRef<{ x: number; t: number } | null>(null);
   /** Magnet: pull a time onto the nearest clip edge (or the playhead) within 10px. */
-  const snapT = (t: number, skip: string[]) => magnet ? snapTime(t, [time, ...timeline.clips.filter((c) => !skip.includes(c.id)).flatMap((c) => [c.start, c.start + c.length])], 10 / zoom) : t;
+  const snapT = (t: number, skip: string[]) => magnet ? snapTime(t, [time, ...beats(timeline.bpm, len), ...timeline.clips.filter((c) => !skip.includes(c.id)).flatMap((c) => [c.start, c.start + c.length])], 10 / zoom) : t;
   const marqRef = useRef<{ idx: number; x: number; top: number; left: number; moved: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const len = Math.max(30, timelineLength(timeline) + 10, time + 5);
@@ -120,6 +135,14 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       if ((e.key === "Delete" || e.key === "Backspace") && sel.length) { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); }
       if ((e.key === "a" || e.key === "A") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setSel(timeline.clips.map((c) => c.id)); }
       if (e.key === "Escape") { setSel([]); setMarq(null); }
+      const k = e.key.toLowerCase(), mod = e.metaKey || e.ctrlKey;
+      if (mod && k === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if (mod && k === "y") { e.preventDefault(); redo(); return; }
+      if (!mod && k === "s") split();
+      if (!mod && k === "i") setLoop({ a: time });
+      if (!mod && k === "o") setLoop({ b: time, on: true });
+      if (!mod && k === "l") setLoop({ on: !timeline.loop?.on });
+      if (!mod && k === "m") addMarker();
       if (e.key === " ") { e.preventDefault(); if (playing) onPause(); else onPlay(); }
     };
     window.addEventListener("keydown", key);
@@ -178,6 +201,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
     const add = e.shiftKey || e.metaKey || e.ctrlKey;
     const ids = add ? (sel.includes(c.id) ? sel.filter((x) => x !== c.id) : [...sel, c.id]) : sel.includes(c.id) ? sel : [c.id];
     setSel(ids);
+    if (e.altKey && mode === "move") { const clones = ids.flatMap((id) => { const o = timeline.clips.find((x) => x.id === id); return o ? [{ ...structuredClone(o), id: newId() }] : []; }); setTimeline({ ...timeline, clips: [...timeline.clips, ...clones] }); }
     const group = mode === "move" ? ids : [c.id];
     drag.current = { primary: c.id, ids: group.flatMap((id) => { const o = timeline.clips.find((x) => x.id === id); return o ? [{ id, orig: { ...o } }] : []; }), mode, x: e.clientX, y: e.clientY, moved: false };
   };
@@ -266,7 +290,16 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         ]} />
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <Button variant={magnet ? "default" : "secondary"} size="sm" aria-pressed={magnet} title="Magnet — clips snap to the ends of other clips and the playhead" onClick={() => setMagnet((m) => !m)}><Magnet />Magnet</Button>
-        <Button variant="secondary" size="sm" title="Playback stops here until GO" onClick={() => { const m = timeline.markers ?? []; setTimeline({ ...timeline, markers: [...m, { id: newId(), t: Math.round(time * 10) / 10, name: `M${m.length + 1}` }].sort((a, b) => a.t - b.t) }); }}><Flag />Marker</Button>
+        <Button variant="secondary" size="sm" title="Playback stops here until GO" onClick={addMarker}><Flag />Marker</Button>
+        <span aria-hidden className="mx-1 h-6 w-px bg-border" />
+        <Button size="icon" variant="secondary" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!hist.current.canUndo} onClick={undo}><Undo2 /></Button>
+        <Button size="icon" variant="secondary" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!hist.current.canRedo} onClick={redo}><Redo2 /></Button>
+        <Button variant="secondary" size="sm" title="Split clips at the playhead (S)" onClick={split}><Scissors />Split</Button>
+        <Button variant="secondary" size="sm" title="Loop start at playhead (I)" onClick={() => setLoop({ a: time })}>In</Button>
+        <Button variant="secondary" size="sm" title="Loop end at playhead (O)" onClick={() => setLoop({ b: time, on: true })}>Out</Button>
+        <Button variant={timeline.loop?.on ? "default" : "secondary"} size="sm" aria-pressed={!!timeline.loop?.on} title="Loop the In–Out region (L)" onClick={() => setLoop({ on: !timeline.loop?.on })}><Repeat2 />Loop</Button>
+        <label className="flex items-center gap-1 text-xs">BPM<NumberField aria-label="Tempo" allowEmpty placeholder="—" min={20} max={300} value={timeline.bpm} onChange={(v) => setTimeline({ ...timeline, bpm: v })} className={field} /></label>
+        <Button variant="secondary" size="sm" title="Tap 3+ times to set the tempo" onClick={tap}>Tap</Button>
         <Button variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />Layer</Button>
         <Button variant="secondary" size="sm" title="Adjustment layer — changes brightness and colour of every layer below it" onClick={addAdjust}><SlidersHorizontal />Adjust</Button>
         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? "Replace audio" : "Add audio"}</Button>
@@ -279,7 +312,9 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
       </div>
 
       <div className="flex min-h-0 flex-1">
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <Minimap timeline={timeline} len={len} time={time} zoom={zoom} scroller={scroller} />
+      <div ref={scroller} className="min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: HEAD + len * zoom }}>
           {/* ruler */}
           <div className="sticky top-0 z-[35] flex h-7 border-b border-border bg-surface hw-ruler">
@@ -288,6 +323,8 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
               {Array.from({ length: Math.ceil(len) + 1 }, (_, s) => s).filter((s) => s % (zoom < 15 ? 10 : zoom < 40 ? 5 : 1) === 0).map((s) => (
                 <span key={s} className="absolute top-0 h-full border-l border-border pl-1 text-[10px] text-muted-foreground" style={{ left: s * zoom }}>{fmt(s).replace(/\.0$/, "")}</span>
               ))}
+              {zoom >= 20 && beats(timeline.bpm, len).map((b, i) => <span key={`b${i}`} className={`pointer-events-none absolute bottom-0 border-l ${i % 4 ? "h-1.5 border-muted-foreground/40" : "h-3 border-primary"}`} style={{ left: b * zoom }} />)}
+              {timeline.loop && <span className={`pointer-events-none absolute inset-y-0 border-x-2 ${timeline.loop.on ? "border-primary bg-primary/25" : "border-muted-foreground/50 bg-muted/30"}`} style={{ left: timeline.loop.a * zoom, width: Math.max(2, (timeline.loop.b - timeline.loop.a) * zoom) }} />}
             </div>
           </div>
           {timeline.tracks.map((t, i) => (
@@ -306,7 +343,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
                 {timeline.clips.filter((c) => c.track === t.id).map((c) => (
                   <div key={c.id} onPointerDown={(e) => { if (t.locked) { e.stopPropagation(); setSel([c.id]); return; } down(e, c, "move"); }} onDoubleClick={(e) => { if (!t.locked) addKey(e, c); }}
                     className={`absolute top-1 bottom-1 cursor-grab touch-none select-none overflow-hidden rounded-md border px-2 text-xs text-foreground ${KIND_STYLE[c.kind]} ${sel.includes(c.id) ? "ring-2 ring-foreground" : ""} ${activeClips.includes(c.id) ? "brightness-125" : ""}`}
-                    style={{ left: c.start * zoom, width: Math.max(8, c.length * zoom) }}>
+                    style={{ left: c.start * zoom, width: Math.max(8, c.length * zoom), ...(c.color ? { borderLeft: `4px solid ${c.color}`, boxShadow: `inset 0 -3px 0 ${c.color}` } : {}) }}>
                     {(c.fadeIn ?? 0) > 0 && <div className="pointer-events-none absolute inset-y-0 left-0 bg-gradient-to-r from-background/70 to-transparent" style={{ width: (c.fadeIn ?? 0) * zoom }} />}
                     {(c.fadeOut ?? 0) > 0 && <div className="pointer-events-none absolute inset-y-0 right-0 bg-gradient-to-l from-background/70 to-transparent" style={{ width: (c.fadeOut ?? 0) * zoom }} />}
                     {hasKeys(c) && (() => { const ks = keysOf(c), h = ROW - 8, sc = c.kind === "adjust" ? 2 : 1; return <>
@@ -350,6 +387,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
               onPointerMove={(e) => { const d = mdrag.current; if (d?.id !== m.id) return; const dx = e.clientX - d.x; if (Math.abs(dx) > 3) d.moved = true; if (!d.moved) return; setTimeline({ ...timeline, markers: (timeline.markers ?? []).map((x) => (x.id === m.id ? { ...x, t: Math.max(0, Math.round((d.t + dx / zoom) * 10) / 10) } : x)) }); }}
               onPointerUp={(e) => { const d = mdrag.current; mdrag.current = null; (e.target as HTMLElement).releasePointerCapture(e.pointerId); if (!d) return; if (!d.moved) onSeek(m.t); else setTimeline({ ...timeline, markers: [...(timeline.markers ?? [])].sort((a, b) => a.t - b.t) }); }}>
               <Flag className="h-3 w-3" />{m.name}
+              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).map((x) => (x.id === m.id ? { ...x, action: x.action === "pass" ? "pause" : "pass" } : x)) })} title={m.action === "pass" ? "Label only — playback keeps going. Click to make it wait for GO" : "Waits for GO. Click to make it a label only"} className="ml-0.5 rounded bg-primary-foreground/20 px-0.5">{m.action === "pass" ? "▶" : "⏸"}</button>
               <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).filter((x) => x.id !== m.id) })} aria-label={`Delete marker ${m.name}`} title="Delete marker" className="ml-0.5 text-primary-foreground/70 hover:text-primary-foreground"><X className="h-3 w-3" /></button>
             </div>
           </div>)}
@@ -364,6 +402,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
         </div>
         {timeline.clips.length === 0 && <p className="sticky left-0 mx-auto max-w-2xl p-6 text-center text-sm text-muted-foreground">Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.</p>}
         {timeline.clips.length > 0 && <p className="sticky left-0 mx-auto max-w-3xl px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
+      </div>
       </div>
 
       {(sel.length > 0 || layerOpen) && <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3 text-xs [&>div]:flex-col [&>div]:items-stretch [&>div]:border-0 [&>div]:p-0" aria-label="Clip settings">
@@ -409,6 +448,8 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
             <label className="flex items-center gap-1">Speed<NumberField aria-label="Pixel speed" min={0.01} max={100} step={0.1} value={+clip.layer.speed.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { layer: { ...clip.layer!, speed: Math.max(0.01, v) } })} className={field} />×</label>
             {clip.layer.colors[0] && <label className="flex items-center gap-1">Colour<input type="color" aria-label="Pixel colour" value={clip.layer.colors[0]} onChange={(e) => patch(clip.id, { layer: { ...clip.layer!, colors: [e.target.value, ...clip.layer!.colors.slice(1)] } })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>}
           </>}
+          <label className="flex items-center gap-1">Colour<input type="color" aria-label="Clip colour" value={clip.color ?? "#888888"} onChange={(e) => patch(clip.id, { color: e.target.value })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" />{clip.color && <button className="text-muted-foreground" onClick={() => patch(clip.id, { color: undefined })}>×</button>}</label>
+          {(clip.kind === "fx" || clip.kind === "level") && (clip.uids?.length ?? 0) > 1 && <label className="flex items-center gap-1" title="Delay between each light starting — makes a wave across them">Stagger<NumberField aria-label="Stagger" min={0} max={10} step={0.05} value={clip.stagger ?? 0} onChange={(v) => patch(clip.id, { stagger: Math.max(0, v ?? 0) })} className={field} />s</label>}
           {clip.kind === "adjust" && <AdjustControls value={clip.adj ?? {}} onChange={(adj) => patch(clip.id, { adj })} />}
           {hasKeys(clip) && <StepList clip={clip} onKeys={(keys) => patch(clip.id, { keys })} />}
           {hasKeys(clip) && (() => {
@@ -419,6 +460,7 @@ export function TimelinePanel({ timeline, setTimeline, time, playing, onPlay, on
               <b>Point</b>
               <label className="flex items-center gap-1">At<NumberField aria-label="Point time" min={0} max={clip.length} step={0.1} value={+k.t.toFixed(2)} onChange={(v) => v !== undefined && upd({ t: Math.max(0, Math.min(clip.length, v)) })} className={field} />s</label>
               <label className="flex items-center gap-1">{clip.kind === "adjust" ? "Level" : "Intensity"}<NumberField aria-label="Point intensity" min={0} max={clip.kind === "adjust" ? 200 : 100} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd({ intensity: v / 100 })} className={field} />%</label>
+              <label className="flex items-center gap-1">Curve<select aria-label="Point curve" value={k.ease ?? "linear"} onChange={(e) => upd({ ease: e.target.value as Ease })} className="rounded border border-input bg-surface-elevated px-1 py-0.5 text-xs"><option value="linear">Linear</option><option value="smooth">Smooth</option><option value="step">Step</option></select></label>
               <label className="flex items-center gap-1">CCT<NumberField aria-label="Point CCT" allowEmpty placeholder="—" min={2000} max={10000} step={100} value={k.cct != null ? c2k(k.cct) : undefined} onChange={(v) => upd({ cct: v == null ? undefined : k2c(v), ...(v != null ? { hue: undefined, sat: undefined } : {}) })} className={field} />K</label>
               <label className="flex items-center gap-1">Colour<input type="color" aria-label="Point colour" value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd({ hue: h, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>
               {(k.hue != null || k.cct != null) && <Button size="sm" variant="ghost" onClick={() => upd({ hue: undefined, sat: undefined, cct: undefined })}>No colour</Button>}
@@ -558,5 +600,18 @@ function AdjustControls({ value: a, onChange, disabled }: { value: AdjustFilter;
     {row("Saturation", Math.round((a.satMul ?? 1) * 100), 0, 200, 5, "%", (n) => set({ satMul: n / 100 }))}
     <label className="flex items-center gap-2"><span className="w-20">Tint / gel</span><input type="color" aria-label="Tint colour" value={a.tint ?? "#ff8800"} onChange={(e) => set({ tint: e.target.value, tintAmt: a.tintAmt || 0.5 })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" />
       <input type="range" aria-label="Tint amount" min={0} max={100} value={Math.round((a.tintAmt ?? 0) * 100)} onChange={(e) => set({ tintAmt: +e.target.value / 100, tint: a.tint ?? "#ff8800" })} className="flex-1" /><span className="w-14 text-right font-mono">{Math.round((a.tintAmt ?? 0) * 100)}%</span></label>
+  </div>;
+}
+
+/** Overview strip of the whole timeline; click or drag to jump the view there. */
+function Minimap({ timeline, len, time, zoom, scroller }: { timeline: Timeline; len: number; time: number; zoom: number; scroller: React.RefObject<HTMLDivElement | null> }) {
+  const [view, setView] = useState({ l: 0, w: 1 });
+  useEffect(() => { const el = scroller.current; if (!el) return; const f = () => setView({ l: el.scrollLeft, w: el.clientWidth }); f(); el.addEventListener("scroll", f); const ro = new ResizeObserver(f); ro.observe(el); return () => { el.removeEventListener("scroll", f); ro.disconnect(); }; }, [scroller]);
+  const total = HEAD + len * zoom, n = Math.max(1, timeline.tracks.length);
+  const jump = (e: RPE<HTMLDivElement>) => { const el = scroller.current; if (!el) return; const r = e.currentTarget.getBoundingClientRect(); el.scrollLeft = ((e.clientX - r.left) / r.width) * total - el.clientWidth / 2; };
+  return <div aria-label="Timeline overview" className="relative h-5 shrink-0 cursor-pointer touch-none border-b border-border bg-muted/30" onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); jump(e); }} onPointerMove={(e) => { if (e.buttons) jump(e); }}>
+    {timeline.clips.map((c) => { const ti = timeline.tracks.findIndex((t) => t.id === c.track); return <span key={c.id} className={`pointer-events-none absolute ${c.color ? "" : KIND_STYLE[c.kind]}`} style={{ left: `${((HEAD + c.start * zoom) / total) * 100}%`, width: `${Math.max(0.3, (c.length * zoom / total) * 100)}%`, top: `${(ti / n) * 100}%`, height: `${100 / n}%`, ...(c.color ? { background: c.color } : {}) }} />; })}
+    <span className="pointer-events-none absolute inset-y-0 w-px bg-destructive" style={{ left: `${((HEAD + time * zoom) / total) * 100}%` }} />
+    <span className="pointer-events-none absolute inset-y-0 rounded-sm border border-primary bg-primary/10" style={{ left: `${(view.l / total) * 100}%`, width: `${Math.min(100, (view.w / total) * 100)}%` }} />
   </div>;
 }
