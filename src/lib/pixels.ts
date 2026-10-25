@@ -124,7 +124,7 @@ export const PIXEL_FX: { id: PixelFx; label: string }[] = [
 
 /** One library entry: built-in effect or generator. Each look appears once, sorted by group. */
 export interface PixelLook { key: string; label: string; group: string; kind: PixelFx; gen?: string }
-export const PIXEL_GROUPS = ["Chase", "Colour", "Fire", "Water", "Sky", "Nature", "Party", "Shapes", "Media"];
+export const PIXEL_GROUPS = ["Chase", "Colour", "Fire", "Water", "Sky", "Nature", "Party", "Music", "Shapes", "Media"];
 const BUILT_IN: PixelLook[] = [
   { key: "runner", label: "Runner", group: "Chase", kind: "runner" },
   { key: "chase", label: "Chase", group: "Chase", kind: "chase" },
