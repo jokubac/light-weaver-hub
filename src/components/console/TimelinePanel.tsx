@@ -315,7 +315,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
 
       <div className="flex min-h-0 flex-1">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {viz && <TimelineVisualiser fixtures={fixtures} timeline={timeline} time={time} setTimeline={setTimeline} colorOf={colorOf} onClose={() => setViz(false)} onPicked={(id) => { setSel([id]); setKeySel(null); }} />}
+      {viz && <TimelineVisualiser fixtures={fixtures} timeline={timeline} time={time} recordings={recordings} setTimeline={setTimeline} colorOf={colorOf} onClose={() => setViz(false)} onPicked={(id) => { setSel([id]); setKeySel(null); }} />}
       <Minimap timeline={timeline} len={len} time={time} zoom={zoom} scroller={scroller} />
       <div ref={scroller} className="min-h-0 flex-1 overflow-auto">
         <div className="relative" style={{ width: HEAD + len * zoom }}>
@@ -498,15 +498,22 @@ const SIMPLE_FX: { id: string; label: string; fx: Partial<FxParams> }[] = [
 const SIMPLE_PX = ["solid", "rainbow", "chase", "runner", "wave", "sparkle", "strobe", "police"];
 
 /** Docked stage above the overview: place lights over a photo, watch them play, tap a light to set its value at the playhead. */
-function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, onClose, onPicked }: { fixtures: PatchedFixture[]; timeline: Timeline; time: number; setTimeline: (t: Timeline) => void; colorOf?: ((f: PatchedFixture) => [number, number, number]) | undefined; onClose: () => void; onPicked: (clipId: string) => void }) {
+function TimelineVisualiser({ fixtures, timeline, time, recordings, setTimeline, colorOf, onClose, onPicked }: { fixtures: PatchedFixture[]; timeline: Timeline; time: number; recordings: Recording[]; setTimeline: (t: Timeline) => void; colorOf?: ((f: PatchedFixture) => [number, number, number]) | undefined; onClose: () => void; onPicked: (clipId: string) => void }) {
   const viz = timeline.viz ?? {};
   const [h, setH] = useState(viz.h ?? 220);
   const [edit, setEdit] = useState<string | null>(null);
   const stage = useRef<HTMLDivElement>(null), photo = useRef<HTMLInputElement>(null);
   const drag = useRef<{ uid: string; moved: boolean; pos: [number, number] } | null>(null);
   const [dragPos, setDragPos] = useState<{ uid: string; p: [number, number] } | null>(null);
-  const used = new Set(timeline.clips.flatMap((c) => c.uids?.length ? c.uids : c.layer?.order ?? []));
-  const list = used.size ? fixtures.filter((f) => used.has(f.uid)) : fixtures;
+  // Only lights that live in the timeline layers: clip targets, pixel layer orders, REC steps, or every light for a whole-scene adjustment clip.
+  const used = new Set<string>();
+  for (const c of timeline.clips) {
+    if (c.uids?.length) c.uids.forEach((u) => used.add(u));
+    else if (c.kind === "adjust") fixtures.forEach((f) => used.add(f.uid));
+    if (c.layer?.order?.length) c.layer.order.forEach((u) => used.add(u));
+    if (c.kind === "rec") recordings.find((r) => r.id === c.recId)?.steps.forEach((s) => s.states.forEach((st) => used.add(st.uid)));
+  }
+  const list = fixtures.filter((f) => used.has(f.uid));
   const posOf = (f: PatchedFixture, i: number): [number, number] => dragPos?.uid === f.uid ? dragPos.p : viz.pos?.[f.uid] ?? [((i % 10) + 0.5) / 10, (Math.floor(i / 10) + 0.5) / Math.max(1, Math.ceil(list.length / 10)) * 0.8 + 0.1];
   const setViz = (p: Partial<NonNullable<Timeline["viz"]>>) => setTimeline({ ...timeline, viz: { ...viz, ...p } });
   const toStage = (e: { clientX: number; clientY: number }): [number, number] => { const r = stage.current!.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
@@ -541,7 +548,7 @@ function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, on
             onPointerUp={() => { const d = drag.current; drag.current = null; if (!d) return; if (d.moved) { setViz({ pos: { ...viz.pos, [f.uid]: d.pos } }); setDragPos(null); } else setEdit(edit === f.uid ? null : f.uid); }}>
             <span className="max-w-full truncate px-0.5">{f.name}</span>
           </div>); })}
-        {!list.length && <p className="p-10 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
+        {!list.length && <p className="p-10 text-center text-muted-foreground">No lights in the timeline layers yet — add a clip that targets lights.</p>}
       </div>
       {ef && cur && <div className="absolute bottom-2 right-2 z-20 max-h-[calc(100%-16px)] w-64 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-surface p-2 text-xs shadow-2xl" aria-label="Light at playhead">
         <div className="flex items-center gap-1"><b className="flex-1 truncate">{ef.name} @ {time.toFixed(1)}s</b><button aria-label="Close light editor" onClick={() => setEdit(null)}><X className="h-3.5 w-3.5" /></button></div>
