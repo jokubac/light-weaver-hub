@@ -1,3 +1,4 @@
+import { MAX_UNIVERSE } from "@/lib/dmx";
 import type { CallSheetData } from "@/lib/store";
 import { groupNamesOf, groupText, groupsPatch } from "@/lib/fixture-groups";
 import { Fragment as Frag, useRef, useState } from "react";
@@ -187,7 +188,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                           </label>
                           <div className="grid grid-cols-2 gap-2">
                             <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Universe
-                              <NumberField integer min={1} max={128} value={f.universe} aria-label={`Universe for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { universe: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />
+                              <NumberField integer min={1} max={MAX_UNIVERSE} value={f.universe} aria-label={`Universe for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { universe: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />
                             </label>
                             <label className="block text-[10px] font-semibold uppercase text-muted-foreground">DMX address
                               <NumberField integer min={1} max={Math.max(1, 513 - ch)} value={f.address} aria-label={`DMX address for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { address: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />

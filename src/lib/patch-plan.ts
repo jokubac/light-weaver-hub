@@ -1,3 +1,4 @@
+import { MAX_UNIVERSE } from "@/lib/dmx";
 import { findFreeAddress, overlaps, type PatchedFixture } from "./dmx";
 
 export interface PlannedAddress { universe: number; address: number }
@@ -18,7 +19,7 @@ export function planPatch(fixtures: PatchedFixture[], universe: number, address:
       let free: number | null = null;
       while (free === null) {
         u += 1;
-        if (u > 128) return { slots, problem: "Ran out of universes (max 128).", overflows };
+        if (u > MAX_UNIVERSE) return { slots, problem: `Ran out of universes (max ${MAX_UNIVERSE}).`, overflows };
         free = findFreeAddress(fixtures, u, ch);
       }
       a = free;

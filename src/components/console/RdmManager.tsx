@@ -1,3 +1,4 @@
+import { MAX_UNIVERSE } from "@/lib/dmx";
 import { useState } from "react";
 import { BatteryMedium, Lightbulb, Radar } from "lucide-react";
 import { NumberField } from "./NumberField";
@@ -33,7 +34,7 @@ export function RdmManager({ onAdd }: { onAdd: (dev: RdmDevice, universe: number
         <Radar className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-[11px] font-semibold">RDM</span>
         <span className="text-[10px] text-muted-foreground">Universe</span>
-        <NumberField integer min={1} max={128} value={universe} onChange={(v) => v && setUniverse(v)} className="ml-auto w-14 rounded border border-input bg-surface-elevated px-1 text-[11px]" aria-label="RDM universe" />
+        <NumberField integer min={1} max={MAX_UNIVERSE} value={universe} onChange={(v) => v && setUniverse(v)} className="ml-auto w-14 rounded border border-input bg-surface-elevated px-1 text-[11px]" aria-label="RDM universe" />
         <button onClick={() => void scan()} disabled={!!busy} className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-40">{busy === "scan" ? "Scanning…" : devices ? "Refresh" : "Scan"}</button>
       </div>
       {error && <p className="text-[11px] text-destructive">{error}</p>}

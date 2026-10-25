@@ -1,3 +1,4 @@
+import { MAX_UNIVERSE } from "@/lib/dmx";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
 import { Wifi, Cable, Radar, Loader2, Check, Plus, Download, Smartphone, Router, Bluetooth } from "lucide-react";
@@ -61,7 +62,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
             </Button>
           </div>
           <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? "Connecting…" : "Connect MoonLite via Bluetooth"}</Button>
-          {conn.transport === "bluetooth" && <label className="block text-xs">MoonLite universe<NumberField integer min={1} max={128} value={conn.bluetoothUniverse ?? 1} onChange={(v) => { if (v !== undefined) setConn({ ...conn, bluetoothUniverse: v }); }} aria-label="MoonLite universe" className="ml-2 w-16 rounded border border-input bg-surface-elevated px-2 py-1" /></label>}
+          {conn.transport === "bluetooth" && <label className="block text-xs">MoonLite universe<NumberField integer min={1} max={MAX_UNIVERSE} value={conn.bluetoothUniverse ?? 1} onChange={(v) => { if (v !== undefined) setConn({ ...conn, bluetoothUniverse: v }); }} aria-label="MoonLite universe" className="ml-2 w-16 rounded border border-input bg-surface-elevated px-2 py-1" /></label>}
           <div hidden={conn.transport === "bluetooth"} className="space-y-4">
           {!native && <p className="text-xs text-muted-foreground">Direct sending needs the installed NOX app — the browser can't send Art-Net/sACN UDP by itself.</p>}
           {!direct && (
