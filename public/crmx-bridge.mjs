@@ -78,20 +78,32 @@ function sacn(universe, data) {
 const multicast = (u) => `239.255.${(u >> 8) & 255}.${u & 255}`;
 
 /* ---------- output loop ---------- */
-let state = { protocol: "artnet", ip: "", universes: {} };
+let state = { protocol: "artnet", ip: "", universes: {}, targets: null, hold: true };
 let lastFrame = 0;
-function send() {
-  for (const [u, data] of Object.entries(state.universes)) {
+let blackedOut = false;
+function sendTo(ip, universes, blank) {
+  for (const [u, data] of Object.entries(universes)) {
     const uni = +u;
-    if (state.protocol === "sacn") {
-      udp.send(sacn(uni, data), SACN_PORT, state.ip || multicast(uni));
-    } else {
-      udp.send(artDmx(uni, data), ARTNET_PORT, state.ip || "255.255.255.255");
-    }
+    const d = blank ? new Array(512).fill(0) : data;
+    if (state.protocol === "sacn") udp.send(sacn(uni, d), SACN_PORT, ip || multicast(uni));
+    else udp.send(artDmx(uni, d), ARTNET_PORT, ip || "255.255.255.255");
   }
 }
-// Keep refreshing so lights don't drop out (Art-Net / sACN expect regular frames).
-setInterval(() => { if (Date.now() - lastFrame > 900 && Object.keys(state.universes).length) send(); }, 1000);
+function send(blank = false) {
+  // multi-transmitter: each target IP gets only its own universes
+  if (Array.isArray(state.targets)) for (const t of state.targets) sendTo(t.ip, t.universes || {}, blank);
+  else sendTo(state.ip, state.universes, blank);
+}
+// Hold Last State: keep refreshing the last frame forever if the console disappears.
+// With hold off, lights go dark after 3 s of silence; the next frame from the console resumes output.
+setInterval(() => {
+  if (!Object.keys(state.universes).length && !state.targets?.length) return;
+  const idle = Date.now() - lastFrame;
+  if (idle <= 900) return;
+  if (!state.hold && idle > 3000) { if (!blackedOut) console.log("console lost — blackout (hold off)"); blackedOut = true; send(true); return; }
+  if (idle > 3000 && !blackedOut) { blackedOut = true; console.log("console lost — holding last state"); }
+  send();
+}, 1000);
 
 
 /* ---------- RDM over Art-Net (ArtTod / ArtRdm) ---------- */
@@ -336,7 +348,8 @@ http.createServer((req, res) => {
       try {
         const j = JSON.parse(body);
         const changed = j.ip !== state.ip || j.protocol !== state.protocol;
-        state = { protocol: j.protocol === "sacn" ? "sacn" : "artnet", ip: String(j.ip || ""), universes: j.universes || {} };
+        state = { protocol: j.protocol === "sacn" ? "sacn" : "artnet", ip: String(j.ip || ""), universes: j.universes || {}, targets: Array.isArray(j.targets) ? j.targets : null, hold: j.hold !== false };
+        if (blackedOut) { blackedOut = false; console.log("console back — output resumed"); }
         if (changed) console.log(`→ ${state.protocol === "sacn" ? "sACN" : "Art-Net"} to ${state.ip || "broadcast"}, universes ${Object.keys(state.universes).join(", ")}`);
         lastFrame = Date.now();
         send();

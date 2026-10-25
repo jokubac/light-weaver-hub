@@ -14,6 +14,8 @@ import { CallSheet } from "./CallSheet";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
 import { patchRows, movePatchFixture } from "@/lib/patch-order";
+import { TransmitterRoutes } from "./TransmitterRoutes";
+import type { Connection } from "@/lib/store";
 
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
 export function describeDef(d: FixtureDef): { type: string; cct: string } {
@@ -26,10 +28,11 @@ export function describeDef(d: FixtureDef): { type: string; cct: string } {
 }
 
 /** Full-screen patch sheet with the fixture library and map stacked below it. */
-export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder }: {
+export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder, conn, setConn }: {
   title: string; callSheet?: CallSheetData | undefined; onCallSheet?: (c: CallSheetData) => void; fixtures: PatchedFixture[]; onClose: () => void;
   onAdd: (fs: PatchedFixture[]) => void; onRemove: (uids: string[]) => void; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void;
   onReplace: (fs: PatchedFixture[]) => void; onReorder: (fs: PatchedFixture[]) => void;
+  conn?: Connection; setConn?: (c: Connection) => void;
 }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
@@ -211,6 +214,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
           )}
         </main>
         {panelOpen && <aside className="max-h-[60vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-3 print:hidden md:max-h-none md:w-[60vw] md:max-w-[calc(100vw-380px)] md:border-l md:border-t-0">
+          {conn && setConn && <div className="mb-3"><TransmitterRoutes conn={conn} setConn={setConn} universes={[...new Set(fixtures.map((f) => f.universe))].sort((a, b) => a - b)} /></div>}
           <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap showPatched={false} />
         </aside>}
       </div>

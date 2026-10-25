@@ -46,3 +46,15 @@ describe("bridge health", () => {
     expect(states).toEqual(["slow", "error"]);
   });
 });
+import { routeTargets } from "@/lib/output";
+describe("multi-transmitter routes", () => {
+  it("sends routed universes to their own IP, mutes disabled ones, rest to the main node", () => {
+    const conn = { ...defaultConnection(), node: { name: "A", ip: "2.0.0.1" }, routes: [
+      { id: "r2", universe: 2, ip: "2.0.0.2", enabled: true },
+      { id: "r3", universe: 3, ip: "2.0.0.3", enabled: false },
+    ] };
+    const u = new Map([1, 2, 3].map((n) => [n, new Uint8Array(512)] as const));
+    const t = routeTargets(conn, u);
+    expect(t.map((x) => [x.ip, [...x.universes.keys()]]).sort()).toEqual([["2.0.0.1", [1]], ["2.0.0.2", [2]]]);
+  });
+});
