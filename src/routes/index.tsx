@@ -1451,6 +1451,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           className={`text-xs font-bold ${conn.node && bridge === "ok" ? "bg-success text-primary-foreground" : conn.node && bridge === "slow" ? "bg-warning text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
           <Radio />CONNECT
         </Button>
+        <Button variant="secondary" size="icon" onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="icon" aria-label="More" title="More" className={redShift ? "text-primary" : ""}><MoreHorizontal /></Button>
