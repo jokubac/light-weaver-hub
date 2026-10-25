@@ -41,6 +41,6 @@ export function HexColourControls({ value, onChange }: { value: string; onChange
     onChange("#" + rgb.map((c) => Math.round(c).toString(16).padStart(2, "0")).join(""));
   }} /></div>;
 }
-function Numeric({ value, label, max, suffix, onChange }: { value: number; label: string; max: number; suffix: string; onChange: (n: number) => void }) {
-  return <span className="flex items-center gap-1 font-mono"><NumberField aria-label={label} min={0} max={max} value={+value.toFixed(2)} onChange={(n) => { if (n !== undefined) onChange(n); }} className="w-16 rounded border border-input bg-surface-elevated px-1 py-0.5 text-right" />{suffix}</span>;
+function Numeric({ value, label, min = 0, max, suffix, onChange }: { value: number; label: string; min?: number; max: number; suffix: string; onChange: (n: number) => void }) {
+  return <span className="flex items-center gap-1 font-mono"><NumberField aria-label={label} min={min} max={max} value={+value.toFixed(2)} onChange={(n) => { if (n !== undefined) onChange(n); }} className="w-16 rounded border border-input bg-surface-elevated px-1 py-0.5 text-right" />{suffix}</span>;
 }
