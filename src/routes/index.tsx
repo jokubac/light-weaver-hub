@@ -71,6 +71,7 @@ import { useTransmitterDiscovery } from "@/hooks/use-transmitter-discovery";
 import { TimelinePanel } from "@/components/console/TimelinePanel";
 import { emptyTimeline, timelineAt, timelineLength, type Timeline } from "@/lib/timeline";
 import { deleteAudio, loadAudio, peaks as audioPeaksOf, saveAudio } from "@/lib/timeline-audio";
+import { setTimelineAudio } from "@/lib/audio-react";
 import { defaultLayer, freeCanvasSpot, placeInColumns, initArea, isPixelFixture, layerHeight, migrateLayers, pixelCount, pixelGrid, renderLayers, stageSize, textMask, type PixelLayer } from "@/lib/pixels";
 import {
   PROJECT_COLORS,
@@ -800,6 +801,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const attachAudio = (blob: Blob) => {
     if (audioEl.current) URL.revokeObjectURL(audioEl.current.src);
     audioEl.current = new Audio(URL.createObjectURL(blob));
+    setTimelineAudio(audioEl.current);
     void audioPeaksOf(blob).then((p) => setAudioPeaks(p.peaks)).catch(() => setAudioPeaks(null));
   };
   useEffect(() => {
