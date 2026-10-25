@@ -103,6 +103,8 @@ export const Route = createFileRoute("/")({
   component: App,
 });
 
+// Hardware-console chip style shared with PLOT / TIMELINE / PIXEL bars
+const chip = (on: boolean) => `inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm [&_svg]:size-4 ${on ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`;
 type View =
   | { name: "projects" }
   | { name: "scenes"; projectId: string }
