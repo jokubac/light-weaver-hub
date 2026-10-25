@@ -73,7 +73,6 @@ export const MACRO_ACTIONS: { id: MacroAction; label: string; unit?: "%" | "K"; 
   { id: "light_toggle", label: "On / Off" },
   { id: "int_half", label: "Intensity 50%" },
   { id: "deselect", label: "Deselect" },
-  { id: "fx_toggle_all", label: "" } as never,
 ];
 
 /** Turns a macro into a relative/absolute command for the selected fixtures. */
