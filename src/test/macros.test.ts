@@ -59,7 +59,7 @@ describe("new macro set", () => {
     expect(macroCommand({ id: "a", key: null, action: "cct_fader", amount: 3200 })).toEqual({ cct: 3200 });
   });
   it("faders default to a 3×1 box; Check out! and Locate! are hold buttons", () => {
-    expect(MACRO_ACTIONS.filter((a) => a.fader).map((a) => a.id)).toEqual(["int_fader", "cct_fader", "gm_fader"]);
+    expect(MACRO_ACTIONS.filter((a) => a.fader).map((a) => a.id)).toEqual(["int_fader", "cct_fader", "gm_fader", "hue_fader", "sat_fader"]);
     expect(MACRO_ACTIONS.filter((a) => a.hold).map((a) => a.id)).toEqual(["checkout", "locate"]);
   });
   it("+ Group macro exists alongside the Group picker", () => {
