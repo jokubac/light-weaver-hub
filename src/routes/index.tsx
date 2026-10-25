@@ -1051,6 +1051,16 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     if (c) return runCommand(undefined, c.level, c.cct, c.levelDelta, c.cctDelta);
     if (colourStep(m, { hue: 0, saturation: 0 })) return updateEach((f) => ({ ...colourStep(m, f), cctOnly: false, ...(f.crossfade < 1 ? { crossfade: 1 } : {}) }));
     if (m.action === "gm_fader") return updateSelected({ gm: Math.max(-1, Math.min(1, m.amount / 100)) });
+    if (m.action === "hue_fader") return updateSelected({ hue: ((m.amount % 360) + 360) % 360, cctOnly: false, crossfade: 1 });
+    if (m.action === "sat_fader") return updateSelected({ saturation: Math.max(0, Math.min(1, m.amount / 100)), cctOnly: false, crossfade: 1 });
+    if (m.action === "park") {
+      if (!selected.length) return;
+      const pk = project.parked ?? {}; const all = selected.every((u) => pk[u]); const next = { ...pk };
+      if (all) selected.forEach((u) => delete next[u]); else outFixtures.filter((f) => selected.includes(f.uid)).forEach((f) => { next[f.uid] = lookStateOf(f); });
+      onParked(next); return;
+    }
+    if (m.action === "unpark") { onParked({}); return; }
+    if (m.action === "blind") { toggleBlind(); return; }
     if (m.action === "filter") {
       const g = m.param ? GEL_BY_ID[m.param] : undefined;
       if (!g) return updateSelected({ gel: "" });
