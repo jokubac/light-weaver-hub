@@ -518,8 +518,24 @@ const MC_PRO_MODES: FixtureMode[] = [
   mcx("Mode 24 - HSIC+ 16-bit", [[["Dimmer", "CCT", GM, "Hue", "Saturation"], true]], [MC_ST]),
 ];
 
+// amaran PT DMX Profile Specification V1.0 (PT1c/PT2c/PT4c). CCT 2700–10000K; PT4c has all 14 modes (16 px max).
+const PT_R = lab("Reserved"), PT_ST = lab("Strobe");
+const PT_PX_CCT: Slot[] = ["Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue"];
+const PT_PX_HSI: Slot[] = ["Dimmer", "Hue", "Saturation"];
+const PT4C_MODES: FixtureMode[] = [
+  nm("Mode 1 - CCT & RGB", "Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue", PT_R, PT_R, PT_ST),
+  nm("Mode 2 - CCT", "Dimmer", "CCT", GM, PT_R, PT_R, PT_ST),
+  nm("Mode 3 - CCT & HSI", "Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation", PT_R, PT_R, PT_ST),
+  nm("Mode 4 - RGB", "Dimmer", "Red", "Green", "Blue", PT_R, PT_R, PT_ST),
+  nm("Mode 5 - HSI", "Dimmer", "Hue", "Saturation", PT_R, PT_R, PT_ST),
+  nm("Mode 6 - System FX", "Dimmer", lab("FX Trigger"), lab("FX Selection"), ...Array.from({ length: 4 }, (_, i) => lab(`FX Param ${i + 1}`))),
+  ...[2, 4, 8, 16].map((n, i) => mm(`Mode ${7 + i} - Light Engine CCT & RGB ${n} px`, [[PT_PX_CCT, false]], { count: n, master: false })),
+  ...[2, 4, 8, 16].map((n, i) => mm(`Mode ${11 + i} - Light Engine HSI ${n} px`, [[PT_PX_HSI, false]], { count: n, master: false })),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
-  { id: "gdtf-aputure-mc-pro", brand: "Aputure", model: "MC Pro", watts: 15, cctRange: [2000, 10000], lightType: "LED colour", modes: MC_PRO_MODES },
+  { id: "gdtf-amaran-pt4c", brand: "Amaran", model: "PT4C", cctRange: [2700, 10000], lightType: "LED colour", modes: PT4C_MODES },
+  { id: "gdtf-aputure-mc-pro", brand: "Aputure", model: "MC Pro", cctRange: [2000, 10000], lightType: "LED colour", modes: MC_PRO_MODES },
   // STORM XT52 DMX Profile Spec V1.3 (06/2026, FW 1.6): profiles 1–32 unified with STORM 1200x; Aputure states 700x/400x share them.
   { id: "gdtf-aputure-storm-xt52", brand: "Aputure", model: "STORM XT52", watts: 5200, lightType: "LED daylight", modes: STORM1200X_MODES },
   { id: "gdtf-aputure-storm-700x", brand: "Aputure", model: "STORM 700x", watts: 700, lightType: "LED daylight", modes: STORM1200X_MODES },

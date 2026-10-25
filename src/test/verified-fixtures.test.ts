@@ -119,3 +119,10 @@ describe("Aputure MC Pro official chart V2.0", () => {
     expect(f.modes.map((m) => m.channels)).toEqual([8, 4, 7, 5, 5, 6, 4, 5, 10, 5, 11, 6, 15, 7, 13, 9, 9, 7, 7, 6, 11, 10, 16, 11]);
   });
 });
+
+describe("amaran PT4c official chart V1.0", () => {
+  it("has all 14 modes with the chart's channel counts", () => {
+    const f = VERIFIED_FIXTURES.find((d) => d.model === "PT4C")!;
+    expect(f.modes.map((m) => m.channels)).toEqual([10, 6, 9, 7, 6, 7, 14, 28, 56, 112, 6, 12, 24, 48]);
+  });
+});
