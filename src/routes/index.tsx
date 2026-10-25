@@ -46,6 +46,8 @@ import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
 import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { SavePopover } from "@/components/console/SavePopover";
+import { FanPopover } from "@/components/console/FanPopover";
+import { ScreenLock } from "@/components/console/ScreenLock";
 import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2 } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
@@ -553,9 +555,16 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   // Stream real DMX to the bridge (Art-Net / sACN → CRMX transmitter)
   const [bridge, setBridge] = useState<BridgeStatus>("off");
   const sender = useMemo(() => createSender(setBridge), []);
+  // BLIND: keep sending the frozen frame while the operator keeps editing
+  const [blind, setBlind] = useState(false);
+  const blindFrame = useRef<ReturnType<typeof buildUniverses> | null>(null);
+  const [screenLocked, setScreenLocked] = useState(false);
   useEffect(() => {
-    void sender(conn, buildUniverses(outFixtures, t, outLevel, frame, conn));
+    const live = blind && blindFrame.current ? blindFrame.current : buildUniverses(outFixtures, t, outLevel, frame, conn);
+    if (blind && !blindFrame.current) blindFrame.current = live;
+    void sender(conn, live);
   });
+  const toggleBlind = () => { blindFrame.current = null; setBlind((b) => !b); };
 
   // Battery drain: integrate each light's draw every 5 s
   const outRef = useRef(outLevel);
@@ -1219,6 +1228,10 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                  <button aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
                    onClick={() => setKeypadOpen((o) => !o)} className={chip(keypadOpen)}><Keyboard /></button>
                  <button aria-label="Macro timeline" title="Macro timeline" onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
+                 <FanPopover count={selected.length} className={`${chip(false)} disabled:opacity-40`} onApply={(attr, vals) => {
+                   const order = new Map(selected.map((id, i) => [id, i]));
+                   setFixtures((fs) => fs.map((f) => { const i = order.get(f.uid); if (i == null) return f; const v = vals[i]!; return attr === "intensity" ? { ...f, intensity: v / 100 } : { ...f, cct: cctFromKelvin(v) }; }));
+                 }} />
                  <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
                    onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
                    onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
@@ -1338,8 +1351,12 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
           </Button>
         </div>
+        <Button variant="secondary" onClick={toggleBlind} aria-pressed={blind} title={blind ? "BLIND on — stage is frozen. Tap to send your changes live" : "BLIND — edit without changing the stage"}
+          className={`text-xs font-bold ${blind ? "animate-pulse bg-warning text-primary-foreground" : ""}`}>{blind ? "APPLY" : "BLIND"}</Button>
         <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className="text-xs font-bold">PATCH</Button>
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="text-xs font-bold">FADERS</Button>
+        <Button variant="secondary" size="icon" onClick={() => setScreenLocked(true)} aria-label="Lock screen" title="Lock screen — prevents accidental touches"><Lock /></Button>
+        {screenLocked && <ScreenLock onUnlock={() => setScreenLocked(false)} />}
 
         <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
         <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
