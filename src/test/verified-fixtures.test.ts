@@ -27,11 +27,19 @@ describe("Creamsource official charts", () => {
     expect(v8.watts).toBe(650);
     expect(v8.cctRange).toEqual([2200, 15000]);
     const mz = v8.modes.find((m) => m.name.startsWith("32 "))!;
-    expect(mz.channels).toBe(8 * 8 + 1); // 8 slots per zone + Fan
+    expect(mz.channels).toBe(66); // chart: 8 zones × 8 + Fan + Control
+  });
+  it("Vortex8 footprints match the V3.1 mode index", () => {
+    const v8 = byId("gdtf-creamsource-vortex-8");
+    const ch = (n: number) => v8.modes.find((m) => m.name.startsWith(`${n} `))!.channels;
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(ch)).toEqual([10, 5, 8, 7, 5, 18, 8, 14, 12, 8]);
+    expect([15, 16, 18, 19, 21, 24, 25, 27, 29, 30].map(ch)).toEqual([14, 16, 20, 24, 6, 7, 13, 10, 15, 21]);
+    expect([31, 33, 35, 38, 39, 40, 41, 44, 48, 52, 56, 60, 64, 65, 66, 67, 69, 75].map(ch)).toEqual([131, 26, 130, 50, 98, 19, 9, 35, 35, 67, 34, 66, 32, 37, 64, 72, 98, 50]);
+    v8.modes.forEach((m) => expect(m.channelMap?.length).toBe(m.channels));
   });
   it("Vortex24 has 24 zones, Vortex8 Soft has none", () => {
     const v24 = byId("gdtf-creamsource-vortex-24");
-    expect(v24.modes.find((m) => m.name.startsWith("32 "))!.channels).toBe(24 * 8 + 1);
+    expect(v24.modes.find((m) => m.name.startsWith("32 "))!.channels).toBe(194);
     expect(byId("gdtf-creamsource-vortex-8-soft").modes.some((m) => m.name.includes("Multi-Zone"))).toBe(false);
   });
   it("SpaceX scenario 1 is 10 slots with Amber and Fan", () => {
