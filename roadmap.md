@@ -236,3 +236,5 @@
 - [x] Top bar regroup + PATCH distinct style
 
 - [x] Top bar: MASTER fader and the lightbulb (Blackout) button restored to their original plain grouping — no framed box, bulb sits right after the percent field; PATCH/FADERS/BLIND/lock/CONNECT/⋯ grouping kept; browser verified.
+
+- [x] View tabs (FIXTURES/PLOT/TIMELINE/PIXEL) stretched across the whole screen width; Groups · Looks · Effects · REC toggle moved to the top bar as an icon next to ⋯; browser verified (tabs 309px each, amber tracks the active tab exactly, panel still opens).
