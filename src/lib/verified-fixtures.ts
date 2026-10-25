@@ -482,6 +482,10 @@ const NOVA_P300C_MODES: FixtureMode[] = [
 ];
 
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  // STORM XT52 DMX Profile Spec V1.3 (06/2026, FW 1.6): profiles 1–32 unified with STORM 1200x; Aputure states 700x/400x share them.
+  { id: "gdtf-aputure-storm-xt52", brand: "Aputure", model: "STORM XT52", watts: 5200, lightType: "LED daylight", modes: STORM1200X_MODES },
+  { id: "gdtf-aputure-storm-700x", brand: "Aputure", model: "STORM 700x", watts: 700, lightType: "LED daylight", modes: STORM1200X_MODES },
+  { id: "gdtf-aputure-storm-400x", brand: "Aputure", model: "STORM 400x", watts: 400, lightType: "LED daylight", modes: STORM1200X_MODES },
   { id: "gdtf-aputure-nova-p300c", brand: "Aputure", model: "Nova P300c", watts: 300, cctRange: [2000, 10000], lightType: "LED colour", modes: NOVA_P300C_MODES },
   { id: "gdtf-arri-orbiter", brand: "ARRI", model: "Orbiter", watts: 500, cctRange: [2000, 20000], lightType: "LED colour", modes: orbiterModes() },
   { id: "gdtf-aputure-nova-p600c", brand: "Aputure", model: "Nova P600c", watts: 600, cctRange: [2000, 10000], lightType: "LED colour", modes: NOVA_P600C_MODES },
@@ -522,5 +526,7 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string }
   { brand: "Aputure", model: "LS 600d", chart: "Aputure LS 600d DMX Profile Specification V1.0.1" },
   // Aputure LS 600d Pro / LS 300d II common spec V1.0.1 (02/2022): single Lighting & Effect mode, 5 ch.
   { brand: "Aputure", model: "LS600d pro", chart: "Aputure LS 600d Pro DMX Profile Specification V1.0.1" },
+  // Aputure INFINIBAR DMX Profile Spec V2.0 (08/2024): modes 1–32 match (TOC lists RGB 16 px as 72 ch; the table itself is 64).
+  ...["INFINIBAR PB3", "INFINIBAR PB6", "INFINIBAR PB12"].map((model) => ({ brand: "Aputure", model, chart: "Aputure INFINIBAR DMX Profile Specification V2.0" })),
   ...["L5-C", "L7C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI L-Series DMX Protocol V3.3" })),
 ];
