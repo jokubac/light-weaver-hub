@@ -540,7 +540,46 @@ const TK_MODES: FixtureMode[] = [
   nm("Ultimate 8bit", "Dimmer", lab("Mode CCT/Effect"), lab("CCT / Effect"), ...Array.from({ length: 7 }, (_, i) => lab(`Effect Param ${i + 1}`))),
 ];
 
+// Aputure Electro Storm CS15 DMX Profile Specification V1.1. CCT 2000–10000K. Each profile can add Motorized
+// Accessories (Zoom, Pan, Tilt; 16-bit in 16-bit profiles) and Function Configuration (Fan Mode, Dimming Curve),
+// so every profile is listed in its four menu variants. Ultimate 8-bit is omitted: the chart gives no channel count.
+const CS_XY: ChannelMapEntry[] = [{ attr: "Spare", label: "X", home: 0.3127 / 0.8 }, { attr: "Spare", label: "Y", home: 0.329 / 0.8 }];
+const csFx = (n: number) => Array.from({ length: n }, (_, i) => lab(`FX Param ${i + 1}`));
+const csCore = (wide: boolean, slots: Slot[], tail: ChannelMapEntry[]): ChannelMapEntry[] => [...expand(slots, wide), ...tail];
+const CS_CORES: [number, string, boolean, ChannelMapEntry[]][] = [
+  [1, "CCT & RGB", false, csCore(false, ["Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue"], [MC_ST])],
+  [2, "CCT", false, csCore(false, ["Dimmer", "CCT", GM], [MC_ST])],
+  [3, "CCT & HSI", false, csCore(false, ["Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation"], [lab("HSI Base CCT"), MC_ST])],
+  [4, "RGB", false, csCore(false, ["Dimmer", "Red", "Green", "Blue"], [MC_ST])],
+  [5, "Adv.HSI", false, csCore(false, ["Dimmer", "Hue", "Saturation"], [lab("HSI Base CCT"), MC_ST])],
+  [6, "Gel", false, csCore(false, ["Dimmer"], [...MC_GEL, MC_ST])],
+  [7, "x y", false, csCore(false, ["Dimmer"], [...CS_XY, MC_ST])],
+  [8, "Source", false, csCore(false, ["Dimmer"], [lab("Source"), lab("Source x offset"), lab("Source y offset"), MC_ST])],
+  [9, "FX", false, csCore(false, ["Dimmer"], [lab("FX Trigger"), lab("FX Selection"), ...csFx(7)])],
+  [10, "WWRGB", false, csCore(false, ["White", "White", "Red", "Green", "Blue"], [MC_ST])],
+  [12, "CCT & RGB", true, csCore(true, ["Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue"], [MC_ST])],
+  [13, "CCT", true, csCore(true, ["Dimmer", "CCT", GM], [MC_ST])],
+  [14, "CCT & HSI", true, csCore(true, ["Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation", "Spare"], [MC_ST]).map((c, i) => (i === 12 || i === 13 ? { ...c, label: "HSI Base CCT" } : c))],
+  [15, "RGB", true, csCore(true, ["Dimmer", "Red", "Green", "Blue"], [MC_ST])],
+  [16, "Adv.HSI", true, csCore(true, ["Dimmer", "Hue", "Saturation", "Spare"], [MC_ST]).map((c, i) => (i === 6 || i === 7 ? { ...c, label: "HSI Base CCT" } : c))],
+  [17, "Gel", true, csCore(true, ["Dimmer"], [...MC_GEL, MC_ST])],
+  [18, "x y", true, csCore(true, ["Dimmer", ...XY], [MC_ST])],
+  [19, "Source", true, csCore(true, ["Dimmer"], [lab("Source"), lab("Source x offset"), lab("Source y offset"), MC_ST])],
+  [20, "FX", true, csCore(true, ["Dimmer"], [lab("FX Trigger"), lab("FX Selection"), ...csFx(9)])],
+  [21, "WWRGB", true, csCore(true, ["White", "White", "Red", "Green", "Blue"], [MC_ST])],
+  [22, "Ultimate", true, csCore(true, ["Dimmer"], [lab("Lighting Mode"), ...Array.from({ length: 13 }, (_, i) => lab(`Param ${i + 1}`))])],
+];
+const CS_MOTOR = (wide: boolean) => ["Zoom", "Pan", "Tilt"].flatMap((n) => (wide ? [lab(n), lab(`${n} fine`)] : [lab(n)]));
+const CS_CONF = [lab("Fan Mode"), lab("Dimming Curve")];
+const CS15_MODES: FixtureMode[] = CS_CORES.flatMap(([no, name, wide, core]) =>
+  ([["", []], [" + Config", CS_CONF], [" + Motor", CS_MOTOR(wide)], [" + Motor + Config", [...CS_MOTOR(wide), ...CS_CONF]]] as [string, ChannelMapEntry[]][]).map(([suf, extra]) => {
+    const channelMap = [...core, ...extra];
+    return { name: `Mode ${no} - ${name} ${wide ? 16 : 8}-bit${suf}`, channels: channelMap.length, kind: "full" as const, source: "manufacturer" as const, channelMap };
+  }),
+);
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-aputure-electro-storm-cs15", brand: "Aputure", model: "Electro Storm CS15", cctRange: [2000, 10000], lightType: "LED colour", modes: CS15_MODES },
   { id: "gdtf-nanlux-tk-140b", brand: "Nanlux", model: "TK-140B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
   { id: "gdtf-nanlux-tk-280b", brand: "Nanlux", model: "TK-280B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
   { id: "gdtf-amaran-pt4c", brand: "Amaran", model: "PT4C", cctRange: [2700, 10000], lightType: "LED colour", modes: PT4C_MODES },

@@ -134,3 +134,12 @@ describe("Nanlux TK-140B/280B official chart V1", () => {
     }
   });
 });
+
+describe("Aputure Electro Storm CS15 official chart V1.1", () => {
+  it("matches the chart's min–max channel range for every profile", () => {
+    const modes = VERIFIED_FIXTURES.find((d) => d.model === "Electro Storm CS15")!.modes;
+    const range = (no: number) => { const c = modes.filter((m) => m.name.startsWith(`Mode ${no} -`)).map((m) => m.channels); return [Math.min(...c), Math.max(...c)]; };
+    const chart: Record<number, [number, number]> = { 1: [8, 13], 2: [4, 9], 3: [8, 13], 4: [5, 10], 5: [5, 10], 6: [6, 11], 7: [4, 9], 8: [5, 10], 9: [10, 15], 10: [6, 11], 12: [15, 23], 13: [7, 15], 14: [15, 23], 15: [9, 17], 16: [9, 17], 17: [7, 15], 18: [7, 15], 19: [6, 14], 20: [13, 21], 21: [11, 19] };
+    for (const [no, r] of Object.entries(chart)) expect(range(Number(no))).toEqual(r);
+  });
+});
