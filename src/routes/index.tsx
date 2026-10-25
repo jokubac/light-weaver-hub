@@ -477,6 +477,17 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [pulses, setPulses] = useState<Record<string, { at: number; base: number; target: number }>>({});
   const [activePixelId, setActivePixelId] = useState(scene.pixelLayers?.[0]?.id ?? "");
   const activePixel = layers.find((l) => l.id === activePixelId) ?? layers[0];
+  // heal PIXEL pages: lights listed on a page but missing a map position get placed again instead of vanishing
+  useEffect(() => {
+    if (!pixOpen) return;
+    const listed = new Set(layers.flatMap((l) => l.order));
+    const lost = fixtures.filter((f) => listed.has(f.uid) && !f.pixelPos);
+    if (!lost.length) return;
+    const spots = placeInColumns(lost);
+    setUntrackedFixtures((xs) => xs.map((f) => (lost.some((l) => l.uid === f.uid) ? { ...f, pixelPos: spots.get(f.uid) ?? freeCanvasSpot(xs, f) } : f)));
+  }, [pixOpen, layers, fixtures]);
+  // keep the active PIXEL page valid after loading or deleting pages
+  useEffect(() => { if (layers.length && !layers.some((l) => l.id === activePixelId)) setActivePixelId(layers[0]!.id); }, [layers, activePixelId]);
   const [t, setT] = useState(0);
   const clock = useRef(0);
 
