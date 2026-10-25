@@ -1229,8 +1229,15 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                    onClick={() => setKeypadOpen((o) => !o)} className={chip(keypadOpen)}><Keyboard /></button>
                  <button aria-label="Macro timeline" title="Macro timeline" onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
                  <FanPopover count={selected.length} className={chip(false)} onApply={(attr, vals) => {
-                   const order = new Map(selected.map((id, i) => [id, i]));
-                   setFixtures((fs) => fs.map((f) => { const i = order.get(f.uid); if (i == null) return f; const v = vals[i]!; return attr === "intensity" ? { ...f, intensity: v / 100 } : { ...f, cct: cctFromKelvin(v) }; }));
+                   // on-screen order (tile order), not the order lights were tapped
+                   setFixtures((fs) => {
+                     const sel = new Set(selected);
+                     const order = new Map(fs.filter((f) => sel.has(f.uid)).map((f, i) => [f.uid, i]));
+                     return fs.map((f) => {
+                       const i = order.get(f.uid); if (i == null) return f; const v = vals[i]!;
+                       return attr === "intensity" ? { ...f, intensity: Math.max(0, Math.min(1, v / 100)), on: true } : { ...f, cct: Math.max(0, Math.min(1, cctFromKelvin(v))), crossfade: 0, gel: "" };
+                     });
+                   });
                  }} />
                  <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
                    onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
