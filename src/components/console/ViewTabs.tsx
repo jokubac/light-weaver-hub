@@ -29,7 +29,7 @@ export function ViewTabs({ tabs }: { tabs: ViewTab[] }) {
     <div ref={wrap} className="relative flex items-center gap-1 rounded-xl border border-border bg-surface-elevated p-1">
       {pos && (
         <span aria-hidden="true"
-          className="pointer-events-none absolute bottom-1 top-1 rounded-lg bg-amber-glow shadow-[0_0_16px_-2px_var(--amber-glow)] transition-[left,width] duration-200 ease-out"
+          className="pointer-events-none absolute bottom-1 top-1 rounded-lg bg-primary shadow-[0_4px_14px_-6px_color-mix(in_oklab,var(--primary)_75%,transparent)] transition-[left,width] duration-200 ease-out"
           style={{ left: pos.x, width: pos.w }} />
       )}
       {tabs.map((t, i) => (
