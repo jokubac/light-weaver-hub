@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { NumberField } from "./NumberField";
 import { useEffect, useRef, useState } from "react";
-import { Play, Square, ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight, Copy, ClipboardPaste } from "lucide-react";
+import { ArrowLeftRight, Plus, X, ArrowUp, ArrowDown, Trash2, Scan, ChevronDown, ChevronRight, Copy, ClipboardPaste } from "lucide-react";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { groupNamesOf, membersOf } from "@/lib/fixture-groups";
 import { PaletteEditor } from "./PaletteEditor";
@@ -46,7 +46,6 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
     setLayers([...layers, l]);
     setActiveId(l.id);
   };
-  const anyPlaying = layers.some((l) => l.playing);
   const copyEffect = () => { const c = copyPixelEffect(layer); setEffectClip(c); savePixelEffectClipboard(c); };
   const pasteEffect = () => {
     if (!effectClip) return;
@@ -70,7 +69,6 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pixel map</h2>
-        {anyPlaying && <button onClick={() => setLayers(layers.map((l) => ({ ...l, playing: false })))} className="rounded-md bg-destructive px-3 py-1.5 text-[11px] font-bold text-destructive-foreground">STOP ALL</button>}
       </div>
 
       {allPx.length === 0 && <p className="rounded-md bg-surface-elevated/60 px-2 py-1.5 text-[11px] text-muted-foreground">No pixel lights yet — you can prepare effects now. Patch a light in a pixel mode (search "pixel" in PATCH) to play them.</p>}
@@ -93,17 +91,13 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         {layers.length > 1 && (
           <button onClick={() => { const rest = layers.filter((l) => l.id !== layer.id); setLayers(rest); setActiveId(rest[0]!.id); }} className="rounded-md bg-surface-elevated px-3 text-muted-foreground hover:text-destructive" aria-label="Delete layer"><Trash2 className="h-4 w-4" /></button>
         )}
-        <button onClick={() => set({ playing: !layer.playing })} disabled={!inMap.length}
-          className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold disabled:opacity-40 ${layer.playing ? "bg-destructive text-destructive-foreground" : "bg-amber-glow text-primary-foreground"}`}>
-          {layer.playing ? <><Square className="h-3.5 w-3.5" />STOP</> : <><Play className="h-3.5 w-3.5" />PLAY</>}
-        </button>
       </div>
 
       <div className="flex items-center gap-2 rounded-md bg-surface-elevated/60 px-2 py-1.5 text-[11px]">
         <span className="min-w-0 flex-1 text-muted-foreground">{selPx.length ? `Programming ${selPx.length} selected pixel light${selPx.length > 1 ? "s" : ""}` : "No lights selected in the console — showing all pixel lights"}</span>
         {selPx.length > 0 && <button onClick={() => set({ order: selPx.map((f) => f.uid) })} className="rounded bg-primary px-2 py-1 font-semibold text-primary-foreground">Use selected</button>}
       </div>
-      {!layer.playing && inMap.length > 0 && <p className="text-[10px] text-muted-foreground">Preview below — press PLAY to send it to the lights.</p>}
+      {!layer.playing && inMap.length > 0 && <p className="text-[10px] text-muted-foreground">Preview below — press ▶ on the page bar to send it to the lights.</p>}
       {/* live preview of the layer grid */}
       {placed.length > 0 && !hidePreview && (
         <InfiniteGrid columns={W} rows={H}>
