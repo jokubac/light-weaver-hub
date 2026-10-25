@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AudioLines } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AUDIO_TARGETS, VIDEO_AUDIO_TARGETS, audioRunning, defaultAudioSettings, levels, listInputs, setAudioSettings, startAudio, stopAudio, type AudioReact, type AudioSettings, type Band } from "@/lib/audio-react";
+import { AUDIO_TARGETS, VIDEO_AUDIO_TARGETS, audioRunning, defaultAudioSettings, levels, listInputs, listOutputs, loadAudioFile, setAudioSettings, startAudio, stopAudio, type AudioReact, type AudioSettings, type Band } from "@/lib/audio-react";
 import type { PixelLayer } from "@/lib/pixels";
 
 const KEY = "nox-audio-settings";
@@ -14,6 +14,8 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
   const [on, setOn] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [inputs, setInputs] = useState<MediaDeviceInfo[]>([]);
+  const [outputs, setOutputs] = useState<MediaDeviceInfo[]>([]);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [meter, setMeter] = useState({ bass: 0, mid: 0, high: 0, level: 0, beat: false });
   useEffect(() => { try { const r = localStorage.getItem(KEY); if (r) setS({ ...defaultAudioSettings(), ...JSON.parse(r) }); } catch { /* ignore */ } setOn(audioRunning()); }, []);
   useEffect(() => {
@@ -23,7 +25,7 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
   }, [on]);
   const upd = (p: Partial<AudioSettings>) => { const n = { ...s, ...p }; setS(n); setAudioSettings(n); localStorage.setItem(KEY, JSON.stringify(n)); return n; };
   const listen = async (n = s) => {
-    try { await startAudio(n); setOn(true); setErr(null); setInputs(await listInputs()); }
+    try { await startAudio(n); setOn(true); setErr(null); setInputs(await listInputs()); setOutputs(await listOutputs()); }
     catch (e) { setOn(false); setErr(e instanceof Error ? e.message : "Could not open audio"); }
   };
   const a: AudioReact = layer.audio ?? { enabled: false };
@@ -40,7 +42,7 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
       <PopoverContent align="start" className="w-80 space-y-2 p-3 text-xs">
         <div className="flex items-center gap-1.5">
           <select aria-label="Sound source" value={s.source} onChange={(e) => { const n = upd({ source: e.target.value as AudioSettings["source"] }); if (on) void listen(n); }} className={`flex-1 ${field}`}>
-            <option value="mic">iPad microphone</option><option value="input">Sound card input</option><option value="timeline">TIMELINE audio</option>
+            <option value="device">Device audio (what's playing)</option><option value="file">Audio file (WAV…)</option><option value="input">Sound card input</option><option value="mic">Microphone</option><option value="timeline">TIMELINE audio</option>
           </select>
           <Button size="sm" variant={on ? "destructive" : "default"} onClick={() => { if (on) { stopAudio(); setOn(false); } else void listen(); }}>{on ? "Stop" : "Listen"}</Button>
         </div>
@@ -48,6 +50,18 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
           <select aria-label="Input device" value={s.deviceId ?? ""} onChange={(e) => { const n = upd({ deviceId: e.target.value || undefined }); if (on) void listen(n); }} className={`w-full ${field}`}>
             <option value="">Default input</option>
             {inputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Input ${i + 1}`}</option>)}
+          </select>
+        )}
+        {s.source === "file" && (
+          <label className={`flex w-full cursor-pointer items-center gap-1.5 ${field}`}>
+            <span className="font-semibold">Choose file</span><span className="truncate text-muted-foreground">{fileName ?? "WAV, AIFF, FLAC, MP3"}</span>
+            <input type="file" accept="audio/*,.wav,.aif,.aiff,.flac" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFileName(loadAudioFile(f)); void listen(); } }} />
+          </label>
+        )}
+        {(s.source === "file" || s.source === "timeline") && (
+          <select aria-label="Output device" value={s.outputId ?? ""} onFocus={async () => setOutputs(await listOutputs())} onChange={(e) => { const n = upd({ outputId: e.target.value || undefined }); if (on) void listen(n); }} className={`w-full ${field}`}>
+            <option value="">Default output</option>
+            {outputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Output ${i + 1}`}</option>)}
           </select>
         )}
         {err && <p className="text-destructive">{err}</p>}
@@ -73,7 +87,7 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
             </div>
           );
         })}
-        <p className="text-[11px] text-muted-foreground">Sound is analysed raw on this device — no compression, echo cancelling or auto gain. Nothing is re-recorded or sent out.</p>
+        <p className="text-[11px] text-muted-foreground">Sound is analysed raw on this device — no compression, echo cancelling or auto gain. WAV/AIFF/FLAC play lossless to the chosen output; nothing is re-encoded or sent out.</p>
       </PopoverContent>
     </Popover>
   );

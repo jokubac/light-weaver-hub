@@ -17,7 +17,7 @@ export interface AudioReact {
   glitch?: AudioTarget; // RGB split + row tearing
   flash?: AudioTarget; // white flash on beat
 }
-export interface AudioSettings { source: "mic" | "input" | "timeline"; deviceId?: string | undefined; gain: number; threshold: number; attack: number; release: number }
+export interface AudioSettings { source: "mic" | "input" | "device" | "file" | "timeline"; deviceId?: string | undefined; outputId?: string | undefined; gain: number; threshold: number; attack: number; release: number }
 export interface Levels { bass: number; mid: number; high: number; level: number; beat: boolean }
 /** Live sound-driven video effect amounts (0–1). */
 export interface VideoFx { zoom: number; hue: number; glitch: number; flash: number }
@@ -43,6 +43,25 @@ let lastAt = 0, avgBass = 0;
 const rot = new Map<string, number>();
 let bins: Uint8Array<ArrayBuffer> | null = null;
 
+let fileEl: HTMLAudioElement | null = null;
+let fileUrl: string | null = null;
+/** Loads a WAV/AIFF/FLAC/MP3 file for the "file" source. WAV/AIFF/FLAC stay lossless; the file is played as-is. */
+export function loadAudioFile(f: File) {
+  if (fileUrl) URL.revokeObjectURL(fileUrl);
+  fileUrl = URL.createObjectURL(f);
+  fileEl ??= new Audio();
+  fileEl.loop = true; fileEl.src = fileUrl;
+  return f.name;
+}
+export const audioFileEl = () => fileEl;
+export async function listOutputs(): Promise<MediaDeviceInfo[]> {
+  try { return (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "audiooutput"); } catch { return []; }
+}
+/** Sends played audio (file / TIMELINE) to the chosen output device, untouched. */
+async function routeOutput(id?: string) {
+  const c = ctx as (AudioContext & { setSinkId?: (id: string) => Promise<void> }) | null;
+  try { if (c?.setSinkId) await c.setSinkId(id ?? ""); } catch { /* unsupported device */ }
+}
 export function setTimelineAudio(el: HTMLMediaElement | null) { timelineEl = el; }
 export function setAudioSettings(s: Partial<AudioSettings>) { settings = { ...settings, ...s }; }
 export const audioRunning = () => !!analyser;
@@ -52,6 +71,7 @@ export async function listInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export function stopAudio() {
+  fileEl?.pause();
   stream?.getTracks().forEach((t) => t.stop()); stream = null;
   try { srcNode?.disconnect(); } catch { /* ignore */ }
   srcNode = null; analyser = null; env = { ...ZERO };
@@ -61,13 +81,23 @@ export function stopAudio() {
 export async function startAudio(s: AudioSettings) {
   stopAudio(); settings = s;
   ctx ??= new AudioContext({ latencyHint: "interactive" });
+  await routeOutput(s.outputId);
   if (ctx.state === "suspended") await ctx.resume();
   const a = ctx.createAnalyser(); a.fftSize = 1024; a.smoothingTimeConstant = 0;
-  if (s.source === "timeline") {
-    if (!timelineEl) throw new Error("Load an audio track on the TIMELINE first");
-    let node = elementSources.get(timelineEl);
-    if (!node) { node = ctx.createMediaElementSource(timelineEl); node.connect(ctx.destination); elementSources.set(timelineEl, node); }
+  if (s.source === "timeline" || s.source === "file") {
+    const el = s.source === "file" ? fileEl : timelineEl;
+    if (!el) throw new Error(s.source === "file" ? "Choose a WAV or audio file first" : "Load an audio track on the TIMELINE first");
+    let node = elementSources.get(el);
+    if (!node) { node = ctx.createMediaElementSource(el); node.connect(ctx.destination); elementSources.set(el, node); }
     node.connect(a); srcNode = node;
+    if (s.source === "file") await el.play().catch(() => undefined);
+  } else if (s.source === "device") {
+    // Whatever this computer/tab is playing. Raw: browser processing off. Desktop Chrome/Edge/Windows app only.
+    if (!navigator.mediaDevices?.getDisplayMedia) throw new Error("Device audio isn't available here — use a sound card input or a file");
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: "include" } as DisplayMediaStreamOptions);
+    stream.getVideoTracks().forEach((t) => t.stop());
+    if (!stream.getAudioTracks().length) throw new Error("No sound shared — tick “Share audio” / “Share system audio”");
+    const node = ctx.createMediaStreamSource(stream); node.connect(a); srcNode = node;
   } else {
     stream = await navigator.mediaDevices.getUserMedia({ audio: {
       echoCancellation: false, noiseSuppression: false, autoGainControl: false,

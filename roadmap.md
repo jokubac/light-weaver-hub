@@ -222,4 +222,4 @@
 - [x] PIXEL Arrange: spacing slankiklis neturi uždaryti valdiklių; atskiri H/V tarpai
 - [ ] (Jokubas) Garsas: patikslinti, kad mikrofono/device įvestis būtų nekompresuota (raw PCM, be AGC/ANS/AEC) ir ar galima fiksuoti sample rate / buffer dydį.
 
-- [ ] Sound: device audio source, WAV/audio file upload, input+output device picker (raw)
+- [x] Sound: device audio source, WAV/audio file upload, input+output device picker (raw)
