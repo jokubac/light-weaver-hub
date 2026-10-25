@@ -315,6 +315,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             <span aria-hidden className="mx-1 h-6 w-px bg-border" />
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>
+            <Button size="sm" variant="secondary" disabled={!sel.size} title="Rotate the selected lights 90°" aria-label="Rotate selected lights 90 degrees" onClick={() => gridArrange("rotate")}><RotateCw />90°</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />Arrange{sel.size ? ` (${sel.size})` : ""}</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-2">
