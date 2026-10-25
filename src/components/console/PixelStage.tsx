@@ -215,9 +215,10 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   });
 
   const [gap, setGap] = useState(1);
+  const [gapY, setGapY] = useState(1);
   const lastHow = useRef<Arrange | null>(null);
   // moving the Spacing slider re-applies the last arrangement live
-  useEffect(() => { if (lastHow.current) gridArrange(lastHow.current); }, [gap]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (lastHow.current) gridArrange(lastHow.current); }, [gap, gapY]); // eslint-disable-line react-hooks/exhaustive-deps
   /** lay out the selected lights (or every light) in a chosen shape, centred on the map */
   const autoArrange = (shape: "rows" | "row" | "column" | "grid" | "upright" | "circle") => {
     const list = sel.size ? px.filter((f) => sel.has(f.uid)) : px; if (!list.length) return;
@@ -231,7 +232,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       const perRow = shape === "row" || shape === "upright" ? Infinity : shape === "column" ? 1 : shape === "grid" ? Math.ceil(Math.sqrt(list.length)) : Infinity;
       const maxW = shape === "rows" ? Math.min(W, Math.max(...sz.map((s) => s[0])) * Math.ceil(Math.sqrt(list.length)) * 2) : W;
       let x = 0, y = 0, rowH = 0, n = 0;
-      list.forEach((_, i) => { const [w, h] = sz[i]!; if (n >= perRow || (n > 0 && x + w > maxW)) { x = 0; y += rowH + gap; rowH = 0; n = 0; } spots.push({ x, y }); x += w + gap; rowH = Math.max(rowH, h); n++; });
+      list.forEach((_, i) => { const [w, h] = sz[i]!; if (n >= perRow || (n > 0 && x + w > maxW)) { x = 0; y += rowH + gapY; rowH = 0; n = 0; } spots.push({ x, y }); x += w + gap; rowH = Math.max(rowH, h); n++; });
       const bw = Math.max(...spots.map((s, i) => s.x + sz[i]![0])), bh = Math.max(...spots.map((s, i) => s.y + sz[i]![1]));
       const ox = Math.round((W - bw) / 2), oy = Math.round((H - bh) / 2);
       spots.forEach((s) => { s.x += ox; s.y += oy; });
@@ -330,20 +331,24 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>
             <Button size="sm" variant="secondary" disabled={!sel.size} title="Rotate the selected lights 90°" aria-label="Rotate selected lights 90 degrees" onClick={() => gridArrange("rotate")}><RotateCw />90°</Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />Arrange{sel.size ? ` (${sel.size})` : ""}</Button></DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-2">
-                <DropdownMenuLabel>{sel.size ? `Arrange ${sel.size} selected` : "Arrange all lights"}</DropdownMenuLabel>
+            <Popover>
+              <PopoverTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />Arrange{sel.size ? ` (${sel.size})` : ""}</Button></PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-2">
+                <div className="mb-1.5 text-xs font-semibold">{sel.size ? `Arrange ${sel.size} selected` : "Arrange all lights"}</div>
                 <div className="grid grid-cols-3 gap-1">
                   {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => { lastHow.current = k === "rotate" ? null : k; gridArrange(k); }} className="flex flex-col items-center gap-0.5 rounded-md bg-surface-elevated px-1 py-1.5 text-[10px] font-semibold active:scale-95">
                     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{GRID_ICON[k]}</svg>{l}</button>)}
                 </div>
-                <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
-                  <input type="range" min={0} max={10} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
+                <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="w-20">Horizontal</span>
+                  <input type="range" aria-label="Horizontal spacing" min={0} max={10} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
                   <span className="w-12 text-right font-mono">{gap} cell{gap === 1 ? "" : "s"}</span>
                 </label>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <label className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="w-20">Vertical</span>
+                  <input type="range" aria-label="Vertical spacing" min={0} max={10} step={1} value={gapY} onChange={(e) => setGapY(+e.target.value)} className="flex-1" />
+                  <span className="w-12 text-right font-mono">{gapY} cell{gapY === 1 ? "" : "s"}</span>
+                </label>
+              </PopoverContent>
+            </Popover>
             <span aria-hidden className="mx-1 h-6 w-px bg-border" />
             <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
             <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
