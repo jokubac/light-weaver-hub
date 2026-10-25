@@ -5,7 +5,7 @@ let lastPlotView: { x: number; y: number; z: number } | null = null;
 import { kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
-import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, Link2, Unlink, PanelRightClose, PanelRightOpen, Lock, LockOpen } from "lucide-react";
+import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, Link2, Unlink, PanelRightClose, PanelRightOpen, Lock, LockOpen, RotateCw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FixtureFilterBar, matchFilter, useFixtureFilter } from "@/components/console/FixtureFilterBar";
 
@@ -623,6 +623,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <button onClick={() => { const fx = grid.items.filter((i) => i.kind === "fixture"); if (live) onSelect(fx.map((i) => i.uid!)); else setEsel(fx.map((i) => i.id)); }} className={chip(false)} aria-label="Select all lights on grid">Select all</button>
               <button disabled={selItems.length < 2} onClick={() => { const lk = `lk-${Date.now().toString(36)}`; setGrid({ ...grid, items: grid.items.map((i) => (ids.has(i.id) ? { ...i, lk } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Group selected lights"><Link2 className="h-3.5 w-3.5" />Group</button>
               <button disabled={!linked} onClick={() => { const lks = new Set(selItems.map((i) => i.lk).filter(Boolean)); setGrid({ ...grid, items: grid.items.map((i) => (i.lk && lks.has(i.lk) ? { ...i, lk: undefined } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Ungroup selected lights"><Unlink className="h-3.5 w-3.5" />Ungroup</button>
+              <button disabled={!selItems.some((i) => i.kind === "fixture")} onClick={() => { const fids = new Set(selItems.filter((i) => i.kind === "fixture").map((i) => i.id)); setGrid({ ...grid, items: layoutTables(grid.items.map((i) => { if (!fids.has(i.id)) return i; const b = boxOf(i, sz); return { ...i, w: b.h, h: b.w, x: i.x + (b.w - b.h) / 2, y: i.y + (b.h - b.w) / 2 }; }), sz) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Rotate selected lights 90 degrees" title="Rotate the selected lights 90°"><RotateCw className="h-3.5 w-3.5" />90°</button>
             </>);
           })()}
           <button onClick={() => setView(HOME)} className={chip(false)} aria-label="Recenter grid"><LocateFixed className="h-3.5 w-3.5" />Recenter</button>
