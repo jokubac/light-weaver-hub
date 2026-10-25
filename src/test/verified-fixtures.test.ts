@@ -93,3 +93,15 @@ describe("Aputure Nova P600c official chart V1.1.1", () => {
     expect(n.modes.map((m) => m.channels)).toEqual([8, 4, 8, 5, 5, 6, 4, 5, 21, 5, 28, 16, 12, 22, 15, 7, 15, 9, 9, 7, 7, 6, 35, 10, 56, 32, 24, 36]);
   });
 });
+
+describe("ARRI Orbiter V5.0 chart", () => {
+  const orb = VERIFIED_FIXTURES.find((f) => f.model === "Orbiter")!;
+  const ch = (name: string) => orb.modes.find((m) => m.name === name)?.channels;
+  it("matches the chart footprints", () => {
+    expect(orb.modes).toHaveLength(72);
+    expect(ch("Mode 1 - CCT 8bit + ECC + Operation")).toBe(19);
+    expect(ch("Mode 2 - CCT 16bit + ECC + Operation")).toBe(30);
+    expect(ch("Mode 18 - Ultimate 16bit")).toBe(45);
+    expect(ch("Mode 14 - RGBACL 16bit")).toBe(23);
+  });
+});

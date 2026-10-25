@@ -1,6 +1,7 @@
 // Manufacturer-verified fixture profiles built from official DMX charts.
 // The curation script replaces same-id library entries with these, so they win over community GDTF files.
 import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode } from "./dmx";
+import { ORBITER_TABLE } from "./arri-orbiter-table";
 
 type Slot = ChannelAttr | [ChannelAttr, number]; // [attr, home 0-1]
 
@@ -438,7 +439,33 @@ const NOVA_P600C_MODES: FixtureMode[] = [
   aMode("28 Ultimate 16-bit", true, ["Dimmer"], [lab("Lighting Mode")], nParams(33)),
 ];
 
+
+// ARRI Orbiter V5.0: each mode pair (8/16 bit) × ECC off/on × Operation off/on, exactly as the chart allows.
+const ORB_ATTR: Record<string, Slot> = {
+  Dimmer: "Dimmer", "Color Temperature CCT": "CCT", "Green - Magenta Point": GM, Hue: "Hue", Saturation: "Saturation",
+  "Intensity Red": "Red", "Intensity Green": "Green", "Intensity Blue": "Blue", "Intensity Amber": "Amber", "Intensity White": "White",
+  "Cross Fade to Color": "Crossfade", Zoom: ["Zoom", 0], Focus: ["Focus", 0], X: ["Spare", 0.3127], Y: ["Spare", 0.329],
+};
+const ORB_ECC = ["Warmer / Cooler", "Saturate / Desaturate", "+/- Red", "+/- Green", "+/- Blue", "+/- Cyan", "+/- Magenta", "+/- Yellow"];
+const ORB_OP = ["Fan Control", "Favorites", "Light Strobe", "Color Sensor", "Sync"];
+function orbiterModes(): FixtureMode[] {
+  const out: FixtureMode[] = [];
+  for (const t of ORBITER_TABLE) for (const wide of [false, true]) for (const ecc of [false, true]) for (const op of [false, true]) {
+    const channelMap: ChannelMapEntry[] = t.rows.flatMap(([label, w16]) => {
+      const slot = ORB_ATTR[label];
+      const entries = slot ? expand([slot], wide && w16) : expand([SP], wide && w16);
+      return entries.map((e) => (slot && label !== "X" && label !== "Y" ? e : { ...e, label }));
+    });
+    if (ecc) channelMap.push(...ORB_ECC.flatMap((l) => expand([["Spare", 0]], wide).map((e) => ({ ...e, label: l }))));
+    if (op) channelMap.push(...ORB_OP.map(lab));
+    const n = t.n + (wide ? 1 : 0);
+    out.push({ name: `Mode ${n} - ${t.name} ${wide ? "16" : "8"}bit${ecc ? " + ECC" : ""}${op ? " + Operation" : ""}`, channels: channelMap.length, kind: "full", source: "manufacturer", channelMap });
+  }
+  return out;
+}
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-arri-orbiter", brand: "ARRI", model: "Orbiter", watts: 500, cctRange: [2000, 20000], lightType: "LED colour", modes: orbiterModes() },
   { id: "gdtf-aputure-nova-p600c", brand: "Aputure", model: "Nova P600c", watts: 600, cctRange: [2000, 10000], lightType: "LED colour", modes: NOVA_P600C_MODES },
   { id: "gdtf-aputure-ls-600c-pro", brand: "Aputure", model: "LS 600c Pro", watts: 600, cctRange: [2300, 10000], lightType: "LED colour", modes: APUTURE_600C_MODES },
   { id: "gdtf-aputure-ls-600c-pro-ii", brand: "Aputure", model: "LS 600c Pro II", watts: 600, cctRange: [2300, 10000], lightType: "LED colour", modes: APUTURE_600C_MODES },
