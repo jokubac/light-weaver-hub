@@ -240,3 +240,4 @@
 - [x] View tabs (FIXTURES/PLOT/TIMELINE/PIXEL) stretched across the whole screen width; Groups · Looks · Effects · REC toggle moved to the top bar as an icon next to ⋯; browser verified (tabs 309px each, amber tracks the active tab exactly, panel still opens).
 - [x] PLOT toolbar: ↻ 90° button rotates the selected lights' boxes 90° (same option as PIXEL); browser verified.
 - [x] (Jokubas) TIMELINE: lengvesnis valdymas + fixture spalvų pasirinkimas — vizualizatoriaus lempų editoriuje gel swatchai (11) + konsolės ColorWheel + Custom; keyframe point editoriuje gel swatchai; panelis telpa vizualizatoriuje; browser verified (gel click → keyframe hue 216).
+- [x] TIMELINE visualiser: Rotate button next to Invert turns the photo 90° per click (0/90/180/270, label shows the angle, amber when turned); the layer resizes to the swapped stage box so the photo keeps covering it; stored with the timeline. Browser verified (0→90→180→270→0, no gaps).

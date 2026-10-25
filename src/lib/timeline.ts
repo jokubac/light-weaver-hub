@@ -70,7 +70,7 @@ export interface Timeline {
   /** In/Out loop region */
   loop?: { a: number; b: number; on: boolean } | undefined;
   /** docked visualiser: light positions (0..1 of the stage), background photo, panel height */
-  viz?: { pos?: Record<string, [number, number]>; image?: string | undefined; h?: number; invert?: boolean | undefined; scale?: number | undefined } | undefined;
+  viz?: { pos?: Record<string, [number, number]>; image?: string | undefined; h?: number; invert?: boolean | undefined; scale?: number | undefined; rot?: number | undefined } | undefined;
 }
 
 /** Sets a light's value at absolute time t: reuses that light's own level clip covering t, otherwise adds one. */
