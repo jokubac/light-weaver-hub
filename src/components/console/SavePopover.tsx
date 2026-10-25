@@ -60,7 +60,7 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
                     ? <input autoFocus defaultValue={it.name} onBlur={(e) => { patch(it.id, { name: e.target.value.trim() || it.name }); setEditing(null); }}
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                         className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-                    : <button className="min-w-0 flex-1 truncate text-left font-semibold" onClick={() => onPick?.(it.id)} title={onPick ? "Select" : undefined}>{it.name}{it.info && <span className="ml-1 font-normal text-muted-foreground">{it.info}</span>}</button>}
+                    : <button className="min-w-0 flex-1 truncate text-left font-semibold" onClick={() => onPick?.(it.id)} title={onPick ? (kind === "Look" ? "Apply this look" : "Select") : undefined}>{it.name}{it.info && <span className="ml-1 font-normal text-muted-foreground">{it.info}</span>}</button>}
                   <button aria-label="Move up" onClick={() => move(i, -1)} className="p-0.5 disabled:opacity-30" disabled={i === 0}><ArrowUp className="h-3.5 w-3.5" /></button>
                   <button aria-label="Move down" onClick={() => move(i, 1)} className="p-0.5 disabled:opacity-30" disabled={i === items.length - 1}><ArrowDown className="h-3.5 w-3.5" /></button>
                   <button aria-label="Rename" onClick={() => setEditing(editing === it.id ? null : it.id)} className="p-0.5"><Pencil className="h-3.5 w-3.5" /></button>
