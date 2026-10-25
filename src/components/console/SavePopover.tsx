@@ -30,7 +30,7 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
   const patch = (id: string, p: Partial<SaveItem>) => onChange(items.map((x) => (x.id === id ? { ...x, ...p } : x)));
   return (
     <div ref={root} className="relative">
-      <button disabled={disabled} onClick={() => { setOpen((o) => !o); setName(""); setEditing(null); }} className="rounded-md bg-surface-elevated px-3 py-1.5 font-semibold disabled:opacity-40">{label}</button>
+      <button disabled={disabled} onClick={() => { setOpen((o) => !o); setName(""); setEditing(null); }} className="h-8 whitespace-nowrap rounded-md bg-surface-elevated px-3 text-xs font-semibold disabled:opacity-40">{label}</button>
       {open && <div className="absolute left-0 top-full z-50 mt-1 w-80 space-y-3 rounded-md border border-border bg-popover p-3 text-xs text-popover-foreground shadow-lg">
         <div className="space-y-2">
           <div className="font-semibold uppercase tracking-wide text-muted-foreground">New {kind.toLowerCase()}</div>
