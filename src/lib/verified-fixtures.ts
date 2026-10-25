@@ -418,7 +418,28 @@ const APUTURE_600C_MODES: FixtureMode[] = [
   aMode("22 Ultimate 16-bit", true, ["Dimmer"], [lab("Lighting Mode")], ["CCT", "GM", "Crossfade", "Red", "Green", "Blue"], [A_STROBE]),
 ];
 
+// Aputure Nova P600c DMX Profile Specification V1.1.1 (docs.aputure.com, May 2022). CCT 2000–10000K, 4 light engines.
+const nEngines = (name: string, wide: boolean, block: Slot[]): FixtureMode => vZones(name, wide, block, 4, [4, 1], []);
+const nParams = (n: number) => Array.from({ length: n }, (_, i) => lab(`Ultimate param ${i + 1}`));
+const NOVA_P600C_MODES: FixtureMode[] = [
+  ...APUTURE_600C_MODES.slice(0, 8).map((m) => ({ ...m })),
+  aMode("9 FX 8-bit", false, ["Dimmer"], aFx(20)),
+  aMode("10 WW & RGB 8-bit", false, ["White", "White", "Red", "Green", "Blue"]),
+  nEngines("11 Light Engine CCT & RGB 8-bit (4 engines)", false, ["Dimmer", "CCT", "GM", "Crossfade", "Red", "Green", "Blue"]),
+  nEngines("12 Light Engine HSI 8-bit (4 engines)", false, ["Dimmer", "Hue", "Saturation", ["Spare", 0]]),
+  nEngines("13 Light Engine xy 8-bit (4 engines)", false, ["Dimmer", ...XY]),
+  aMode("14 Ultimate 8-bit", false, ["Dimmer"], [lab("Lighting Mode")], nParams(20)),
+  ...APUTURE_600C_MODES.slice(11, 19).map((m, i) => ({ ...m, name: m.name.replace(/^\d+/, String(15 + i)) })),
+  aMode("23 FX 16-bit", true, ["Dimmer"], aFx(33)),
+  aMode("24 WW & RGB 16-bit", true, ["White", "White", "Red", "Green", "Blue"]),
+  nEngines("25 Light Engine CCT & RGB 16-bit (4 engines)", true, ["Dimmer", "CCT", "GM", "Crossfade", "Red", "Green", "Blue"]),
+  nEngines("26 Light Engine HSI 16-bit (4 engines)", true, ["Dimmer", "Hue", "Saturation", ["Spare", 0]]),
+  nEngines("27 Light Engine xy 16-bit (4 engines)", true, ["Dimmer", ...XY]),
+  aMode("28 Ultimate 16-bit", true, ["Dimmer"], [lab("Lighting Mode")], nParams(33)),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-aputure-nova-p600c", brand: "Aputure", model: "Nova P600c", watts: 600, cctRange: [2000, 10000], lightType: "LED colour", modes: NOVA_P600C_MODES },
   { id: "gdtf-aputure-ls-600c-pro", brand: "Aputure", model: "LS 600c Pro", watts: 600, cctRange: [2300, 10000], lightType: "LED colour", modes: APUTURE_600C_MODES },
   { id: "gdtf-aputure-ls-600c-pro-ii", brand: "Aputure", model: "LS 600c Pro II", watts: 600, cctRange: [2300, 10000], lightType: "LED colour", modes: APUTURE_600C_MODES },
   { id: "gdtf-nanlux-evoke-150c", brand: "Nanlux", model: "Evoke 150C", watts: 150, cctRange: [1000, 20000], lightType: "LED colour", modes: C8_MODES },
@@ -440,4 +461,11 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
   { id: "gdtf-astera-led-technology-af250-leofresnel", brand: "Astera", model: "AF250 LeoFresnel", watts: 250, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_FRESNEL_MODES },
   { id: "gdtf-quasar-science-double-rainbow-2ft", brand: "Quasar Science", model: "Double Rainbow 2ft", watts: 25, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(8) },
   { id: "gdtf-quasar-science-double-rainbow-4ft", brand: "Quasar Science", model: "Double Rainbow 4ft", watts: 50, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(16) },
+];
+
+/** Library GDTF profiles whose footprints were checked mode-by-mode against the manufacturer's own chart;
+ *  gdtf-curate tags their modes as manufacturer-sourced so PATCH shows them as official. */
+export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string }[] = [
+  // ARRI SkyPanel DMX Protocol Specification V4.4 (12/2022): modes 1–10, 16–23, 30 footprints match exactly.
+  ...["SkyPanel S30C", "SkyPanel S60C", "SkyPanel S120C", "SkyPanel S360C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI SkyPanel DMX Protocol V4.4" })),
 ];
