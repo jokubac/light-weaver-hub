@@ -223,3 +223,5 @@
 - [ ] (Jokubas) Garsas: patikslinti, kad mikrofono/device įvestis būtų nekompresuota (raw PCM, be AGC/ANS/AEC) ir ar galima fiksuoti sample rate / buffer dydį.
 
 - [x] Sound: device audio source, WAV/audio file upload, input+output device picker (raw)
+- [x] Programmer (PROG count, Update/Clear), Park/Unpark, Track vs Cue-only cues, MIDI timecode cue triggers, Monitor (batteries, L1/L2/L3), Red Shift; 9 tests, Monitor and Red Shift browser checked
+- [ ] LTC (audio timecode) cue triggers — only MIDI timecode (MTC) implemented
