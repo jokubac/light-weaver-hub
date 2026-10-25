@@ -478,7 +478,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [tlName, setTlName] = useState("");
   // Persisted so a re-render, scene switch or reload never slams the fader bar shut.
-  const [fadersOpen, setFadersOpen] = useState(() => localStorage.getItem("nox-faders-open") === "1");
+  const [fadersOpen, setFadersOpen] = useState(() => typeof window !== "undefined" && localStorage.getItem("nox-faders-open") === "1");
   useEffect(() => { localStorage.setItem("nox-faders-open", fadersOpen ? "1" : "0"); }, [fadersOpen]);
   const [keypadOpen, setKeypadOpen] = useState(false);
   const [pulses, setPulses] = useState<Record<string, { at: number; base: number; target: number }>>({});
