@@ -250,3 +250,5 @@
 - [ ] Kino Flo / Quasar / Rosco / Godox
 - [ ] Concert: Robe, Martin, Clay Paky, Ayrton, GLP, Chauvet
 - [ ] Other brands
+- [ ] ARRI official charts (SkyPanel, Orbiter, L-Series)
+- [ ] Nanlite PavoTube II (pixel modes; chart downloaded)
