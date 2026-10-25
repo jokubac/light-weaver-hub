@@ -22,10 +22,13 @@ import {
   findFreeAddress,
   getDef,
   deriveMode,
+  isVerifiedDef,
   overlaps,
   type FixtureDef,
   type PatchedFixture,
 } from "@/lib/dmx";
+
+const chartTag = (d: Pick<FixtureDef, "modes">) => (isVerifiedDef(d) ? " · ✓ official chart" : " · ⚠ unverified");
 
 /** Pixel count for a mode, including layouts derived at getMode time (Astera names, "Pixel N" modes). */
 const pxCount = (def: FixtureDef, i: number) => deriveMode(def, def.modes[i]!).pixels ?? 0;
@@ -180,7 +183,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         <List>
           {gdtfHits.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Manufacturer GDTF{gdtfBusy ? " · loading…" : ""}</p>}
           {gdtfHits.filter(isPx).map((d) => (
-            <Row key={`g-${d.id}`} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
+            <Row key={`g-${d.id}`} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
           ))}
           {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? "No fixtures found" : "Loading fixture library…"}</p>}
         </List>
@@ -192,7 +195,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
           ))}
           {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixtures</p>}
           {availableDefs.filter((d) => fav.has(d.id) && isPx(d)).map((d) => (
-            <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes`} />
+            <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes${chartTag(d)}`} />
           ))}
           <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers{gdtfLib ? ` · ${gdtfLib.length} fixtures` : " · loading…"}</p>
           {favoritesFirst(gdtfBrands, (b) => favBrands.has(b)).map((b) => (
@@ -202,7 +205,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       ) : !def ? (
         <List>
           {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand), (d) => fav.has(d.id)).map((d) => (
-            <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}`} />
+            <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
           ))}
         </List>
       ) : modeIdx === null ? (

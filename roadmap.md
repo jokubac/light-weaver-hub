@@ -241,3 +241,12 @@
 - [x] PLOT toolbar: ↻ 90° button rotates the selected lights' boxes 90° (same option as PIXEL); browser verified.
 - [x] (Jokubas) TIMELINE: lengvesnis valdymas + fixture spalvų pasirinkimas — vizualizatoriaus lempų editoriuje gel swatchai (11) + konsolės ColorWheel + Custom; keyframe point editoriuje gel swatchai; panelis telpa vizualizatoriuje; browser verified (gel click → keyframe hue 216).
 - [x] TIMELINE visualiser: Rotate button next to Invert turns the photo 90° per click (0/90/180/270, label shows the angle, amber when turned); the layer resizes to the swapped stage box so the photo keeps covering it; stored with the timeline. Browser verified (0→90→180→270→0, no gaps).
+
+## Official-chart audit (Jokubas) — every light must match the maker's DMX chart
+- [x] PATCH shows "✓ official chart" or "⚠ unverified" on each light (unverified lights stay available)
+- [x] Creamsource Vortex 4/8/24 — all 75 modes from V3.1 chart
+- [ ] Aputure / Amaran / Nanlux / Nanlite
+- [ ] ARRI / Litepanels / Astera (remaining) / Creamsource (rest)
+- [ ] Kino Flo / Quasar / Rosco / Godox
+- [ ] Concert: Robe, Martin, Clay Paky, Ayrton, GLP, Chauvet
+- [ ] Other brands
