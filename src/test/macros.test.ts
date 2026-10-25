@@ -68,3 +68,10 @@ describe("new macro set", () => {
     expect(ids).toContain("group");
   });
 });
+
+import { faderLimits as fl } from "@/lib/macros";
+describe("fader limits", () => {
+  it("5%..70% ceiling stays", () => expect(fl("int_fader", 5, 70)).toEqual([5, 70]));
+  it("clamps to full range and orders", () => expect(fl("int_fader", 120, -3)).toEqual([0, 100]));
+  it("defaults to full range", () => expect(fl("cct_fader")).toEqual([2000, 10000]));
+});

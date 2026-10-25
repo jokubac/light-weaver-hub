@@ -328,6 +328,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [amount, setAmount] = useState(100);
   const [label, setLabel] = useState("");
   const [param, setParam] = useState("");
+  const [lim, setLim] = useState<{ lo?: number | undefined; hi?: number | undefined }>({});
   const [gelQ, setGelQ] = useState("");
   const [gelBrand, setGelBrand] = useState<"All" | "Rosco" | "LEE">("All");
   const [gelKind, setGelKind] = useState<"All" | "Correction" | "Effect">("All");
@@ -395,7 +396,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     if (a?.pick === "group") return m.param ? `Group ${m.param}` : a.label;
     return a?.unit ? `${a.label} ${m.amount}${a.unit}` : (a?.label ?? m.action);
   };
-  const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); setParam(it.macro.param ?? ""); } else { setLabel(""); setParam(""); } };
+  const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); setParam(it.macro.param ?? ""); setLim({ lo: it.macro.lo, hi: it.macro.hi }); } else { setLabel(""); setParam(""); setLim({}); } };
   const newGroup = () => {
     if (!onCreateGroup) return null;
     if (!selected.length) { window.alert("Select the lights for the new group first."); return null; }
@@ -751,7 +752,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const faderReset = () => {
               const f0 = fixtures.find((f) => selected.includes(f.uid));
               if (!live || !act?.fader || !f0) return;
-              onRun({ id: it.id, key: null, action: act.id, amount: act.id === "int_fader" ? 50 : act.id === "cct_fader" ? 5600 : 0 });
+              const d = act.id === "int_fader" ? 50 : act.id === "cct_fader" ? 5600 : act.id === "sat_fader" ? 100 : 0; const [lo, hi] = faderLimits(act.id, it.macro?.lo, it.macro?.hi);
+              onRun({ id: it.id, key: null, action: act.id, amount: Math.max(lo, Math.min(hi, d)) });
             };
             const tapFader = (e: { clientX: number; clientY: number }) => {
               if (!live || !act?.fader) return;
@@ -884,7 +886,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <section className="space-y-2">
               <h3 className="text-xs font-bold uppercase text-muted-foreground">Macros</h3>
               <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                {sortedActions.map((a) => <button key={a.id} onClick={() => { setAction(a.id); setAmount(a.def ?? 0); }} className={`rounded-md border px-2 py-1.5 text-left text-xs font-semibold ${action === a.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{a.label}</button>)}
+                {sortedActions.map((a) => <button key={a.id} onClick={() => { setAction(a.id); setAmount(a.def ?? 0); setLim({}); }} className={`rounded-md border px-2 py-1.5 text-left text-xs font-semibold ${action === a.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{a.label}</button>)}
               </div>
               <section>
                 <h3 className="text-xs font-bold uppercase text-muted-foreground">Size</h3>
@@ -897,7 +899,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <div className="flex flex-wrap items-center gap-2">
                 {meta?.unit && <label className="flex items-center gap-2 text-xs">Amount<input type="number" value={amount} onChange={(e) => setAmount(+e.target.value)} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{meta.unit}</label>}
                 <input aria-label="Button name" placeholder="Name (optional)" value={label} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-                <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim(), ...(meta?.pick && param ? { param } : {}) }, ...(meta?.fader && !pick.macro ? { cs: 3, rs: 1 } : {}) }); setPicker(null); }}>Set macro</Button>
+                {meta?.fader && (() => { const r = FADER_RANGE[action]!; return <label className="flex items-center gap-1.5 text-xs">Limits
+                  <input type="number" aria-label="Fader minimum" placeholder={String(r[0])} min={r[0]} max={r[1]} value={lim.lo ?? ""} onChange={(e) => setLim({ ...lim, lo: e.target.value === "" ? undefined : +e.target.value })} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                  –<input type="number" aria-label="Fader maximum" placeholder={String(r[1])} min={r[0]} max={r[1]} value={lim.hi ?? ""} onChange={(e) => setLim({ ...lim, hi: e.target.value === "" ? undefined : +e.target.value })} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>; })()}
+                <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim(), ...(meta?.pick && param ? { param } : {}), ...(meta?.fader ? { lo: lim.lo, hi: lim.hi } : {}) }, ...(meta?.fader && !pick.macro ? { cs: 3, rs: 1 } : {}) }); setPicker(null); }}>Set macro</Button>
               </div>
               {meta?.pick === "group" && (<div className="flex flex-wrap gap-1.5 text-xs">
                 {groups.map((g) => <button key={g} onClick={() => setParam(g)} aria-pressed={param === g} className={`rounded-md border px-2 py-1 ${param === g ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{g}</button>)}
