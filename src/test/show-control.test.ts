@@ -27,6 +27,14 @@ describe("park and programmer", () => {
     expect(out[0]!.intensity).toBe(0.1);
     expect(out[1]!.intensity).toBe(0.9);
   });
+  it("a parked light ignores every later edit until unparked", () => {
+    const parked = { a: st(0.1) };
+    const edited = [fx("a", 0.9), fx("b", 0.9)]; // keypad / fader / cue wrote a new level
+    const held = applyPark(edited, parked); // the fixture setter puts parked lights back
+    expect(held[0]!.intensity).toBe(0.1);
+    expect(held[1]!.intensity).toBe(0.9);
+    expect(applyPark(edited, {})[0]!.intensity).toBe(0.9); // unparked, the edit stands
+  });
   it("programmer lists only lights changed from the stored cue", () => {
     expect(programmerDiff([fx("a", 0.5), fx("b", 0.8)], new Map([["a", st(0.5)], ["b", st(0.2)]]))).toEqual(["b"]);
   });

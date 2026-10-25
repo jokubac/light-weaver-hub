@@ -5,7 +5,8 @@ import { blend } from "./recordings";
 import { lookStateOf } from "./playback";
 
 /* ---------- Park ---------- */
-/** Parked lights are held at their stored state for output only; live programming is untouched. */
+/** Parked lights are held at their stored state — for output and for the live fixture state,
+ *  so no cue, fader, keypad or effect edit moves them until they are unparked. */
 export function applyPark(fixtures: PatchedFixture[], parked: Record<string, LookState> | undefined): PatchedFixture[] {
   if (!parked || !Object.keys(parked).length) return fixtures;
   return fixtures.map((f) => (parked[f.uid] ? { ...f, ...parked[f.uid], trigger: null } : f));
