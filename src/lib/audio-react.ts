@@ -12,7 +12,7 @@ export interface AudioReact {
   size?: AudioTarget; // band width grows with the band
   colour?: AudioTarget; // palette shifts with the band
 }
-export interface AudioSettings { source: "mic" | "input" | "timeline"; deviceId?: string; gain: number; threshold: number; attack: number; release: number }
+export interface AudioSettings { source: "mic" | "input" | "timeline"; deviceId?: string | undefined; gain: number; threshold: number; attack: number; release: number }
 export interface Levels { bass: number; mid: number; high: number; level: number; beat: boolean }
 
 export const AUDIO_TARGETS: [keyof Omit<AudioReact, "enabled">, string, Band][] = [
