@@ -1491,7 +1491,14 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           onDuplicateGroup={(gid) => { const g = layers.filter((l) => (l.group ?? l.id) === gid); if (!g.length) return; const ng = uid(); const copies = g.map((l) => ({ ...l, id: uid(), group: ng, playing: false, pausedAt: undefined })); const lastIdx = layers.indexOf(g[g.length - 1]!); setLayers([...layers.slice(0, lastIdx + 1), ...copies, ...layers.slice(lastIdx + 1)]); setActivePixelId(copies[0]!.id); }}
           onRemoveGroup={(gid) => { const rest = layers.filter((l) => (l.group ?? l.id) !== gid); if (!rest.length) return; setLayers(rest); if (!rest.some((l) => l.id === activePixelId)) setActivePixelId(rest[0]!.id); }}
           onAddEffect={(gid) => { const g = layers.filter((l) => (l.group ?? l.id) === gid); const first = g[0]; if (!first) return; const l = { ...defaultLayer(`Effect ${g.length + 1}`, [...first.order]), empty: true, area: initArea(stageSize(fixtures)), group: gid, playing: first.playing }; setLayers(layers.flatMap((x) => (x.id === g[g.length - 1]!.id ? [x.group ? x : x, l] : [x])).map((x) => (x.id === first.id && !x.group ? { ...x, group: gid } : x))); setActivePixelId(l.id); }}
-          onRemoveLight={(uid) => updateOne(uid, { pixelPos: undefined })}
+          onRemoveLight={(uids) => {
+            // take the lights off the active page; keep their map spot only if another page still uses them
+            const act = layers.find((x) => x.id === activePixelId) ?? layers[0]; const gid = act ? (act.group ?? act.id) : null;
+            const next = layers.map((l) => ((l.group ?? l.id) === gid ? { ...l, order: l.order.filter((u) => !uids.includes(u)) } : l));
+            const still = new Set(next.flatMap((l) => l.order));
+            setLayers(next);
+            setFixtures((xs) => xs.map((f) => (uids.includes(f.uid) && !still.has(f.uid) ? { ...f, pixelPos: undefined } : f)));
+          }}
           onAdd={() => { const l = { ...defaultLayer("Effect 1", []), empty: true, area: initArea(stageSize(fixtures)) }; setLayers([...layers, l]); setActivePixelId(l.id); }}
           onLayer={(patch) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, ...patch } : l))}
           onArea={(area) => setLayers(layers.map((l) => l.id === (layers.find((x) => x.id === activePixelId) ?? layers[0])?.id ? { ...l, area } : l))}
