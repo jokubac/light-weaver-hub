@@ -111,3 +111,20 @@ describe("adjustment filter and layer mixing", () => {
     expect(timelineAt(t, 4, [f], [], new Map()).states.get("a")?.intensity).toBeCloseTo(0.2);
   });
 });
+
+import { splitClip, easeK } from "@/lib/timeline";
+describe("split, stagger and curves", () => {
+  it("split at 3s of a 0→1 ramp over 4s gives two clips meeting at 75%", () => {
+    const [a, b] = splitClip(tl().clips[1]!, 5)!;
+    expect(a).toMatchObject({ start: 2, length: 3 }); expect(b).toMatchObject({ start: 5, length: 1 });
+    expect(a.to!.intensity).toBeCloseTo(0.75); expect(b.from!.intensity).toBeCloseTo(0.75);
+  });
+  it("stagger 1s: second light has not started 0.5s in", () => {
+    const t: Timeline = { tracks: [{ id: "l", name: "L" }], clips: [{ id: "c", track: "l", kind: "level", name: "c", start: 0, length: 5, uids: ["a", "b"], stagger: 1, from: { intensity: 1 }, to: { intensity: 1 } }] };
+    const s = timelineAt(t, 0.5, [f, { ...f, uid: "b" }], [], new Map()).states;
+    expect(s.get("a")?.intensity).toBe(1); expect(s.has("b")).toBe(false);
+  });
+  it("step curve holds until the point, smooth is 50% at the middle", () => {
+    expect(easeK("step", 0.9)).toBe(0); expect(easeK("smooth", 0.5)).toBe(0.5);
+  });
+});
