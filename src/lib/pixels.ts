@@ -1,3 +1,4 @@
+import { withAudio } from "./audio-react";
 // Pixel mapping engine: lays pixel fixtures out on one shared grid so effects flow
 // from one fixture into the next, supports 2D fixtures (e.g. SkyPanel S360 4×3) and
 // several independent layers playing at once.
@@ -68,6 +69,8 @@ export interface PixelLayer {
   /** recorded movement of the effect box: absolute x/y/angle at t seconds, looped over motionLen */
   motion?: { t: number; x: number; y: number; a: number }[];
   motionLen?: number;
+  /** sound-reactive settings (brightness/speed/spin/size/colour follow mic, line input or TIMELINE audio) */
+  audio?: import("./audio-react").AudioReact;
 }
 
 /** Layer as it sits at time t: recorded motion and spin applied to area/angle. */
@@ -404,9 +407,10 @@ export function renderCanvasImage(layer0: PixelLayer, fixtures: PatchedFixture[]
 }
 
 /** Several effect layers stacked into one canvas picture: each layer paints only its own area, upper layers on top. */
-export function renderCanvasComposite(layers: PixelLayer[], fixtures: PatchedFixture[], t: number, maskOf: (l: PixelLayer) => ReturnType<typeof textMask> | null) {
+export function renderCanvasComposite(layers0: PixelLayer[], fixtures: PatchedFixture[], t: number, maskOf: (l: PixelLayer) => ReturnType<typeof textMask> | null) {
   const { W, H } = stageSize(fixtures);
   const img: RGB[] = Array.from({ length: W * H }, () => BLACK);
+  const layers = withAudio(layers0);
   for (const l0 of layers) {
     if (l0.empty) continue;
     const l = layerAt(l0, l0.pausedAt ?? t);
@@ -561,7 +565,7 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
 /** Renders all playing layers; later layers override earlier ones on shared fixtures. */
 export function renderLayers(layers: PixelLayer[], fixtures: PatchedFixture[], t: number, masks: Map<string, ReturnType<typeof textMask>>) {
   const out = new Map<string, RGB[]>();
-  for (const l of layers) if (l.playing) renderLayer(l, fixtures, l.pausedAt ?? t, masks.get(l.id) ?? null, out);
+  for (const l of withAudio(layers)) if (l.playing) renderLayer(l, fixtures, l.pausedAt ?? t, masks.get(l.id) ?? null, out);
   return out;
 }
 

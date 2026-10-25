@@ -38,3 +38,4 @@
 - Verified manufacturer profiles live in src/lib/verified-fixtures.ts; gdtf-curate replaces same-model GDTF entries with them (or appends VERIFIED_EXTRA_MODES to keep saved mode indices) and drops 1-channel modes.
 - Pixel layouts resolve at deriveMode time (GDTF geometry, Pixel N/Astera names, pixel-layout.ts) so stored library data stays compatible.
 - Pixel effects paint one shared canvas; lights sample their pixelPos. PIXEL_LIBRARY is the one deduped catalog; normalizeLayer migrates old saves.
+- Sound-reactive PIXEL lives in src/lib/audio-react.ts: raw (no AGC/echo/noise) local analysis applied to layers inside renderLayers/renderCanvasComposite via withAudio, so stored layers never change.

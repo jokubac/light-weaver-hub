@@ -10,6 +10,7 @@ import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite,
 import { GRID_ARRANGE, GRID_ICON, type Arrange } from "./GridBoard";
 import { useClock } from "./PixelPanel";
 import { PixelAddClose } from "./pixel-add-context";
+import { SoundReact } from "./SoundReact";
 
 type RGB = [number, number, number];
 
@@ -327,6 +328,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                 </PopoverContent>
               </Popover>
             )}
+            {layer && onLayer && !layer.empty && <SoundReact layer={layer} onLayer={onLayer} />}
             <span aria-hidden className="mx-1 h-6 w-px bg-border" />
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>

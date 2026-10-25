@@ -27,6 +27,7 @@ jobs:
           bunx cap sync ios
           /usr/libexec/PlistBuddy -c "Add :NSBluetoothAlwaysUsageDescription string 'NOX connects to Bluetooth batteries and lights.'" ios/App/App/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSLocalNetworkUsageDescription string 'NOX sends DMX to wireless transmitters on your network.'" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'NOX listens to sound so PIXEL effects can react to music.'" ios/App/App/Info.plist || true
           P=ios/App/App/Info.plist
           for K in UISupportedInterfaceOrientations "UISupportedInterfaceOrientations~ipad"; do
             /usr/libexec/PlistBuddy -c "Delete :$K" $P || true
