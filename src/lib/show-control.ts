@@ -47,30 +47,6 @@ export function programmerDiff(fixtures: PatchedFixture[], stored: Map<string, L
   return fixtures.filter((f) => { const s = stored.get(f.uid); return !!s && !close(lookStateOf(f), s); }).map((f) => f.uid);
 }
 
-/* ---------- Phases ---------- */
-export type Phase = 1 | 2 | 3;
-export interface PhaseLoad { watts: number; amps: number; fullWatts: number; count: number }
-export function phaseLoads(fixtures: PatchedFixture[], phases: Record<string, Phase> | undefined, wattsOf: (f: PatchedFixture) => number, level: number, volts = 230) {
-  const z = (): PhaseLoad => ({ watts: 0, amps: 0, fullWatts: 0, count: 0 });
-  const out: Record<Phase | 0, PhaseLoad> = { 0: z(), 1: z(), 2: z(), 3: z() };
-  for (const f of fixtures) {
-    const p = phases?.[f.uid] ?? 0; const full = wattsOf(f);
-    const w = f.on === false ? 0 : full * Math.max(0, Math.min(1, f.intensity * level));
-    const o = out[p]; o.watts += w; o.fullWatts += full; o.count++;
-  }
-  for (const k of [0, 1, 2, 3] as const) out[k].amps = out[k].watts / volts;
-  return out;
-}
-/** Largest loads first onto the lightest phase. */
-export function autoBalance(fixtures: PatchedFixture[], wattsOf: (f: PatchedFixture) => number): Record<string, Phase> {
-  const sum: Record<Phase, number> = { 1: 0, 2: 0, 3: 0 };
-  const res: Record<string, Phase> = {};
-  [...fixtures].sort((a, b) => wattsOf(b) - wattsOf(a)).forEach((f) => {
-    const p = ([1, 2, 3] as Phase[]).reduce((m, x) => (sum[x] < sum[m] ? x : m), 1 as Phase);
-    res[f.uid] = p; sum[p] += wattsOf(f);
-  });
-  return res;
-}
 
 /* ---------- MIDI timecode ---------- */
 const FPS = [24, 25, 29.97, 30];

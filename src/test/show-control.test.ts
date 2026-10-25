@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyPark, autoBalance, cueAtTimecode, cueTarget, MtcDecoder, parseTc, phaseLoads, programmerDiff } from "@/lib/show-control";
+import { applyPark, cueAtTimecode, cueTarget, MtcDecoder, parseTc, programmerDiff } from "@/lib/show-control";
 import type { Cue, LookState } from "@/lib/store";
 import type { PatchedFixture } from "@/lib/dmx";
 
@@ -32,17 +32,6 @@ describe("park and programmer", () => {
   });
 });
 
-describe("phases", () => {
-  const w = () => 2300;
-  it("2300 W at full on one phase is 10 A at 230 V", () => {
-    const l = phaseLoads([fx("a", 1)], { a: 2 }, w, 1);
-    expect(l[2].amps).toBeCloseTo(10);
-    expect(l[1].amps).toBe(0);
-  });
-  it("auto balance spreads three equal lights over L1, L2, L3", () => {
-    expect(new Set(Object.values(autoBalance([fx("a"), fx("b"), fx("c")], w)))).toEqual(new Set([1, 2, 3]));
-  });
-});
 
 describe("MIDI timecode", () => {
   it("full-frame 01:02:03:00 at 25 fps is 3723 s", () => {
