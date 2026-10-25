@@ -267,7 +267,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-1.5 text-xs hw-bar">
           {onSelect && (
-            <div className="flex min-w-0 flex-wrap items-center gap-1" aria-label="Effect layers">
+            <div className="order-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1" aria-label="Effect layers">
               {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
                 const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
                 return (
@@ -290,7 +290,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
               {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}>+ Page</Button>}
             </div>
           )}
-          <div className="ml-auto flex flex-wrap gap-1">
+          <div className="order-1 flex flex-wrap gap-1">
             {layer && onLayer && (
               <Popover>
                 <PopoverTrigger asChild><Button size="sm" variant={recording ? "destructive" : "secondary"} aria-label="Effect motion"><RotateCw />Motion {Math.round(layer.angle ?? 0)}°{layer.spin ? ` · ${layer.spin}°/s` : ""}{recording ? " ●" : ""}</Button></PopoverTrigger>
