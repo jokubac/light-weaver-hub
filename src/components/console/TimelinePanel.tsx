@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
-import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown, Undo2, Redo2, Scissors, Repeat2, ImagePlus } from "lucide-react";
+import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown, Undo2, Redo2, Scissors, Repeat2, ImagePlus, Contrast } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NumberField } from "@/components/console/NumberField";
