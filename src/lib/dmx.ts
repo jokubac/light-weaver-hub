@@ -852,3 +852,7 @@ export function sampleEffect(fx: FxParams, t: number, seed = 0.3) {
 
 /** Highest universe the protocols address (Art-Net 15-bit port address); effectively unlimited. */
 export const MAX_UNIVERSE = 32768;
+
+/** True only when every mode comes from a manufacturer's own DMX chart (verified-fixtures / Astera tables). */
+export const isVerifiedDef = (d: Pick<FixtureDef, "modes">): boolean =>
+  d.modes.length > 0 && d.modes.every((m) => m.source === "manufacturer" || !!m.astera);
