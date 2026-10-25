@@ -115,8 +115,6 @@ export interface Project {
   cues?: Cue[];
   /** parked lights held at a fixed output state, keyed by fixture uid */
   parked?: Record<string, LookState>;
-  /** L1/L2/L3 assignment per fixture uid */
-  phases?: Record<string, 1 | 2 | 3>;
   callSheet?: CallSheetData;
 }
 
