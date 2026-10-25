@@ -41,7 +41,7 @@ export function FanPopover({ count, className, onApply }: { count: number; class
           <button className={seg(mode === "center")} onClick={() => setMode("center")}>Centre → edges</button>
         </div>
         <button disabled={count < 2} onClick={() => { const c = (n: number) => Math.max(lim[0]!, Math.min(lim[1]!, n)); onApply(attr, fanValues(count, c(from[attr]), c(to[attr]), mode)); }}
-          className="w-full rounded-md bg-primary py-2 text-sm font-bold text-primary-foreground active:scale-95">Apply fan</button>
+          className="w-full rounded-md bg-primary py-2 text-sm font-bold text-primary-foreground active:scale-95 disabled:opacity-40">Apply fan</button>
       </PopoverContent>
     </Popover>
   );

@@ -1228,7 +1228,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                  <button aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
                    onClick={() => setKeypadOpen((o) => !o)} className={chip(keypadOpen)}><Keyboard /></button>
                  <button aria-label="Macro timeline" title="Macro timeline" onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
-                 <FanPopover count={selected.length} className={`${chip(false)} disabled:opacity-40`} onApply={(attr, vals) => {
+                 <FanPopover count={selected.length} className={chip(false)} onApply={(attr, vals) => {
                    const order = new Map(selected.map((id, i) => [id, i]));
                    setFixtures((fs) => fs.map((f) => { const i = order.get(f.uid); if (i == null) return f; const v = vals[i]!; return attr === "intensity" ? { ...f, intensity: v / 100 } : { ...f, cct: cctFromKelvin(v) }; }));
                  }} />
