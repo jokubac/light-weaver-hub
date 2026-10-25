@@ -1235,7 +1235,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                      const order = new Map(fs.filter((f) => sel.has(f.uid)).map((f, i) => [f.uid, i]));
                      return fs.map((f) => {
                        const i = order.get(f.uid); if (i == null) return f; const v = vals[i]!;
-                       return attr === "intensity" ? { ...f, intensity: Math.max(0, Math.min(1, v / 100)), on: true } : { ...f, cct: Math.max(0, Math.min(1, cctFromKelvin(v))), crossfade: 0, gel: "" };
+                       return attr === "intensity" ? { ...f, intensity: Math.max(0, Math.min(1, v / 100)), on: true } : attr === "hue" ? { ...f, hue: ((v % 360) + 360) % 360, saturation: f.saturation > 0.05 ? f.saturation : 1, crossfade: 1, cctOnly: false, gel: "" }
+                         : { ...f, cct: Math.max(0, Math.min(1, cctFromKelvin(v))), crossfade: 0, gel: "" };
                      });
                    });
                  }} />
