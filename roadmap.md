@@ -228,7 +228,8 @@
 
 - [x] Park holds a light completely: wherever you go and whatever you adjust, a parked light stays exactly as parked until unparked.
 
-- [ ] PIXEL 1920x1080 grid for Full HD video (waiting on user choice)
+- [x] PIXEL map exact 16:9 so Full HD video fills it (high-quality downscale)
 - [x] DMX universes up to 32768 (Art-Net max)
 - [x] FIXTURES REC opens as a dropdown like + Group / + Look
 - [x] PATCH button glows amber while the patch sheet is open
+- [x] REC create panel drops down from REC like Groups\/Looks
