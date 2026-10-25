@@ -321,7 +321,8 @@ export function freeCanvasSpot(fixtures: PatchedFixture[], f: PatchedFixture): {
 }
 
 /** Fixed PIXEL canvas in cells; lights and effect areas stay inside it. */
-export const STAGE_MIN: [number, number] = [122, 72];
+// Exact 16:9 (Full HD 1920×1080 scaled), so Full HD video fills the map with no crop or stretch.
+export const STAGE_MIN: [number, number] = [128, 72];
 
 /** Effect area clamped into the canvas. */
 export function layerArea(layer: Pick<PixelLayer, "area">, stage: { W: number; H: number }) {

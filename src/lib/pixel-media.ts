@@ -53,6 +53,8 @@ export function videoFrame(id: string | undefined, W: number, H: number): Uint8C
   if (s.canvas.width !== W || s.canvas.height !== H) { s.canvas.width = W; s.canvas.height = H; }
   const vw = s.el.videoWidth || 1, vh = s.el.videoHeight || 1, k = Math.max(W / vw, H / vh);
   const dw = vw * k, dh = vh * k;
+  // Full-resolution frame averaged down (high-quality smoothing) so fine detail never flickers on the lights.
+  s.ctx.imageSmoothingEnabled = true; s.ctx.imageSmoothingQuality = "high";
   s.ctx.drawImage(s.el, (W - dw) / 2, (H - dh) / 2, dw, dh);
   s.data = s.ctx.getImageData(0, 0, W, H).data; s.w = W; s.h = H; s.at = t;
   return s.data;
