@@ -69,6 +69,26 @@ export interface Timeline {
   bpm?: number | undefined;
   /** In/Out loop region */
   loop?: { a: number; b: number; on: boolean } | undefined;
+  /** docked visualiser: light positions (0..1 of the stage), background photo, panel height */
+  viz?: { pos?: Record<string, [number, number]>; image?: string | undefined; h?: number } | undefined;
+}
+
+/** Sets a light's value at absolute time t: reuses that light's own level clip covering t, otherwise adds one. */
+export function setLightKeyAt(tl: Timeline, uid: string, name: string, t: number, v: { intensity: number; cct?: number | undefined; hue?: number | undefined; sat?: number | undefined }, trackId?: string): { timeline: Timeline; clipId: string } {
+  const locked = new Set(tl.tracks.filter((x) => x.locked || x.adjust).map((x) => x.id));
+  let c = tl.clips.find((x) => x.kind === "level" && x.uids?.length === 1 && x.uids[0] === uid && !locked.has(x.track) && t >= x.start && t <= x.start + x.length);
+  let clips = tl.clips;
+  if (!c) {
+    const track = trackId && !locked.has(trackId) ? trackId : tl.tracks.find((x) => !locked.has(x.id))?.id;
+    if (!track) return { timeline: tl, clipId: "" };
+    c = { id: newId(), track, kind: "level", name: `${name} keys`, start: Math.round(t * 10) / 10, length: 8, uids: [uid], keys: [] };
+    clips = [...clips, c];
+  }
+  const local = Math.round((t - c.start) * 10) / 10;
+  const keys = (c.keys ?? []).filter((k) => Math.abs(k.t - local) > 0.05);
+  const k: TimelineKey = { id: newId(), t: local, intensity: v.intensity, cct: v.hue != null ? undefined : v.cct, hue: v.hue, sat: v.hue != null ? v.sat ?? 1 : undefined };
+  const id = c.id, next = { ...c, keys: [...keys, k].sort((a, b) => a.t - b.t) };
+  return { timeline: { ...tl, clips: clips.map((x) => (x.id === id ? next : x)) }, clipId: id };
 }
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
