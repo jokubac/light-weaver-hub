@@ -6,7 +6,19 @@ export type MacroAction =
   | "next" | "prev" | "select" | "flash" | "go" | "back" | "play" | "pause" | "blackout" | "undo" | "redo" | "deselect" | "all"
   | "next_add" | "prev_add" | "invert" | "copy" | "paste" | "keypad" | "int_half" | "light_toggle" | "cue_reset" | "fx_toggle" | "pixel_toggle"
   | "int_fader" | "cct_fader" | "gm_fader" | "filter" | "hue_up" | "hue_down" | "sat_up" | "sat_down"
-  | "group" | "group_new" | "strike" | "checkout" | "locate" | "wrap" | "trigger";
+  | "group" | "group_new" | "strike" | "checkout" | "locate" | "wrap" | "trigger"
+  | "hue_fader" | "sat_fader" | "park" | "unpark" | "blind";
+
+/** Full range of each fader macro in its display units; user limits must sit inside it. */
+export const FADER_RANGE: Partial<Record<MacroAction, [number, number, number]>> = {
+  int_fader: [0, 100, 1], cct_fader: [2000, 10000, 50], gm_fader: [-100, 100, 1], hue_fader: [0, 360, 1], sat_fader: [0, 100, 1],
+};
+/** Fader limits (e.g. 5%..70%) clamped to the full range and kept in order. */
+export function faderLimits(action: MacroAction, lo?: number, hi?: number): [number, number] {
+  const r = FADER_RANGE[action]; if (!r) return [0, 0];
+  const a = Math.max(r[0], Math.min(r[1], lo ?? r[0])), b = Math.max(r[0], Math.min(r[1], hi ?? r[1]));
+  return a <= b ? [a, b] : [b, a];
+}
 
 /** param: gel id (Filters) or group name (Group). release: the button was let go (hold macros). */
 export interface Macro { id: string; key: string | null; action: MacroAction; amount: number; param?: string | undefined; release?: boolean | undefined }
@@ -49,6 +61,19 @@ export const MACRO_ACTIONS: { id: MacroAction; label: string; unit?: "%" | "K"; 
   { id: "checkout", label: "Check out!", hold: true },
   { id: "locate", label: "Locate!", hold: true },
   { id: "wrap", label: "Wrap!" },
+  { id: "hue_fader", label: "Hue fader", fader: true },
+  { id: "sat_fader", label: "Saturation fader", fader: true },
+  { id: "park", label: "Park / Unpark" },
+  { id: "unpark", label: "Unpark all" },
+  { id: "blind", label: "Blind" },
+  { id: "blackout", label: "Blackout" },
+  { id: "go", label: "GO" },
+  { id: "back", label: "Back" },
+  { id: "flash", label: "Flash" },
+  { id: "light_toggle", label: "On / Off" },
+  { id: "int_half", label: "Intensity 50%" },
+  { id: "deselect", label: "Deselect" },
+  { id: "fx_toggle_all", label: "" } as never,
 ];
 
 /** Turns a macro into a relative/absolute command for the selected fixtures. */
