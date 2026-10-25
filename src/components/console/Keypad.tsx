@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ClipboardPaste, Copy, Delete, GripVertical, Undo2, Redo2, X } from "lucide-react";
 import { parseCommand } from "@/lib/command-line";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "OU
 export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPreview, onCopy, onPaste, canPaste, onClose, onDeselect, onUndo, onRedo, canUndo, canRedo }: Props) {
   const [cmd, setCmd] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  const [pos, setPos] = useState({ x: 16, y: 16 });
+  const [pos, setPos] = useState({ x: -9999, y: -9999 });
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   // live selection while typing: "6" picks #6, "6 + 9" adds #9 before Please is pressed
   useEffect(() => {
@@ -36,7 +36,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
     if (!r.error && r.select?.length) onPreview?.(r.select);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cmd, count]);
-  useEffect(() => { setPos({ x: Math.max(8, window.innerWidth - 344), y: Math.max(16, window.innerHeight - 420) }); }, []);
+  useLayoutEffect(() => { setPos({ x: Math.max(8, window.innerWidth - 344), y: Math.max(16, window.innerHeight - 420) }); }, []);
   const clamp = (x: number, y: number) => ({ x: Math.min(Math.max(0, x), window.innerWidth - 120), y: Math.min(Math.max(0, y), window.innerHeight - 60) });
   const press = (k: string) => {
     setMsg(null);
