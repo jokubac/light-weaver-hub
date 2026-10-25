@@ -187,6 +187,7 @@ body { text-shadow: var(--text-outline); }
   font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; color: var(--muted-foreground);
   box-shadow: none !important;
 }
+.nox-tab-fill { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; }
 .nox-tab:hover { color: var(--foreground); background: var(--surface-elevated); }
 .nox-tab[aria-pressed="true"], .nox-tab[aria-pressed="true"]:hover {
   color: var(--primary-foreground);
