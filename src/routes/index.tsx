@@ -1349,7 +1349,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           ))}
           <button type="button" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} className="nox-tab">FADERS</button>
         </div>
-        <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11"><History /></Button>
+        <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11 w-11 rounded-xl"><History /></Button>
         {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>
 
