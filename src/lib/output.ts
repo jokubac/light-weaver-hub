@@ -247,6 +247,28 @@ export function buildUniverses(fixtures: PatchedFixture[], t: number, level: num
   return out;
 }
 
+export interface OutputTarget { ip: string; universes: Map<number, Uint8Array> }
+
+/** Splits universes per transmitter: enabled routes win, disabled routes mute, the rest go to the main node. */
+export function routeTargets(conn: Connection, universes: Map<number, Uint8Array>): OutputTarget[] {
+  const routes = conn.routes ?? [];
+  const byIp = new Map<string, Map<number, Uint8Array>>();
+  const add = (ip: string, u: number, d: Uint8Array) => { let m = byIp.get(ip); if (!m) { m = new Map(); byIp.set(ip, m); } m.set(u, d); };
+  for (const r of routes) if (r.enabled && r.ip.trim() && !universes.has(r.universe)) add(r.ip.trim(), r.universe, new Uint8Array(512));
+  for (const [u, d] of universes) {
+    const hit = routes.filter((r) => r.universe === u);
+    if (hit.length) { for (const r of hit) if (r.enabled && r.ip.trim()) add(r.ip.trim(), u, d); }
+    else if (conn.node) add(conn.node.ip, u, d);
+  }
+  return [...byIp].map(([ip, m]) => ({ ip, universes: m }));
+}
+const hasOutput = (conn: Connection) => !!conn.node || !!conn.routes?.some((r) => r.enabled && r.ip.trim());
+const payload = (conn: Connection, universes: Map<number, Uint8Array>) => JSON.stringify({
+  protocol: conn.protocol, ip: conn.node?.ip ?? "", hold: conn.holdLast !== false,
+  universes: Object.fromEntries([...universes].map(([u, b]) => [u, Array.from(b)])),
+  targets: routeTargets(conn, universes).map((t) => ({ ip: t.ip, universes: Object.fromEntries([...t.universes].map(([u, b]) => [u, Array.from(b)])) })),
+});
+
 export type BridgeStatus = "off" | "ok" | "slow" | "error";
 
 /** Sends ArtDmx/sACN packets straight from the device over UDP — no bridge computer. */
@@ -256,27 +278,27 @@ function createDirectSender(onStatus: (s: BridgeStatus) => void) {
   const cid = randomCid();
   const set = (s: BridgeStatus) => { if (s !== status) { status = s; onStatus(s); } };
   return async (conn: Connection, universes: Map<number, Uint8Array>) => {
-    if (!conn.node || !universes.size) { set("off"); return; }
+    if (!hasOutput(conn) || !universes.size) { set("off"); return; }
     if (busy) return;
-    const body = JSON.stringify({ protocol: conn.protocol, ip: conn.node.ip, universes: Object.fromEntries([...universes].map(([u, b]) => [u, Array.from(b)])) });
+    const body = payload(conn, universes);
     const now = performance.now();
     const changed = body !== last;
     if (!changed && now - lastAt < 1000) return; // 1 s keepalive refresh
     if (changed && now - lastAt < 33) return; // cap to ~30 fps
     busy = true;
     try {
-      const ip = conn.node.ip;
-      // send every universe at once so U1 and U32 leave in the same instant
-      await Promise.all([...universes].map(([u, data]) => {
+      // send every universe to every transmitter at once so U1 and U32 leave in the same instant
+      await Promise.all(routeTargets(conn, universes).flatMap(({ ip, universes: us }) => [...us].map(([u, data]) => {
         const seq = ((sequence.get(u) ?? 0) % 255) + 1;
         sequence.set(u, seq);
         return conn.protocol === "sacn"
           ? sendUdp(ip || sacnMulticastAddress(u), SACN_UDP_PORT, buildSacn(u, data, seq, cid))
           : sendUdp(ip || "255.255.255.255", ARTNET_UDP_PORT, buildArtDmx(u, data, seq));
-      }));
+      })));
       set(now - lastAt > 500 && changed ? "slow" : "ok");
       last = body; lastAt = now;
     } catch {
+      last = ""; // resend the full frame as soon as the link is back
       set("error");
     } finally {
       busy = false;
@@ -289,9 +311,9 @@ function createBridgeSender(onStatus: (s: BridgeStatus) => void) {
   let busy = false, last = "", lastAt = 0, status: BridgeStatus = "off";
   const set = (s: BridgeStatus) => { if (s !== status) { status = s; onStatus(s); } };
   return async (conn: Connection, universes: Map<number, Uint8Array>) => {
-    if (!conn.node) { set("off"); return; }
+    if (!hasOutput(conn)) { set("off"); return; }
     if (busy) return;
-    const body = JSON.stringify({ protocol: conn.protocol, ip: conn.node.ip, universes: Object.fromEntries([...universes].map(([u, b]) => [u, Array.from(b)])) });
+    const body = payload(conn, universes);
     const now = performance.now();
     if (body === last && now - lastAt < 1000) return; // bridge keeps refreshing on its own
     busy = true;
@@ -303,6 +325,7 @@ function createBridgeSender(onStatus: (s: BridgeStatus) => void) {
       set(res.ok ? (performance.now() - now > 500 ? "slow" : "ok") : "error");
       last = body; lastAt = now;
     } catch {
+      last = ""; // bridge holds the last frame; resend everything on reconnect
       set("error");
     } finally {
       clearTimeout(slowTimer);
