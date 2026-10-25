@@ -36,3 +36,4 @@
 - PIXEL is a full window (PixelStage): free canvas positions live in PatchedFixture.pixelPos and drive the "canvas" layout; generators (src/lib/pixel-generators.ts) are pure; videos stay in IndexedDB (pixel-media.ts) and are sampled per frame.
 - Timeline: + Fixture / + Group / simple + Effect / + REC (own effects), clip settings in right sidebar, floating visualiser (TimelineVisualiser) that can be moved, resized and closed.
 - BLIND freezes the last built DMX universes in the sender effect while editing continues; Screen Lock is a UI overlay only, output keeps running.
+- Park (Project.parked), cue Tracking/Cue-only, programmer diff, phase loads and MTC decoding live in pure src/lib/show-control.ts; Park applies last to output only so it overrides cues/faders/effects without touching live state.

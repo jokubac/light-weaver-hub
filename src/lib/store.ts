@@ -87,6 +87,10 @@ export interface Cue {
   note?: string;
   fade: number;
   states: { uid: string; name: string; state: LookState }[];
+  /** tracking (default) carries values forward; cue-only reverts them when the next cue runs */
+  mode?: "track" | "cueonly" | undefined;
+  /** MIDI timecode trigger, in seconds */
+  tc?: number | undefined;
 }
 
 /** A timeline saved on its own, apart from the scene's working timeline. */
@@ -109,6 +113,10 @@ export interface Project {
   timelines?: TimelineSave[]; // named timeline saves, shared within this project
   bank?: BankFader[];
   cues?: Cue[];
+  /** parked lights held at a fixed output state, keyed by fixture uid */
+  parked?: Record<string, LookState>;
+  /** L1/L2/L3 assignment per fixture uid */
+  phases?: Record<string, 1 | 2 | 3>;
   callSheet?: CallSheetData;
 }
 
