@@ -567,8 +567,12 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [blind, setBlind] = useState(false);
   const blindFrame = useRef<ReturnType<typeof buildUniverses> | null>(null);
   const [screenLocked, setScreenLocked] = useState(false);
+  const [monitorOpen, setMonitorOpen] = useState(false);
+  const [redShift, setRedShift] = useState(false);
+  useEffect(() => { setRedShift(localStorage.getItem("nox-red-shift") === "1"); }, []);
+  useEffect(() => { document.documentElement.classList.toggle("red-shift", redShift); localStorage.setItem("nox-red-shift", redShift ? "1" : "0"); }, [redShift]);
   useEffect(() => {
-    const live = blind && blindFrame.current ? blindFrame.current : buildUniverses(outFixtures, t, outLevel, frame, conn);
+    const live = blind && blindFrame.current ? blindFrame.current : buildUniverses(parkedOut, t, outLevel, frame, conn);
     if (blind && !blindFrame.current) blindFrame.current = live;
     void sender(conn, live);
   });
@@ -1291,6 +1295,10 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                      });
                    });
                  }} />
+                 {(() => { const allParked = selected.length > 0 && selected.every((u) => parked[u]); const n = Object.keys(parked).length; return (
+                   <button aria-pressed={allParked} title={allParked ? "Unpark the selected lights" : "Park — hold the selected lights at their current output, whatever cues or effects do"}
+                     onClick={() => { if (!selected.length) { setMonitorOpen(true); return; } const next = { ...parked }; if (allParked) selected.forEach((u) => delete next[u]); else outFixtures.filter((f) => selected.includes(f.uid)).forEach((f) => { next[f.uid] = lookStateOf(f); }); onParked(next); }}
+                     className={chip(allParked)}><ParkingSquare />{allParked ? "Unpark" : "Park"}{n > 0 && <span className="ml-1 font-mono text-[10px] text-warning">{n}</span>}</button>); })()}
                  <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
                    onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
                    onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
@@ -1416,6 +1424,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="text-xs font-bold">FADERS</Button>
         <Button variant="secondary" size="icon" onClick={() => setScreenLocked(true)} aria-label="Lock screen" title="Lock screen — prevents accidental touches"><Lock /></Button>
         {screenLocked && <ScreenLock onUnlock={() => setScreenLocked(false)} />}
+        <Button variant="secondary" size="icon" onClick={() => setMonitorOpen(true)} aria-label="Monitor" title="Monitor — batteries, phase load L1/L2/L3, parked lights"><Gauge /></Button>
+        <Button variant="secondary" size="icon" onClick={() => setRedShift((v) => !v)} aria-pressed={redShift} aria-label="Red Shift night mode" title="Red Shift — red screen for night shoots"><Moon /></Button>
+        <ShowMonitor open={monitorOpen} onOpenChange={setMonitorOpen} fixtures={fixtures} level={outLevel} phases={project.phases ?? {}} setPhases={onPhases} parked={parked} setParked={onParked} />
 
         <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
         <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
@@ -1549,7 +1560,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
-        onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates} />}
+        onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
+        progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
     </div>
   );
 }
