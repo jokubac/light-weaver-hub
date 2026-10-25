@@ -1320,8 +1320,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
 
   return (
     <div className="flex h-screen min-w-0 flex-col overflow-hidden" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
-      <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
-        <button onClick={exit} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
+      <div className="hw-bar flex flex-wrap items-center gap-2.5 border-b border-border bg-surface px-3 py-2">
+        <button onClick={exit} className="grid h-11 w-11 place-items-center rounded-lg bg-surface-elevated text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
         <SceneSwitcher projects={projects} project={project} scene={scene} onPick={(pid, sid) => { save(); onSwitch(pid, sid); }} />
         <div className="flex-1" />
         <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
@@ -1342,13 +1342,13 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           <Radio />CONNECT
         </Button>
       </div>
-      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-4 py-2">
-        <Button variant="secondary" onClick={() => openWin("fixtures")} aria-pressed={fixturesOpen} className="h-11 px-5 text-sm font-bold">FIXTURES</Button>
-        <Button variant="secondary" onClick={() => openWin("grid")} aria-pressed={gridOpen} className="h-11 px-5 text-sm font-bold">PLOT</Button>
-        <Button variant="secondary" onClick={() => openWin("timeline")} aria-pressed={seqOpen} className="h-11 px-5 text-sm font-bold">TIMELINE</Button>
-        <Button variant="secondary" onClick={() => openWin("pixels")} aria-pressed={pixOpen} className="h-11 px-5 text-sm font-bold">PIXEL</Button>
-        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen}
-          className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${fadersOpen ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>FADERS</Button>
+      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-background/60 px-3 py-1.5">
+        <div className="nox-tabs flex items-center gap-1 rounded-xl border border-border bg-surface p-1">
+          {([["fixtures", "FIXTURES", fixturesOpen], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([w, label, on]) => (
+            <button key={w} type="button" onClick={() => openWin(w)} aria-pressed={on} className="nox-tab">{label}</button>
+          ))}
+          <button type="button" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} className="nox-tab">FADERS</button>
+        </div>
         <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11"><History /></Button>
         {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
       </div>

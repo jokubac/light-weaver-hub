@@ -180,3 +180,25 @@ body { text-shadow: var(--text-outline); }
 @utility hw-led {
   box-shadow: 0 0 6px currentColor;
 }
+
+/* App-wide view tabs and toggle states */
+.nox-tab {
+  height: 2.5rem; min-width: 5.5rem; padding: 0 1rem; border-radius: calc(var(--radius) - 4px);
+  font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+.nox-tab:hover { color: var(--foreground); background: var(--surface-elevated); }
+.nox-tab[aria-pressed="true"] {
+  color: var(--primary-foreground); background: var(--primary); text-shadow: none;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 60%, transparent), 0 4px 14px -6px color-mix(in oklab, var(--primary) 70%, transparent) !important;
+}
+@layer base {
+  /* Any pressed toggle reads as "on" without per-component styling. */
+  button[aria-pressed="true"]:not(.nox-tab):not([class*="bg-primary"]):not([class*="bg-success"]):not([class*="bg-destructive"]):not([class*="bg-warning"]) {
+    border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+    color: var(--primary);
+    background-color: color-mix(in oklab, var(--primary) 12%, var(--surface-elevated));
+  }
+  /* Comfortable tablet hit targets for small icon buttons. */
+  @media (pointer: coarse) { button:where([class*="h-7"], [class*="h-8"]) { min-height: 2.5rem; } }
+}
