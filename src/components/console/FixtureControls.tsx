@@ -34,7 +34,7 @@ import { hexToHs } from "@/lib/gels";
 import { NumberField } from "./NumberField";
 import { useClock } from "./PixelPanel";
 import { BeamControls, beamChannels } from "./BeamControls";
-import { IntensityMacros, GmMacros, FanControl, GelPicker } from "./AdvancedControls";
+import { IntensityMacros, FanControl, GelPicker } from "./AdvancedControls";
 
 export function Control({
   label, value, display, onChange, onReset, gradient, min = 0, max = 1, entry,
@@ -140,8 +140,7 @@ export function FixtureControls({
 
       <Section title="CCT & Colour">
         {!anyCaps.color && <p className="rounded-md border border-destructive/50 bg-destructive/10 px-2 py-1.5 text-[11px] text-destructive">This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.</p>}
-        <ColourControls value={first} update={update} />
-        {anyCaps.gm && <><Control label="Green / Magenta" min={-1} max={1} value={first.gm} display={first.gm.toFixed(2)} onChange={(gm) => update({ gm })} onReset={() => update({ gm: 0 })} /><GmMacros value={first.gm} update={update} /></>}
+        <ColourControls value={first} update={update} {...(anyCaps.gm ? { gm: first.gm, onGm: (gm: number) => update({ gm }) } : {})} />
         <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
       </Section>
 
