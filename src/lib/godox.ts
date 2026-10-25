@@ -99,20 +99,20 @@ export const GODOX_AM1600R_MODES: FixtureMode[] = [
   ...both("16 GEL 16-bit", GEL, true),
   build("17 Ultimate 8-bit", ULT8, false, false),
   build("17 Ultimate 8-bit", ULT8, false, true),
-  build("18 Ultimate 16-bit", ULT16, false, false),
-  build("18 Ultimate 16-bit", ULT16, false, true),
+  build("18 Ultimate 16-bit", ULT16, true, false),
+  build("18 Ultimate 16-bit", ULT16, true, true),
 ];
 
-// M600Bi Pro (bi-colour 2800–6500K): FX has no Type channel; Ultimate carries 3 parameters (16-bit in mode 06).
+// M600Bi Pro (bi-colour 2800–6500K): FX has no Type channel; Ultimate carries 4 parameters (2–4 are 16-bit in mode 06).
 const BI_FX: Ch[] = [DIM, L("Effect Type"), L("FX Param 1", true), L("FX Param 2", true), L("FX Param 3", true)];
-const BI_ULT: Ch[] = [DIM, L("Mode Selection"), L("Param 1", true), L("Param 2", true), L("Param 3", true), L("Param 4", true)];
+const BI_ULT: Ch[] = [DIM, L("Mode Selection"), L("Param 1"), L("Param 2", true), L("Param 3", true), L("Param 4", true)];
 export const GODOX_M600BI_PRO_MODES: FixtureMode[] = [
   ...both("01 CCT 8-bit", [DIM, CCT], false),
   ...both("02 FX 8-bit", BI_FX, false),
   ...both("03 CCT 16-bit", [DIM, CCT], true),
   ...both("04 FX 16-bit", BI_FX, true),
-  ...both("05 Ultimate 8-bit", BI_ULT.slice(0, 6), false),
-  ...both("06 Ultimate 16-bit", BI_ULT.slice(0, 6), true).map((m) => m),
+  ...both("05 Ultimate 8-bit", BI_ULT, false),
+  ...both("06 Ultimate 16-bit", BI_ULT, true),
 ];
 
 export const GODOX_FIXTURES: FixtureDef[] = [

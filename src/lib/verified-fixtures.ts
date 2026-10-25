@@ -1,4 +1,5 @@
 import { SPEC_PAGE_CHECKED } from "./spec-checked";
+import { GODOX_FIXTURES } from "./godox";
 // Manufacturer-verified fixture profiles built from official DMX charts.
 // The curation script replaces same-id library entries with these, so they win over community GDTF files.
 import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode } from "./dmx";
@@ -598,6 +599,7 @@ const variants = (cores: [number, string, boolean, ChannelMapEntry[]][]): Fixtur
 );
 
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  ...GODOX_FIXTURES,
   { id: "gdtf-aputure-xt26", brand: "Aputure", model: "XT26", cctRange: [2700, 6500], lightType: "LED bi-colour", modes: variants(XT_CORES) },
   { id: "gdtf-aputure-electro-storm-cs15", brand: "Aputure", model: "Electro Storm CS15", cctRange: [2000, 10000], lightType: "LED colour", modes: CS15_MODES },
   { id: "gdtf-nanlux-tk-140b", brand: "Nanlux", model: "TK-140B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
