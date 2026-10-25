@@ -256,3 +256,4 @@
 - [x] ARRI chart checks: SkyPanel S60-RP, L5-C/L7-C, L5-C Plus/L7-C Plus marked official; library has 0 duplicate models (31 of 2520 verified).
 - [ ] ARRI Orbiter, SkyPanel X, L10-C, S60 Pro — library profiles are from older/different protocol versions than ARRI's current charts; need rebuilding from charts.
 - [ ] More rental-house fixtures with official manufacturer charts (one maker per round).
+- [ ] Double-check every unverified model against official manufacturer patch charts (user request; ongoing, maker by maker).
