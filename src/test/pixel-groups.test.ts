@@ -5,8 +5,11 @@ import { PIXEL_GROUPS, PIXEL_LIBRARY } from "@/lib/pixels";
 describe("PIXEL effect picker groups", () => {
   it("shows every generator group in the picker", () => {
     const used = [...new Set(PIXEL_GENERATORS.map((g) => g.group))];
-    expect(PIXEL_GROUPS.filter((g) => !used.includes(g))).toEqual([]);
     for (const g of used) expect(PIXEL_GROUPS).toContain(g);
+  });
+
+  it("has no empty group in the picker", () => {
+    for (const g of PIXEL_GROUPS) expect(PIXEL_LIBRARY.filter((x) => x.group === g).length).toBeGreaterThan(0);
   });
 
   it("lists the sound-reactive Music effects", () => {
