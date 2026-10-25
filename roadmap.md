@@ -220,3 +220,4 @@
 ## Open
 - [x] (Jokubas) Faderiai: FADERS juosta dabar išliejama (localStorage nox-faders-open) — užsidaro tik paspaudus FADERS mygtuką. Vartotojo patvirtinti iPade.
 - [x] PIXEL Arrange: spacing slankiklis neturi uždaryti valdiklių; atskiri H/V tarpai
+- [ ] (Jokubas) Garsas: patikslinti, kad mikrofono/device įvestis būtų nekompresuota (raw PCM, be AGC/ANS/AEC) ir ar galima fiksuoti sample rate / buffer dydį.
