@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
-import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown, Undo2, Redo2, Scissors, Repeat2, ImagePlus } from "lucide-react";
+import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown, Undo2, Redo2, Scissors, Repeat2, ImagePlus, Contrast } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NumberField } from "@/components/console/NumberField";
@@ -523,12 +523,14 @@ function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, on
       <div className="absolute left-2 top-1 z-10 flex items-center gap-1 text-xs">
         <span className="rounded bg-surface/80 px-1.5 py-0.5 font-semibold"><MonitorPlay className="mr-1 inline h-3.5 w-3.5" />Visualiser · {time.toFixed(1)}s</span>
         <Button size="sm" variant="secondary" className="h-6" onClick={() => photo.current?.click()}><ImagePlus />{viz.image ? "Photo" : "Add photo"}</Button>
+        {viz.image && <Button size="sm" variant={viz.invert ? "default" : "secondary"} className="h-6" aria-label="Invert photo" aria-pressed={!!viz.invert} onClick={() => setViz({ invert: !viz.invert })}><Contrast />Invert</Button>}
         {viz.image && <Button size="sm" variant="ghost" className="h-6" aria-label="Remove photo" onClick={() => setViz({ image: undefined })}><X /></Button>}
         <input ref={photo} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) loadPhoto(f); e.target.value = ""; }} />
         <span className="text-muted-foreground">drag lights to place · tap to set at the red line</span>
       </div>
       <button aria-label="Close visualiser" onClick={onClose} className="absolute right-2 top-1 z-10 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-      <div ref={stage} className="absolute inset-0 overflow-hidden bg-cover bg-center" style={viz.image ? { backgroundImage: `url(${viz.image})` } : undefined} onPointerDown={(e) => { if (e.target === e.currentTarget) setEdit(null); }}>
+      <div ref={stage} className="absolute inset-0 overflow-hidden" onPointerDown={(e) => { if (e.target === e.currentTarget) setEdit(null); }}>
+        {viz.image && <div aria-hidden className="pointer-events-none absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${viz.image})`, filter: viz.invert ? "invert(1)" : undefined }} />}
         {list.map((f, i) => { const c = colorOf?.(f) ?? [0, 0, 0], [x, y] = posOf(f, i); const rgb = `rgb(${c[0]},${c[1]},${c[2]})`; return (
           <div key={f.uid} title={f.name} className={`absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none select-none items-end justify-center overflow-hidden rounded-full border-2 text-[8px] font-semibold ${edit === f.uid ? "border-primary" : "border-border"}`}
             style={{ left: `${x * 100}%`, top: `${y * 100}%`, background: rgb, boxShadow: `0 0 18px 4px ${rgb.replace("rgb", "rgba").replace(")", ",0.55)")}` }}
