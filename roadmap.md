@@ -255,6 +255,7 @@
 - [ ] ALL Nanlite, Nanlux and Aputure lights verified from official charts (user priority)
 - [x] ARRI chart checks: SkyPanel S60-RP, L5-C/L7-C, L5-C Plus/L7-C Plus marked official; library has 0 duplicate models (31 of 2520 verified).
 - [x] ARRI Orbiter rebuilt from ARRI chart V5.0 (72 modes).
-- [ ] ARRI SkyPanel X, L10-C, S60 Pro — need current official charts.
+- [ ] ARRI SkyPanel X, L10-C, S60 Pro, Orbiter (LiOS 3.2+ DMX V4.4 modes) — no public ARRI chart found; ARRI only publishes these as GDTF/console files.
 - [ ] More rental-house fixtures with official manufacturer charts (one maker per round).
 - [ ] Double-check every unverified model against official manufacturer patch charts (user request; ongoing, maker by maker).
+- [x] Aputure Nova P300c from official chart V1.1 (9 modes).
