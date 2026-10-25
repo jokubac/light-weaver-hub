@@ -543,7 +543,7 @@ function TimelineVisualiser({ fixtures, timeline, time, setTimeline, colorOf, on
           </div>); })}
         {!list.length && <p className="p-10 text-center text-muted-foreground">Add lights in PATCH to see them here.</p>}
       </div>
-      {ef && cur && <div className="absolute bottom-2 right-2 z-20 w-64 space-y-1.5 rounded-lg border border-border bg-surface p-2 text-xs shadow-2xl" aria-label="Light at playhead">
+      {ef && cur && <div className="absolute bottom-2 right-2 z-20 max-h-[calc(100%-16px)] w-64 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-surface p-2 text-xs shadow-2xl" aria-label="Light at playhead">
         <div className="flex items-center gap-1"><b className="flex-1 truncate">{ef.name} @ {time.toFixed(1)}s</b><button aria-label="Close light editor" onClick={() => setEdit(null)}><X className="h-3.5 w-3.5" /></button></div>
         <label className="flex items-center gap-2">Int<input type="range" min={0} max={100} value={Math.round(cur.intensity * 100)} onChange={(e) => setVal({ intensity: +e.target.value / 100 })} className="flex-1" /><span className="w-9 text-right font-mono">{Math.round(cur.intensity * 100)}%</span></label>
         <label className="flex items-center gap-2">CCT<input type="range" min={2000} max={10000} step={100} value={c2k(cur.cct ?? k2c(5600))} onChange={(e) => setVal({ cct: k2c(+e.target.value), hue: undefined, sat: undefined })} className="flex-1" /><span className="w-12 text-right font-mono">{cur.hue != null ? "—" : `${c2k(cur.cct ?? k2c(5600))}K`}</span></label>
