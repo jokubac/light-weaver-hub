@@ -2,7 +2,7 @@
 // normalizes brand names and keeps the most complete profile per model.
 // Usage: bun scripts/gdtf-curate.ts
 import { readFileSync, writeFileSync, readdirSync, rmSync, existsSync } from "node:fs";
-import { VERIFIED_EXTRA_MODES, VERIFIED_FIXTURES } from "../src/lib/verified-fixtures";
+import { CHART_CHECKED_GDTF, VERIFIED_EXTRA_MODES, VERIFIED_FIXTURES } from "../src/lib/verified-fixtures";
 import { BRAND_ALIASES, canonicalBrand, modelKey, profileScore, specWatts } from "../src/lib/gdtf-curation";
 
 const out = "public/gdtf-library";
@@ -29,6 +29,11 @@ for (const v of VERIFIED_FIXTURES) best.set(`${v.brand}|${modelKey(v.brand, v.mo
 for (const x of VERIFIED_EXTRA_MODES) {
   const d = best.get(`${x.brand}|${modelKey(x.brand, x.model)}`);
   if (d) d.modes = [...d.modes, ...x.modes.filter((m) => !d.modes.some((o: any) => o.name === m.name))];
+}
+for (const c of CHART_CHECKED_GDTF) {
+  const d = best.get(`${c.brand}|${modelKey(c.brand, c.model)}`);
+  if (d) d.modes = d.modes.map((m: any) => ({ ...m, source: "manufacturer" }));
+  else console.warn("chart-checked model missing:", c.brand, c.model);
 }
 const defs = [...best.values()].sort((a, b) => `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`));
 

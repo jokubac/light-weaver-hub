@@ -462,3 +462,10 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
   { id: "gdtf-quasar-science-double-rainbow-2ft", brand: "Quasar Science", model: "Double Rainbow 2ft", watts: 25, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(8) },
   { id: "gdtf-quasar-science-double-rainbow-4ft", brand: "Quasar Science", model: "Double Rainbow 4ft", watts: 50, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(16) },
 ];
+
+/** Library GDTF profiles whose footprints were checked mode-by-mode against the manufacturer's own chart;
+ *  gdtf-curate tags their modes as manufacturer-sourced so PATCH shows them as official. */
+export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string }[] = [
+  // ARRI SkyPanel DMX Protocol Specification V4.4 (12/2022): modes 1–10, 16–23, 30 footprints match exactly.
+  ...["SkyPanel S30C", "SkyPanel S60C", "SkyPanel S120C", "SkyPanel S360C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI SkyPanel DMX Protocol V4.4" })),
+];

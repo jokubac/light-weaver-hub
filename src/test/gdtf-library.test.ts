@@ -24,3 +24,14 @@ describe("curated bundled profiles", () => {
     expect(library.some((d) => d.brand === "Lightstar" && /AIRLITE P1000/i.test(d.model))).toBe(true);
   });
 });
+
+import { isVerifiedDef as _isV } from "@/lib/dmx";
+import { readFileSync as _rf } from "node:fs";
+it("ARRI SkyPanel S60C GDTF matches the V4.4 chart and is marked official", () => {
+  const idx = JSON.parse(_rf("public/gdtf-library/library.json", "utf8"));
+  const all: any[] = []; for (let i = 1; i <= idx.parts; i++) all.push(...JSON.parse(_rf(`public/gdtf-library/library-${i}.json`, "utf8")));
+  const d = all.find((x) => x.brand === "ARRI" && x.model === "SkyPanel S60C");
+  expect(_isV(d)).toBe(true);
+  const plain = d.modes.filter((m: any) => !/ECC|LE /.test(m.name)).map((m: any) => m.channels);
+  expect(plain.slice(0, 10)).toEqual([12, 7, 10, 9, 7, 20, 10, 16, 14, 10]);
+});
