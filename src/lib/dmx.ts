@@ -1,4 +1,5 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
+import { vortexProfileModes } from "./verified-fixtures";
 import { asteraModes, asteraSpec, asteraSpecFromName } from "./astera";
 import { pixelLayout, pixelShape, knownLayout } from "./pixel-layout";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
@@ -204,9 +205,10 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Godox", ["TL30"], pxModes(8, GODOX_RGB)),
   ...fam("Godox", ["TL60", "TP4R"], pxModes(16, GODOX_RGB)),
   ...fam("Godox", ["TL120", "TP8R"], pxModes(32, GODOX_RGB)),
-  ...fam("Creamsource", ["Vortex4"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (4 px)", 16, "rgbw", 4, [2, 2]), m("Pixel HSI 8-bit (4 px)", 20, "hsi", 4, [2, 2])]),
-  ...fam("Creamsource", ["Vortex8"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (8 px)", 32, "rgbw", 8, [4, 2]), m("Pixel HSI 8-bit (8 px)", 40, "hsi", 8, [4, 2])]),
-  ...fam("Creamsource", ["Vortex24"], [...VORTEX.slice(0, -1), m("Pixel RGBW 8-bit (24 px)", 96, "rgbw", 24, [6, 4]), m("Pixel HSI 8-bit (24 px)", 120, "hsi", 24, [6, 4])]),
+  // Official Creamsource V3.1 chart (verified-fixtures.ts) — never guessed footprints.
+  ...fam("Creamsource", ["Vortex4"], vortexProfileModes(4)),
+  ...fam("Creamsource", ["Vortex8"], vortexProfileModes(8)),
+  ...fam("Creamsource", ["Vortex24"], vortexProfileModes(24)),
   ...fam("Creamsource", ["Micro Colour", "SpaceX", "Slyce"], CREAM_MICRO),
   ...fam("Astera", ["Titan Tube"], [
     ...asteraPx(16).map((mode) => {
