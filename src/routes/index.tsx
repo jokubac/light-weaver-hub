@@ -34,6 +34,7 @@ import { PixelPanel } from "@/components/console/PixelPanel";
 import { PixelAddPatched } from "@/components/console/PixelAddPatched";
 import { PixelStage } from "@/components/console/PixelStage";
 import { GroupsPanel } from "@/components/console/GroupsPanel";
+import { ViewTabs } from "@/components/console/ViewTabs";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
@@ -1345,12 +1346,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         </Button>
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
-        <div className="nox-tabs flex items-center gap-1 rounded-xl border border-border bg-surface-elevated p-1">
-          {([["fixtures", "FIXTURES", fixturesOpen], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([w, label, on]) => (
-            <button key={w} type="button" onClick={() => openWin(w)} aria-pressed={on} className="nox-tab">{label}</button>
-          ))}
-          <button type="button" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} className="nox-tab">FADERS</button>
-        </div>
+        <ViewTabs tabs={([["fixtures", "FIXTURES", fixturesOpen], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => openWin(k as "fixtures" | "grid" | "timeline" | "pixels") }))} />
+        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="h-11 rounded-xl px-4 text-xs font-extrabold tracking-[0.06em] shadow-sm">FADERS</Button>
         <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11 w-11 rounded-xl shadow-sm"><History /></Button>
         <button onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} className={`${chip(groupsOpen)} ml-auto`}>
           <span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}
