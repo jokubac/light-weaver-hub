@@ -35,6 +35,7 @@ import { PixelAddPatched } from "@/components/console/PixelAddPatched";
 import { PixelStage } from "@/components/console/PixelStage";
 import { GroupsPanel } from "@/components/console/GroupsPanel";
 import { ViewTabs } from "@/components/console/ViewTabs";
+import { RecDrop } from "@/components/console/RecDrop";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
@@ -1439,7 +1440,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         </div>
         <Button variant="secondary" onClick={toggleBlind} aria-pressed={blind} title={blind ? "BLIND on — stage is frozen. Tap to send your changes live" : "BLIND — edit without changing the stage"}
           className={`text-xs font-bold ${blind ? "animate-pulse bg-warning text-primary-foreground" : ""}`}>{blind ? "APPLY" : "BLIND"}</Button>
-        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className="text-xs font-bold">PATCH</Button>
+        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className={`text-xs font-bold ${patchOpen ? "bg-primary text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] hover:bg-primary/90" : ""}`}>PATCH</Button>
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="text-xs font-bold">FADERS</Button>
         <Button variant="secondary" size="icon" onClick={() => setScreenLocked(true)} aria-label="Lock screen" title="Lock screen — prevents accidental touches"><Lock /></Button>
         {screenLocked && <ScreenLock onUnlock={() => setScreenLocked(false)} />}

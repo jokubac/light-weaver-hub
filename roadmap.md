@@ -230,4 +230,5 @@
 
 - [ ] PIXEL 1920x1080 grid for Full HD video (waiting on user choice)
 - [x] DMX universes up to 32768 (Art-Net max)
-- [ ] FIXTURES REC opens as a dropdown like + Group / + Look
+- [x] FIXTURES REC opens as a dropdown like + Group / + Look
+- [x] PATCH button glows amber while the patch sheet is open
