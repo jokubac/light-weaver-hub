@@ -17,8 +17,8 @@ export const makeStep = (src: PatchedFixture[], n: number, pixels?: PixelLayer[]
 });
 
 /** REC dialog: save the selected lights as a new recording or as the next cue of an existing one. */
-export function RecDialog({ open, onOpenChange, selected, all, recordings, setRecordings, pixels }: {
-  open: boolean; onOpenChange: (o: boolean) => void; selected: PatchedFixture[]; all: PatchedFixture[]; recordings: Recording[]; setRecordings: (r: Recording[]) => void; pixels?: PixelLayer[];
+export function RecDialog({ open, onOpenChange, selected, all, recordings, setRecordings, pixels, inline }: {
+  inline?: boolean; open: boolean; onOpenChange: (o: boolean) => void; selected: PatchedFixture[]; all: PatchedFixture[]; recordings: Recording[]; setRecordings: (r: Recording[]) => void; pixels?: PixelLayer[];
 }) {
   const [name, setName] = useState("");
   const [naming, setNaming] = useState(false);
@@ -42,10 +42,8 @@ export function RecDialog({ open, onOpenChange, selected, all, recordings, setRe
     })) })));
     onOpenChange(false);
   };
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) setNaming(false); onOpenChange(o); }}>
-      <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader><DialogTitle>REC — {src.length} light{src.length === 1 ? "" : "s"}</DialogTitle></DialogHeader>
+  // inline: same content dropped down from the REC button, like + Group / + Look
+  const body = (<>
         <div role="radiogroup" aria-label="Record which lights" className="grid grid-cols-2 gap-1 rounded-lg bg-surface-elevated p-1">
           <button role="radio" aria-checked={scope === "sel"} disabled={!selected.length} onClick={() => setScope("sel")} className={`rounded-md py-1.5 text-xs font-bold disabled:opacity-40 ${scope === "sel" && selected.length ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Selected ({selected.length})</button>
           <button role="radio" aria-checked={scope === "all" || !selected.length} onClick={() => setScope("all")} className={`rounded-md py-1.5 text-xs font-bold ${scope === "all" || !selected.length ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>All lights ({all.length})</button>
@@ -83,6 +81,13 @@ export function RecDialog({ open, onOpenChange, selected, all, recordings, setRe
             ))}
           </div>
         </div>
+  </>);
+  if (inline) return <div className="space-y-3"><div className="font-semibold uppercase tracking-wide text-muted-foreground">REC — {src.length} light{src.length === 1 ? "" : "s"}</div>{body}</div>;
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) setNaming(false); onOpenChange(o); }}>
+      <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader><DialogTitle>REC — {src.length} light{src.length === 1 ? "" : "s"}</DialogTitle></DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );
