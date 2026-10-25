@@ -263,3 +263,4 @@
 - [x] Aputure INFINIBAR PB3/PB6/PB12 chart-checked (faulty generic Infinibar merged); STORM XT52/700x/400x added from official profiles 1–32. Todo: XT52 motorized-accessory profiles 101+, MC Pro, MT Pro, STORM 80C/1000C, XT26, LS 1200d/600x Pro.
 - [ ] Remaining Aputure unverified: LS 1200d Pro, LS 600x Pro, Infinimat, F22c, TK-450B (Nanlux)
 - [ ] Big makers via official spec pages: Robe 81, Prolights 114, Chauvet 79, Elation 59, Martin 48, Ayrton 35, Clay Paky 1 (467 of 2521 total). Next: GLP, Vari-Lite, JB-Lighting, Cameo (pages hide channel counts), Clay Paky (counts only in PDFs)
+- [ ] Fiilex + Godox verified against official pages (Jokubas)
