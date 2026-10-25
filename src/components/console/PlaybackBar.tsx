@@ -45,8 +45,11 @@ export function PlaybackBar(p: PlaybackProps) {
       <div className="flex shrink-0 items-center gap-1.5">
         <Button variant="secondary" size="icon" aria-label="Back one cue" title="Back (B)" onClick={p.onBack} disabled={!sorted.length}><ChevronLeft /></Button>
         <button onClick={p.onGo} disabled={!sorted.length} aria-label="GO" title="GO (Space)"
-          className="relative h-9 w-14 overflow-hidden rounded-lg bg-success text-sm font-black tracking-wider text-primary-foreground active:scale-95 disabled:opacity-40">
+          className="relative flex h-12 w-20 flex-col items-center justify-center overflow-hidden rounded-lg bg-success text-lg font-black leading-none tracking-wider text-primary-foreground shadow-md active:scale-95 disabled:opacity-40">
           GO
+          {p.fadeK != null && p.fadeK < 1 && cur
+            ? <span className="mt-0.5 font-mono text-[10px] font-bold tracking-normal">{(cur.fade * (1 - p.fadeK)).toFixed(1)}s</span>
+            : next && <span className="mt-0.5 font-mono text-[10px] font-semibold tracking-normal opacity-80">{next.fade}s</span>}
           {p.fadeK != null && p.fadeK < 1 && <span className="absolute bottom-0 left-0 h-1 bg-background/60" style={{ width: `${p.fadeK * 100}%` }} />}
         </button>
         <button onClick={() => setCuesOpen(true)} className="w-28 rounded-lg bg-surface-elevated px-2 py-1 text-left text-[10px] leading-tight" title="Open cue list">
