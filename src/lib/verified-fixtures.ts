@@ -552,7 +552,10 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
 
 /** Library GDTF profiles whose footprints were checked mode-by-mode against the manufacturer's own chart;
  *  gdtf-curate tags their modes as manufacturer-sourced so PATCH shows them as official. */
-export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; modesFrom?: string }[] = [
+export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; modesFrom?: string; padTo?: Record<string, number> }[] = [
+  // Nanlux Evoke 900C DMX Reference Guide (Reduced Channels OFF): all 18 standard modes match, except xy 16-bit where
+  // the guide reserves ch 9–12 (12 ch) and the community file stops at 10 — padded with reserved channels.
+  { brand: "Nanlux", model: "Evoke 900C", chart: "Nanlux Evoke 900C DMX Reference Guide", padTo: { "XY 16bit (16-bit)": 12 } },
   // Aputure STORM 1000c & 80c DMX Profile Spec V1.3 (05/2026): profiles 1–32 footprints 7/14/17/26/10/20/20/32/3/6/5/10/15/22/8/16/18/28/3/6/3/6/4/8/6/12/3/6/4/7/5/6 match.
   { brand: "Aputure", model: "STORM 1000C", chart: "Aputure STORM 1000c & 80c DMX Profile Specification V1.3" },
   // Same chart covers the 80c; its community profile (VRGB modes) is wrong, so it takes the 1000c's checked modes.
