@@ -3,21 +3,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ChartNoAxesColumnIncreasing } from "lucide-react";
 import { fanValues, type FanMode } from "@/lib/fan";
 
-export type SpreadAttr = "intensity" | "cct";
+export type SpreadAttr = "intensity" | "cct" | "hue";
 
-const LIMITS: Record<SpreadAttr, [number, number, number]> = { intensity: [0, 100, 1], cct: [2000, 10000, 100] };
+const LIMITS: Record<SpreadAttr, [number, number, number]> = { intensity: [0, 100, 1], cct: [2000, 10000, 100], hue: [0, 360, 1] };
 
 /**
- * SPREAD: distributes intensity (%) or colour temperature (K) across the selected lights
+ * SPREAD: distributes intensity (%), colour temperature (K) or hue (°) across the selected lights
  * in on-screen order. Changes apply live while the sliders move.
  */
 export function FanPopover({ count, className, onApply }: { count: number; className: string; onApply: (attr: SpreadAttr, values: number[]) => void }) {
   const [attr, setAttr] = useState<SpreadAttr>("intensity");
   const [mode, setMode] = useState<FanMode>("linear");
-  const [from, setFrom] = useState({ intensity: 20, cct: 3200 });
-  const [to, setTo] = useState({ intensity: 100, cct: 5600 });
+  const [from, setFrom] = useState({ intensity: 20, cct: 3200, hue: 0 });
+  const [to, setTo] = useState({ intensity: 100, cct: 5600, hue: 240 });
   const [lo, hi, step] = LIMITS[attr];
-  const unit = attr === "intensity" ? "%" : "K";
+  const unit = attr === "intensity" ? "%" : attr === "hue" ? "°" : "K";
 
   const apply = (a = attr, f = from[a], t = to[a], m = mode) => { if (count >= 2) onApply(a, fanValues(count, f, t, m)); };
 
@@ -43,6 +43,7 @@ export function FanPopover({ count, className, onApply }: { count: number; class
         <div className="flex gap-1">
           <button className={seg(attr === "intensity")} onClick={() => { setAttr("intensity"); apply("intensity"); }}>Intensity</button>
           <button className={seg(attr === "cct")} onClick={() => { setAttr("cct"); apply("cct"); }}>CCT</button>
+          <button className={seg(attr === "hue")} onClick={() => { setAttr("hue"); apply("hue"); }}>Hue</button>
         </div>
         <div className="flex gap-1">
           <button className={seg(mode === "linear")} onClick={() => { setMode("linear"); apply(attr, from[attr], to[attr], "linear"); }}>Left → right</button>
@@ -54,6 +55,7 @@ export function FanPopover({ count, className, onApply }: { count: number; class
           {preview.map((v, i) => (
             <div key={i} className="flex-1 rounded-sm" style={attr === "intensity"
               ? { height: `${Math.max(4, v)}%`, background: "hsl(var(--primary))" }
+              : attr === "hue" ? { height: "100%", background: `hsl(${v} 100% 50%)` }
               : { height: "100%", background: `hsl(${30 + ((v - 2000) / 8000) * 180} 80% ${70 - ((v - 2000) / 8000) * 10}%)` }} />
           ))}
         </div>
