@@ -120,7 +120,8 @@ const vortexModes = (zones: number): FixtureMode[] => {
   const SZ = (n: number, label: string, wide: boolean, block: Slot[]) => vZones(`${n} Split Zone ${label} ${wide ? 16 : 8}-bit (2 zones)`, wide, block, 2, [2, 1], [V_FAN, V_CTRL, V_ORIENT]);
   const BZ = (n: number, label: string, wide: boolean, block: Slot[]) => vZones(`${n} Bars Zone ${label} ${wide ? 16 : 8}-bit (${bars} bars)`, wide, block, bars, [bars, 1], [V_FAN, V_CTRL, V_ORIENT]);
   const GZ = (n: number, label: string, wide: boolean, block: Slot[]) => vZones(`${n} Grid Zone ${label} ${wide ? 16 : 8}-bit (4 zones)`, wide, block, 4, [2, 2], [V_FAN, V_CTRL]);
-  const fx = (w: boolean) => labelled(V_FX, V_FX_LABELS, false).map((e) => e) && labelled(V_FX, V_FX_LABELS, false);
+  // Effects and gel slots stay 8-bit even in 16-bit modes (chart modes 18–20, 24–26).
+  const fx = (_wide: boolean) => labelled(V_FX, V_FX_LABELS, false);
   const gel = labelled(V_GEL, V_GEL_LABELS, false);
   const bump = (w: boolean) => labelled(V_BUMP, V_BUMP_LABELS, w);
   const flexLen = zones === 24 ? 387 : zones === 8 ? 131 : zones === 4 ? 67 : 131;
