@@ -7,7 +7,8 @@ import { statesAt } from "./recordings";
 
 export type ClipKind = "fx" | "pixel" | "rec" | "level" | "adjust";
 /** Automation point at local clip time: intensity 0..1 (adjust: multiplier), optional cct 0..1, hue 0-360 + sat 0..1. */
-export interface TimelineKey { id: string; t: number; intensity: number; cct?: number | undefined; hue?: number | undefined; sat?: number | undefined }
+export type Ease = "linear" | "smooth" | "step";
+export interface TimelineKey { id: string; t: number; intensity: number; ease?: Ease | undefined; cct?: number | undefined; hue?: number | undefined; sat?: number | undefined }
 export interface TimelineClip {
   id: string; track: string; kind: ClipKind; name: string;
   start: number; length: number; // seconds
@@ -20,6 +21,12 @@ export interface TimelineClip {
   rate?: number | undefined;
   /** adjustment-layer filter settings (applied on top of keyframes) */
   adj?: AdjustFilter | undefined;
+  /** seconds between each light starting (cascade) */
+  stagger?: number | undefined;
+  /** label colour */
+  color?: string | undefined;
+  /** seconds into the content where the clip starts (set by Split) */
+  offset?: number | undefined;
 }
 /** Filter an adjustment clip lays over the lights below it. */
 export interface AdjustFilter {
@@ -35,6 +42,7 @@ export type BlendMode = "replace" | "add" | "htp";
 /** adjust layers hold adjustment clips that scale/recolour everything on the layers below */
 export interface TimelineTrack { id: string; name: string; muted?: boolean; adjust?: boolean; solo?: boolean; locked?: boolean; opacity?: number; blend?: BlendMode; color?: string | undefined }
 
+export const easeK = (e: Ease | undefined, k: number) => e === "step" ? (k >= 1 ? 1 : 0) : e === "smooth" ? k * k * (3 - 2 * k) : k;
 type Val = { intensity: number; cct?: number | undefined; hue?: number | undefined; sat?: number | undefined };
 const lerpField = (keys: TimelineKey[], t: number, get: (k: TimelineKey) => number | undefined) => {
   const ks = keys.filter((k) => get(k) != null);
@@ -42,7 +50,7 @@ const lerpField = (keys: TimelineKey[], t: number, get: (k: TimelineKey) => numb
   if (t <= ks[0]!.t) return get(ks[0]!);
   for (let i = 1; i < ks.length; i++) {
     const a = ks[i - 1]!, b = ks[i]!;
-    if (t <= b.t) { const k = b.t > a.t ? (t - a.t) / (b.t - a.t) : 1; return get(a)! + (get(b)! - get(a)!) * k; }
+    if (t <= b.t) { const k = easeK(b.ease, b.t > a.t ? (t - a.t) / (b.t - a.t) : 1); return get(a)! + (get(b)! - get(a)!) * k; }
   }
   return get(ks[ks.length - 1]!);
 };
@@ -57,7 +65,10 @@ export interface Timeline {
   tracks: TimelineTrack[]; clips: TimelineClip[];
   audio?: { name: string; duration: number } | undefined;
   /** playback pauses at each marker until GO is pressed */
-  markers?: { id: string; t: number; name: string }[] | undefined;
+  markers?: { id: string; t: number; name: string; action?: "pause" | "pass" | undefined }[] | undefined;
+  bpm?: number | undefined;
+  /** In/Out loop region */
+  loop?: { a: number; b: number; on: boolean } | undefined;
 }
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
@@ -96,13 +107,14 @@ export function timelineAt(tl: Timeline, t: number, fixtures: PatchedFixture[], 
       const local = t - c.start, env = envelope(c, local);
       if (c.kind === "rec") {
         const rec = recordings.find((r) => r.id === c.recId);
-        const res = rec ? statesAt(rec, fixtures, origin, local * (c.rate ?? 1)) : null;
+        const res = rec ? statesAt(rec, fixtures, origin, (local + (c.offset ?? 0)) * (c.rate ?? 1)) : null;
         res?.states.forEach((s, uid) => { const { mix: _m, ...st } = s; put(uid, { ...st, intensity: st.intensity * env }); });
       } else if (c.kind === "fx" && c.fx) {
-        for (const uid of c.uids ?? []) { const f = base(uid); put(uid, { fx: c.fx, fxPlaying: true, on: true, intensity: (states.get(uid)?.intensity ?? (f?.intensity || 1)) * env }); }
+        for (const [i, uid] of (c.uids ?? []).entries()) { if (local < i * (c.stagger ?? 0)) continue; const f = base(uid); put(uid, { fx: c.fx, fxPlaying: true, on: true, intensity: (states.get(uid)?.intensity ?? (f?.intensity || 1)) * env }); }
       } else if (c.kind === "level" && (c.keys?.length || (c.from && c.to))) {
-        const v = clipValue(c, local);
-        for (const uid of c.uids ?? []) {
+        for (const [i, uid] of (c.uids ?? []).entries()) {
+          const lo = local - i * (c.stagger ?? 0); if (lo < 0) continue;
+          const v = clipValue(c, lo + (c.offset ?? 0)), env = envelope(c, lo);
           const p: TimelinePatch = { on: true, intensity: v.intensity * env };
           if (v.cct != null) { p.cct = v.cct; p.cctOnly = true; }
           if (v.hue != null) { p.hue = v.hue; p.saturation = v.sat ?? 1; p.cctOnly = false; }
@@ -173,3 +185,22 @@ export function applyFilter(cur: Look, a: AdjustFilter | undefined, env = 1): Ti
   }
   return p;
 }
+
+/** Cut a clip in two at absolute time t; null when t is not inside it. */
+export function splitClip(c: TimelineClip, t: number): [TimelineClip, TimelineClip] | null {
+  const at = t - c.start;
+  if (at <= 0.05 || at >= c.length - 0.05) return null;
+  const a: TimelineClip = { ...structuredClone(c), length: at, fadeOut: 0 };
+  const b: TimelineClip = { ...structuredClone(c), id: newId(), start: t, length: c.length - at, fadeIn: 0 };
+  if (c.keys?.length) {
+    const v = clipValue(c, at), mid = { id: newId(), t: at, intensity: v.intensity, cct: v.cct, hue: v.hue, sat: v.sat };
+    a.keys = [...c.keys.filter((k) => k.t < at), mid];
+    b.keys = [{ ...mid, id: newId(), t: 0 }, ...c.keys.filter((k) => k.t > at).map((k) => ({ ...k, t: k.t - at }))];
+  } else if (c.kind === "level" && c.from && c.to) {
+    const v = clipValue(c, at); a.to = { intensity: v.intensity, cct: v.cct }; b.from = { intensity: v.intensity, cct: v.cct };
+  }
+  if (c.kind === "rec") b.offset = (c.offset ?? 0) + at;
+  return [a, b];
+}
+/** Beat times (seconds) up to len for a tempo. */
+export const beats = (bpm: number | undefined, len: number) => bpm && bpm > 0 ? Array.from({ length: Math.floor(len * bpm / 60) + 1 }, (_, i) => i * 60 / bpm) : [];
