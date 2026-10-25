@@ -11,12 +11,22 @@ export interface AudioReact {
   spin?: AudioTarget; // box rotates with the sound
   size?: AudioTarget; // band width grows with the band
   colour?: AudioTarget; // palette shifts with the band
+  // video-only sound FX
+  zoom?: AudioTarget; // picture punches in
+  hue?: AudioTarget; // colours rotate
+  glitch?: AudioTarget; // RGB split + row tearing
+  flash?: AudioTarget; // white flash on beat
 }
 export interface AudioSettings { source: "mic" | "input" | "timeline"; deviceId?: string | undefined; gain: number; threshold: number; attack: number; release: number }
 export interface Levels { bass: number; mid: number; high: number; level: number; beat: boolean }
+/** Live sound-driven video effect amounts (0–1). */
+export interface VideoFx { zoom: number; hue: number; glitch: number; flash: number }
 
 export const AUDIO_TARGETS: [keyof Omit<AudioReact, "enabled">, string, Band][] = [
   ["bright", "Brightness on beat", "bass"], ["speed", "Speed", "bass"], ["spin", "Spin", "level"], ["size", "Size", "high"], ["colour", "Colour", "high"],
+];
+export const VIDEO_AUDIO_TARGETS: [keyof Omit<AudioReact, "enabled">, string, Band][] = [
+  ["zoom", "Zoom punch", "bass"], ["hue", "Hue shift", "mid"], ["glitch", "Glitch", "high"], ["flash", "Flash on beat", "bass"],
 ];
 export const defaultAudioSettings = (): AudioSettings => ({ source: "mic", gain: 1, threshold: 0.05, attack: 0.02, release: 0.25 });
 
@@ -107,6 +117,9 @@ export function applyAudio(l: PixelLayer & { audio?: AudioReact }, lv: Levels, d
   if (a.speed?.on) out.speed = l.speed * (1 + v(a.speed) * 4);
   if (a.size?.on) out.size = Math.max(1, l.size * (1 + v(a.size) * 3));
   if (a.colour?.on) out.phase = (l.phase ?? 0) + v(a.colour) * 2;
+  if (l.kind === "video" && (a.zoom?.on || a.hue?.on || a.glitch?.on || a.flash?.on)) {
+    out.vfx = { zoom: v(a.zoom), hue: v(a.hue), glitch: v(a.glitch), flash: a.flash?.on && lv.beat ? a.flash.amount : 0 };
+  }
   if (a.spin?.on) {
     const r = (rot.get(l.id) ?? 0) + v(a.spin) * 360 * dt;
     rot.set(l.id, r % 360);
