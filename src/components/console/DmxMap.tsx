@@ -31,7 +31,7 @@ export function DmxMap({ fixtures, universe, planned = [], onPick, highlight }: 
           const bg = clash
             ? "var(--color-destructive)"
             : f
-              ? `hsl(${((owner ?? 0) * 47) % 360} 70% ${start ? 62 : 45}%)`
+              ? `hsl(${((owner ?? 0) * 47) % 360} 70% ${start ? 72 : 58}%)`
               : isPlan
                 ? "color-mix(in oklab, var(--color-primary) 55%, transparent)"
                 : "var(--color-surface-elevated)";
