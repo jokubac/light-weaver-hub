@@ -1,8 +1,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 /** REC dropdown in the FIXTURES bar — opens like + Group / + Look: record the selection, open the editor, play saved REC. */
-export function RecDrop({ open, setOpen, playing, onRecord, onEditor, children }: {
-  open: boolean; setOpen: (o: boolean) => void; playing: boolean; onRecord: () => void; onEditor: () => void; children: ReactNode;
+export function RecDrop({ open, setOpen, playing, onEditor, children }: {
+  open: boolean; setOpen: (o: boolean) => void; playing: boolean; onEditor: () => void; children: ReactNode;
 }) {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -20,10 +20,7 @@ export function RecDrop({ open, setOpen, playing, onRecord, onEditor, children }
       </button>
       {open && <div className="absolute left-0 top-full z-50 mt-1 max-h-[70vh] w-80 space-y-3 overflow-auto rounded-md border border-border bg-popover p-3 text-xs text-popover-foreground shadow-lg">
         <div className="flex gap-1.5">
-          <button type="button" onClick={onRecord} className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-destructive px-3 py-2 font-semibold text-destructive-foreground">
-            <span className="h-2 w-2 rounded-full bg-destructive-foreground" />Record selected
-          </button>
-          <button type="button" onClick={onEditor} className="rounded-md border border-border bg-surface-elevated px-3 py-2 font-semibold">Editor</button>
+          <button type="button" onClick={onEditor} className="ml-auto rounded-md border border-border bg-surface-elevated px-3 py-1.5 font-semibold">Open REC editor</button>
         </div>
         {children}
       </div>}

@@ -1336,8 +1336,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   onCreate={(name, color) => { const src = fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
                   onChange={(items) => { const looks = project.looks ?? []; onLooks(items.map((it) => ({ ...looks.find((l) => l.id === it.id)!, name: it.name, ...(it.color ? { color: it.color } : {}) }))); }}
                   onDelete={(id) => onLooks((project.looks ?? []).filter((l) => l.id !== id))} />
-                 <RecDrop open={recDrop} setOpen={setRecDrop} playing={!!play} onRecord={() => { setRecDrop(false); setRecOpen(true); }} onEditor={() => { setRecDrop(false); setRecEditor(true); }}>
-                   <RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
+                 <RecDrop open={recDrop} setOpen={setRecDrop} playing={!!play} onEditor={() => { setRecDrop(false); setRecEditor(true); }}>
+                   <RecDialog inline open onOpenChange={(o) => { if (!o) setRecDrop(false); }} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
                  </RecDrop>
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
                  <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
