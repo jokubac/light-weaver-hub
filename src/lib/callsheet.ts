@@ -1,7 +1,7 @@
 // Gaffer call sheet / rental order generator: equipment list and battery charging plan —
 // all pure functions, no DOM access.
 import { getDef, type PatchedFixture } from "./dmx";
-import { batteryStatus, drawFactor, fmtHours, type PowerSource } from "./power";
+import { batteryStatus, drawFactor, fmtHours } from "./power";
 
 /* ---------------- Equipment list ---------------- */
 
@@ -15,10 +15,9 @@ export interface EquipmentLine {
 function classify(f: PatchedFixture) {
   const def = getDef(f.defId);
   const name = `${def.brand} ${def.model} ${f.icon ?? ""}`.toLowerCase();
-  const watts = fixtureWattage(f);
   const wireless = /mc\b|titan|helios|hyperion|pixelbrick|ax1|ax3|ax5|ax9|nyx|leoht|dash/.test(name);
   const isPractical = f.icon === "practical" || f.icon === "bulb" || /practical|bulb/.test(name);
-  const isBig = watts >= 800 || f.icon === "tube-huge" || /skypanel s360|s120|m40|m90|arrimax|evoke 2400|dyno 1200|orbiter/.test(name);
+  const isBig = f.icon === "tube-huge" || /skypanel s360|s120|m40|m90|arrimax|evoke 2400|dyno 1200|orbiter/.test(name);
   const isPanelOrTube = f.icon?.startsWith("tube") || f.icon === "panel" || /tube|panel|skypanel|pavotube|litemat|gemini/.test(name);
   return { wireless, isPractical, isBig, isPanelOrTube };
 }
@@ -65,7 +64,6 @@ export function buildEquipmentList(fixtures: PatchedFixture[]): EquipmentLine[] 
 export interface BatteryPlanItem {
   uid: string;
   name: string;
-  watts: number;
   runtimeHours: number;
   batteriesPerShift: number; // how many full batteries are consumed during the shift
   swaps: number; // number of swaps during the shift (batteriesPerShift - 1, min 0)
@@ -79,7 +77,7 @@ export function buildBatteryPlan(fixtures: PatchedFixture[], shiftHours: number)
     const { hours } = batteryStatus(f.power, f, level);
     const runtimeHours = Number.isFinite(hours) ? hours : 0;
     const batteriesPerShift = runtimeHours > 0 ? Math.ceil(shiftHours / runtimeHours) : 1;
-    out.push({ uid: f.uid, name: f.name, watts: f.power.watts, runtimeHours, batteriesPerShift, swaps: Math.max(0, batteriesPerShift - 1) });
+    out.push({ uid: f.uid, name: f.name, runtimeHours, batteriesPerShift, swaps: Math.max(0, batteriesPerShift - 1) });
   }
   return out;
 }
@@ -97,7 +95,6 @@ export interface CallSheetOpts {
 }
 export interface CallSheet {
   opts: Required<CallSheetOpts>;
-  power: PowerPlan;
   equipment: EquipmentLine[];
   battery: BatteryPlanItem[];
 }
@@ -112,7 +109,6 @@ export function buildCallSheet(fixtures: PatchedFixture[], opts: CallSheetOpts =
       gaffer: opts.gaffer ?? "",
       shiftHours,
     },
-    power: buildPowerPlan(fixtures),
     equipment: buildEquipmentList(fixtures),
     battery: buildBatteryPlan(fixtures, shiftHours),
   };
