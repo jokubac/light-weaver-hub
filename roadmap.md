@@ -216,3 +216,6 @@
 - [x] FADERS atskirtas nuo skirtukų (atskiras mygtukas); aktyvaus skirtuko amber highlight slenka (ViewTabs indikatorius).
 - [x] PIXEL map lights drawn on canvas (100 Asterų sklandžiau); STOP freezes effect box and map
 - [x] PATCH: RDM valdymas vienam universui (adresas, režimas, pavadinimas, Identify, baterija jei praneša) per AsteraBox/tiltą
+
+## Open
+- [ ] (Jokubas) Faderiai: atleidus faderi toliau valdyti lempas/valdymo elementai turi likti aktyvūs — patikslinti elgseną (kas tiksliai "pradangsta", klausiama vartotojo).
