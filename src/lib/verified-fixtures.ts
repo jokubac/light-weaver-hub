@@ -1,6 +1,8 @@
 import { SPEC_PAGE_CHECKED } from "./spec-checked";
 import { GODOX_FIXTURES } from "./godox";
 import { GEMINI_FIXTURES } from "./litepanels-gemini";
+import { DMG_FIXTURES } from "./dmg";
+import { KINOFLO_FIXTURES } from "./kinoflo";
 // Manufacturer-verified fixture profiles built from official DMX charts.
 // The curation script replaces same-id library entries with these, so they win over community GDTF files.
 import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode } from "./dmx";
@@ -602,6 +604,8 @@ const variants = (cores: [number, string, boolean, ChannelMapEntry[]][]): Fixtur
 export const VERIFIED_FIXTURES: FixtureDef[] = [
   ...GODOX_FIXTURES,
   ...GEMINI_FIXTURES,
+  ...DMG_FIXTURES,
+  ...KINOFLO_FIXTURES,
   { id: "gdtf-aputure-xt26", brand: "Aputure", model: "XT26", cctRange: [2700, 6500], lightType: "LED bi-colour", modes: variants(XT_CORES) },
   { id: "gdtf-aputure-electro-storm-cs15", brand: "Aputure", model: "Electro Storm CS15", cctRange: [2000, 10000], lightType: "LED colour", modes: CS15_MODES },
   { id: "gdtf-nanlux-tk-140b", brand: "Nanlux", model: "TK-140B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
@@ -643,6 +647,9 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
 const ROBE_CHECKED: string[] = ["ColorSpot 250 AT", "Robin BMFL Blade", "Robin BMFL FollowSpot", "Robin BMFL FollowSpot LT", "Robin BMFL Spot", "Robin BMFL WashBeam", "Robin BMFL WashBeam EV", "Robin ColorStrobe IP", "Robin Cuete", "Robin CycFX 8", "Robin DL4F Wash", "Robin DL4X Spot", "Robin DL7F Wash", "Robin DLF Wash", "Robin DLX Spot", "Robin Esprite", "Robin Esprite Fresnel", "Robin Esprite FS", "Robin Esprite PC", "Robin Footsie1 MC", "Robin Footsie2 MC", "Robin Forte", "Robin Forte Fresnel", "Robin Forte FS", "Robin Forte PC", "Robin iBeam 250", "Robin iBeam 350", "Robin iBolt", "Robin iEsprite", "Robin iEsprite Fresnel", "Robin iEsprite LTL FS", "Robin iEsprite LTL WB", "Robin iForte", "Robin iForte FS", "Robin iForte LTX FS", "Robin iForte LTX WB", "Robin iPainte", "Robin iPAINTE LTM WB", "Robin iParFect 150 FW RGBA", "Robin iParFect 150 FW RGBW", "Robin iPointe65", "Robin iProMotion", "Robin iT12 Fresnel", "Robin iT12 PC", "Robin iT12 Profile", "Robin LEDBeam 350", "Robin LEDBeam 350 FW", "Robin LedPOINTE", "Robin MegaPointe", "Robin MiniMe", "Robin MiniPointe", "Robin MMX Blade", "Robin MMX Spot", "Robin Painte", "Robin Painte Spot", "Robin ParFect 150 FW RGBA", "Robin ParFect 150 FW RGBW", "Robin ParFect 150 RGBA", "Robin ParFect 150 RGBW", "Robin Pointe", "Robin ProMotion", "Robin SilverScan", "Robin Spikie", "Robin Spote", "Robin SuperSpikie", "Robin T1 Fresnel", "Robin T1 PC", "Robin T1 Profile", "Robin T1 Profile FS", "Robin T15 Fresnel", "Robin T15 PC", "Robin T2 Fresnel", "Robin T2 PC", "Robin T2 Profile", "Robin T2 Profile FS", "Robin T32 CYC Slim", "Robin TX1 PosiProfile", "Robin Viva", "Robin Viva CMY", "RoboSpot MotionCamera", "SVOPATT Classic"];
 
 export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; modesFrom?: string; padTo?: Record<string, number> }[] = [
+  // Rosco Braq Cube (manual R4) and Pica Cube (manual R5) DMX Channel Layout: 4C 8-bit R,G,B,W / 16-bit coarse+fine pairs — exact match.
+  { brand: "Rosco", model: "Braq Cube 4C", chart: "Rosco Braq Cube User Manual R4" },
+  { brand: "Rosco", model: "Pica Cube 4C", chart: "Rosco Pica Cube User Manual R5" },
   // Robe product pages (robe.cz, "DMX Protocol modes / Control channels"): every official footprint is present
   // (1-ch modes are dropped library-wide). Robe models whose pixel/extended modes disagree stay unverified.
   ...ROBE_CHECKED.map((model) => ({ brand: "Robe", model, chart: "Robe official product specification (robe.cz)" })),
