@@ -1218,6 +1218,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   className={chip(sweep)}>Sweep {sweep ? "on" : "off"}</button>
                  <button aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
                    onClick={() => setKeypadOpen((o) => !o)} className={chip(keypadOpen)}><Keyboard /></button>
+                 <button aria-label="Macro timeline" title="Macro timeline" onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
                  <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
                    onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
                    onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
@@ -1338,6 +1339,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           </Button>
         </div>
         <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className="text-xs font-bold">PATCH</Button>
+        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="text-xs font-bold">FADERS</Button>
 
         <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
         <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
@@ -1347,8 +1349,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       </div>
       <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
         <ViewTabs tabs={([["fixtures", "FIXTURES", fixturesOpen], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => openWin(k as "fixtures" | "grid" | "timeline" | "pixels") }))} />
-        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="h-11 rounded-xl px-4 text-xs font-extrabold tracking-[0.06em] shadow-sm">FADERS</Button>
-        <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11 w-11 rounded-xl shadow-sm"><History /></Button>
         <button onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} className={`${chip(groupsOpen)} ml-auto`}>
           <span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}
         </button>
