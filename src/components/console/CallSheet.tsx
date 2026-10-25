@@ -90,40 +90,6 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
             <Field label="Shift (hours)"><NumberField integer min={1} max={48} value={shiftHours} onChange={(v) => v !== undefined && setShiftHours(v)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring text-center" /></Field>
           </section>
 
-          {view === "call" && <section className="rounded-xl border border-border bg-surface p-4">
-            <h2 className="mb-3 font-display text-base font-semibold">Power</h2>
-            <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
-              <table className="w-full border-collapse text-sm">
-                <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="py-1.5 pr-2">Phase</th><th className="pr-2">Fixtures</th><th className="pr-2 text-right">Watts</th><th className="pr-2 text-right">Amps (230V)</th>
-                </tr></thead>
-                <tbody>
-                  {base.power.phases.map((p) => (
-                    <tr key={p.phase} className="border-b border-border/60">
-                      <td className="py-1.5 pr-2 font-semibold">{p.phase}</td>
-                      <td className="pr-2 text-muted-foreground">{p.fixtures.length ? p.fixtures.map((f) => f.name).join(", ") : "—"}</td>
-                      <td className="pr-2 text-right font-mono">{Math.round(p.watts)} W</td>
-                      <td className="pr-2 text-right font-mono">{p.amps.toFixed(1)} A</td>
-                    </tr>
-                  ))}
-                  <tr className="font-semibold">
-                    <td className="py-1.5 pr-2" colSpan={2}>Total</td>
-                    <td className="pr-2 text-right font-mono">{Math.round(base.power.totalW)} W</td>
-                    <td className="pr-2 text-right font-mono">{base.power.totalA230.toFixed(1)} A</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div className="space-y-2 text-sm">
-                <div><span className="text-muted-foreground">Total load:</span> <span className="font-mono font-semibold">{base.power.totalKw.toFixed(2)} kW</span></div>
-                <div><span className="text-muted-foreground">Phase imbalance:</span> <span className="font-mono font-semibold">{base.power.imbalancePct.toFixed(0)}%</span></div>
-                <div className="rounded-lg bg-surface-elevated p-3">
-                  <div className="text-xs font-semibold uppercase text-muted-foreground">Generator suggestion</div>
-                  <div className="mt-1 font-mono text-lg font-semibold text-primary">{base.power.generatorKva} kVA</div>
-                  <div className="text-xs text-muted-foreground">{base.power.generatorNote}</div>
-                </div>
-              </div>
-            </div>
-          </section>}
 
           <section className="rounded-xl border border-border bg-surface p-4 print:border-0 print:p-0">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -214,13 +180,12 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
             {base.battery.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">No battery-powered fixtures on batteries in this patch.</p> : (
               <table className="w-full border-collapse text-sm">
                 <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="py-1.5 pr-2">Fixture</th><th className="pr-2 text-right">Draw</th><th className="pr-2 text-right">Runtime / battery</th><th className="pr-2 text-right">Batteries for shift</th><th className="pr-2 text-right">Swaps</th>
+                  <th className="py-1.5 pr-2">Fixture</th><th className="pr-2 text-right">Runtime / battery</th><th className="pr-2 text-right">Batteries for shift</th><th className="pr-2 text-right">Swaps</th>
                 </tr></thead>
                 <tbody>
                   {base.battery.map((b) => (
                     <tr key={b.uid} className="border-b border-border/60">
                       <td className="py-1.5 pr-2">{b.name}</td>
-                      <td className="pr-2 text-right font-mono">{Math.round(b.watts)} W</td>
                       <td className="pr-2 text-right font-mono">{fmtHours(b.runtimeHours)}</td>
                       <td className="pr-2 text-right font-mono">{b.batteriesPerShift}</td>
                       <td className="pr-2 text-right font-mono">{b.swaps}</td>

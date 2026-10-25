@@ -9,7 +9,6 @@ import { PatchPanel, LABEL_COLORS } from "./PatchPanel";
 import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
 import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixture } from "@/lib/dmx";
-import { fixtureWattage } from "@/lib/callsheet";
 import { CallSheet } from "./CallSheet";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
@@ -59,7 +58,6 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const groupNames = groupNamesOf(fixtures);
   const fileRef = useRef<HTMLInputElement>(null);
   const rows = patchRows(fixtures, null);
-  const totalW = fixtures.reduce((a, f) => a + fixtureWattage(f), 0);
   const exportPatch = async () => {
     const data = JSON.stringify({ kind: "nox-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
     try { await saveFile(new Blob([data], { type: "application/json" }), `${safeFileName(title, "patch")}.nox-patch.json`); }
@@ -108,7 +106,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                 <button onClick={() => { const g = prompt(`Groups, comma separated${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove all`); if (g !== null) each(groupsPatch(g.split(","))); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Groups…</button>
               </>}
               <button onClick={unpatch} disabled={!picked.length} className="ml-auto flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1.5 font-semibold text-destructive-foreground disabled:opacity-40"><Unplug className="h-3.5 w-3.5" />Unpatch{picked.length ? ` (${picked.length})` : ""}</button>
-              <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures{totalW ? ` · ${totalW} W` : ""} · {new Date().toLocaleDateString("sv-SE")}</span>
+              <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures · {new Date().toLocaleDateString("sv-SE")}</span>
             </div>
           )}
           {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet.</p> : (
@@ -120,7 +118,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                     {l}
                   </th>
                 ))}
-                <th className="pr-2 print:hidden">W</th><th className="print:hidden"></th>
+                <th className="print:hidden"></th>
               </tr></thead>
               <tbody>
                 {rows.map(({ fixture: f, number }) => {
@@ -140,7 +138,6 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <td className={`pr-2 font-mono ${clash ? "text-destructive" : ""}`}>{f.address}–{f.address + ch - 1}</td>
                       <td className="pr-2 font-mono">{ch}</td>
                       <td className="pr-2 print:hidden">{groupText(f)}</td>
-                      <td className="pr-2 font-mono print:hidden">{fixtureWattage(f)}</td>
                       <td className="whitespace-nowrap print:hidden">
                         <Button variant="ghost" size="icon" aria-label={`Move ${f.name}`} title="Drag to reorder" className="h-9 w-9 touch-none cursor-grab select-none active:cursor-grabbing"
                           onPointerDown={(e) => {
@@ -174,7 +171,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                         <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
                       </td>
                     </tr>
-                    {editing === f.uid && <tr className="print:hidden"><td colSpan={12} className="bg-surface p-3">
+                    {editing === f.uid && <tr className="print:hidden"><td colSpan={11} className="bg-surface p-3">
                       <div className="grid gap-3 md:grid-cols-2">
                         <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                         <div className="space-y-2">

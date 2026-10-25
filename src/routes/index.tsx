@@ -8,7 +8,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { NoxLogo } from "@/components/NoxLogo";
 import { APP_VERSION } from "@/lib/app-version";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import {
   ArrowLeft,
   Plus,
@@ -240,7 +240,6 @@ function App() {
       onCues={(cues) => updateProject(project.id, (p) => ({ ...p, cues }))}
       onCallSheet={(callSheet) => updateProject(project.id, (p) => ({ ...p, callSheet }))}
       onParked={(parked) => updateProject(project.id, (p) => ({ ...p, parked }))}
-      onPhases={(phases) => updateProject(project.id, (p) => ({ ...p, phases }))}
     />
   );
 }
@@ -443,10 +442,20 @@ type Panel = "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onTimelines, onBank, onCues, onCallSheet, onParked, onPhases }: {
-  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onTimelines: (t: TimelineSave[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void; onParked: (p: Record<string, LookState>) => void; onPhases: (p: Record<string, 1 | 2 | 3>) => void;
+function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onTimelines, onBank, onCues, onCallSheet, onParked }: {
+  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onTimelines: (t: TimelineSave[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void; onParked: (p: Record<string, LookState>) => void;
 }) {
-  const { fixtures, setFixtures, setUntrackedFixtures, begin: beginFixtureEdit, end: endFixtureEdit, undo, redo, canUndo, canRedo } = useFixtureHistory(scene.fixtures);
+  const { fixtures, setFixtures: setFixturesRaw, setUntrackedFixtures: setUntrackedFixturesRaw, begin: beginFixtureEdit, end: endFixtureEdit, undo, redo, canUndo, canRedo } = useFixtureHistory(scene.fixtures);
+  // Parked lights are untouchable: every fixture write puts them back exactly as parked, so
+  // cues, faders, keypad, groups, spread, effects and playback cannot move them until unparked.
+  const parkedRef = useRef<Record<string, LookState>>({});
+  parkedRef.current = project.parked ?? {};
+  const holdParked = (fs: PatchedFixture[]) => {
+    const p = parkedRef.current;
+    return Object.keys(p).length ? fs.map((f) => (p[f.uid] ? { ...f, ...p[f.uid], trigger: null } : f)) : fs;
+  };
+  const setFixtures = (v: SetStateAction<PatchedFixture[]>) => setFixturesRaw((fs) => holdParked(typeof v === "function" ? v(fs) : v));
+  const setUntrackedFixtures = (v: SetStateAction<PatchedFixture[]>) => setUntrackedFixturesRaw((fs) => holdParked(typeof v === "function" ? v(fs) : v));
   const [master, setMaster] = useState(scene.master);
   const [bo, setBo] = useState<{ target: 0 | 1; at: number; from: number }>({ target: 0, at: -10, from: 0 });
   const [selected, setSelected] = useState<string[]>([]);
@@ -1423,9 +1432,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="text-xs font-bold">FADERS</Button>
         <Button variant="secondary" size="icon" onClick={() => setScreenLocked(true)} aria-label="Lock screen" title="Lock screen — prevents accidental touches"><Lock /></Button>
         {screenLocked && <ScreenLock onUnlock={() => setScreenLocked(false)} />}
-        <Button variant="secondary" size="icon" onClick={() => setMonitorOpen(true)} aria-label="Monitor" title="Monitor — batteries, phase load L1/L2/L3, parked lights"><Gauge /></Button>
+        <Button variant="secondary" size="icon" onClick={() => setMonitorOpen(true)} aria-label="Monitor" title="Monitor — batteries, parked lights"><Gauge /></Button>
         <Button variant="secondary" size="icon" onClick={() => setRedShift((v) => !v)} aria-pressed={redShift} aria-label="Red Shift night mode" title="Red Shift — red screen for night shoots"><Moon /></Button>
-        <ShowMonitor open={monitorOpen} onOpenChange={setMonitorOpen} fixtures={fixtures} level={outLevel} phases={project.phases ?? {}} setPhases={onPhases} parked={parked} setParked={onParked} />
+        <ShowMonitor open={monitorOpen} onOpenChange={setMonitorOpen} fixtures={fixtures} level={outLevel} parked={parked} setParked={onParked} />
 
         <Button variant="secondary" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Settings" title="Settings"><SettingsIcon /></Button>
         <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
