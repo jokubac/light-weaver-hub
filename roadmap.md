@@ -213,3 +213,4 @@
 
 - [x] Fresh scene: PIXEL lost the page and its lights after reopening — the light loader now keeps the map position, battery and moving-head values; browser verified the light stays on the map after a reload
 - [x] PIXEL Recenter verified in the browser; the pixel view no longer stretches the window — the map now scrolls inside its own pane so lights and the side panel stay reachable
+- [x] FADERS atskirtas nuo skirtukų (atskiras mygtukas); aktyvaus skirtuko amber highlight slenka (ViewTabs indikatorius).

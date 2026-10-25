@@ -34,6 +34,7 @@ import { PixelPanel } from "@/components/console/PixelPanel";
 import { PixelAddPatched } from "@/components/console/PixelAddPatched";
 import { PixelStage } from "@/components/console/PixelStage";
 import { GroupsPanel } from "@/components/console/GroupsPanel";
+import { ViewTabs } from "@/components/console/ViewTabs";
 import { buildUniverses, createSender, type BridgeStatus } from "@/lib/output";
 import { PatchPanel } from "@/components/console/PatchPanel";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
@@ -103,6 +104,8 @@ export const Route = createFileRoute("/")({
   component: App,
 });
 
+// Hardware-console chip style shared with PLOT / TIMELINE / PIXEL bars
+const chip = (on: boolean) => `inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm [&_svg]:size-4 ${on ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`;
 type View =
   | { name: "projects" }
   | { name: "scenes"; projectId: string }
@@ -1208,26 +1211,26 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   // Fixture tiles with their selection toolbar — shared by the console area and the Fixtures window
   const fixtureBoard = () => (
             <>
-              <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-2 text-xs text-muted-foreground backdrop-blur">
-                <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-3 py-1.5">Select all</button>
-                <button onClick={() => setSelected([])} className="rounded-md bg-surface-elevated px-3 py-1.5">Clear</button>
+              <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
+                <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className={chip(false)}>Select all</button>
+                <button onClick={() => setSelected([])} className={chip(false)}>Clear</button>
                  <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
-                  className={`rounded-md px-3 py-1.5 font-semibold ${sweep ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Sweep {sweep ? "on" : "off"}</button>
-                 <Button variant="secondary" size="icon" aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
-                   onClick={() => setKeypadOpen((o) => !o)} className={keypadOpen ? "bg-primary text-primary-foreground" : ""}><Keyboard className="h-4 w-4" /></Button>
+                  className={chip(sweep)}>Sweep {sweep ? "on" : "off"}</button>
+                 <button aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
+                   onClick={() => setKeypadOpen((o) => !o)} className={chip(keypadOpen)}><Keyboard /></button>
                  <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
                    onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
                    onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
                    onContextMenu={(e) => e.preventDefault()}
-                   onClick={() => { if (!recHold.current.fired) setRecOpen(true); }} className="gap-1.5 px-3 text-xs font-bold select-none">
+                   onClick={() => { if (!recHold.current.fired) setRecOpen(true); }} className="h-8 gap-1.5 rounded-md px-3 text-xs font-bold shadow-sm select-none">
                    <span className={`h-2.5 w-2.5 rounded-full bg-destructive ${play ? "animate-pulse" : ""}`} />REC
                  </Button>
-                 <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={locked ? "" : "bg-amber-glow text-primary-foreground"}>
+                 <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={`h-8 w-8 rounded-md shadow-sm ${locked ? "" : "bg-amber-glow text-primary-foreground"}`}>
                    {locked ? <Lock /> : <Unlock />}
                  </Button>
                  <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
                    onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
-                   className={swapping ? "bg-primary text-primary-foreground" : ""}><ArrowLeftRight className="h-4 w-4" /></Button>
+                   className={`h-8 w-8 rounded-md shadow-sm ${swapping ? "bg-primary text-primary-foreground" : ""}`}><ArrowLeftRight className="h-4 w-4" /></Button>
                 <SavePopover label="+ Group" kind="Group" canCreate={selected.length > 0}
                    items={groups.map((g) => ({ id: g, name: g, color: groupMeta.colors[g], info: `${membersOf(fixtures, g).length}` }))}
                   onCreate={(name, color) => { setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, name) : x))); saveGroupMeta({ order: [...groupMeta.order.filter((o) => o !== name), name], colors: { ...groupMeta.colors, [name]: color } }); }}
@@ -1243,7 +1246,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   onCreate={(name, color) => { const src = fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
                   onChange={(items) => { const looks = project.looks ?? []; onLooks(items.map((it) => ({ ...looks.find((l) => l.id === it.id)!, name: it.name, ...(it.color ? { color: it.color } : {}) }))); }}
                   onDelete={(id) => onLooks((project.looks ?? []).filter((l) => l.id !== id))} />
-                <span>{selected.length} selected</span>
+                <span className="ml-auto font-mono text-[10px] text-muted-foreground">{selected.length} selected</span>
               </div>
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
                 onPointerDown={(e) => { if (!sweep) return; e.preventDefault(); swept.current = new Set(); sweepAt(e.clientX, e.clientY); }}
@@ -1342,15 +1345,13 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           <Radio />CONNECT
         </Button>
       </div>
-      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-background/60 px-3 py-1.5">
-        <div className="nox-tabs flex items-center gap-1 rounded-xl border border-border bg-surface p-1">
-          {([["fixtures", "FIXTURES", fixturesOpen], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([w, label, on]) => (
-            <button key={w} type="button" onClick={() => openWin(w)} aria-pressed={on} className="nox-tab">{label}</button>
-          ))}
-          <button type="button" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} className="nox-tab">FADERS</button>
-        </div>
-        <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11 w-11 rounded-xl"><History /></Button>
-        {<Button variant="ghost" className="ml-auto gap-2 text-xs font-semibold" onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}><span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}</Button>}
+      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
+        <ViewTabs tabs={([["fixtures", "FIXTURES", fixturesOpen], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => openWin(k as "fixtures" | "grid" | "timeline" | "pixels") }))} />
+        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="h-11 rounded-xl px-4 text-xs font-extrabold tracking-[0.06em] shadow-sm">FADERS</Button>
+        <Button variant="secondary" size="icon" onClick={() => setTimelineOpen(true)} aria-label="Macro timeline" title="Macro timeline" className="h-11 w-11 rounded-xl shadow-sm"><History /></Button>
+        <button onClick={() => { if (patchOpen) { setPatchOpen(false); save(); setGroupsOpen(true); } else setGroupsOpen((o) => !o); }} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} className={`${chip(groupsOpen)} ml-auto`}>
+          <span className="hidden sm:inline">{groupsOpen ? "Hide" : "Groups · Looks · Effects · REC"}</span>{groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}
+        </button>
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
