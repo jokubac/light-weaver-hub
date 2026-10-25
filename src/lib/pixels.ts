@@ -60,6 +60,8 @@ export interface PixelLayer {
   /** video kind: id of the clip stored on this device */
   videoId?: string;
   videoName?: string;
+  /** live sound-driven video FX, set only at render time by withAudio (never stored) */
+  vfx?: import("./audio-react").VideoFx;
   /** canvas cells the effect covers; whole canvas when unset */
   area?: { x: number; y: number; w: number; h: number };
   /** effect rotation in degrees around the area centre */
@@ -451,8 +453,7 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
       }
       case "video": {
         if (!vid) return BLACK;
-        const i = (Math.max(0, Math.min(H - 1, y)) * W + Math.max(0, Math.min(W - 1, layer.reverse ? W - 1 - x : x))) * 4;
-        return tinted([vid[i]!, vid[i + 1]!, vid[i + 2]!]);
+        return tinted(videoFx(vid, W, H, layer.reverse ? W - 1 - x : x, y, layer.vfx, t));
       }
       case "solid": return cols[0]!;
       case "chase": return col(Math.floor((sd - tt * 8) / size));
@@ -595,4 +596,26 @@ export function placeInColumns(list: PatchedFixture[], perCol = 8): Map<string, 
     x += widths[i]! + 1;
   });
   return out;
+}
+
+/** Samples a video frame with live sound FX: zoom punch, hue rotation, RGB-split glitch and beat flash. Pure. */
+export function videoFx(vid: ArrayLike<number>, W: number, H: number, x: number, y: number, fx: PixelLayer["vfx"], t: number): RGB {
+  const px = (xx: number, yy: number, c: number) => {
+    const cx = Math.max(0, Math.min(W - 1, Math.round(xx))), cy = Math.max(0, Math.min(H - 1, Math.round(yy)));
+    return vid[(cy * W + cx) * 4 + c]!;
+  };
+  if (!fx) return [px(x, y, 0), px(x, y, 1), px(x, y, 2)];
+  const z = 1 + fx.zoom * 0.6; // up to 60% punch-in around centre
+  let sx = (x - (W - 1) / 2) / z + (W - 1) / 2;
+  const sy = (y - (H - 1) / 2) / z + (H - 1) / 2;
+  if (fx.glitch > 0.2) sx += Math.sin(Math.floor(sy) * 12.9898 + Math.floor(t * 20) * 78.233) * fx.glitch * W * 0.15; // row tearing
+  const off = fx.glitch * Math.max(1, W * 0.08);
+  let c: RGB = [px(sx + off, sy, 0), px(sx, sy, 1), px(sx - off, sy, 2)];
+  if (fx.hue > 0) {
+    const a = fx.hue * Math.PI * 2, co = Math.cos(a), si = Math.sin(a);
+    const m = (k: number) => [co + (1 - co) / 3, (1 - co) / 3 - Math.sqrt(1 / 3) * si, (1 - co) / 3 + Math.sqrt(1 / 3) * si].map((_, i, r) => r[(i - k + 3) % 3]!);
+    c = [0, 1, 2].map((k) => { const r = m(k); return Math.max(0, Math.min(255, r[0]! * c[0] + r[1]! * c[1] + r[2]! * c[2])); }) as RGB;
+  }
+  if (fx.flash > 0) c = c.map((v) => v + (255 - v) * fx.flash) as RGB;
+  return c;
 }
