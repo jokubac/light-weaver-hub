@@ -12,8 +12,8 @@ import { planPatch } from "@/lib/patch-plan";
 import { importGdtfFile, buildMode } from "@/lib/gdtf";
 import { addCustomFixture, useCustomFixtures } from "@/lib/custom-fixtures";
 import { loadGdtfLibrary, searchGdtfLibrary, installGdtfFixture, type LibraryDef } from "@/lib/gdtf-library";
-import { scanRdm, type RdmDevice } from "@/lib/rdm";
-import { loadConnection } from "@/lib/store";
+import { type RdmDevice } from "@/lib/rdm";
+import { RdmManager } from "./RdmManager";
 import { FixtureBuilder } from "./FixtureBuilder";
 import {
   FIXTURE_LIBRARY,
@@ -375,10 +375,6 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
   const [open, setOpen] = useState(false);
   const [builder, setBuilder] = useState(false);
   const [gdtfMsg, setGdtfMsg] = useState<string | null>(null);
-  const [rdmUniverse, setRdmUniverse] = useState(1);
-  const [scanning, setScanning] = useState(false);
-  const [rdmDevices, setRdmDevices] = useState<RdmDevice[] | null>(null);
-  const [rdmError, setRdmError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const custom = useCustomFixtures();
   const [bundledIds, setBundledIds] = useState<Set<string>>(new Set());
@@ -397,22 +393,7 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
     }
   };
 
-  const runScan = async () => {
-    const conn = loadConnection();
-    if (!conn.node?.ip) { setRdmError("Connect to a node first (see CONNECT)."); setRdmDevices(null); return; }
-    setScanning(true); setRdmError(null); setRdmDevices(null);
-    try {
-      const devs = await scanRdm(conn.bridge, conn.node.ip, rdmUniverse);
-      setRdmDevices(devs);
-      if (devs.length === 0) setRdmError("No RDM devices found.");
-    } catch (e) {
-      setRdmError(e instanceof Error ? e.message : "Scan failed.");
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  const addRdmDevice = (dev: RdmDevice) => {
+  const addRdmDevice = (dev: RdmDevice, rdmUniverse: number) => {
     const nameHit = (s: string) => s.toLowerCase().trim();
     let d = FIXTURE_LIBRARY.find((x) => nameHit(x.model) === nameHit(dev.model) || nameHit(`${x.brand} ${x.model}`) === nameHit(dev.model));
     if (!d) {
@@ -448,25 +429,7 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
           {gdtfMsg && <p className="text-[11px] text-muted-foreground">{gdtfMsg}</p>}
           <GdtfLibrarySearch onPick={onPick} />
 
-          <div className="space-y-1.5 rounded-md bg-surface p-2">
-            <div className="flex items-center gap-1.5">
-              <Radar className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-[11px] font-semibold">RDM scan</span>
-              <NumberField integer min={1} max={128} value={rdmUniverse} onChange={(v) => v && setRdmUniverse(v)} className="ml-auto w-14 rounded border border-input bg-surface-elevated px-1 text-[11px]" aria-label="Universe" />
-              <button onClick={() => void runScan()} disabled={scanning} className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-40">{scanning ? "Scanning…" : "Scan"}</button>
-            </div>
-            {rdmError && <p className="text-[11px] text-destructive">{rdmError}</p>}
-            {rdmDevices && rdmDevices.length > 0 && (
-              <div className="space-y-1">
-                {rdmDevices.map((d) => (
-                  <div key={d.uid} className="flex items-center gap-2 rounded bg-surface-elevated px-2 py-1 text-[11px]">
-                    <span className="min-w-0 flex-1 truncate"><span className="font-semibold">{d.manufacturer} {d.model}</span> · U{rdmUniverse}.{d.address} · {d.footprint}ch</span>
-                    <button onClick={() => addRdmDevice(d)} className="shrink-0 rounded bg-primary px-2 py-1 font-semibold text-primary-foreground">Add</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <RdmManager onAdd={(d, u) => addRdmDevice(d, u)} />
 
           {userFixtures.length > 0 && (
             <div className="space-y-1 rounded-md bg-surface p-2">

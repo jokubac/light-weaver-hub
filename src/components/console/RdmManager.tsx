@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BatteryMedium, Lightbulb, Radar } from "lucide-react";
 import { NumberField } from "./NumberField";
 import { RDM_PID, rdmData, scanRdm, setRdm, type RdmDevice } from "@/lib/rdm";
-import { loadConnection } from "@/lib/output";
+import { loadConnection } from "@/lib/store";
 
 /** RDM on one universe: find lights (e.g. Astera via AsteraBox), change address/mode/name, identify, read battery. */
 export function RdmManager({ onAdd }: { onAdd: (dev: RdmDevice, universe: number) => void }) {
