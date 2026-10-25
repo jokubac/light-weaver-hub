@@ -45,7 +45,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   addFixtures?: ReactNode;
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
-  onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void; onPause?: (id: string) => void; onRemoveLayer?: (id: string) => void; onRemoveLight?: (uid: string) => void;
+  onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void; onPause?: (id: string) => void; onRemoveLayer?: (id: string) => void; onRemoveLight?: (uids: string[]) => void;
   onArea?: (area: { x: number; y: number; w: number; h: number }) => void;
   onLayer?: (patch: Partial<PixelLayer>) => void;
   onLive?: (gid: string, live: boolean) => void;
@@ -334,6 +334,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             <span aria-hidden className="mx-1 h-6 w-px bg-border" />
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>
+            {onRemoveLight && <Button size="sm" variant="secondary" disabled={!sel.size} title="Remove the selected lights from this page (Delete key). Add them back with Add fixtures." aria-label="Remove selected lights" onClick={() => { onRemoveLight([...sel]); setSel(new Set()); }}>✕ Remove{sel.size ? ` ${sel.size}` : ""}</Button>}
             <Button size="sm" variant="secondary" disabled={!sel.size} title="Rotate the selected lights 90°" aria-label="Rotate selected lights 90 degrees" onClick={() => gridArrange("rotate")}><RotateCw />90°</Button>
             <Popover>
               <PopoverTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />Arrange{sel.size ? ` (${sel.size})` : ""}</Button></PopoverTrigger>
@@ -418,7 +419,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                     <span className="pointer-events-none absolute -top-4 left-0 whitespace-nowrap text-[10px] font-semibold">{f.name}</span>
                     <button aria-label={`Rotate ${f.name}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onMove(f.uid, clampPos(f, p.x, p.y, p.r === 90 ? 0 : 90)); }}
                       className="absolute -right-2 -top-2 rounded-full bg-surface-elevated p-0.5 text-muted-foreground hover:text-foreground"><RotateCw className="h-3 w-3" /></button>
-                    {onRemoveLight && <button aria-label={`Remove ${f.name} from the pixel map`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onRemoveLight(f.uid); }}
+                    {onRemoveLight && <button aria-label={`Remove ${f.name} from the pixel map`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); const ids = sel.has(f.uid) ? [...sel] : [f.uid]; onRemoveLight(ids); setSel(new Set()); }}
                       className="absolute -left-2 -top-2 rounded-full bg-surface-elevated px-1 text-[10px] leading-4 text-muted-foreground hover:text-destructive">✕</button>}
                   </div>
                 );
