@@ -887,6 +887,11 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const seekSeq = (time: number) => {
     setSeqTime(time); setSeqWait(null);
     if (seqPlay) setSeqPlay({ ...seqPlay, start: performance.now(), from: time });
+    else {
+      // scrubbing while stopped previews the frame on the lights (Stop restores them)
+      if (!seqHold.current) seqHold.current = { origin: new Map(fixtures.map((f) => [f.uid, snapshot(f)])), layers };
+      seqLastPx.current = "-"; seqApply(time, seqHold.current.origin);
+    }
     if (audioEl.current) audioEl.current.currentTime = time;
   };
   const stopRec = () => { setPlay(null); setRecProg(null); setPixelMix(null); setUntrackedFixtures((fs) => fs.map((f) => (f.mix ? { ...f, mix: undefined } : f))); };
