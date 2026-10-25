@@ -13,6 +13,31 @@ import { PixelAddClose } from "./pixel-add-context";
 
 type RGB = [number, number, number];
 
+/** One canvas per light instead of a DOM node per pixel, so hundreds of pixel lights stay smooth. */
+function PixCanvas({ f, size, rot, cols }: { f: PatchedFixture; size: number; rot: number; cols?: RGB[] | undefined }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [lc, lr] = pixelGrid(f);
+  const [gw, gh] = rot === 90 ? [lr, lc] : [lc, lr];
+  useEffect(() => {
+    const c = ref.current; if (!c) return;
+    const k = Math.max(4, Math.round(size * (window.devicePixelRatio || 1)));
+    const w = gw * k, h = gh * k;
+    if (c.width !== w) c.width = w;
+    if (c.height !== h) c.height = h;
+    const ctx = c.getContext("2d"); if (!ctx) return;
+    ctx.clearRect(0, 0, w, h);
+    const muted = getComputedStyle(c).getPropertyValue("--muted").trim() || "#333";
+    const gap = k > 6 ? 1 : 0;
+    const n = pixelCount(f);
+    for (let i = 0; i < n; i++) {
+      const [x, y] = pixelCell(f, i); const [cx, cy] = rot === 90 ? [y, x] : [x, y]; const p = cols?.[i];
+      ctx.fillStyle = p ? `rgb(${p[0]},${p[1]},${p[2]})` : muted;
+      ctx.fillRect(cx * k + gap, cy * k + gap, k - gap * 2, k - gap * 2);
+    }
+  });
+  return <canvas ref={ref} className="block h-full w-full" />;
+}
+
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
 export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveGroup, onDuplicateGroup, onAddEffect, onRemoveLight, onLayer, addFixtures }: {
   onRemoveGroup?: (gid: string) => void; onDuplicateGroup?: (gid: string) => void; onAddEffect?: (gid: string) => void;
@@ -65,7 +90,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const rec = useRef<{ start: number; pts: { t: number; x: number; y: number; a: number }[] } | null>(null);
   const [recording, setRecording] = useState(false);
   // paused layers freeze the box display at the paused moment (spin and recorded motion stop with it)
-  const live = layer && !recording ? layerAt(layer, layer.pausedAt ?? now) : layer;
+  const live = layer && !recording && layer.playing ? layerAt(layer, layer.pausedAt ?? now) : layer;
   const area = layerArea(live ?? {}, stage);
   const baseArea = layerArea(layer ?? {}, stage);
   const sample = (x: number, y: number, a: number) => { const r = rec.current; if (r) r.pts.push({ t: performance.now() / 1000 - r.start, x, y, a }); };
@@ -179,7 +204,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   const bg = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = bg.current; if (!c || !layer) return;
-    const shown = pageLayers.map((l) => ({ ...l, playing: true }));
+    // stopped effects are not painted, so STOP freezes and clears the map
+    const shown = pageLayers.filter((l) => l.playing);
     const { W: w, H: h, img } = renderCanvasComposite(shown, fixtures, now, (l) => (l.kind === "text" ? textMask(l.text.toUpperCase(), layerArea(l, stage).h) : null));
     c.width = w; c.height = h;
     const ctx = c.getContext("2d"); if (!ctx) return;
@@ -248,19 +274,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     list.forEach((f, i) => onMove(f.uid, clampPos(f, Math.round(lefts[i]! + ox), Math.round(tops[i]! + oy), f.pixelPos?.r ?? 0)));
   };
 
-  const pixels = (f: PatchedFixture, size: number, rot: number) => {
-    const [lc, lr] = pixelGrid(f);
-    const cols = preview.get(f.uid);
-    const [gw, gh] = rot === 90 ? [lr, lc] : [lc, lr];
-    return (
-      <div className="grid h-full w-full gap-px" style={{ gridTemplateColumns: `repeat(${gw}, 1fr)`, gridTemplateRows: `repeat(${gh}, 1fr)` }}>
-        {Array.from({ length: pixelCount(f) }, (_, i) => {
-          const [x, y] = pixelCell(f, i); const [cx, cy] = rot === 90 ? [y, x] : [x, y]; const c = cols?.[i];
-          return <div key={i} className="rounded-[2px]" style={{ gridColumn: cx + 1, gridRow: cy + 1, minWidth: size > 6 ? 0 : undefined, background: c ? `rgb(${c[0]},${c[1]},${c[2]})` : "var(--muted)" }} />;
-        })}
-      </div>
-    );
-  };
+  const pixels = (f: PatchedFixture, size: number, rot: number) => <PixCanvas f={f} size={size} rot={rot} cols={preview.get(f.uid)} />;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background lg:flex-row">
