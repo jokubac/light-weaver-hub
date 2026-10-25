@@ -49,7 +49,7 @@ import { SavePopover } from "@/components/console/SavePopover";
 import { FanPopover } from "@/components/console/FanPopover";
 import { ScreenLock } from "@/components/console/ScreenLock";
 import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
-import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2 } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2, Moon, Gauge, ParkingSquare } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
 import { applyLook } from "@/components/console/LooksPanel";
@@ -62,6 +62,8 @@ import { snapshot } from "@/components/console/LooksPanel";
 import type { Recording, LookState, Cue, BankFader, CallSheetData, TimelineSave } from "@/lib/store";
 import { applyBank, cueBlend, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
+import { ShowMonitor } from "@/components/console/ShowMonitor";
+import { applyPark, blendTarget, cueAtTimecode, cueTarget, MtcDecoder, programmerDiff } from "@/lib/show-control";
 import { EffectsRail } from "@/components/console/EffectsRail";
 import { NumberField } from "@/components/console/NumberField";
 import { commandPatch, inverseFlash } from "@/lib/console-command";
@@ -237,6 +239,8 @@ function App() {
       onBank={(bank) => updateProject(project.id, (p) => ({ ...p, bank }))}
       onCues={(cues) => updateProject(project.id, (p) => ({ ...p, cues }))}
       onCallSheet={(callSheet) => updateProject(project.id, (p) => ({ ...p, callSheet }))}
+      onParked={(parked) => updateProject(project.id, (p) => ({ ...p, parked }))}
+      onPhases={(phases) => updateProject(project.id, (p) => ({ ...p, phases }))}
     />
   );
 }
@@ -439,8 +443,8 @@ type Panel = "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onTimelines, onBank, onCues, onCallSheet }: {
-  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onTimelines: (t: TimelineSave[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void;
+function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onTimelines, onBank, onCues, onCallSheet, onParked, onPhases }: {
+  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onTimelines: (t: TimelineSave[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void; onParked: (p: Record<string, LookState>) => void; onPhases: (p: Record<string, 1 | 2 | 3>) => void;
 }) {
   const { fixtures, setFixtures, setUntrackedFixtures, begin: beginFixtureEdit, end: endFixtureEdit, undo, redo, canUndo, canRedo } = useFixtureHistory(scene.fixtures);
   const [master, setMaster] = useState(scene.master);
@@ -874,7 +878,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [flash, setFlash] = useState<string | null>(null);
   const [solo, setSolo] = useState<string | null>(null);
   const [activeCue, setActiveCue] = useState<string | null>(null);
-  const [cueFade, setCueFade] = useState<{ id: string; start: number; from: Map<string, LookState> } | null>(null);
+  const [cueFade, setCueFade] = useState<{ id: string; start: number; from: Map<string, LookState>; target: Map<string, LookState> } | null>(null);
+  const cueOnlyPrev = useRef<Map<string, LookState>>(new Map());
   const [fadeK, setFadeK] = useState<number | null>(null);
   const cuesRef = useRef(cues);
   cuesRef.current = cues;
@@ -885,14 +890,53 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       if (!cue) { setCueFade(null); return; }
       const k = cue.fade > 0 ? Math.min(1, (performance.now() - cueFade.start) / 1000 / cue.fade) : 1;
       setFadeK(k);
-      const st = cueBlend(cue, fixturesRef.current, cueFade.from, k);
+      const st = blendTarget(cueFade.target, cueFade.from, fixturesRef.current, k);
       setUntrackedFixtures((fs) => fs.map((f) => { const s = st.get(f.uid); return s ? { ...f, ...s, trigger: null } : f; }));
       if (k >= 1) { setCueFade(null); setFadeK(null); }
     }, 40);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cueFade]);
-  const gotoCue = (id: string) => { setActiveCue(id); setCueFade({ id, start: performance.now(), from: new Map(fixtures.map((f) => [f.uid, lookStateOf(f)])) }); };
+  const activeCueRef = useRef(activeCue);
+  activeCueRef.current = activeCue;
+  const gotoCue = (id: string) => {
+    const s = sortCues(cuesRef.current); const i = s.findIndex((c) => c.id === id); if (i < 0) return;
+    const fs = fixturesRef.current;
+    const target = cueTarget(s, i, fs);
+    // leaving a cue-only cue: lights it changed go back unless the new cue sets them
+    const prev = s.find((c) => c.id === activeCueRef.current);
+    if (prev?.mode === "cueonly") cueOnlyPrev.current.forEach((st, u) => { if (!target.has(u)) target.set(u, st); });
+    cueOnlyPrev.current = new Map();
+    const from = new Map(fs.map((f) => [f.uid, lookStateOf(f)]));
+    if (s[i]!.mode === "cueonly") s[i]!.states.forEach((x) => { const f = fs.find((ff) => ff.uid === x.uid || ff.name === x.name); if (f) cueOnlyPrev.current.set(f.uid, from.get(f.uid)!); });
+    setActiveCue(id); setCueFade({ id, start: performance.now(), from, target });
+  };
+  // Programmer: lights changed since the active cue was stored
+  const cueStored = useMemo(() => { const s = sortCues(cues); const i = s.findIndex((c) => c.id === activeCue); return i < 0 ? new Map<string, LookState>() : cueTarget(s, i, fixtures); }, [cues, activeCue, fixtures]);
+  const progIds = useMemo(() => (cueFade ? [] : programmerDiff(fixtures, cueStored)), [fixtures, cueStored, cueFade]);
+  const progUpdate = () => { const c = cues.find((x) => x.id === activeCue); if (!c || !progIds.length) return; const ch = fixtures.filter((f) => progIds.includes(f.uid)); onCues(cues.map((x) => x.id !== c.id ? x : { ...x, states: [...x.states.filter((st) => !ch.some((f) => f.uid === st.uid || f.name === st.name)), ...ch.map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) }))] })); };
+  const progClear = () => setFixtures((fs) => fs.map((f) => (progIds.includes(f.uid) ? { ...f, ...cueStored.get(f.uid)! } : f)));
+  // MIDI timecode chase
+  const [tcOn, setTcOn] = useState(false);
+  const [tcNow, setTcNow] = useState<number | null>(null);
+  const gotoRef = useRef(gotoCue); gotoRef.current = gotoCue;
+  useEffect(() => {
+    if (!tcOn) { setTcNow(null); return; }
+    const nav = navigator as Navigator & { requestMIDIAccess?: (o?: { sysex?: boolean }) => Promise<{ inputs: Map<string, { onmidimessage: ((e: { data: Uint8Array }) => void) | null }> }> };
+    if (!nav.requestMIDIAccess) { alert("This device has no MIDI timecode input (Web MIDI is not available)."); setTcOn(false); return; }
+    let alive = true; const dec = new MtcDecoder(); let last = -1; let shown = 0;
+    const inputs: { onmidimessage: ((e: { data: Uint8Array }) => void) | null }[] = [];
+    nav.requestMIDIAccess({ sysex: true }).catch(() => nav.requestMIDIAccess!()).then((acc) => {
+      if (!alive) return;
+      acc.inputs.forEach((inp) => { inputs.push(inp); inp.onmidimessage = (e) => {
+        const sec = dec.message(e.data); if (sec == null) return;
+        const hit = last >= 0 ? cueAtTimecode(sortCues(cuesRef.current), last, sec) : null;
+        last = sec; if (hit) gotoRef.current(hit.id);
+        const now = performance.now(); if (now - shown > 100) { shown = now; setTcNow(sec); }
+      }; });
+    }).catch(() => { alert("MIDI access was refused."); setTcOn(false); });
+    return () => { alive = false; inputs.forEach((i) => { i.onmidimessage = null; }); };
+  }, [tcOn]);
   const cueStep = (d: 1 | -1) => {
     const s = sortCues(cuesRef.current);
     if (!s.length) return;
@@ -947,6 +991,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       return pulse ? inverseFlash(f, (now - pulse.at) / 1000, pulse.base, pulse.target) : f;
     });
   }, [fixtures, bank, project.looks, flash, solo, pulses, t, locate]);
+  const parked = project.parked ?? {};
+  const parkedOut = useMemo(() => applyPark(outFixtures, project.parked), [outFixtures, project.parked]);
   useEffect(() => {
     if (!Object.keys(pulses).length) return;
     const id = setTimeout(() => { const now = performance.now(); setPulses((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => now - v.at < 1000))); }, 1050);
