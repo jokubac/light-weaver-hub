@@ -264,4 +264,4 @@
 - [ ] Remaining Aputure unverified: LS 1200d Pro, LS 600x Pro, Infinimat, F22c, TK-450B (Nanlux)
 - [ ] Big makers via official spec pages: Robe 81, Prolights 114, Chauvet 79, Elation 59, Martin 48, Ayrton 35, Clay Paky 1 (467 of 2521 total). Next: GLP, Vari-Lite, JB-Lighting, Cameo (pages hide channel counts), Clay Paky (counts only in PDFs)
 - [ ] Fiilex: Q3/Q6/G3/G6 Color verified from user guides; K10 library modes disagree with guide; Q8, Q10, QUAD, K40, Moto* have no public DMX table. Godox: library M600R/AM1600R have 1 mode vs 16 in official chart — need rebuild from Godox DMX spec PDFs
-- [ ] Godox M600R/AM1600R rebuild from official DMX spec PDFs (2-column Chinese tables, optional enhanced channels) — needs a careful dedicated pass. Search-based checks added Showtec 8, Briteq 8, Clay Paky 3, DTS 2, Cameo 1, Chroma-Q 1 (494 total verified). GLP, Vari-Lite, JB, High End, SGM, Litepanels, ETC: no channel counts found on maker sites.
+- [x] Godox M600R, AM1600R rebuilt + M300R, M1000R, M600Bi Pro added from official Godox DMX charts (499 verified). Open: Godox M200Bi (no official DMX table, only manual photos) and Beamlight Max90 (no chart found).
