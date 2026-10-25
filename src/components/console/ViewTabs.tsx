@@ -33,7 +33,7 @@ export function ViewTabs({ tabs }: { tabs: ViewTab[] }) {
           style={{ left: pos.x, width: pos.w }} />
       )}
       {tabs.map((t, i) => (
-        <button key={t.key} type="button" data-tab={i} onClick={t.onClick} aria-pressed={t.on} className="nox-tab">{t.label}</button>
+        <button key={t.key} type="button" data-tab={i} onClick={t.onClick} aria-pressed={t.on} className="nox-tab relative z-10">{t.label}</button>
       ))}
     </div>
   );
