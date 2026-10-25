@@ -250,7 +250,7 @@
 - [ ] Kino Flo / Quasar / Rosco / Godox
 - [ ] Concert: Robe, Martin, Clay Paky, Ayrton, GLP, Chauvet
 - [ ] Other brands
-- [ ] ARRI official charts (done: SkyPanel S30C/S60C/S120C/S360C GDTF matched to V4.4; todo Orbiter, L-Series, SkyPanel X)
+- [ ] ARRI official charts (done: SkyPanel S-series, S60-RP, L5-C/L7-C, L-Series Plus, Orbiter; todo SkyPanel X, L10-C, S60 Pro)
 - [ ] Nanlite PavoTube II — library XY modes disagree with chart (4/7 vs 5/9); pixel-mode block layout needs a careful read of the 126-page chart
 - [ ] ALL Nanlite, Nanlux and Aputure lights verified from official charts (user priority)
 - [x] ARRI chart checks: SkyPanel S60-RP, L5-C/L7-C, L5-C Plus/L7-C Plus marked official; library has 0 duplicate models (31 of 2520 verified).
