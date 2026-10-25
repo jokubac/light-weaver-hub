@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChartNoAxesColumnIncreasing } from "lucide-react";
 import { fanValues, type FanMode } from "@/lib/fan";
 
 type Attr = "intensity" | "cct";
@@ -22,10 +23,11 @@ export function FanPopover({ count, className, onApply }: { count: number; class
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button disabled={count < 2} title="Fan — spread values across the selected lights" className={className}>Fan</button>
+        <button aria-label="Fan" title="Fan — spread values across the selected lights" className={`${className} gap-1`}><ChartNoAxesColumnIncreasing className="h-4 w-4" />Fan</button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 space-y-3">
         <div className="text-xs font-bold">Fan {count} lights <span className="font-normal text-muted-foreground">(in selection order)</span></div>
+        {count < 2 && <p className="rounded bg-warning/15 px-2 py-1.5 text-xs text-warning">Select 2 or more lights first, then tap Apply.</p>}
         <div className="flex gap-1">
           <button className={seg(attr === "intensity")} onClick={() => setAttr("intensity")}>Intensity</button>
           <button className={seg(attr === "cct")} onClick={() => setAttr("cct")}>CCT</button>
@@ -38,8 +40,8 @@ export function FanPopover({ count, className, onApply }: { count: number; class
           <button className={seg(mode === "linear")} onClick={() => setMode("linear")}>First → last</button>
           <button className={seg(mode === "center")} onClick={() => setMode("center")}>Centre → edges</button>
         </div>
-        <button onClick={() => { const c = (n: number) => Math.max(lim[0]!, Math.min(lim[1]!, n)); onApply(attr, fanValues(count, c(from[attr]), c(to[attr]), mode)); }}
-          className="w-full rounded-md bg-primary py-2 text-sm font-bold text-primary-foreground active:scale-95">Apply fan</button>
+        <button disabled={count < 2} onClick={() => { const c = (n: number) => Math.max(lim[0]!, Math.min(lim[1]!, n)); onApply(attr, fanValues(count, c(from[attr]), c(to[attr]), mode)); }}
+          className="w-full rounded-md bg-primary py-2 text-sm font-bold text-primary-foreground active:scale-95 disabled:opacity-40">Apply fan</button>
       </PopoverContent>
     </Popover>
   );
