@@ -39,3 +39,4 @@
 - Pixel layouts resolve at deriveMode time (GDTF geometry, Pixel N/Astera names, pixel-layout.ts) so stored library data stays compatible.
 - Pixel effects paint one shared canvas; lights sample their pixelPos. PIXEL_LIBRARY is the one deduped catalog; normalizeLayer migrates old saves.
 - Sound-reactive PIXEL lives in src/lib/audio-react.ts: raw (no AGC/echo/noise) local analysis applied to layers inside renderLayers/renderCanvasComposite via withAudio, so stored layers never change.
+- Product-page footprint checks (src/lib/spec-checked.ts) only mark a GDTF model official when every channel count the maker lists exists in it; mismatches stay unverified rather than being edited to fit.
