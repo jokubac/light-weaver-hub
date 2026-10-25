@@ -112,3 +112,25 @@ describe("Aputure Nova P300c chart V1.1", () => {
     expect(f.modes.map((m) => m.channels)).toEqual([7, 3, 6, 5, 3, 2, 4, 3, 10]);
   });
 });
+
+describe("Aputure MC Pro official chart V2.0", () => {
+  it("has all 24 modes with the chart's channel counts (Gel 16-bit table lists 7 ch)", () => {
+    const f = VERIFIED_FIXTURES.find((d) => d.model === "MC Pro")!;
+    expect(f.modes.map((m) => m.channels)).toEqual([8, 4, 7, 5, 5, 6, 4, 5, 10, 5, 11, 6, 15, 7, 13, 9, 9, 7, 7, 6, 11, 10, 16, 11]);
+  });
+});
+
+describe("amaran PT4c official chart V1.0", () => {
+  it("has all 14 modes with the chart's channel counts", () => {
+    const f = VERIFIED_FIXTURES.find((d) => d.model === "PT4C")!;
+    expect(f.modes.map((m) => m.channels)).toEqual([10, 6, 9, 7, 6, 7, 14, 28, 56, 112, 6, 12, 24, 48]);
+  });
+});
+
+describe("Nanlux TK-140B/280B official chart V1", () => {
+  it("has CCT 8/16-bit and Ultimate modes with 2/4/10 channels", () => {
+    for (const model of ["TK-140B", "TK-280B"]) {
+      expect(VERIFIED_FIXTURES.find((d) => d.model === model)!.modes.map((m) => m.channels)).toEqual([2, 4, 10]);
+    }
+  });
+});

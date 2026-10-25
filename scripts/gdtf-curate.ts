@@ -34,7 +34,14 @@ for (const c of CHART_CHECKED_GDTF) {
   const d = best.get(`${c.brand}|${modelKey(c.brand, c.model)}`);
   const src = c.modesFrom ? best.get(`${c.brand}|${modelKey(c.brand, c.modesFrom)}`) : null;
   if (d && src) d.modes = src.modes;
-  if (d) d.modes = d.modes.map((m: any) => ({ ...m, source: "manufacturer" }));
+  if (d) d.modes = d.modes.map((m: any) => {
+    const want = c.padTo?.[m.name];
+    if (want && m.channels < want) {
+      const map = [...(m.channelMap ?? []), ...Array.from({ length: want - m.channels }, () => ({ attr: "Spare", label: "Reserved" }))];
+      m = { ...m, channels: want, channelMap: map };
+    }
+    return { ...m, source: "manufacturer" };
+  });
   else console.warn("chart-checked model missing:", c.brand, c.model);
 }
 const defs = [...best.values()].sort((a, b) => `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`));

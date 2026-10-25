@@ -481,7 +481,70 @@ const NOVA_P300C_MODES: FixtureMode[] = [
   nm("Mode 9 - FX 8-bit", lab("FX Selection"), "Dimmer", ...Array.from({ length: 8 }, (_, i) => lab(`FX Param ${i + 1}`))),
 ];
 
+// Aputure MC Pro DMX Profile Specification V2.0 (02/2025, FW 2.0). CCT 2000–10000K; 16-bit modes widen every
+// continuous channel (incl. ±Green) but keep Strobe, Gel and Source selectors 8-bit.
+const MC_ST = lab("Strobe");
+const MC_P = (n: number): Slot[] => Array.from({ length: n }, () => "Spare" as Slot);
+const MC_GEL: ChannelMapEntry[] = [lab("Gel CCT 3200/5600"), lab("Rosco / Lee"), lab("Gel Series"), lab("Gel Category")];
+const mcx = (name: string, parts: [Slot[], boolean][], tail: ChannelMapEntry[]): FixtureMode => {
+  const m = mm(name, parts);
+  const channelMap = [...(m.channelMap ?? []), ...tail];
+  return { ...m, channels: channelMap.length, channelMap };
+};
+const MC_PRO_MODES: FixtureMode[] = [
+  nm("Mode 1 - CCT & RGB 8-bit", "Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue", MC_ST),
+  nm("Mode 2 - CCT 8-bit", "Dimmer", "CCT", GM, MC_ST),
+  nm("Mode 3 - CCT & HSI 8-bit", "Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation", MC_ST),
+  nm("Mode 4 - RGB 8-bit", "Dimmer", "Red", "Green", "Blue", MC_ST),
+  nm("Mode 5 - HSIC 8-bit", "Dimmer", "Hue", "Saturation", "CCT", MC_ST),
+  nm("Mode 6 - Gel 8-bit", "Dimmer", ...MC_GEL, MC_ST),
+  nm("Mode 7 - xy 8-bit", "Dimmer", { attr: "Spare", label: "X", home: 0.3127 / 0.8 }, { attr: "Spare", label: "Y", home: 0.329 / 0.8 }, MC_ST),
+  nm("Mode 8 - Source 8-bit", "Dimmer", lab("Source"), lab("Source x offset"), lab("Source y offset"), MC_ST),
+  nm("Mode 9 - FX 8-bit", "Dimmer", lab("FX Selection"), ...Array.from({ length: 8 }, (_, i) => lab(`FX Param ${i + 1}`))),
+  nm("Mode 10 - WWRGB 8-bit", "White", "White", "Red", "Green", "Blue"),
+  nm("Mode 11 - Ultimate 8-bit", "Dimmer", lab("Lighting Mode"), ...Array.from({ length: 9 }, (_, i) => lab(`Param ${i + 1}`))),
+  nm("Mode 12 - HSIC+ 8-bit", "Dimmer", "CCT", GM, "Hue", "Saturation", MC_ST),
+  mcx("Mode 13 - CCT & RGB 16-bit", [[["Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue"], true]], [MC_ST]),
+  mcx("Mode 14 - CCT 16-bit", [[["Dimmer", "CCT", GM], true]], [MC_ST]),
+  mcx("Mode 15 - CCT & HSI 16-bit", [[["Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation"], true]], [MC_ST]),
+  mcx("Mode 16 - RGB 16-bit", [[["Dimmer", "Red", "Green", "Blue"], true]], [MC_ST]),
+  mcx("Mode 17 - HSIC 16-bit", [[["Dimmer", "Hue", "Saturation", "CCT"], true]], [MC_ST]),
+  mcx("Mode 18 - Gel 16-bit", [[["Dimmer"], true]], [...MC_GEL, MC_ST]),
+  mcx("Mode 19 - xy 16-bit", [[["Dimmer", ...XY], true]], [MC_ST]),
+  mcx("Mode 20 - Source 16-bit", [[["Dimmer"], true]], [lab("Source"), lab("Source x offset"), lab("Source y offset"), MC_ST]),
+  mcx("Mode 21 - FX 16-bit", [[["Dimmer"], true]], [lab("FX Selection"), ...Array.from({ length: 8 }, (_, i) => lab(`FX Param ${i + 1}`))]),
+  mcx("Mode 22 - WWRGB 16-bit", [[["White", "White", "Red", "Green", "Blue"], true]], []),
+  mcx("Mode 23 - Ultimate 16-bit", [[["Dimmer"], true], [MC_P(0), false]], [lab("Lighting Mode"), ...Array.from({ length: 13 }, (_, i) => lab(`Param ${i + 1}`))]),
+  mcx("Mode 24 - HSIC+ 16-bit", [[["Dimmer", "CCT", GM, "Hue", "Saturation"], true]], [MC_ST]),
+];
+
+// amaran PT DMX Profile Specification V1.0 (PT1c/PT2c/PT4c). CCT 2700–10000K; PT4c has all 14 modes (16 px max).
+const PT_R = lab("Reserved"), PT_ST = lab("Strobe");
+const PT_PX_CCT: Slot[] = ["Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue"];
+const PT_PX_HSI: Slot[] = ["Dimmer", "Hue", "Saturation"];
+const PT4C_MODES: FixtureMode[] = [
+  nm("Mode 1 - CCT & RGB", "Dimmer", "CCT", GM, "Crossfade", "Red", "Green", "Blue", PT_R, PT_R, PT_ST),
+  nm("Mode 2 - CCT", "Dimmer", "CCT", GM, PT_R, PT_R, PT_ST),
+  nm("Mode 3 - CCT & HSI", "Dimmer", "CCT", GM, "Crossfade", "Hue", "Saturation", PT_R, PT_R, PT_ST),
+  nm("Mode 4 - RGB", "Dimmer", "Red", "Green", "Blue", PT_R, PT_R, PT_ST),
+  nm("Mode 5 - HSI", "Dimmer", "Hue", "Saturation", PT_R, PT_R, PT_ST),
+  nm("Mode 6 - System FX", "Dimmer", lab("FX Trigger"), lab("FX Selection"), ...Array.from({ length: 4 }, (_, i) => lab(`FX Param ${i + 1}`))),
+  ...[2, 4, 8, 16].map((n, i) => mm(`Mode ${7 + i} - Light Engine CCT & RGB ${n} px`, [[PT_PX_CCT, false]], { count: n, master: false })),
+  ...[2, 4, 8, 16].map((n, i) => mm(`Mode ${11 + i} - Light Engine HSI ${n} px`, [[PT_PX_HSI, false]], { count: n, master: false })),
+];
+
+// Nanlux TK-140B/TK-280B DMX Reference Guide V1 (2020-12-25). CCT 2700–7500K.
+const TK_MODES: FixtureMode[] = [
+  nm("CCT 8bit", "Dimmer", "CCT"),
+  mm("CCT 16bit", [[["Dimmer", "CCT"], true]]),
+  nm("Ultimate 8bit", "Dimmer", lab("Mode CCT/Effect"), lab("CCT / Effect"), ...Array.from({ length: 7 }, (_, i) => lab(`Effect Param ${i + 1}`))),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-nanlux-tk-140b", brand: "Nanlux", model: "TK-140B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
+  { id: "gdtf-nanlux-tk-280b", brand: "Nanlux", model: "TK-280B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
+  { id: "gdtf-amaran-pt4c", brand: "Amaran", model: "PT4C", cctRange: [2700, 10000], lightType: "LED colour", modes: PT4C_MODES },
+  { id: "gdtf-aputure-mc-pro", brand: "Aputure", model: "MC Pro", cctRange: [2000, 10000], lightType: "LED colour", modes: MC_PRO_MODES },
   // STORM XT52 DMX Profile Spec V1.3 (06/2026, FW 1.6): profiles 1–32 unified with STORM 1200x; Aputure states 700x/400x share them.
   { id: "gdtf-aputure-storm-xt52", brand: "Aputure", model: "STORM XT52", watts: 5200, lightType: "LED daylight", modes: STORM1200X_MODES },
   { id: "gdtf-aputure-storm-700x", brand: "Aputure", model: "STORM 700x", watts: 700, lightType: "LED daylight", modes: STORM1200X_MODES },
@@ -514,7 +577,10 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
 
 /** Library GDTF profiles whose footprints were checked mode-by-mode against the manufacturer's own chart;
  *  gdtf-curate tags their modes as manufacturer-sourced so PATCH shows them as official. */
-export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; modesFrom?: string }[] = [
+export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; modesFrom?: string; padTo?: Record<string, number> }[] = [
+  // Nanlux Evoke 900C DMX Reference Guide (Reduced Channels OFF): all 18 standard modes match, except xy 16-bit where
+  // the guide reserves ch 9–12 (12 ch) and the community file stops at 10 — padded with reserved channels.
+  { brand: "Nanlux", model: "Evoke 900C", chart: "Nanlux Evoke 900C DMX Reference Guide", padTo: { "XY 16bit (16-bit)": 12 } },
   // Aputure STORM 1000c & 80c DMX Profile Spec V1.3 (05/2026): profiles 1–32 footprints 7/14/17/26/10/20/20/32/3/6/5/10/15/22/8/16/18/28/3/6/3/6/4/8/6/12/3/6/4/7/5/6 match.
   { brand: "Aputure", model: "STORM 1000C", chart: "Aputure STORM 1000c & 80c DMX Profile Specification V1.3" },
   // Same chart covers the 80c; its community profile (VRGB modes) is wrong, so it takes the 1000c's checked modes.
