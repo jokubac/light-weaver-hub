@@ -219,4 +219,4 @@
 
 ## Open
 - [x] (Jokubas) Faderiai: FADERS juosta dabar išliejama (localStorage nox-faders-open) — užsidaro tik paspaudus FADERS mygtuką. Vartotojo patvirtinti iPade.
-- [ ] PIXEL Arrange: spacing slankiklis neturi uždaryti valdiklių; atskiri H/V tarpai
+- [x] PIXEL Arrange: spacing slankiklis neturi uždaryti valdiklių; atskiri H/V tarpai

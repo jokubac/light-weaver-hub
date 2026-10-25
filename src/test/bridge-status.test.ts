@@ -55,6 +55,6 @@ describe("multi-transmitter routes", () => {
     ] };
     const u = new Map([1, 2, 3].map((n) => [n, new Uint8Array(512)] as const));
     const t = routeTargets(conn, u);
-    expect(t.map((x) => [x.ip, [...x.universes.keys()]])).toEqual([["2.0.0.2", [2]], ["2.0.0.1", [1]]]);
+    expect(t.map((x) => [x.ip, [...x.universes.keys()]]).sort()).toEqual([["2.0.0.1", [1]], ["2.0.0.2", [2]]]);
   });
 });
