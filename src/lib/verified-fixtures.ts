@@ -533,7 +533,16 @@ const PT4C_MODES: FixtureMode[] = [
   ...[2, 4, 8, 16].map((n, i) => mm(`Mode ${11 + i} - Light Engine HSI ${n} px`, [[PT_PX_HSI, false]], { count: n, master: false })),
 ];
 
+// Nanlux TK-140B/TK-280B DMX Reference Guide V1 (2020-12-25). CCT 2700–7500K.
+const TK_MODES: FixtureMode[] = [
+  nm("CCT 8bit", "Dimmer", "CCT"),
+  mm("CCT 16bit", [[["Dimmer", "CCT"], true]]),
+  nm("Ultimate 8bit", "Dimmer", lab("Mode CCT/Effect"), lab("CCT / Effect"), ...Array.from({ length: 7 }, (_, i) => lab(`Effect Param ${i + 1}`))),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-nanlux-tk-140b", brand: "Nanlux", model: "TK-140B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
+  { id: "gdtf-nanlux-tk-280b", brand: "Nanlux", model: "TK-280B", cctRange: [2700, 7500], lightType: "LED bi-colour", modes: TK_MODES },
   { id: "gdtf-amaran-pt4c", brand: "Amaran", model: "PT4C", cctRange: [2700, 10000], lightType: "LED colour", modes: PT4C_MODES },
   { id: "gdtf-aputure-mc-pro", brand: "Aputure", model: "MC Pro", cctRange: [2000, 10000], lightType: "LED colour", modes: MC_PRO_MODES },
   // STORM XT52 DMX Profile Spec V1.3 (06/2026, FW 1.6): profiles 1–32 unified with STORM 1200x; Aputure states 700x/400x share them.

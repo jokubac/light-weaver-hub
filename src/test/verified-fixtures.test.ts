@@ -126,3 +126,11 @@ describe("amaran PT4c official chart V1.0", () => {
     expect(f.modes.map((m) => m.channels)).toEqual([10, 6, 9, 7, 6, 7, 14, 28, 56, 112, 6, 12, 24, 48]);
   });
 });
+
+describe("Nanlux TK-140B/280B official chart V1", () => {
+  it("has CCT 8/16-bit and Ultimate modes with 2/4/10 channels", () => {
+    for (const model of ["TK-140B", "TK-280B"]) {
+      expect(VERIFIED_FIXTURES.find((d) => d.model === model)!.modes.map((m) => m.channels)).toEqual([2, 4, 10]);
+    }
+  });
+});
