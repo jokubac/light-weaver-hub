@@ -766,6 +766,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const recRef = useRef(recordings);
   recRef.current = recordings;
   const [recOpen, setRecOpen] = useState(false);
+  const [recDrop, setRecDrop] = useState(false);
   const [patchOpen, setPatchOpen] = useState(false);
   const [play, setPlay] = useState<{ id: string; start: number; origin: Map<string, LookState>; pausedAt?: number | undefined; released?: number; waiting?: number | undefined } | null>(null);
   const [recEditor, setRecEditor] = useState(false);
@@ -1334,13 +1335,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   onCreate={(name, color) => { const src = fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
                   onChange={(items) => { const looks = project.looks ?? []; onLooks(items.map((it) => ({ ...looks.find((l) => l.id === it.id)!, name: it.name, ...(it.color ? { color: it.color } : {}) }))); }}
                   onDelete={(id) => onLooks((project.looks ?? []).filter((l) => l.id !== id))} />
-                 <Button variant="secondary" aria-label="Record selected lights" title="REC — tap to record the selected lights, press and hold to open the REC editor"
-                   onPointerDown={() => { recHold.current.fired = false; recHold.current.timer = setTimeout(() => { recHold.current.fired = true; navigator.vibrate?.(20); setRecEditor(true); }, 500); }}
-                   onPointerUp={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }} onPointerLeave={() => { if (recHold.current.timer) clearTimeout(recHold.current.timer); }}
-                   onContextMenu={(e) => e.preventDefault()}
-                   onClick={() => { if (!recHold.current.fired) setRecOpen(true); }} className="h-8 gap-1.5 rounded-md px-3 text-xs font-bold shadow-sm select-none">
-                   <span className={`h-2.5 w-2.5 rounded-full bg-destructive ${play ? "animate-pulse" : ""}`} />REC
-                 </Button>
+                 <RecDrop open={recDrop} setOpen={setRecDrop} playing={!!play} onRecord={() => { setRecDrop(false); setRecOpen(true); }} onEditor={() => { setRecDrop(false); setRecEditor(true); }}>
+                   <RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
+                 </RecDrop>
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
                  <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
                    onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
