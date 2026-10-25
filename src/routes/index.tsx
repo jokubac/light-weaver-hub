@@ -544,7 +544,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maskKey]);
-  const liveLayers = layers.filter((l) => l.live !== false); // preview-only pages never reach the lights
+  const liveLayers = layers.filter((l) => layers.find((h) => (h.group ?? h.id) === (l.group ?? l.id))?.live !== false); // preview-only pages never reach the lights
   const baseFrame = liveLayers.some((l) => l.playing) ? renderLayers(liveLayers, fixtures, t, masks) : new Map<string, RGB[]>();
   // REC overlap: the outgoing cue's pixels keep running and dissolve into the incoming ones
   const mixFrom = pixelMix?.from;
