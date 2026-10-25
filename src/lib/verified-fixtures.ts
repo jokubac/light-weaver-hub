@@ -98,7 +98,7 @@ const V_CCTXY: Slot[] = ["Dimmer", "CCT", "GM", "Crossfade", ...XY];
 const V_DIM: Slot[] = ["Dimmer"];
 /** Labelled Spare slots (effects, gels, bumps) expanded at the mode's resolution. */
 const labelled = (slots: Slot[], labels: string[], wide: boolean): ChannelMapEntry[] =>
-  expand(slots, wide).map((e, i) => ({ ...e, label: labels[wide ? Math.floor(i / 2) : i] }));
+  expand(slots, wide).map((e, i) => ({ ...e, label: labels[wide ? Math.floor(i / 2) : i] ?? "" }));
 type VPart = Slot[] | ChannelMapEntry[];
 const isEntries = (p: VPart): p is ChannelMapEntry[] => p.length > 0 && typeof p[0] === "object" && !Array.isArray(p[0]);
 function vSingle(name: string, wide: boolean, ...parts: VPart[]): FixtureMode {
