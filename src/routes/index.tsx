@@ -1388,7 +1388,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <PixelStage fixtures={fixtures} layers={layers} activeId={activePixelId} frame={frame} controls={pixelPanel(true)}
           onMove={(id, pixelPos) => updateOne(id, { pixelPos })}
           onSelect={setActivePixelId}
-          addFixtures={<PixelAddPatched fixtures={fixtures} exclude={(() => { const act = layers.find((x) => x.id === activePixelId) ?? layers[0]; const gid = act ? (act.group ?? act.id) : null; return layers.filter((l) => (l.group ?? l.id) === gid).flatMap((l) => l.order); })()} onAdd={(uids) => {
+          addFixtures={<PixelAddPatched fixtures={fixtures} exclude={(() => { const act = layers.find((x) => x.id === activePixelId) ?? layers[0]; const gid = act ? (act.group ?? act.id) : null; const on = new Set(layers.filter((l) => (l.group ?? l.id) === gid).flatMap((l) => l.order)); return fixtures.filter((f) => on.has(f.uid) && f.pixelPos).map((f) => f.uid); })()} onAdd={(uids) => {
             const placed: typeof fixtures = [];
             const add = fixtures.filter((x) => uids.includes(x.uid)); const spots = placeInColumns(add);
             for (const f of add) placed.push({ ...f, pixelPos: spots.get(f.uid) ?? freeCanvasSpot(fixtures, f) });
