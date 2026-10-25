@@ -489,7 +489,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     return base.map((i) => ({ id: i.id, x: i.x, y: i.y, w: W(i), h: H(i) }));
   };
   const pal = (c?: string) => (c ? { background: c } : undefined);
-  const chip = (on: boolean) => `flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${on ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`;
+  const chip = (on: boolean) => `inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm [&_svg]:size-4 ${on ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`;
   const bbox = !live && esel.length ? (() => { const its = (rs ? rs.out : grid.items.filter((i) => esel.includes(i.id)).map((i) => { const gm = drag?.moved ? drag.group.find((g) => g.id === i.id) : undefined; return { id: i.id, x: gm ? gm.x + drag!.x : i.x, y: gm ? gm.y + drag!.y : i.y, w: W(i), h: H(i) }; })); if (!its.length) return null; const l = Math.min(...its.map((b) => b.x)), t = Math.min(...its.map((b) => b.y)); return { l, t, r: Math.max(...its.map((b) => b.x + b.w)), b: Math.max(...its.map((b) => b.y + b.h)) }; })() : null;
 
   const editPanel = (
@@ -608,8 +608,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2">
-          <div className="mr-2 flex rounded-full bg-surface-elevated p-0.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
+          <div className="mr-2 flex gap-1 rounded-md">
             <button onClick={() => { setLive(true); setEsel([]); setMode("select"); }} aria-pressed={live} className={chip(live)}><Play className="h-3.5 w-3.5" />Live</button>
             <button onClick={() => setLive(false)} aria-pressed={!live} className={chip(!live)}><Pencil className="h-3.5 w-3.5" />Edit</button>
           </div>
