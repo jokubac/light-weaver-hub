@@ -261,4 +261,4 @@
 - [x] Aputure Nova P300c from official chart V1.1 (9 modes).
 - [x] Aputure LS 600d / LS 600d Pro chart-checked; duplicate STROM 1200X and NOVA600C merged (2518 lights).
 - [x] Aputure INFINIBAR PB3/PB6/PB12 chart-checked (faulty generic Infinibar merged); STORM XT52/700x/400x added from official profiles 1–32. Todo: XT52 motorized-accessory profiles 101+, MC Pro, MT Pro, STORM 80C/1000C, XT26, LS 1200d/600x Pro.
-- [ ] Verify Aputure Electro Storm CS15/XT26 from official charts (Evoke 900C, TK-140B/280B, PT4c, MC Pro, STORM 1000c/80c done)
+- [ ] Remaining Aputure unverified: LS 1200d Pro, LS 600x Pro, Infinimat, F22c, TK-450B (Nanlux)
