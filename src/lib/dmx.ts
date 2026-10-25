@@ -264,7 +264,8 @@ const customDefs = (): FixtureDef[] => {
   const verified = new Map(VERIFIED_FIXTURES.map((v) => [key(v.brand, v.model), v]));
   for (const d of FIXTURE_LIBRARY) {
     const v = verified.get(key(d.brand, d.model));
-    if (!v) continue;
+    // Keep hand-built chart profiles (they carry exact per-channel encoders).
+    if (!v || d.modes.some((m) => m.profile)) continue;
     d.modes = v.modes;
     if (v.watts) d.watts = v.watts;
     if (v.cctRange) d.cctRange = v.cctRange;
