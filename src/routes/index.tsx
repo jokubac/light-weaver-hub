@@ -851,7 +851,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     const id = setInterval(() => {
       const tl = latest.current.seq, origin = seqHold.current?.origin ?? new Map();
       let time = seqPlay.from + (performance.now() - seqPlay.start) / 1000;
-      const mk = (tl.markers ?? []).map((m) => m.t).filter((m) => m > prev && m <= time && m > seqPlay.from + 0.01).sort((x, y) => x - y)[0];
+      const lp = tl.loop;
+      if (lp?.on && lp.b > lp.a && prev < lp.b && time >= lp.b) { seqApply(lp.a, origin); setSeqTime(lp.a); prev = lp.a; setSeqPlay({ ...seqPlay, start: performance.now(), from: lp.a }); if (audioEl.current) audioEl.current.currentTime = lp.a; return; }
+      const mk = (tl.markers ?? []).filter((m) => m.action !== "pass").map((m) => m.t).filter((m) => m > prev && m <= time && m > seqPlay.from + 0.01).sort((x, y) => x - y)[0];
       if (mk != null) { seqApply(mk, origin); setSeqTime(mk); setSeqWait(mk); setSeqPlay(null); audioEl.current?.pause(); return; }
       const end = timelineLength(tl);
       if (time >= end) {
