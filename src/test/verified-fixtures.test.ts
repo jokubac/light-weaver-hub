@@ -78,3 +78,11 @@ describe("Quasar RR official chart", () => {
     expect(byId("gdtf-quasar-science-double-rainbow-4ft").modes[0]!.channels).toBe(16 * 5);
   });
 });
+
+describe("Aputure LS 600c Pro official chart V1.6", () => {
+  it("22 profiles with chart footprints, 2300-10000 K", () => {
+    const a = byId("gdtf-aputure-ls-600c-pro");
+    expect(a.cctRange).toEqual([2300, 10000]);
+    expect(a.modes.map((m) => m.channels)).toEqual([8, 4, 8, 5, 5, 6, 4, 5, 10, 5, 11, 15, 7, 15, 9, 9, 7, 7, 6, 12, 10, 16]);
+  });
+});

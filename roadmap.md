@@ -245,7 +245,7 @@
 ## Official-chart audit (Jokubas) — every light must match the maker's DMX chart
 - [x] PATCH shows "✓ official chart" or "⚠ unverified" on each light (unverified lights stay available)
 - [x] Creamsource Vortex 4/8/24 — all 75 modes from V3.1 chart
-- [ ] Aputure / Amaran / Nanlux / Nanlite
+- [ ] Aputure / Amaran / Nanlux / Nanlite (done: LS 600c Pro / Pro II V1.6, Nanlux Evoke/Dyno; built-ins auto-use any official chart)
 - [ ] ARRI / Litepanels / Astera (remaining) / Creamsource (rest)
 - [ ] Kino Flo / Quasar / Rosco / Godox
 - [ ] Concert: Robe, Martin, Clay Paky, Ayrton, GLP, Chauvet

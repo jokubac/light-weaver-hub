@@ -1,5 +1,5 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
-import { vortexProfileModes } from "./verified-fixtures";
+import { VERIFIED_FIXTURES, vortexProfileModes } from "./verified-fixtures";
 import { asteraModes, asteraSpec, asteraSpecFromName } from "./astera";
 import { pixelLayout, pixelShape, knownLayout } from "./pixel-layout";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
@@ -258,6 +258,19 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
 const customDefs = (): FixtureDef[] => {
   try { return loadCustomFixtures(); } catch { return []; }
 };
+// Built-in entries whose model has an official manufacturer chart use that chart instead of generic guesses.
+{
+  const key = (brand: string, model: string) => `${brand}|${model.replace(/^LS\s+/i, "")}`.toLowerCase().replace(/[^a-z0-9|]/g, "");
+  const verified = new Map(VERIFIED_FIXTURES.map((v) => [key(v.brand, v.model), v]));
+  for (const d of FIXTURE_LIBRARY) {
+    const v = verified.get(key(d.brand, d.model));
+    // Keep hand-built chart profiles (they carry exact per-channel encoders).
+    if (!v || d.modes.some((m) => m.profile)) continue;
+    d.modes = v.modes;
+    if (v.watts) d.watts = v.watts;
+    if (v.cctRange) d.cctRange = v.cctRange;
+  }
+}
 FIXTURE_LIBRARY.push(...customDefs());
 
 /** Which local rental house stocks a fixture (search by "arclight" / "cinevera"). */
