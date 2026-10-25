@@ -1,3 +1,4 @@
+import { SPEC_PAGE_CHECKED } from "./spec-checked";
 // Manufacturer-verified fixture profiles built from official DMX charts.
 // The curation script replaces same-id library entries with these, so they win over community GDTF files.
 import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode } from "./dmx";
@@ -641,6 +642,7 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; 
   // Robe product pages (robe.cz, "DMX Protocol modes / Control channels"): every official footprint is present
   // (1-ch modes are dropped library-wide). Robe models whose pixel/extended modes disagree stay unverified.
   ...ROBE_CHECKED.map((model) => ({ brand: "Robe", model, chart: "Robe official product specification (robe.cz)" })),
+  ...Object.entries(SPEC_PAGE_CHECKED).flatMap(([brand, { chart, models }]) => models.map((model) => ({ brand, model, chart }))),
   // Nanlux Evoke 900C DMX Reference Guide (Reduced Channels OFF): all 18 standard modes match, except xy 16-bit where
   // the guide reserves ch 9–12 (12 ch) and the community file stops at 10 — padded with reserved channels.
   { brand: "Nanlux", model: "Evoke 900C", chart: "Nanlux Evoke 900C DMX Reference Guide", padTo: { "XY 16bit (16-bit)": 12 } },
