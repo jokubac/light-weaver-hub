@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent } from "react";
-import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState, type PointerEvent as RPE, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
+import { Lock, Unlock, ArrowUp, ArrowDown, Copy, Flag, MousePointerSquareDashed, Repeat, SlidersHorizontal, MoveHorizontal, SkipForward, Eye, EyeOff, Music, Pause, Play, Plus, Square, Trash2, X, MonitorPlay, Magnet, ChevronDown, Undo2, Redo2, Scissors, Repeat2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NumberField } from "@/components/console/NumberField";
@@ -8,7 +8,8 @@ import { membersOf } from "@/lib/fixture-groups";
 import { defaultFx, type FxParams, type PatchedFixture } from "@/lib/dmx";
 import { PIXEL_LIBRARY, defaultLayer, isPixelFixture, type PixelLayer } from "@/lib/pixels";
 import type { Recording } from "@/lib/store";
-import { clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey, type TimelineTrack, type AdjustFilter, type BlendMode } from "@/lib/timeline";
+import { beats, splitClip, type Ease, clipValue, newId, stretchTrack, timelineLength, type ClipKind, type Timeline, type TimelineClip, type TimelineKey, type TimelineTrack, type AdjustFilter, type BlendMode } from "@/lib/timeline";
+import { editHistory } from "@/lib/edit-history";
 
 const ROW = 52, HEAD = 150;
 const KIND_STYLE: Record<ClipKind, string> = {
@@ -604,7 +605,7 @@ function AdjustControls({ value: a, onChange, disabled }: { value: AdjustFilter;
 }
 
 /** Overview strip of the whole timeline; click or drag to jump the view there. */
-function Minimap({ timeline, len, time, zoom, scroller }: { timeline: Timeline; len: number; time: number; zoom: number; scroller: React.RefObject<HTMLDivElement | null> }) {
+function Minimap({ timeline, len, time, zoom, scroller }: { timeline: Timeline; len: number; time: number; zoom: number; scroller: RefObject<HTMLDivElement | null> }) {
   const [view, setView] = useState({ l: 0, w: 1 });
   useEffect(() => { const el = scroller.current; if (!el) return; const f = () => setView({ l: el.scrollLeft, w: el.clientWidth }); f(); el.addEventListener("scroll", f); const ro = new ResizeObserver(f); ro.observe(el); return () => { el.removeEventListener("scroll", f); ro.disconnect(); }; }, [scroller]);
   const total = HEAD + len * zoom, n = Math.max(1, timeline.tracks.length);
