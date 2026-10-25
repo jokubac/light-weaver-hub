@@ -83,6 +83,15 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
   })();
   const drag = useRef<{ uid: string; x: number; y: number; ox: number; oy: number; moved: boolean; group: { f: PatchedFixture; p: { x: number; y: number; r?: number } }[] } | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!onRemoveLight) return;
+    const h = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      if ((e.key === "Delete" || e.key === "Backspace") && sel.size) { e.preventDefault(); onRemoveLight([...sel]); setSel(new Set()); }
+    };
+    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
+  }, [sel, onRemoveLight]);
   // locked effects ignore touches so lights underneath can be selected and moved freely
   const [lockedFx, setLockedFx] = useState<Set<string>>(new Set());
   const marquee = useRef<{ id: number; x0: number; y0: number } | null>(null);
