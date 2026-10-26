@@ -1567,10 +1567,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
           onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
       )}
-      {/* Patch lives at the bottom edge so it stays under the thumb on a tablet */}
-      <div aria-label="Patch access" className="hw-bar flex shrink-0 items-center gap-2 border-t border-border bg-surface px-3 py-1.5">
-        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className={`text-xs font-bold tracking-wider border ${patchOpen ? "border-primary bg-primary text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] hover:bg-primary/90" : "border-primary/70 text-primary"}`}>PATCH</Button>
-      </div>
       <RecEditor open={recEditor} onOpenChange={setRecEditor} recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel}
         playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
