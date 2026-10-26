@@ -23,3 +23,13 @@ import { ASTERA_HEAD_XY, asteraChannels } from "@/lib/astera";
 describe("Astera head xy profiles", () => {
   it("168–171 channel counts", () => expect(ASTERA_HEAD_XY.map(asteraChannels)).toEqual([8, 9, 9, 10]));
 });
+
+import { FIXTURE_LIBRARY as LIB2, isVerifiedDef as isV } from "@/lib/dmx";
+describe("Astera single-head verified", () => {
+  it("AX3/AX5/AX9/NYX are verified via chart profiles", () => {
+    for (const model of ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb"]) {
+      const d = LIB2.find((x) => x.brand === "Astera" && x.model === model)!;
+      expect(isV(d)).toBe(true);
+    }
+  });
+});
