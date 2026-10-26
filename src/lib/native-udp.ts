@@ -81,8 +81,13 @@ export async function scanArtNet(): Promise<ScannedNode[]> {
     if (info) found.set(info.ip, info);
   });
   try {
-    await Udp.send({ socketId: id, address: "255.255.255.255", port: ARTNET_UDP_PORT, buffer: toBase64(buildArtPoll()) });
-    await new Promise((r) => setTimeout(r, 2000));
+    // CRMX/Art-Net gear often sits on 2.x or 10.x, so poll the common broadcast ranges a few times.
+    const targets = ["255.255.255.255", "2.255.255.255", "10.255.255.255", "192.168.0.255", "192.168.1.255"];
+    for (let round = 0; round < 3; round++) {
+      for (const address of targets) await Udp.send({ socketId: id, address, port: ARTNET_UDP_PORT, buffer: toBase64(buildArtPoll()) }).catch(() => {});
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    await new Promise((r) => setTimeout(r, 1000));
   } finally {
     handle.remove();
   }

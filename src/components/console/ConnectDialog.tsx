@@ -33,6 +33,12 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Search Wi-Fi/network straight away whenever the window opens; IP entry is only a fallback.
+  useEffect(() => {
+    if (open && conn.transport !== "bluetooth" && !scanning) void scan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const pair = async () => {
     setPairing(true); setMsg(null);
     try { const node = await connectMoonLite(); setConn({ ...conn, transport: "bluetooth", node, bluetoothUniverse: conn.bluetoothUniverse ?? 1 }); }
@@ -96,10 +102,12 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
               {conn.node?.ip === n.ip && <Check className="h-4 w-4 text-success" />}
             </button>
           ))}
-          <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (manual.trim()) { pick({ name: "Manual transmitter", ip: manual.trim() }); setManual(""); } }}>
+          {!scanning && nodes.length === 0 && <p className="text-xs text-muted-foreground">No transmitters found yet. Check the tablet is on the transmitter's Wi-Fi, then scan again.</p>}
+          <details className="text-xs"><summary className="cursor-pointer text-muted-foreground">Enter IP manually</summary>
+          <form className="mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (manual.trim()) { pick({ name: "Manual transmitter", ip: manual.trim() }); setManual(""); } }}>
             <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Transmitter IP, e.g. 2.0.0.10" className="min-w-0 flex-1 font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
             <button type="submit" className="flex items-center gap-1 rounded-md bg-surface-elevated px-3 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add</button>
-          </form>
+          </form></details>
           </div>
           {msg && <p role="alert" className="text-xs text-destructive">{msg}</p>}
           {conn.node && (
