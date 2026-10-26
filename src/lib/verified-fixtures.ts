@@ -675,4 +675,9 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; 
   // Aputure INFINIBAR DMX Profile Spec V2.0 (08/2024): modes 1–32 match (TOC lists RGB 16 px as 72 ch; the table itself is 64).
   ...["INFINIBAR PB3", "INFINIBAR PB6", "INFINIBAR PB12"].map((model) => ({ brand: "Aputure", model, chart: "Aputure INFINIBAR DMX Profile Specification V2.0" })),
   ...["L5-C", "L7C"].map((model) => ({ brand: "ARRI", model, chart: "ARRI L-Series DMX Protocol V3.3" })),
+  // ARRI's own GDTF files (arri.canto.de "ARRI GDTF Files" portal): library entries match them mode for mode.
+  { brand: "ARRI", model: "ARRI SkyPanel-X", chart: "ARRI official GDTF DMX v6.0 LiOS 3.2" },
+  { brand: "ARRI", model: "S60 Pro", chart: "ARRI official GDTF DMX v4.4" },
+  { brand: "ARRI", model: "L10-C", chart: "ARRI official GDTF DMX v3.5" },
+  { brand: "ARRI", model: "SkyPanel S30RP", chart: "ARRI official GDTF DMX v4.4" },
 ];
