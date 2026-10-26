@@ -1,6 +1,6 @@
 // DMX engine: fixture library, patch helpers, colour + effects math.
 import { VERIFIED_FIXTURES, vortexProfileModes } from "./verified-fixtures";
-import { asteraModes, asteraMode, asteraSpec, asteraSpecFromName, ASTERA_HEAD_XY } from "./astera";
+import { asteraModes, asteraMode, asteraSpec, asteraSpecFromName, ASTERA_HEAD_XY, hydraPixelModes } from "./astera";
 import { pixelLayout, pixelShape, knownLayout } from "./pixel-layout";
 import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
