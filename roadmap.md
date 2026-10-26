@@ -268,3 +268,4 @@
 - [ ] Verify unverified Arclight rental stock (Astera tubes, Nanlite, Nanlux Evoke, Kino Flo, DMG, Aladdin/LiteGear generic BI)
 - [ ] ARRI SkyPanel X (X21) official DMX chart
 - [ ] SkyPanel X: search more for ARRI DMX spec (same profile, pixel counts differ)
+- [ ] Evoke: Fresnel focus/zoom control in the console
