@@ -91,7 +91,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         {rows.length === 0 && <span className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures · {new Date().toLocaleDateString("sv-SE")}</span>}
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
-      <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <main ref={mainRef} className="patch-print min-h-0 flex-1 overflow-auto p-4">
           <div className="mb-3 flex items-center gap-2 border-b border-border pb-2 print:mb-2">
             <h1 className="truncate font-display text-base font-semibold uppercase tracking-wider">{title} — Patch sheet</h1>
