@@ -6,7 +6,7 @@ import type { FixtureMode, ModeKind } from "./dmx";
 export type AsteraCell = "RGB" | "RGBW" | "RGBAW" | "DRGB" | "DRGBW" | "DRGBAW" | "RGBDOT" | "IND" | "CRO" | "HSI" | "C16" | "H16" | "XY";
 /** 0 no strobe · 1 one strobe channel at the end · 2 strobe per pixel (inside each pixel) · 3 strobe per pixel, all at the end */
 export type AsteraStrobe = 0 | 1 | 2 | 3;
-export interface AsteraSpec { code: number; cell: AsteraCell; px: number; strobe: AsteraStrobe; tokens?: string[] }
+export interface AsteraSpec { code: number; cell: AsteraCell; px: number; strobe: AsteraStrobe; tokens?: string[]; keepTail?: boolean }
 
 /** [profile number, cell layout, pixel count, strobe placement] */
 const TABLE: [number, AsteraCell, number, AsteraStrobe][] = [[1,"RGB",1,0],[2,"RGBW",1,0],[3,"RGBAW",1,0],[4,"DRGB",1,0],[5,"DRGBW",1,0],[6,"DRGBAW",1,0],[7,"IND",1,0],[8,"RGB",1,1],[9,"RGBW",1,1],[10,"RGBAW",1,1],[11,"DRGB",1,1],[12,"DRGBW",1,1],[13,"DRGBAW",1,1],[14,"IND",1,1],[17,"RGBDOT",4,0],[18,"RGB",4,0],[19,"RGBW",4,0],[20,"RGBAW",4,0],[21,"DRGB",4,0],[22,"DRGBW",4,0],[23,"DRGBAW",4,0],[24,"IND",4,0],[25,"RGBDOT",4,1],[26,"RGB",4,1],[27,"RGBW",4,1],[28,"RGBAW",4,1],[29,"DRGB",4,1],[30,"DRGBW",4,1],[31,"DRGBAW",4,1],[32,"IND",4,1],[33,"RGB",4,2],[34,"RGB",4,3],[35,"RGBW",4,2],[36,"RGBAW",4,2],[37,"DRGB",4,2],[38,"DRGBW",4,2],[39,"DRGBAW",4,2],[40,"IND",4,2],[41,"RGBDOT",16,0],[42,"RGB",16,0],[43,"RGBW",16,0],[44,"RGBAW",16,0],[45,"DRGB",16,0],[46,"DRGBW",16,0],[47,"DRGBAW",16,0],[48,"IND",16,0],[49,"RGBDOT",16,1],[50,"RGB",16,1],[51,"RGBW",16,1],[52,"RGBAW",16,1],[53,"DRGB",16,1],[54,"DRGBW",16,1],[55,"DRGBAW",16,1],[56,"IND",16,1],[57,"RGB",16,2],[58,"RGB",16,3],[59,"RGBW",16,2],[60,"RGBAW",16,2],[61,"DRGB",16,2],[62,"DRGBW",16,2],[63,"DRGBAW",16,2],[64,"IND",16,2],[65,"RGBDOT",8,0],[66,"RGB",8,0],[67,"RGBW",8,0],[68,"RGBAW",8,0],[69,"DRGB",8,0],[70,"DRGBW",8,0],[71,"DRGBAW",8,0],[72,"IND",8,0],[73,"RGBDOT",8,1],[74,"RGB",8,1],[75,"RGBW",8,1],[76,"RGBAW",8,1],[77,"DRGB",8,1],[78,"DRGBW",8,1],[79,"DRGBAW",8,1],[80,"IND",8,1],[81,"RGB",8,2],[82,"RGB",8,3],[83,"RGBW",8,2],[84,"RGBAW",8,2],[85,"DRGB",8,2],[86,"DRGBW",8,2],[87,"DRGBAW",8,2],[88,"IND",8,2],[89,"CRO",1,0],[90,"HSI",1,0],[91,"C16",1,0],[92,"H16",1,0],[93,"XY",1,0],[94,"CRO",1,1],[95,"HSI",1,1],[96,"H16",1,1],[97,"XY",1,1],[98,"CRO",4,0],[99,"HSI",4,0],[100,"C16",4,0],[101,"H16",4,0],[102,"XY",4,0],[103,"CRO",4,1],[104,"HSI",4,1],[105,"H16",4,1],[106,"XY",4,1],[107,"CRO",4,2],[108,"HSI",4,2],[109,"H16",4,2],[110,"XY",4,2],[111,"CRO",16,0],[112,"HSI",16,0],[113,"C16",16,0],[114,"H16",16,0],[115,"XY",16,0],[116,"CRO",16,1],[117,"HSI",16,1],[118,"H16",16,1],[119,"XY",16,1],[120,"CRO",16,2],[121,"HSI",16,2],[122,"H16",16,2],[123,"XY",16,2],[124,"CRO",8,0],[125,"HSI",8,0],[126,"C16",8,0],[127,"H16",8,0],[128,"XY",8,0],[129,"CRO",8,1],[130,"HSI",8,1],[131,"H16",8,1],[132,"XY",8,1],[133,"CRO",8,2],[134,"HSI",8,2],[135,"H16",8,2],[136,"XY",8,2],[137,"C16",1,1],[138,"C16",4,1],[139,"C16",4,2],[140,"C16",16,1],[141,"C16",16,2],[142,"C16",8,1],[143,"C16",8,2]];
@@ -37,7 +37,7 @@ export function asteraTokens(s: AsteraSpec): { token: string; px: number }[] {
     if (s.strobe === 2 && s.cell !== "RGBDOT") out.push({ token: "S", px: p });
   }
   // Astera chart: RGB.RGBS puts the shared strobe in the first pixel's spare slot (ch 4); the final spare slot is dropped.
-  if (s.cell === "RGBDOT") { out.pop(); if (s.strobe && out[3]) out[3] = { token: "S", px: -1 }; }
+  if (s.cell === "RGBDOT") { if (!s.keepTail) out.pop(); if (s.strobe && out[3]) out[3] = { token: "S", px: -1 }; }
   else if (s.strobe === 1) out.push({ token: "S", px: -1 });
   else if (s.strobe === 3) for (let p = 0; p < s.px; p++) out.push({ token: "S", px: p });
   return out;
@@ -99,3 +99,11 @@ export const ASTERA_HEAD_XY: AsteraSpec[] = [
   { code: 168, cell: "XY", px: 1, strobe: 0, tokens: XYC }, { code: 169, cell: "XY", px: 1, strobe: 0, tokens: XYC16 },
   { code: 170, cell: "XY", px: 1, strobe: 1, tokens: XYC }, { code: 171, cell: "XY", px: 1, strobe: 1, tokens: XYC16 },
 ];
+
+/** HydraPanel (FP6) chart V1: same 141 profile numbers as Titan with Titan 4/8/16-px tiers = 2/3/6 px.
+ *  Profile 73 keeps its trailing "No Effect" channel (12 ch) in the Hydra chart. */
+const HYDRA_PX: Record<number, number> = { 4: 2, 8: 3, 16: 6 };
+export const HYDRA_SOURCE = "https://astera-led.com/wp-content/uploads/FP6_HydraPanel_DMX_Profiles_V1.pdf";
+export const hydraPixelModes = (): FixtureMode[] =>
+  ASTERA_SPECS.filter((s) => s.px > 1).sort((a, b) => a.code - b.code)
+    .map((s) => ({ ...asteraMode({ ...s, px: HYDRA_PX[s.px]!, ...(s.code === 73 ? { keepTail: true } : {}) }), source: HYDRA_SOURCE }));
