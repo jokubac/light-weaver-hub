@@ -340,6 +340,15 @@ const EVOKE2400B_MODES: FixtureMode[] = [
   nl("Ultimate DMX 8bit - CCT", [[["Dimmer", ULT_CCT, "CCT", GM, ...NA(7), ZOOM, SP, SP, FAN], false]]),
   nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(9), ZOOM, SP, SP, FAN], false]]),
 ];
+// Nanlux Evoke 5000B DMX chart V1.1 (2025-02-12): Dimmer, CCT, G/M, then Fan, Strobe, Zoom (default 127) + 4 reserved;
+// "DMX Reduce Channels" ON drops that tail (3 / 6 ch).
+const E5_TAIL: Slot[] = [FAN, STROBE, ["Zoom", 0.498], ...NA(4)];
+const EVOKE5000B_MODES: FixtureMode[] = [
+  nl("CCT 8bit", [[["Dimmer", "CCT", GM, ...E5_TAIL], false]]),
+  nl("CCT 16bit", [[["Dimmer", "CCT", GM], true], [E5_TAIL, false]]),
+  nl("CCT 8bit (Reduced)", [[["Dimmer", "CCT", GM], false]]),
+  nl("CCT 16bit (Reduced)", [[["Dimmer", "CCT", GM], true]]),
+];
 
 // Nanlux Evoke 150C / 600C DMX Charts V1.2 (Nebula C8 engine, 1000–20000K, Zoom added in V1.2).
 // Every mode ends with Fan, Strobe, Zoom (default 127) + 4 reserved; "Reduced" drops that tail.
@@ -629,6 +638,7 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
   { id: "gdtf-nanlux-evoke-600c", brand: "Nanlux", model: "Evoke 600C", cctRange: [1000, 20000], lightType: "LED colour", modes: C8_MODES },
   { id: "gdtf-nanlux-evoke-1200", brand: "Nanlux", model: "Evoke 1200", watts: 1200, lightType: "LED daylight", modes: EVOKE1200_MODES },
   { id: "gdtf-nanlux-evoke-1200b", brand: "Nanlux", model: "Evoke 1200B", watts: 1200, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE1200B_MODES },
+  { id: "gdtf-nanlux-evoke-5000b", brand: "Nanlux", model: "Evoke 5000B", watts: 5000, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE5000B_MODES },
   { id: "gdtf-nanlux-evoke-2400b", brand: "Nanlux", model: "Evoke 2400B", watts: 2400, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE2400B_MODES },
   { id: "gdtf-nanlite-forza-500b-ii", brand: "Nanlite", model: "Forza 500B II", cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: FORZA500BII_MODES },
   { id: "gdtf-nanlite-forza-720", brand: "Nanlite", model: "Forza 720", lightType: "LED daylight", modes: FORZA720_MODES },
@@ -688,6 +698,14 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; 
   ...["Matrix Color", "P3 Color", "Q5 Color", "Q8 Color", "Q10 Color", "QUAD Color"].map((model) => ({ brand: "Fiilex", model, chart: "Fiilex COLOR Series DMX / RDM Mapping V1" })),
   // K10/K40: old-firmware community modes stay for saved patches but are hidden; the V2 chart modes are the official set.
   ...["K10", "K40 Color"].map((model) => ({ brand: "Fiilex", model, chart: "Fiilex COLOR Series DMX / RDM Mapping V2", keepNames: (FIILEX_K_V2 as FixtureMode[]).map((m) => m.name) })),
+  // Nanlite Forza 60C DMX Reference Guide V1 (2022-04-30): all 18 standard modes match (14/25/14/25/10/17/7/12/7/12/11/20/11/20/7/12/7/12).
+  // The chart's ULTIMATE DMX modes are not in this profile.
+  { brand: "Nanlite", model: "Forza 60C", chart: "Nanlite Forza 60C DMX Reference Guide V1" },
+  // amaran F21c & F22c DMX Profile Specification V1.0: modes 1–7 = 10/6/9/7/6/8/9 ch.
+  { brand: "Aputure", model: "F22C", chart: "amaran F21C & F22C DMX Profile Specification V1.0" },
+  // Nanlux Dyno 650C/1200C DMX Reference Guide B V2 (2023-02-05): modes 1–12 = 12/22/10/18/7/12/6/11/8/15/6/11 ch.
+  // Ultimate DMX footprints could not be read reliably from the chart, so those modes are hidden (kept for saved patches).
+  ...["Dyno 650C", "Dyno 1200C"].map((model) => ({ brand: "Nanlux", model, chart: "Nanlux Dyno 650C/1200C DMX Reference Guide B V2", legacyModes: ["Ultimate DMX"] })),
   { brand: "Fiilex", model: "MotoQ3", chart: "Fiilex MOTOQ3 DMX Mapping (09/2026)" },
   // Moto PXL16 ICTHS (mode 307) is 89 ch in the chart but 93 in the community file: hidden for new patches, kept for saved indices.
   { brand: "Fiilex", model: "MotoK40", chart: "Fiilex K10-MOTOYOKE / MOTOK40 DMX Mapping (09/2026)", legacyModes: ["Mode 307"] },

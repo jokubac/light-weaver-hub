@@ -2,7 +2,7 @@
 import { VERIFIED_FIXTURES, vortexProfileModes } from "./verified-fixtures";
 import { asteraModes, asteraMode, asteraSpec, asteraSpecFromName, ASTERA_HEAD_XY, hydraPixelModes } from "./astera";
 import { pixelLayout, pixelShape, knownLayout } from "./pixel-layout";
-import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
+import { RENTAL_ALIASES, RENTAL_FIXTURES, RENTAL_SUPERSEDED } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";
 
@@ -217,18 +217,18 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
     ...asteraPx(16).map((mode) => {
       const code = mode.name === "3ch RGB" ? 1 : mode.name === "4ch RGBW" ? 2 : mode.name === "5ch RGBAW" ? 3 : mode.name === "6ch Dim RGBAW" ? 6 : mode.name === "Pixel RGB (16 px)" ? 42 : mode.name === "Pixel RGBW (16 px)" ? 43 : mode.name === "Pixel RGBAW (16 px)" ? 44 : undefined;
       const spec = code ? asteraSpec(code) : undefined;
-      return code ? { ...mode, name: `Profile ${code} — ${mode.name}`, ...(spec ? { astera: spec } : {}) } : mode;
+      return code ? { ...mode, name: `Profile ${code} — ${mode.name}`, ...(spec ? { astera: spec } : {}) } : { ...mode, legacy: true };
     }),
-    { name: "Profile 90 — D CCT GM HUE SAT", channels: 5, kind: "full", profile: "astera-hsi", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
-    { name: "Profile 95 — D CCT GM HUE SAT S", channels: 6, kind: "full", profile: "astera-hsi-strobe", source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
+    { name: "Profile 90 — D CCT GM HUE SAT", channels: 5, kind: "full", profile: "astera-hsi", astera: asteraSpec(90)!, source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
+    { name: "Profile 95 — D CCT GM HUE SAT S", channels: 6, kind: "full", profile: "astera-hsi-strobe", astera: asteraSpec(95)!, source: "https://astera-led.com/Downloads/Profile/Titan%20Tube%20DMX%20Profiles.pdf" },
     { ...m("Profile 18 — Pixel RGB (4 px)", 12, "rgb", 4), astera: asteraSpec(18)! },
     // every other Titan profile, appended so saved mode numbers stay valid
     ...asteraModes([1, 4, 8, 16], [1, 2, 3, 6, 18, 42, 43, 44, 90, 95]),
   ]),
   // Helios/AX2-50 chart: same profile numbers as Titan at half the pixels; AX1 uses the Titan layout. Appended tiers keep saved indices.
-  ...fam("Astera", ["Helios Tube"], [...asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5)), ...asteraModes([1, 4, 8], [], 0.5), ...asteraModes([16], [], 0.5)]),
-  ...fam("Astera", ["AX1 PixelTube"], [...asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5)), ...asteraModes([1, 4, 8]), ...asteraModes([16])]),
-  ...fam("Astera", ["Hyperion Tube"], [...asteraPx(32), ...asteraModes([1, 4, 8, 16], [], 2)]),
+  ...fam("Astera", ["Helios Tube"], [...asLegacy(asteraPx(8).concat(asteraPx(16).slice(-5))), ...asteraModes([1, 4, 8], [], 0.5), ...asteraModes([16], [], 0.5)]),
+  ...fam("Astera", ["AX1 PixelTube"], [...asLegacy(asteraPx(8).concat(asteraPx(16).slice(-5))), ...asteraModes([1, 4, 8]), ...asteraModes([16])]),
+  ...fam("Astera", ["Hyperion Tube"], [...asLegacy(asteraPx(32)), ...asteraModes([1, 4, 8, 16], [], 2)]),
   ...fam("Astera", ["PixelBrick"], [...asteraPx(4), ...asteraModes([1, 4])]),
   ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb"], [...asLegacy(ASTERA), ...asteraModes([1]), ...ASTERA_HEAD_XY.map((s) => ({ ...asteraMode(s), name: `Profile ${s.code} — D${s.tokens![0] === "D16" ? "16" : ""} CCT GM C XY${s.strobe ? " S" : ""}`, source: "https://astera-led.com/wp-content/uploads/FP5_NYX_Bulb_DMX_Profiles_V3.pdf" }))]),
   // HydraPanel: official FP6 chart; old generic modes kept (hidden) so saved indices stay valid
@@ -260,8 +260,7 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Generic", ["Pixel strip 16 px"], pxModes(16)),
   ...fam("Generic", ["Pixel strip 32 px"], pxModes(32)),
   // Arclight.lt + Cinevera (cine.lt) rental stock not listed above
-  // Fiilex G3/G6 rental rows were generic guesses; the chart-checked library entries replace them (kept hidden for saved patches).
-  ...RENTAL_FIXTURES.flatMap((r) => fam(r.brand, r.models, (r.brand === "Fiilex" ? asLegacy : (x: FixtureMode[]) => x)(({ DIM, DIM_STROBE, BI, APUTURE_COLOR, APUTURE_BI, APUTURE_MC, NANLITE_PAVO, NANLITE_BI, GODOX_RGB, KINO, LITEPANELS, DMG, CHAUVET, QUASAR, CREAM_MICRO, ARRI_SKYPANEL } as Record<string, FixtureMode[]>)[r.modes]!))),
+  ...RENTAL_FIXTURES.flatMap((r) => fam(r.brand, r.models, (({ DIM, DIM_STROBE, BI, APUTURE_COLOR, APUTURE_BI, APUTURE_MC, NANLITE_PAVO, NANLITE_BI, GODOX_RGB, KINO, LITEPANELS, DMG, CHAUVET, QUASAR, CREAM_MICRO, ARRI_SKYPANEL } as Record<string, FixtureMode[]>)[r.modes]!))),
 ].filter((d, i, all) => all.findIndex((x) => x.id === d.id) === i);
 
 /** User-imported (GDTF) / hand-built fixtures, appended after the built-in library so existing indices never shift. */
@@ -281,6 +280,7 @@ const customDefs = (): FixtureDef[] => {
     if (v.cctRange) d.cctRange = v.cctRange;
   }
 }
+for (const d of FIXTURE_LIBRARY) if (RENTAL_SUPERSEDED[d.id]) d.modes = asLegacy(d.modes);
 FIXTURE_LIBRARY.push(...customDefs());
 
 /** Which local rental house stocks a fixture (search by "arclight" / "cinevera"). */
@@ -288,6 +288,7 @@ export const RENTAL_STOCK: Record<string, string[]> = (() => {
   const out: Record<string, string[]> = {};
   for (const r of RENTAL_FIXTURES) for (const model of r.models) (out[slug(`${r.brand} ${model}`)] ??= []).push(...r.stock);
   for (const [id, houses] of Object.entries(RENTAL_ALIASES)) (out[id] ??= []).push(...houses);
+  for (const [old, id] of Object.entries(RENTAL_SUPERSEDED)) if (out[old]) (out[id] ??= []).push(...out[old]!);
   return out;
 })();
 
