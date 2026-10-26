@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap } from "lucide-react";
-import { favoritesFirst, useFavorites } from "@/lib/favorites";
+import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
 import { FixtureIconPicker } from "./FixtureIconPicker";
@@ -124,7 +124,8 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   // library stays in dmx.ts solely so already-patched fixtures keep working.
   const [gdtfLib, setGdtfLib] = useState<LibraryDef[] | null>(null);
   useEffect(() => { if (!gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [gdtfLib]);
-  const gdtfHits = useMemo(() => (gdtfLib && q ? favoritesFirst(searchGdtfLibrary(gdtfLib, q, gdtfLib.length), (d) => fav.has(d.id) || favBrands.has(d.brand)).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list]);
+  const byBrandModel = (a: { brand: string; model: string }, b: { brand: string; model: string }) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model);
+  const gdtfHits = useMemo(() => (gdtfLib && q ? searchGdtfLibrary(gdtfLib, q, gdtfLib.length).sort(byBrandModel).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list]);
   const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setModeIdx(null); setQuery(""); setCaps(baseCaps); } finally { setGdtfBusy(false); } };
@@ -222,21 +223,21 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       ) : !brand ? (
         <List>
           {favPairs.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixture + mode</p>}
-          {favPairs.filter(({ d, i }) => !pixelOnly || pxCount(d, i) > 0).map(({ d, i, k }) => (
+          {favPairs.filter(({ d, i }) => !pixelOnly || pxCount(d, i) > 0).sort((a, b) => byBrandModel(a.d, b.d)).map(({ d, i, k }) => (
             <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => void chooseDef(d, i)} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
           ))}
           {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixtures</p>}
-          {availableDefs.filter((d) => fav.has(d.id) && isPx(d) && passF(d)).map((d) => (
+          {availableDefs.filter((d) => fav.has(d.id) && isPx(d) && passF(d)).sort(byBrandModel).map((d) => (
             <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes${chartTag(d)}`} />
           ))}
           <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers{gdtfLib ? ` · ${gdtfLib.length} fixtures` : " · loading…"}</p>
-          {favoritesFirst(gdtfBrands, (b) => favBrands.has(b)).map((b) => ({ b, n: (gdtfLib ?? []).filter((d) => d.brand === b && passF(d)).length })).filter(({ n }) => n > 0).map(({ b, n }) => (
+          {gdtfBrands.map((b) => ({ b, n: (gdtfLib ?? []).filter((d) => d.brand === b && passF(d)).length })).filter(({ n }) => n > 0).map(({ b, n }) => (
             <Row key={b} starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => setBrand(b)} title={b} sub={`${n} models`} />
           ))}
         </List>
       ) : !def ? (
         <List>
-          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand && passF(d)), (d) => fav.has(d.id)).map((d) => (
+          {(gdtfLib ?? []).filter((d) => d.brand === brand && passF(d)).sort((a, b) => a.model.localeCompare(b.model)).map((d) => (
             <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
           ))}
         </List>
