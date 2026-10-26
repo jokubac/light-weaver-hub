@@ -230,7 +230,9 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Astera", ["AX1 PixelTube"], [...asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5)), ...asteraModes([1, 4, 8]), ...asteraModes([16])]),
   ...fam("Astera", ["Hyperion Tube"], [...asteraPx(32), ...asteraModes([1, 4, 8, 16], [], 2)]),
   ...fam("Astera", ["PixelBrick"], [...asteraPx(4), ...asteraModes([1, 4])]),
-  ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb", "Leoht", "HydraPanel"], [...asLegacy(ASTERA), ...asteraModes([1]), ...ASTERA_HEAD_XY.map((s) => ({ ...asteraMode(s), name: `Profile ${s.code} — D${s.tokens![0] === "D16" ? "16" : ""} CCT GM C XY${s.strobe ? " S" : ""}`, source: "https://astera-led.com/wp-content/uploads/FP5_NYX_Bulb_DMX_Profiles_V3.pdf" }))]),
+  ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb"], [...asLegacy(ASTERA), ...asteraModes([1]), ...ASTERA_HEAD_XY.map((s) => ({ ...asteraMode(s), name: `Profile ${s.code} — D${s.tokens![0] === "D16" ? "16" : ""} CCT GM C XY${s.strobe ? " S" : ""}`, source: "https://astera-led.com/wp-content/uploads/FP5_NYX_Bulb_DMX_Profiles_V3.pdf" }))]),
+  // Leoht/HydraPanel are not in the single-head chart V3: keep their old list unverified
+  ...fam("Astera", ["Leoht", "HydraPanel"], [...ASTERA, ...asteraModes([1])]),
   ...fam("Quasar Science", ["Rainbow 2 (2ft)"], pxModes(12, QUASAR)),
   ...fam("Quasar Science", ["Rainbow 2 (4ft)", "Double Rainbow (4ft)"], pxModes(24, QUASAR)),
   ...fam("Quasar Science", ["Rainbow 2 (8ft)", "Double Rainbow (8ft)"], pxModes(48, QUASAR)),
