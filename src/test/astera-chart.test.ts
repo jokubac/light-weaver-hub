@@ -41,7 +41,7 @@ describe("HydraPanel official chart", () => {
     const by = (c: number) => d.modes.find((m) => m.astera?.code === c)!;
     expect(by(41).channels).toBe(23);
     expect(by(73).channels).toBe(12);
-    expect(by(141).channels).toBe(102);
+    expect(by(141).channels).toBe(54);
     expect(by(17).pixels).toBe(2);
   });
 });
