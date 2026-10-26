@@ -129,6 +129,26 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setModeIdx(null); setQuery(""); setCaps(baseCaps); } finally { setGdtfBusy(false); } };
   const availableDefs = [...(gdtfLib ?? []), ...FIXTURE_LIBRARY.filter((d) => d.modes.some((m) => !m.legacy) && !(gdtfLib ?? []).some((g) => g.id === d.id))];
+  // Library filters: verification state, pixel/non-pixel and exact pixel count.
+  const [verF, setVerF] = useState<"all" | "ok" | "no">("all");
+  const [pxF, setPxF] = useState<"all" | "px" | "none">(pixelOnly ? "px" : "all");
+  const [pxN, setPxN] = useState<number | null>(null);
+  const pxMap = useMemo(() => {
+    const m = new Map<string, number[]>();
+    for (const d of gdtfLib ?? []) { try { m.set(d.id, [...new Set(d.modes.map((_, i) => pxCount(d, i)).filter((n) => n > 0))].sort((a, b) => a - b)); } catch { m.set(d.id, []); } }
+    return m;
+  }, [gdtfLib]);
+  const pxOptions = useMemo(() => [...new Set([...pxMap.values()].flat())].sort((a, b) => a - b), [pxMap]);
+  const passF = (d: FixtureDef) => {
+    if (verF !== "all" && isVerifiedDef(d) !== (verF === "ok")) return false;
+    const px = pxMap.get(d.id) ?? [];
+    if (pxF === "px" && !px.length) return false;
+    if (pxF === "none" && px.length) return false;
+    if (pxN !== null && !px.includes(pxN)) return false;
+    return true;
+  };
+  const filtersOn = verF !== "all" || pxF !== (pixelOnly ? "px" : "all") || pxN !== null;
+  const chip = (on: boolean) => `rounded-md px-2 py-1 text-[11px] font-semibold ${on ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`;
   const chooseDef = async (d: FixtureDef, index: number | null = null) => {
     const bundled = gdtfLib?.find((g) => g.id === d.id);
     const installed = bundled ? await installGdtfFixture(bundled) : d;
@@ -175,6 +195,18 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
           </div>
+          <div className="flex flex-wrap items-center gap-1" aria-label="Fixture filters">
+            {([["all", "All"], ["ok", "✓ Verified"], ["no", "⚠ Unverified"]] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setVerF(k)} className={chip(verF === k)}>{l}</button>)}
+            <span className="mx-1 h-4 w-px bg-border" />
+            {([["all", "Any"], ["px", "Pixel"], ["none", "No pixels"]] as const).filter(([k]) => !pixelOnly || k === "px").map(([k, l]) => <button key={k} type="button" onClick={() => { setPxF(k); if (k === "none") setPxN(null); }} className={chip(pxF === k)}>{l}</button>)}
+            {pxF !== "none" && (
+              <select value={pxN ?? ""} onChange={(e) => { const v = e.target.value ? +e.target.value : null; setPxN(v); if (v !== null) setPxF("px"); }} aria-label="Pixel count" className="rounded-md border border-input bg-surface-elevated px-2 py-1 text-[11px]">
+                <option value="">Pixels: any</option>
+                {pxOptions.map((n) => <option key={n} value={n}>{n} px</option>)}
+              </select>
+            )}
+            {filtersOn && <button type="button" onClick={() => { setVerF("all"); setPxF(pixelOnly ? "px" : "all"); setPxN(null); }} className="px-1 text-[11px] text-primary underline">Clear</button>}
+          </div>
         </div>
       )}
 
@@ -182,7 +214,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       {!def && q ? (
         <List>
           {gdtfHits.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Manufacturer GDTF{gdtfBusy ? " · loading…" : ""}</p>}
-          {gdtfHits.filter(isPx).map((d) => (
+          {gdtfHits.filter((d) => isPx(d) && passF(d)).map((d) => (
             <Row key={`g-${d.id}`} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
           ))}
           {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? "No fixtures found" : "Loading fixture library…"}</p>}
@@ -194,17 +226,17 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => void chooseDef(d, i)} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
           ))}
           {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixtures</p>}
-          {availableDefs.filter((d) => fav.has(d.id) && isPx(d)).map((d) => (
+          {availableDefs.filter((d) => fav.has(d.id) && isPx(d) && passF(d)).map((d) => (
             <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes${chartTag(d)}`} />
           ))}
           <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers{gdtfLib ? ` · ${gdtfLib.length} fixtures` : " · loading…"}</p>
-          {favoritesFirst(gdtfBrands, (b) => favBrands.has(b)).map((b) => (
-            <Row key={b} starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => setBrand(b)} title={b} sub={`${(gdtfLib ?? []).filter((d) => d.brand === b).length} models`} />
+          {favoritesFirst(gdtfBrands, (b) => favBrands.has(b)).map((b) => ({ b, n: (gdtfLib ?? []).filter((d) => d.brand === b && passF(d)).length })).filter(({ n }) => n > 0).map(({ b, n }) => (
+            <Row key={b} starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => setBrand(b)} title={b} sub={`${n} models`} />
           ))}
         </List>
       ) : !def ? (
         <List>
-          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand), (d) => fav.has(d.id)).map((d) => (
+          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand && passF(d)), (d) => fav.has(d.id)).map((d) => (
             <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
           ))}
         </List>
