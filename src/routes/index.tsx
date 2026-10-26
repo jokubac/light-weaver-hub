@@ -1563,15 +1563,11 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         </div>
       )}
       {patchOpen && (
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          <div className="fixture-area hidden min-h-0 flex-1 overflow-auto p-4 lg:block lg:border-r lg:border-border">{fixtureBoard()}</div>
-          <div className="flex min-h-0 w-full flex-col lg:w-[540px] lg:shrink-0">
-            <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} conn={conn} setConn={setConn} onUpdate={updateOne} onReorder={setFixtures}
-              onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
-              onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
-          </div>
-        </div>
+        <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} conn={conn} setConn={setConn} onUpdate={updateOne} onReorder={setFixtures}
+          onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
+          onRemove={(uids) => { setFixtures((x) => x.filter((f) => !uids.includes(f.uid))); setSelected((s) => s.filter((id) => !uids.includes(id))); }} />
       )}
+
       <RecEditor open={recEditor} onOpenChange={setRecEditor} recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel}
         playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} />
       <RecDialog open={recOpen} onOpenChange={setRecOpen} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
