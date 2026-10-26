@@ -13,3 +13,13 @@ describe("amaran F21c/F22c official chart", () => {
     });
   }
 });
+
+// amaran F21X & F22X Pro DMX Profile Specification V1.0
+describe("amaran F21x/F22x official chart", () => {
+  for (const model of ["F21X", "F22X"]) {
+    it(`${model} footprints match the chart`, () => {
+      const d = VERIFIED_FIXTURES.find((f) => f.model === model)!;
+      expect(d.modes.map((m) => m.channels)).toEqual([2, 5]);
+    });
+  }
+});
