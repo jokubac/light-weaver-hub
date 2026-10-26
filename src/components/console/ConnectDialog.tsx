@@ -5,7 +5,7 @@ import { Wifi, Cable, Radar, Loader2, Check, Plus, Download, Smartphone, Router,
 import type { BridgeStatus } from "@/lib/output";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Connection } from "@/lib/store";
-import { getTransmitter, detectTransmitter } from "@/lib/transmitters";
+import { detectTransmitter } from "@/lib/transmitters";
 import { isNativeApp } from "@/lib/native-udp";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "./NumberField";
@@ -53,7 +53,6 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
     setConn({ ...conn, node: { name: n.name, ip: n.ip }, transmitter: hit?.id ?? conn.transmitter });
   };
 
-  const tx = getTransmitter(conn.transmitter ?? undefined);
   const opt = (active: boolean) => `flex flex-1 items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`;
 
   return (
