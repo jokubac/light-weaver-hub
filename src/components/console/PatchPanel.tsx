@@ -128,7 +128,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setModeIdx(null); setQuery(""); setCaps(baseCaps); } finally { setGdtfBusy(false); } };
-  const availableDefs = [...(gdtfLib ?? []), ...FIXTURE_LIBRARY.filter((d) => !(gdtfLib ?? []).some((g) => g.id === d.id))];
+  const availableDefs = [...(gdtfLib ?? []), ...FIXTURE_LIBRARY.filter((d) => d.modes.some((m) => !m.legacy) && !(gdtfLib ?? []).some((g) => g.id === d.id))];
   const chooseDef = async (d: FixtureDef, index: number | null = null) => {
     const bundled = gdtfLib?.find((g) => g.id === d.id);
     const installed = bundled ? await installGdtfFixture(bundled) : d;

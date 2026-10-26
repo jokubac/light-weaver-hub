@@ -260,7 +260,8 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Generic", ["Pixel strip 16 px"], pxModes(16)),
   ...fam("Generic", ["Pixel strip 32 px"], pxModes(32)),
   // Arclight.lt + Cinevera (cine.lt) rental stock not listed above
-  ...RENTAL_FIXTURES.flatMap((r) => fam(r.brand, r.models, ({ DIM, DIM_STROBE, BI, APUTURE_COLOR, APUTURE_BI, APUTURE_MC, NANLITE_PAVO, NANLITE_BI, GODOX_RGB, KINO, LITEPANELS, DMG, CHAUVET, QUASAR, CREAM_MICRO, ARRI_SKYPANEL } as Record<string, FixtureMode[]>)[r.modes]!)),
+  // Fiilex G3/G6 rental rows were generic guesses; the chart-checked library entries replace them (kept hidden for saved patches).
+  ...RENTAL_FIXTURES.flatMap((r) => fam(r.brand, r.models, (r.brand === "Fiilex" ? asLegacy : (x: FixtureMode[]) => x)(({ DIM, DIM_STROBE, BI, APUTURE_COLOR, APUTURE_BI, APUTURE_MC, NANLITE_PAVO, NANLITE_BI, GODOX_RGB, KINO, LITEPANELS, DMG, CHAUVET, QUASAR, CREAM_MICRO, ARRI_SKYPANEL } as Record<string, FixtureMode[]>)[r.modes]!))),
 ].filter((d, i, all) => all.findIndex((x) => x.id === d.id) === i);
 
 /** User-imported (GDTF) / hand-built fixtures, appended after the built-in library so existing indices never shift. */
