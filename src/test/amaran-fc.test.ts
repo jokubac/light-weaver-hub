@@ -39,3 +39,10 @@ describe("Nanlite Forza II official charts", () => {
   it("Forza 60B II", () => expect(counts("Forza 60B II")).toEqual([6, 2, 11]));
   it("Forza 300 II", () => expect(counts("Forza 300 II")).toEqual([6, 2, 11]));
 });
+
+describe("lights without DMX input are hidden from PATCH", async () => {
+  const { getDef } = await import("@/lib/dmx");
+  for (const id of ["aputure-mc", "aputure-accent-b7c", "aputure-ls-60x", "aputure-amaran-100x"]) {
+    it(id, () => expect(getDef(id).id === id && getDef(id).modes.every((m) => m.legacy)).toBe(true));
+  }
+});

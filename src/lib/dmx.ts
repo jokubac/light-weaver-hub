@@ -2,7 +2,7 @@
 import { VERIFIED_FIXTURES, vortexProfileModes } from "./verified-fixtures";
 import { asteraModes, asteraMode, asteraSpec, asteraSpecFromName, ASTERA_HEAD_XY, hydraPixelModes } from "./astera";
 import { pixelLayout, pixelShape, knownLayout } from "./pixel-layout";
-import { RENTAL_ALIASES, RENTAL_FIXTURES, RENTAL_SUPERSEDED } from "./rental-fixtures";
+import { NO_DMX, RENTAL_ALIASES, RENTAL_FIXTURES, RENTAL_SUPERSEDED } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";
 
@@ -280,7 +280,7 @@ const customDefs = (): FixtureDef[] => {
     if (v.cctRange) d.cctRange = v.cctRange;
   }
 }
-for (const d of FIXTURE_LIBRARY) if (RENTAL_SUPERSEDED[d.id]) d.modes = asLegacy(d.modes);
+for (const d of FIXTURE_LIBRARY) if (RENTAL_SUPERSEDED[d.id] || NO_DMX.includes(d.id)) d.modes = asLegacy(d.modes);
 FIXTURE_LIBRARY.push(...customDefs());
 
 /** Which local rental house stocks a fixture (search by "arclight" / "cinevera"). */
