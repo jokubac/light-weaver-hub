@@ -614,7 +614,21 @@ const variants = (cores: [number, string, boolean, ChannelMapEntry[]][]): Fixtur
   }),
 );
 
+// amaran F21C & F22C DMX Profile Specification V1.0 (controller FW 1.1, June 2022): one chart for both mats.
+// GEL Source/Series/Category and FX selection channels have no console attribute, so they stay Spare.
+const AMARAN_FC_MODES: FixtureMode[] = [
+  mode("Mode 1  CCT+RGB 8-bit", ["Dimmer", "CCT", ["GM", 0.5], "Crossfade", "Red", "Green", "Blue", "Spare", "Spare", "Strobe" as ChannelAttr], false),
+  mode("Mode 2 CCT 8-bit", ["Dimmer", "CCT", ["GM", 0.5], "Spare", "Spare", "Strobe" as ChannelAttr], false),
+  mode("Mode 3 CCT+HSI 8bit", ["Dimmer", "CCT", ["GM", 0.5], "Crossfade", "Hue", "Saturation", "Spare", "Spare", "Strobe" as ChannelAttr], false),
+  mode("Mode 4 RGB 8bit", ["Dimmer", "Red", "Green", "Blue", "Spare", "Spare", "Strobe" as ChannelAttr], false),
+  mode("Mode 5 HSI 8bit", ["Dimmer", "Hue", "Saturation", "Spare", "Spare", "Strobe" as ChannelAttr], false),
+  mode("Mode 6 GEL 8bit", ["Dimmer", "CCT", "Spare", "Spare", "Spare", "Spare", "Spare", "Strobe" as ChannelAttr], false),
+  mode("Mode 7 FX 8bit", ["Dimmer", "Spare", "Spare", "Spare", "Spare", "Spare", "Spare", "Spare", "Spare"], false),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-aputure-f22c", brand: "Aputure", model: "F22C", watts: 200, cctRange: [2500, 7500], lightType: "LED colour", modes: AMARAN_FC_MODES },
+  { id: "gdtf-aputure-f21c", brand: "Aputure", model: "F21C", watts: 100, cctRange: [2500, 7500], lightType: "LED colour", modes: AMARAN_FC_MODES },
   ...GODOX_FIXTURES,
   ...GEMINI_FIXTURES,
   ...DMG_FIXTURES,

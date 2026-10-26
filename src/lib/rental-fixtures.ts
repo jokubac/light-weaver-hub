@@ -10,7 +10,7 @@ const A: Stock[] = ["Arclight"], C: Stock[] = ["Cinevera"], AC: Stock[] = ["Arcl
 export const RENTAL_FIXTURES: RentalEntry[] = [
   // LED — Arclight
   { brand: "ANSSO", models: ["LedPad Pro Gaffer 5600K"], modes: "DIM", stock: A },
-  { brand: "Aputure", models: ["Amaran F21c"], modes: "APUTURE_COLOR", stock: A },
+  { brand: "Aputure", models: ["Amaran F21c"], modes: "APUTURE_COLOR", stock: A }, // superseded by the chart-built F21C
   { brand: "Aputure", models: ["LS 60x", "Amaran 100x", "Amaran F21x"], modes: "APUTURE_BI", stock: AC },
   { brand: "Aladdin", models: ["A-Lite Bi-colour", "Bi-Flex M7", "Bi-Flex 1", "EYE-Lite", "Fabric-Lite 350"], modes: "BI", stock: AC },
   { brand: "Arcball", models: ["Arcball 50W 19\" Bi-colour", "Arcball 100W 30\" Bi-colour"], modes: "BI", stock: A },
@@ -74,6 +74,6 @@ export const RENTAL_ALIASES: Record<string, Stock[]> = {
  *  and its rental-house tag moves to the official entry. */
 export const RENTAL_SUPERSEDED: Record<string, string> = {
   "fiilex-g3-color": "gdtf-fiilex-g3-color", "fiilex-g6-color": "gdtf-fiilex-g6-color",
-  "nanlux-evoke-5000b": "gdtf-nanlux-evoke-5000b", "nanlite-forza-60c": "gdtf-nanlite-forza-60c", "aputure-amaran-f22c": "gdtf-aputure-f22c",
+  "nanlux-evoke-5000b": "gdtf-nanlux-evoke-5000b", "nanlite-forza-60c": "gdtf-nanlite-forza-60c", "aputure-amaran-f22c": "gdtf-aputure-f22c", "aputure-amaran-f21c": "gdtf-aputure-f21c",
   "nanlux-dyno-1200c": "gdtf-nanlux-dyno-1200c",
 };
