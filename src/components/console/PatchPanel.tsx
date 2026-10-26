@@ -129,6 +129,26 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setModeIdx(null); setQuery(""); setCaps(baseCaps); } finally { setGdtfBusy(false); } };
   const availableDefs = [...(gdtfLib ?? []), ...FIXTURE_LIBRARY.filter((d) => d.modes.some((m) => !m.legacy) && !(gdtfLib ?? []).some((g) => g.id === d.id))];
+  // Library filters: verification state, pixel/non-pixel and exact pixel count.
+  const [verF, setVerF] = useState<"all" | "ok" | "no">("all");
+  const [pxF, setPxF] = useState<"all" | "px" | "none">(pixelOnly ? "px" : "all");
+  const [pxN, setPxN] = useState<number | null>(null);
+  const pxMap = useMemo(() => {
+    const m = new Map<string, number[]>();
+    for (const d of gdtfLib ?? []) { try { m.set(d.id, [...new Set(d.modes.map((_, i) => pxCount(d, i)).filter((n) => n > 0))].sort((a, b) => a - b)); } catch { m.set(d.id, []); } }
+    return m;
+  }, [gdtfLib]);
+  const pxOptions = useMemo(() => [...new Set([...pxMap.values()].flat())].sort((a, b) => a - b), [pxMap]);
+  const passF = (d: FixtureDef) => {
+    if (verF !== "all" && isVerifiedDef(d) !== (verF === "ok")) return false;
+    const px = pxMap.get(d.id) ?? [];
+    if (pxF === "px" && !px.length) return false;
+    if (pxF === "none" && px.length) return false;
+    if (pxN !== null && !px.includes(pxN)) return false;
+    return true;
+  };
+  const filtersOn = verF !== "all" || pxF !== (pixelOnly ? "px" : "all") || pxN !== null;
+  const chip = (on: boolean) => `rounded-md px-2 py-1 text-[11px] font-semibold ${on ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`;
   const chooseDef = async (d: FixtureDef, index: number | null = null) => {
     const bundled = gdtfLib?.find((g) => g.id === d.id);
     const installed = bundled ? await installGdtfFixture(bundled) : d;
@@ -174,6 +194,18 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
+          </div>
+          <div className="flex flex-wrap items-center gap-1" aria-label="Fixture filters">
+            {([["all", "All"], ["ok", "✓ Verified"], ["no", "⚠ Unverified"]] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setVerF(k)} className={chip(verF === k)}>{l}</button>)}
+            <span className="mx-1 h-4 w-px bg-border" />
+            {([["all", "Any"], ["px", "Pixel"], ["none", "No pixels"]] as const).filter(([k]) => !pixelOnly || k === "px").map(([k, l]) => <button key={k} type="button" onClick={() => { setPxF(k); if (k === "none") setPxN(null); }} className={chip(pxF === k)}>{l}</button>)}
+            {pxF !== "none" && (
+              <select value={pxN ?? ""} onChange={(e) => { const v = e.target.value ? +e.target.value : null; setPxN(v); if (v !== null) setPxF("px"); }} aria-label="Pixel count" className="rounded-md border border-input bg-surface-elevated px-2 py-1 text-[11px]">
+                <option value="">Pixels: any</option>
+                {pxOptions.map((n) => <option key={n} value={n}>{n} px</option>)}
+              </select>
+            )}
+            {filtersOn && <button type="button" onClick={() => { setVerF("all"); setPxF(pixelOnly ? "px" : "all"); setPxN(null); }} className="px-1 text-[11px] text-primary underline">Clear</button>}
           </div>
         </div>
       )}
