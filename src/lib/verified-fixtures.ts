@@ -324,6 +324,24 @@ const PAVOSLIM_MODES: FixtureMode[] = [
   ...pavoSlim("RGB", ["Red", "Green", "Blue"], [], 2, 4),
 ];
 
+// Nanlite Forza 60 II / 60B II / 300 II DMX Reference Guides (nanlite.jp downloads). "Reduced" drops fan/strobe/reserved
+// (1-channel reduced modes are omitted); ULTIMATE DMX is one 10/11-channel footprint whose ch 2 picks Daylight/CCT vs Effect.
+const NL_GM: Slot = ["GM", 0.52];
+const FORZA60II_MODES: FixtureMode[] = [
+  nl("DAYLIGHT 8bit", [[["Dimmer", SP, STROBE], false]]),
+  nl("ULTIMATE DMX 8bit", [[["Dimmer", ["Spare", 0], ...NA(7), SP], false]]),
+];
+const FORZA60BII_MODES: FixtureMode[] = [
+  nl("CCT 8bit", [[["Dimmer", "CCT", SP, STROBE, SP, SP], false]]),
+  nl("CCT 8bit (Reduced)", [[["Dimmer", "CCT"], false]]),
+  nl("ULTIMATE DMX 8bit", [[["Dimmer", ["Spare", 0], "CCT", ...NA(7), SP], false]]),
+];
+const FORZA300II_MODES: FixtureMode[] = [
+  nl("DAYLIGHT 8bit", [[["Dimmer", NL_GM, SP, STROBE, SP, SP], false]]),
+  nl("DAYLIGHT 8bit (Reduced)", [[["Dimmer", NL_GM], false]]),
+  nl("ULTIMATE DMX 8bit", [[["Dimmer", ["Spare", 0], NL_GM, ...NA(7), SP], false]]),
+];
+
 const EVOKE1200_MODES: FixtureMode[] = [
   nl("Daylight 8bit", [[["Dimmer", FAN], false]]),
   nl("Daylight 16bit", [[["Dimmer"], true], [[FAN], false]]),
@@ -655,6 +673,9 @@ const AMARAN_FX_MODES: FixtureMode[] = [
 ];
 
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-nanlite-forza-60-ii", brand: "Nanlite", model: "Forza 60 II", watts: 72, lightType: "LED daylight", modes: FORZA60II_MODES },
+  { id: "gdtf-nanlite-forza-60b-ii", brand: "Nanlite", model: "Forza 60B II", watts: 72, cctRange: [2700, 6500], lightType: "LED bi-colour", modes: FORZA60BII_MODES },
+  { id: "gdtf-nanlite-forza-300-ii", brand: "Nanlite", model: "Forza 300 II", watts: 330, lightType: "LED daylight", modes: FORZA300II_MODES },
   ...["PavoSlim 60C", "PavoSlim 60CL", "PavoSlim 120C", "PavoSlim 240C", "PavoSlim 240CL"].map((model): FixtureDef => ({ id: `gdtf-nanlite-${model.toLowerCase().replace(/\s+/g, "-")}`, brand: "Nanlite", model, cctRange: [2700, 7500], lightType: "LED colour", modes: PAVOSLIM_MODES })),
   { id: "gdtf-aputure-f21x", brand: "Aputure", model: "F21X", watts: 100, cctRange: [2500, 7500], lightType: "LED bi-colour", modes: AMARAN_FX_MODES },
   { id: "gdtf-aputure-f22x", brand: "Aputure", model: "F22X", watts: 200, cctRange: [2500, 7500], lightType: "LED bi-colour", modes: AMARAN_FX_MODES },

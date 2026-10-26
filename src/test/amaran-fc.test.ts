@@ -31,3 +31,11 @@ describe("Nanlite PavoSlim official chart", () => {
     expect(d.modes.map((m) => m.channels)).toEqual([11, 20, 8, 15, 9, 16, 6, 11, 6, 11, 3, 6, 6, 11, 3, 6, 8, 15, 5, 10, 6, 11, 3, 6]);
   });
 });
+
+// Nanlite Forza II DMX Reference Guides
+describe("Nanlite Forza II official charts", () => {
+  const counts = (model: string) => VERIFIED_FIXTURES.find((f) => f.model === model)!.modes.map((m) => m.channels);
+  it("Forza 60 II", () => expect(counts("Forza 60 II")).toEqual([3, 10]));
+  it("Forza 60B II", () => expect(counts("Forza 60B II")).toEqual([6, 2, 11]));
+  it("Forza 300 II", () => expect(counts("Forza 300 II")).toEqual([6, 2, 11]));
+});
