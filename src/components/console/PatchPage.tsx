@@ -211,7 +211,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             <datalist id="patch-groups">{groupNames.map((g) => <option key={g} value={g} />)}</datalist>
           )}
         </main>
-        {panelOpen && <aside className="max-h-[60vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-3 print:hidden md:max-h-none md:w-[60vw] md:max-w-[calc(100vw-380px)] md:border-l md:border-t-0">
+        {panelOpen && <aside className="max-h-[60vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-3 print:hidden md:max-h-none md:w-[55vw] md:max-w-[680px] md:border-l md:border-t-0">
           {conn && setConn && <div className="mb-3"><TransmitterRoutes conn={conn} setConn={setConn} universes={[...new Set(fixtures.map((f) => f.universe))].sort((a, b) => a - b)} /></div>}
           <PatchPanel fixtures={fixtures} onAdd={onAdd} onRemove={onRemove} onUpdate={onUpdate} defaultMap showPatched={false} />
         </aside>}
