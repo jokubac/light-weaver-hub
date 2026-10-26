@@ -386,7 +386,7 @@ function SceneSwitcher({ projects, project, scene, onPick }: { projects: Project
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left hover:bg-surface-elevated" aria-label="Switch project or scene">
+        <button className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left shadow-none transition-opacity hover:bg-transparent hover:opacity-75" aria-label="Switch project or scene">
           <div className="min-w-0">
             <div className="truncate font-display text-lg font-semibold">{scene.name}</div>
             <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
