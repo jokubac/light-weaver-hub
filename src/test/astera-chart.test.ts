@@ -9,3 +9,11 @@ describe("Astera profile 25", () => {
     expect(t[3]!.token).toBe("S");
   });
 });
+
+import { asteraModes } from "@/lib/astera";
+// Astera Helios/Hyperion charts: profile 98 is 2 px on Helios and 8 px on Hyperion (Titan: 4 px).
+describe("Astera tube pixel tiers", () => {
+  const px = (scale: number) => asteraModes([4], [], scale).find((m) => m.astera?.code === 98)!.astera!.px;
+  it("Helios profile 98 is 2 px", () => expect(px(0.5)).toBe(2));
+  it("Hyperion profile 98 is 8 px", () => expect(px(2)).toBe(8));
+});

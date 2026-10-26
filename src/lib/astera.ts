@@ -59,8 +59,11 @@ export function asteraMode(s: AsteraSpec): FixtureMode {
 }
 
 /** All profiles available for a fixture with the given pixel counts, ordered by profile number. */
-export const asteraModes = (pxCounts: number[], skip: number[] = []) =>
-  ASTERA_SPECS.filter((s) => pxCounts.includes(s.px) && !skip.includes(s.code)).sort((a, b) => a.code - b.code).map(asteraMode);
+/** `scale` maps Titan pixel tiers to other tubes: Astera charts use the same profile numbers with
+ *  Helios/AX2-50 = Titan ÷ 2 (2/8/4 px) and Hyperion = Titan × 2 (8/32/16 px). `pxCounts` are Titan tiers. */
+export const asteraModes = (pxCounts: number[], skip: number[] = [], scale = 1) =>
+  ASTERA_SPECS.filter((s) => pxCounts.includes(s.px) && !skip.includes(s.code)).sort((a, b) => a.code - b.code)
+    .map((s) => asteraMode(scale === 1 || s.px === 1 ? s : { ...s, px: s.px * scale }));
 
 const WORD: Record<string, string[]> = {
   D: ["D"], DIM: ["D"], D16: ["D16", "D16b"], CCT: ["CCT"], GM: ["GM"], C: ["CRO"], CRO: ["CRO"],
