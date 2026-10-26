@@ -68,5 +68,11 @@ export const RENTAL_ALIASES: Record<string, Stock[]> = {
   "litegear-litemat-spectrum-4": A, "nanlite-pavotube-ii-6c": A, "nanlite-pavotube-ii-30c": A, "nanlite-pavoslim-60c": AC, "nanlite-pavoslim-120c": AC, "nanlite-pavoslim-240c": C,
   "nanlite-forza-60": A, "nanlite-forza-60b": A, "nanlite-forza-60c": A, "nanlite-forza-300-ii": A,
   "nanlux-evoke-1200": A, "nanlux-evoke-1200b": AC, "nanlux-evoke-2400b": AC, "nanlux-evoke-150c": A, "nanlux-evoke-900c": A, "nanlux-dyno-1200c": A,
-  "gdtf-fiilex-g3-color": A, "gdtf-fiilex-g6-color": A,
+};
+
+/** Guessed rental rows replaced by a chart-checked library entry: the old id stays (hidden) for saved patches,
+ *  and its rental-house tag moves to the official entry. */
+export const RENTAL_SUPERSEDED: Record<string, string> = {
+  "fiilex-g3-color": "gdtf-fiilex-g3-color", "fiilex-g6-color": "gdtf-fiilex-g6-color",
+  "nanlux-evoke-5000b": "gdtf-nanlux-evoke-5000b",
 };

@@ -2,7 +2,7 @@
 import { VERIFIED_FIXTURES, vortexProfileModes } from "./verified-fixtures";
 import { asteraModes, asteraMode, asteraSpec, asteraSpecFromName, ASTERA_HEAD_XY, hydraPixelModes } from "./astera";
 import { pixelLayout, pixelShape, knownLayout } from "./pixel-layout";
-import { RENTAL_ALIASES, RENTAL_FIXTURES } from "./rental-fixtures";
+import { RENTAL_ALIASES, RENTAL_FIXTURES, RENTAL_SUPERSEDED } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";
 
@@ -260,8 +260,7 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Generic", ["Pixel strip 16 px"], pxModes(16)),
   ...fam("Generic", ["Pixel strip 32 px"], pxModes(32)),
   // Arclight.lt + Cinevera (cine.lt) rental stock not listed above
-  // Fiilex G3/G6 rental rows were generic guesses; the chart-checked library entries replace them (kept hidden for saved patches).
-  ...RENTAL_FIXTURES.flatMap((r) => fam(r.brand, r.models, (r.brand === "Fiilex" ? asLegacy : (x: FixtureMode[]) => x)(({ DIM, DIM_STROBE, BI, APUTURE_COLOR, APUTURE_BI, APUTURE_MC, NANLITE_PAVO, NANLITE_BI, GODOX_RGB, KINO, LITEPANELS, DMG, CHAUVET, QUASAR, CREAM_MICRO, ARRI_SKYPANEL } as Record<string, FixtureMode[]>)[r.modes]!))),
+  ...RENTAL_FIXTURES.flatMap((r) => fam(r.brand, r.models, (({ DIM, DIM_STROBE, BI, APUTURE_COLOR, APUTURE_BI, APUTURE_MC, NANLITE_PAVO, NANLITE_BI, GODOX_RGB, KINO, LITEPANELS, DMG, CHAUVET, QUASAR, CREAM_MICRO, ARRI_SKYPANEL } as Record<string, FixtureMode[]>)[r.modes]!))),
 ].filter((d, i, all) => all.findIndex((x) => x.id === d.id) === i);
 
 /** User-imported (GDTF) / hand-built fixtures, appended after the built-in library so existing indices never shift. */
@@ -281,6 +280,7 @@ const customDefs = (): FixtureDef[] => {
     if (v.cctRange) d.cctRange = v.cctRange;
   }
 }
+for (const d of FIXTURE_LIBRARY) if (RENTAL_SUPERSEDED[d.id]) d.modes = asLegacy(d.modes);
 FIXTURE_LIBRARY.push(...customDefs());
 
 /** Which local rental house stocks a fixture (search by "arclight" / "cinevera"). */
@@ -288,6 +288,7 @@ export const RENTAL_STOCK: Record<string, string[]> = (() => {
   const out: Record<string, string[]> = {};
   for (const r of RENTAL_FIXTURES) for (const model of r.models) (out[slug(`${r.brand} ${model}`)] ??= []).push(...r.stock);
   for (const [id, houses] of Object.entries(RENTAL_ALIASES)) (out[id] ??= []).push(...houses);
+  for (const [old, id] of Object.entries(RENTAL_SUPERSEDED)) if (out[old]) (out[id] ??= []).push(...out[old]!);
   return out;
 })();
 
