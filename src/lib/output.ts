@@ -234,7 +234,7 @@ export function asSinglePixel(f: PatchedFixture, px: RGB[] | undefined): Patched
 
 export function buildUniverses(fixtures: PatchedFixture[], t: number, level: number, frame: Map<string, RGB[]>, conn?: Connection) {
   const out = new Map<number, Uint8Array>();
-  const tx = conn?.autoMap && conn.transport !== "bluetooth" ? getTransmitter(conn.transmitter ?? undefined) : undefined;
+  const tx = undefined as ReturnType<typeof getTransmitter>; // transmitter models removed: send universes and colour order exactly as patched
   const order: ColorOrder = tx?.order ?? "RGB";
   for (const f of fixtures) {
     if (tx && f.universe > tx.universes) continue; // transmitter can't carry this universe

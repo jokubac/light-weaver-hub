@@ -121,28 +121,6 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
               <Button variant="ghost" onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">Disconnect</Button>
             </div>
           )}
-          <div hidden={conn.transport === "bluetooth"} className="space-y-2 rounded-lg border border-border p-3 text-xs">
-            {tx ? (
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-success">{tx.brand} {tx.model}</span>
-                <button onClick={() => setShowModel((s) => !s)} className="text-[11px] text-muted-foreground underline">{showModel ? "Hide" : "Change"}</button>
-              </div>
-            ) : (
-              <div className="font-semibold">Transmitter model (optional)</div>
-            )}
-            {(!tx || showModel) && (
-              <select value={conn.transmitter ?? ""} onChange={(e) => setConn({ ...conn, transmitter: e.target.value || null })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm">
-                <option value="">Not set</option>
-                {TRANSMITTERS.map((t) => <option key={t.id} value={t.id}>{t.brand} {t.model} · {t.universes} univ.</option>)}
-              </select>
-            )}
-            {tx && <p className="text-muted-foreground">{tx.universes} universe{tx.universes > 1 ? "s" : ""} · {tx.radio.join(", ")} · {tx.protocols.map((p) => (p === "artnet" ? "Art-Net" : "sACN")).join(" / ")} · starts at Art-Net {tx.artnetStart} / sACN {tx.sacnStart} · colour order {tx.order}</p>}
-            <label className="flex items-center justify-between rounded-md bg-surface-elevated px-3 py-2 font-semibold">
-              Auto-set universes & channel order
-              <Checkbox checked={conn.autoMap} onCheckedChange={(c) => setConn({ ...conn, autoMap: c === true })} />
-            </label>
-            <p className="text-muted-foreground">{conn.autoMap ? "Universe 1 in the app goes to the transmitter's first input, colours are sent in its order, extra universes it can't carry are skipped." : "Off: universes and RGB order are sent exactly as patched."}</p>
-          </div>
 
         </div>
       </DialogContent>
