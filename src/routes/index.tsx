@@ -1471,8 +1471,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         </DropdownMenu>
         <ShowMonitor open={monitorOpen} onOpenChange={setMonitorOpen} fixtures={fixtures} level={outLevel} parked={parked} setParked={onParked} />
       </div>
-      <div aria-label="Console views" hidden={patchOpen} className={`${patchOpen ? "hidden" : "flex"} shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar`}>
-        <ViewTabs fill tabs={([["fixtures", "FIXTURES", fixturesOpen || !(gridOpen || seqOpen || pixOpen)], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => openWin(k as "fixtures" | "grid" | "timeline" | "pixels") }))} />
+      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
+        <ViewTabs fill tabs={([["fixtures", "FIXTURES", fixturesOpen || !(gridOpen || seqOpen || pixOpen || patchOpen)], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen], ["patch", "PATCH", patchOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => (on && k === "patch" ? undefined : openWin(k as "fixtures" | "grid" | "timeline" | "pixels" | "patch")) }))} />
         <button onClick={() => setGroupsOpen((o) => !o)} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}
           className={`inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-md shadow-sm transition active:scale-95 [&_svg]:size-4 ${groupsOpen ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
           {groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}
@@ -1602,10 +1602,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         {groupsOpen && groupsAside()}
       </div>
       )}
-      {/* Patch lives at the bottom edge so it stays under the thumb on a tablet */}
-      <div aria-label="Patch access" className="hw-bar flex shrink-0 items-center gap-2 border-t border-border bg-surface px-3 py-1.5">
-        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className={`text-xs font-bold tracking-wider border ${patchOpen ? "border-primary bg-primary text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] hover:bg-primary/90" : "border-primary/70 text-primary"}`}>PATCH</Button>
-      </div>
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
