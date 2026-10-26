@@ -26,7 +26,9 @@ let busy = false;
 export async function connectMoonLite(): Promise<{ name: string; ip: string }> {
   const { BleClient } = await import("@capacitor-community/bluetooth-le");
   await BleClient.initialize({ androidNeverForLocation: true });
-  const device = await BleClient.requestDevice({ services: [MOONLITE_SERVICE] });
+  // MoonLite's 128-bit service UUID often doesn't fit in the 31-byte advert, so filtering
+  // by service hides it. List nearby devices and only require the service after connecting.
+  const device = await BleClient.requestDevice({ optionalServices: [MOONLITE_SERVICE] });
   if (connected) await BleClient.disconnect(connected).catch(() => {});
   connected = null; previous = undefined;
   await BleClient.connect(device.deviceId, () => { connected = null; previous = undefined; });
