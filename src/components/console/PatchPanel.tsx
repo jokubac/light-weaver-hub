@@ -124,7 +124,8 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   // library stays in dmx.ts solely so already-patched fixtures keep working.
   const [gdtfLib, setGdtfLib] = useState<LibraryDef[] | null>(null);
   useEffect(() => { if (!gdtfLib) loadGdtfLibrary().then(setGdtfLib, () => {}); }, [gdtfLib]);
-  const gdtfHits = useMemo(() => (gdtfLib && q ? favoritesFirst(searchGdtfLibrary(gdtfLib, q, gdtfLib.length), (d) => fav.has(d.id) || favBrands.has(d.brand)).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list]);
+  const byBrandModel = (a: { brand: string; model: string }, b: { brand: string; model: string }) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model);
+  const gdtfHits = useMemo(() => (gdtfLib && q ? searchGdtfLibrary(gdtfLib, q, gdtfLib.length).sort(byBrandModel).slice(0, 60) : []), [gdtfLib, q, fav.list, favBrands.list]);
   const gdtfBrands = useMemo(() => (gdtfLib ? Array.from(new Set(gdtfLib.map((d) => d.brand))).sort((a, b) => a.localeCompare(b)) : []), [gdtfLib]);
   const [gdtfBusy, setGdtfBusy] = useState(false);
   const pickGdtf = async (d: LibraryDef) => { setGdtfBusy(true); try { const nd = await installGdtfFixture(d); setBrand(nd.brand); setDef(nd); setModeIdx(null); setQuery(""); setCaps(baseCaps); } finally { setGdtfBusy(false); } };
