@@ -703,6 +703,9 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; 
   { brand: "Nanlite", model: "Forza 60C", chart: "Nanlite Forza 60C DMX Reference Guide V1" },
   // amaran F21c & F22c DMX Profile Specification V1.0: modes 1–7 = 10/6/9/7/6/8/9 ch.
   { brand: "Aputure", model: "F22C", chart: "amaran F21C & F22C DMX Profile Specification V1.0" },
+  // Nanlux Dyno 650C/1200C DMX Reference Guide B V2 (2023-02-05): modes 1–12 = 12/22/10/18/7/12/6/11/8/15/6/11 ch.
+  // Ultimate DMX footprints could not be read reliably from the chart, so those modes are hidden (kept for saved patches).
+  ...["Dyno 650C", "Dyno 1200C"].map((model) => ({ brand: "Nanlux", model, chart: "Nanlux Dyno 650C/1200C DMX Reference Guide B V2", legacyModes: ["Ultimate DMX"] })),
   { brand: "Fiilex", model: "MotoQ3", chart: "Fiilex MOTOQ3 DMX Mapping (09/2026)" },
   // Moto PXL16 ICTHS (mode 307) is 89 ch in the chart but 93 in the community file: hidden for new patches, kept for saved indices.
   { brand: "Fiilex", model: "MotoK40", chart: "Fiilex K10-MOTOYOKE / MOTOK40 DMX Mapping (09/2026)", legacyModes: ["Mode 307"] },
