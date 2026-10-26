@@ -2,6 +2,7 @@
 import { VERIFIED_FIXTURES, vortexProfileModes } from "./verified-fixtures";
 import { asteraModes, asteraMode, asteraSpec, asteraSpecFromName, ASTERA_HEAD_XY, hydraPixelModes } from "./astera";
 import { pixelLayout, pixelShape, knownLayout } from "./pixel-layout";
+import { KINOFLO_TM5_MODES } from "./kinoflo";
 import { NO_DMX, RENTAL_ALIASES, RENTAL_FIXTURES, RENTAL_SUPERSEDED } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";
@@ -239,7 +240,10 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Quasar Science", ["Rainbow 2 (4ft)", "Double Rainbow (4ft)"], pxModes(24, QUASAR)),
   ...fam("Quasar Science", ["Rainbow 2 (8ft)", "Double Rainbow (8ft)"], pxModes(48, QUASAR)),
   ...fam("Quasar Science", ["Crossfade X", "Q-LED"], QUASAR),
-  ...fam("Kino Flo", ["FreeStyle 21", "FreeStyle 31", "FreeStyle T44", "Celeb 250", "Celeb 450", "Celeb 850", "Select 30", "MIMIK 120", "Diva-Lite LED 30"], KINO),
+  // Kino Flo True Match Firmware 5.0 (RDM) manual: Celeb 250/450/850, Diva-Lite LED, FreeStyle LED and Select share
+  // personalities P1–P29. Old guessed modes stay first (hidden) so saved mode indices keep working.
+  ...fam("Kino Flo", ["FreeStyle 21", "FreeStyle 31", "FreeStyle 41", "FreeStyle T44", "Celeb 250", "Celeb 450", "Celeb 850", "Select 30", "Diva-Lite LED 30"], [...asLegacy(KINO), ...KINOFLO_TM5_MODES]),
+  ...fam("Kino Flo", ["MIMIK 120"], KINO),
   ...fam("Litepanels", ["Gemini 2x1", "Gemini 1x1", "Gemini 2x1 Hard", "Astra 6X Bi", "Studio X", "Apollo Bridge"], LITEPANELS),
   ...fam("DMG Lumière", ["SL1 MIX", "MAXI MIX", "MINI MIX", "DASH"], DMG),
   ...fam("LiteGear", ["LiteMat Spectrum 2", "LiteMat Spectrum 4", "LiteMat Spectrum 8"], [...LITEPANELS, m("Pixel RGBW (8 px)", 32, "rgbw", 8, [4, 2])]),

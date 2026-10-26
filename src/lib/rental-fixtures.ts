@@ -24,7 +24,7 @@ export const RENTAL_FIXTURES: RentalEntry[] = [
   { brand: "Flex LED", models: ["Airlight 40W Bi-colour", "Airlight 80W Bi-colour"], modes: "BI", stock: A },
   { brand: "Fomex", models: ["RollLite RL33 Bi-colour", "Flex 1×1 Bi-colour", "Flex 2×1 Bi-colour"], modes: "BI", stock: A },
   { brand: "Godox", models: ["Knowled AM1600R"], modes: "GODOX_RGB", stock: A },
-  { brand: "Kino Flo", models: ["FreeStyle 41", "Celeb 200", "Celeb 400"], modes: "KINO", stock: A },
+  { brand: "Kino Flo", models: ["Celeb 200", "Celeb 400"], modes: "KINO", stock: A },
   { brand: "Lightstar", models: ["Airlite 1000W Bi-colour"], modes: "BI", stock: A },
   { brand: "Lightstar", models: ["LUXED P12 RGBW 1920W"], modes: "CHAUVET", stock: A },
   { brand: "LS", models: ["RGBW 150"], modes: "CHAUVET", stock: A },
@@ -64,14 +64,14 @@ export const RENTAL_ALIASES: Record<string, Stock[]> = {
   "arri-skypanel-s30-c": AC, "arri-skypanel-s60-c": AC, "arri-skypanel-s120-c": A, "arri-skypanel-s360-c": AC, "arri-skypanel-x": A, "arri-orbiter": A,
   "aputure-mc-pro": A, "aputure-amaran-f22c": A, "aputure-600c-pro": C, "aputure-600c-pro-ii": C, "aputure-ls-600x-pro": C, "aputure-ls-300d-ii": C,
   "astera-titan-tube": AC, "astera-helios-tube": AC, "astera-hyperion-tube": A, "astera-nyx-bulb": AC, "astera-ax3-lightdrop": A, "astera-ax9-powerpar": AC, "astera-ax1-pixeltube": C,
-  "creamsource-vortex4": A, "creamsource-vortex8": AC, "kino-flo-select-30": A, "kino-flo-freestyle-21": C, "kino-flo-freestyle-31": C,
-  "litegear-litemat-spectrum-4": A, "nanlite-pavotube-ii-6c": A, "nanlite-pavotube-ii-30c": A, "nanlite-pavoslim-60c": AC, "nanlite-pavoslim-120c": AC, "nanlite-pavoslim-240c": C,
+  "creamsource-vortex4": A, "creamsource-vortex8": AC, "kino-flo-select-30": A, "kino-flo-freestyle-41": A, "kino-flo-freestyle-21": C, "kino-flo-freestyle-31": C,
+  "litegear-litemat-spectrum-4": A, "nanlite-pavotube-ii-30c": A, "nanlite-pavoslim-60c": AC, "nanlite-pavoslim-120c": AC, "nanlite-pavoslim-240c": C,
   "nanlite-forza-60": A, "nanlite-forza-60b": A, "nanlite-forza-60c": A, "nanlite-forza-300-ii": A,
   "nanlux-evoke-1200": A, "nanlux-evoke-1200b": AC, "nanlux-evoke-2400b": AC, "nanlux-evoke-150c": A, "nanlux-evoke-900c": A, "nanlux-dyno-1200c": A,
 };
 
 /** Lights with no DMX input (manual / Sidus Link Bluetooth only): hidden from PATCH, kept so saved patches still open. */
-export const NO_DMX: string[] = ["aputure-mc", "aputure-accent-b7c", "aputure-ls-60x", "aputure-amaran-100x"];
+export const NO_DMX: string[] = ["aputure-mc", "aputure-accent-b7c", "aputure-ls-60x", "aputure-amaran-100x", "nanlite-pavotube-ii-6c"];
 
 /** Guessed rental rows replaced by a chart-checked library entry: the old id stays (hidden) for saved patches,
  *  and its rental-house tag moves to the official entry. */

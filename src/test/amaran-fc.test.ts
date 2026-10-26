@@ -53,3 +53,14 @@ describe("Nanlite PavoTube II 15C/30C official chart", () => {
     expect(d.modes.map((m) => m.channels)).toEqual([9, 16, 7, 12, 4, 7, 4, 7, 6, 11, 43]);
   });
 });
+
+describe("Kino Flo True Match 5.0 lights use the official personalities", async () => {
+  const { getDef } = await import("@/lib/dmx");
+  for (const id of ["kino-flo-celeb-450", "kino-flo-freestyle-41", "kino-flo-select-30"]) {
+    it(id, () => {
+      const live = getDef(id).modes.filter((m) => !m.legacy);
+      expect(live.length).toBe(29);
+      expect(live.every((m) => m.source === "manufacturer")).toBe(true);
+    });
+  }
+});
