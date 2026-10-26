@@ -333,9 +333,9 @@ const FORZA500BII_MODES: FixtureMode[] = [
 const ZOOM: Slot = ["Zoom", 0];
 const EVOKE2400B_MODES: FixtureMode[] = [
   nl("CCT 8bit", [[["Dimmer", "CCT", GM, ZOOM, SP, SP, FAN, STROBE, SP, SP], false]]),
-  nl("CCT 8bit (Reduced)", [[["Dimmer", "CCT", GM, ZOOM], false]]),
+  nl("CCT 8bit (Reduced)", [[["Dimmer", "CCT", GM, ZOOM, SP, SP], false]]),
   nl("CCT 16bit", [[["Dimmer", "CCT", GM], true], [[ZOOM, SP, SP, FAN, STROBE, ...NA(4)], false]]),
-  nl("CCT 16bit (Reduced)", [[["Dimmer", "CCT", GM], true], [[ZOOM], false]]),
+  nl("CCT 16bit (Reduced)", [[["Dimmer", "CCT", GM], true], [[ZOOM, SP, SP], false]]),
   nl("Ultimate DMX 8bit - CCT", [[["Dimmer", ULT_CCT, "CCT", GM, ...NA(7), ZOOM, SP, SP, FAN], false]]),
   nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(9), ZOOM, SP, SP, FAN], false]]),
 ];
