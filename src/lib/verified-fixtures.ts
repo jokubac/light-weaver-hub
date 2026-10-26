@@ -626,7 +626,15 @@ const AMARAN_FC_MODES: FixtureMode[] = [
   mode("Mode 7 FX 8bit", ["Dimmer", "Spare", "Spare", "Spare", "Spare", "Spare", "Spare", "Spare", "Spare"], false),
 ];
 
+// amaran F21X & F22X Pro DMX Profile Specification V1.0 (controller FW 1.1): CCT 2 ch, FX 5 ch.
+const AMARAN_FX_MODES: FixtureMode[] = [
+  mode("Mode 1 CCT 8-bit", ["Dimmer", "CCT"], false),
+  mode("Mode 2 FX 8-bit", ["Dimmer", "CCT", "Spare", "Spare", "Spare"], false),
+];
+
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  { id: "gdtf-aputure-f21x", brand: "Aputure", model: "F21X", watts: 100, cctRange: [2500, 7500], lightType: "LED bi-colour", modes: AMARAN_FX_MODES },
+  { id: "gdtf-aputure-f22x", brand: "Aputure", model: "F22X", watts: 200, cctRange: [2500, 7500], lightType: "LED bi-colour", modes: AMARAN_FX_MODES },
   { id: "gdtf-aputure-f22c", brand: "Aputure", model: "F22C", watts: 200, cctRange: [2500, 7500], lightType: "LED colour", modes: AMARAN_FC_MODES },
   { id: "gdtf-aputure-f21c", brand: "Aputure", model: "F21C", watts: 100, cctRange: [2500, 7500], lightType: "LED colour", modes: AMARAN_FC_MODES },
   ...GODOX_FIXTURES,
