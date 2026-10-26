@@ -214,7 +214,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       {!def && q ? (
         <List>
           {gdtfHits.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Manufacturer GDTF{gdtfBusy ? " · loading…" : ""}</p>}
-          {gdtfHits.filter(isPx).map((d) => (
+          {gdtfHits.filter((d) => isPx(d) && passF(d)).map((d) => (
             <Row key={`g-${d.id}`} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
           ))}
           {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? "No fixtures found" : "Loading fixture library…"}</p>}
@@ -226,17 +226,17 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
             <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => void chooseDef(d, i)} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
           ))}
           {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixtures</p>}
-          {availableDefs.filter((d) => fav.has(d.id) && isPx(d)).map((d) => (
+          {availableDefs.filter((d) => fav.has(d.id) && isPx(d) && passF(d)).map((d) => (
             <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes${chartTag(d)}`} />
           ))}
           <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers{gdtfLib ? ` · ${gdtfLib.length} fixtures` : " · loading…"}</p>
-          {favoritesFirst(gdtfBrands, (b) => favBrands.has(b)).map((b) => (
-            <Row key={b} starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => setBrand(b)} title={b} sub={`${(gdtfLib ?? []).filter((d) => d.brand === b).length} models`} />
+          {favoritesFirst(gdtfBrands, (b) => favBrands.has(b)).map((b) => ({ b, n: (gdtfLib ?? []).filter((d) => d.brand === b && passF(d)).length })).filter(({ n }) => n > 0).map(({ b, n }) => (
+            <Row key={b} starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => setBrand(b)} title={b} sub={`${n} models`} />
           ))}
         </List>
       ) : !def ? (
         <List>
-          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand), (d) => fav.has(d.id)).map((d) => (
+          {favoritesFirst((gdtfLib ?? []).filter((d) => d.brand === brand && passF(d)), (d) => fav.has(d.id)).map((d) => (
             <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
           ))}
         </List>
