@@ -40,6 +40,7 @@ for (const c of CHART_CHECKED_GDTF) {
       const map = [...(m.channelMap ?? []), ...Array.from({ length: want - m.channels }, () => ({ attr: "Spare", label: "Reserved" }))];
       m = { ...m, channels: want, channelMap: map };
     }
+    if (c.keepPattern && !new RegExp(c.keepPattern).test(m.name)) return { ...m, legacy: true };
     if (c.legacyModes?.some((n) => new RegExp(`^${n}\\b`).test(m.name))) return { ...m, legacy: true };
     return { ...m, source: "manufacturer" };
   });
