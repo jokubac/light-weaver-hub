@@ -46,3 +46,10 @@ describe("lights without DMX input are hidden from PATCH", async () => {
     it(id, () => expect(getDef(id).id === id && getDef(id).modes.every((m) => m.legacy)).toBe(true));
   }
 });
+
+describe("Nanlite PavoTube II 15C/30C official chart", () => {
+  it("footprints match", () => {
+    const d = VERIFIED_FIXTURES.find((f) => f.model === "PavoTube II 30C")!;
+    expect(d.modes.map((m) => m.channels)).toEqual([9, 16, 7, 12, 4, 7, 4, 7, 6, 11, 43]);
+  });
+});

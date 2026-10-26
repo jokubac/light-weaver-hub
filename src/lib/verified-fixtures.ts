@@ -342,6 +342,24 @@ const FORZA300II_MODES: FixtureMode[] = [
   nl("ULTIMATE DMX 8bit", [[["Dimmer", ["Spare", 0], NL_GM, ...NA(7), SP], false]]),
 ];
 
+// Nanlite PavoTube II 15C/30C DMX Reference Guide: strobe is part of every mode (no Reduced option);
+// ULTIMATE DMX is one 43-channel footprint, ch 2 selects CCT/HSI/RGBW/Effect (CCT layout shown).
+function pavoTube(name: string, pre: Slot[], post: Slot[]): FixtureMode[] {
+  const x = post.length > 0;
+  return [
+    nl(`${name} 8bit`, [[[...pre, ...(x ? (["Crossfade"] as Slot[]) : []), ...post, STROBE], false]]),
+    nl(`${name} 16bit`, [[pre, true], ...(x ? ([[["Crossfade"], false], [post, true]] as [Slot[], boolean][]) : []), [[STROBE], false]]),
+  ];
+}
+const PAVOTUBE2_MODES: FixtureMode[] = [
+  ...pavoTube("CCT & RGBW", ["Dimmer", "CCT", GM], ["Red", "Green", "Blue", "White"]),
+  ...pavoTube("CCT & HSI", ["Dimmer", "CCT", GM], ["Hue", "Saturation"]),
+  ...pavoTube("CCT", ["Dimmer", "CCT", GM], []),
+  ...pavoTube("HSI", ["Dimmer", "Hue", "Saturation"], []),
+  ...pavoTube("RGBW", ["Dimmer", "Red", "Green", "Blue", "White"], []),
+  nl("ULTIMATE DMX 8bit", [[["Dimmer", ["Spare", 0], "CCT", GM, STROBE, ...NA(38)], false]]),
+];
+
 const EVOKE1200_MODES: FixtureMode[] = [
   nl("Daylight 8bit", [[["Dimmer", FAN], false]]),
   nl("Daylight 16bit", [[["Dimmer"], true], [[FAN], false]]),
@@ -673,6 +691,7 @@ const AMARAN_FX_MODES: FixtureMode[] = [
 ];
 
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  ...["PavoTube II 15C", "PavoTube II 30C"].map((model): FixtureDef => ({ id: `gdtf-nanlite-${model.toLowerCase().replace(/\s+/g, "-")}`, brand: "Nanlite", model, cctRange: [2700, 7500], lightType: "LED colour", modes: PAVOTUBE2_MODES })),
   { id: "gdtf-nanlite-forza-60-ii", brand: "Nanlite", model: "Forza 60 II", watts: 72, lightType: "LED daylight", modes: FORZA60II_MODES },
   { id: "gdtf-nanlite-forza-60b-ii", brand: "Nanlite", model: "Forza 60B II", watts: 72, cctRange: [2700, 6500], lightType: "LED bi-colour", modes: FORZA60BII_MODES },
   { id: "gdtf-nanlite-forza-300-ii", brand: "Nanlite", model: "Forza 300 II", watts: 330, lightType: "LED daylight", modes: FORZA300II_MODES },

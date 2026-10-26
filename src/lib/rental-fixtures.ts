@@ -78,6 +78,6 @@ export const NO_DMX: string[] = ["aputure-mc", "aputure-accent-b7c", "aputure-ls
 export const RENTAL_SUPERSEDED: Record<string, string> = {
   "fiilex-g3-color": "gdtf-fiilex-g3-color", "fiilex-g6-color": "gdtf-fiilex-g6-color",
   "nanlux-evoke-5000b": "gdtf-nanlux-evoke-5000b", "nanlite-forza-60c": "gdtf-nanlite-forza-60c", "aputure-amaran-f22c": "gdtf-aputure-f22c", "aputure-amaran-f21c": "gdtf-aputure-f21c", "aputure-amaran-f21x": "gdtf-aputure-f21x", "aputure-amaran-f22x": "gdtf-aputure-f22x",
-  "nanlite-forza-300-ii": "gdtf-nanlite-forza-300-ii", "nanlite-pavoslim-60c": "gdtf-nanlite-pavoslim-60c", "nanlite-pavoslim-120c": "gdtf-nanlite-pavoslim-120c", "nanlite-pavoslim-240c": "gdtf-nanlite-pavoslim-240c",
+  "nanlite-forza-300-ii": "gdtf-nanlite-forza-300-ii", "nanlite-pavotube-ii-15c": "gdtf-nanlite-pavotube-ii-15c", "nanlite-pavotube-ii-30c": "gdtf-nanlite-pavotube-ii-30c", "nanlite-pavoslim-60c": "gdtf-nanlite-pavoslim-60c", "nanlite-pavoslim-120c": "gdtf-nanlite-pavoslim-120c", "nanlite-pavoslim-240c": "gdtf-nanlite-pavoslim-240c",
   "nanlux-dyno-1200c": "gdtf-nanlux-dyno-1200c",
 };
