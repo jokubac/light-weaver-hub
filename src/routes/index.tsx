@@ -1448,7 +1448,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           </Button>
         </div>
         <span className="h-6 w-px bg-border" />
-        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className={`text-xs font-bold tracking-wider border ${patchOpen ? "border-primary bg-primary text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] hover:bg-primary/90" : "border-primary/70 text-primary"}`}>PATCH</Button>
         <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="text-xs font-bold">FADERS</Button>
         <span className="h-6 w-px bg-border" />
         <Button variant="secondary" onClick={toggleBlind} aria-pressed={blind} title={blind ? "BLIND on — stage is frozen. Tap to send your changes live" : "BLIND — edit without changing the stage"}
@@ -1603,6 +1602,10 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         {groupsOpen && groupsAside()}
       </div>
       )}
+      {/* Patch lives at the bottom edge so it stays under the thumb on a tablet */}
+      <div aria-label="Patch access" className="hw-bar flex shrink-0 items-center gap-2 border-t border-border bg-surface px-3 py-1.5">
+        <Button variant="secondary" onClick={() => openWin("patch")} aria-pressed={patchOpen} title="Patch sheet" className={`text-xs font-bold tracking-wider border ${patchOpen ? "border-primary bg-primary text-primary-foreground shadow-[0_0_14px_-2px_var(--primary)] hover:bg-primary/90" : "border-primary/70 text-primary"}`}>PATCH</Button>
+      </div>
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
       {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
