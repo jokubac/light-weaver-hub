@@ -271,3 +271,5 @@
 - [ ] Evoke: Fresnel focus/zoom control in the console
 
 - [ ] Arclight verification: 58 lights left unverified (Aputure MC/Accent B7c/F21c/F21x/100x/LS 60x, Nanlite PavoSlim/PavoTube II/Forza 60/60B/300 II, Kino Flo Celeb/Select/FreeStyle 41, DMG Mini/SL1/SUMO/DASH, LiteGear, Creamsource Micro, Quasar Q-LED, many bi-colour panels)
+
+- [ ] Verify all unverified fixtures against official charts (ongoing; next: PavoTube II 6C, Kino Flo Celeb/Select/FreeStyle 41, DMG, LiteGear)
