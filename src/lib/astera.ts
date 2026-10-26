@@ -36,7 +36,8 @@ export function asteraTokens(s: AsteraSpec): { token: string; px: number }[] {
     for (const token of s.tokens ?? CELL_TOKENS[s.cell]) out.push({ token, px: p });
     if (s.strobe === 2 && s.cell !== "RGBDOT") out.push({ token: "S", px: p });
   }
-  if (s.cell === "RGBDOT") { out.pop(); if (s.strobe) out.push({ token: "S", px: -1 }); }
+  // Astera chart: RGB.RGBS puts the shared strobe in the first pixel's spare slot (ch 4); the final spare slot is dropped.
+  if (s.cell === "RGBDOT") { out.pop(); if (s.strobe && out[3]) out[3] = { token: "S", px: -1 }; }
   else if (s.strobe === 1) out.push({ token: "S", px: -1 });
   else if (s.strobe === 3) for (let p = 0; p < s.px; p++) out.push({ token: "S", px: p });
   return out;
