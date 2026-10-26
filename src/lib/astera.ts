@@ -36,7 +36,8 @@ export function asteraTokens(s: AsteraSpec): { token: string; px: number }[] {
     for (const token of s.tokens ?? CELL_TOKENS[s.cell]) out.push({ token, px: p });
     if (s.strobe === 2 && s.cell !== "RGBDOT") out.push({ token: "S", px: p });
   }
-  if (s.cell === "RGBDOT") { out.pop(); if (s.strobe) out.push({ token: "S", px: -1 }); }
+  // Astera chart: RGB.RGBS puts the shared strobe in the first pixel's spare slot (ch 4); the final spare slot is dropped.
+  if (s.cell === "RGBDOT") { out.pop(); if (s.strobe && out[3]) out[3] = { token: "S", px: -1 }; }
   else if (s.strobe === 1) out.push({ token: "S", px: -1 });
   else if (s.strobe === 3) for (let p = 0; p < s.px; p++) out.push({ token: "S", px: p });
   return out;
@@ -58,8 +59,11 @@ export function asteraMode(s: AsteraSpec): FixtureMode {
 }
 
 /** All profiles available for a fixture with the given pixel counts, ordered by profile number. */
-export const asteraModes = (pxCounts: number[], skip: number[] = []) =>
-  ASTERA_SPECS.filter((s) => pxCounts.includes(s.px) && !skip.includes(s.code)).sort((a, b) => a.code - b.code).map(asteraMode);
+/** `scale` maps Titan pixel tiers to other tubes: Astera charts use the same profile numbers with
+ *  Helios/AX2-50 = Titan ÷ 2 (2/8/4 px) and Hyperion = Titan × 2 (8/32/16 px). `pxCounts` are Titan tiers. */
+export const asteraModes = (pxCounts: number[], skip: number[] = [], scale = 1) =>
+  ASTERA_SPECS.filter((s) => pxCounts.includes(s.px) && !skip.includes(s.code)).sort((a, b) => a.code - b.code)
+    .map((s) => asteraMode(scale === 1 || s.px === 1 ? s : { ...s, px: s.px * scale }));
 
 const WORD: Record<string, string[]> = {
   D: ["D"], DIM: ["D"], D16: ["D16", "D16b"], CCT: ["CCT"], GM: ["GM"], C: ["CRO"], CRO: ["CRO"],

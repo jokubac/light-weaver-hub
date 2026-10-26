@@ -266,3 +266,4 @@
 - [ ] Fiilex: Q3/Q6/G3/G6 Color verified from user guides; K10 library modes disagree with guide; Q8, Q10, QUAD, K40, Moto* have no public DMX table. Godox: library M600R/AM1600R have 1 mode vs 16 in official chart — need rebuild from Godox DMX spec PDFs
 - [x] Godox M600R, AM1600R rebuilt + M300R, M1000R, M600Bi Pro added from official Godox DMX charts (499 verified). Open: Godox M200Bi (no official DMX table, only manual photos) and Beamlight Max90 (no chart found).
 - [ ] Verify unverified Arclight rental stock (Astera tubes, Nanlite, Nanlux Evoke, Kino Flo, DMG, Aladdin/LiteGear generic BI)
+- [ ] ARRI SkyPanel X (X21) official DMX chart

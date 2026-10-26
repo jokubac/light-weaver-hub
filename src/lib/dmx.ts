@@ -222,8 +222,10 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
     // every other Titan profile, appended so saved mode numbers stay valid
     ...asteraModes([1, 4, 8, 16], [1, 2, 3, 6, 18, 42, 43, 44, 90, 95]),
   ]),
-  ...fam("Astera", ["Helios Tube", "AX1 PixelTube"], [...asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5)), ...asteraModes([1, 4, 8])]),
-  ...fam("Astera", ["Hyperion Tube"], [...asteraPx(32), ...asteraModes([1, 4, 8, 16])]),
+  // Helios/AX2-50 chart: same profile numbers as Titan at half the pixels; AX1 uses the Titan layout. Appended tiers keep saved indices.
+  ...fam("Astera", ["Helios Tube"], [...asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5)), ...asteraModes([1, 4, 8], [], 0.5), ...asteraModes([16], [], 0.5)]),
+  ...fam("Astera", ["AX1 PixelTube"], [...asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5)), ...asteraModes([1, 4, 8]), ...asteraModes([16])]),
+  ...fam("Astera", ["Hyperion Tube"], [...asteraPx(32), ...asteraModes([1, 4, 8, 16], [], 2)]),
   ...fam("Astera", ["PixelBrick"], [...asteraPx(4), ...asteraModes([1, 4])]),
   ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb", "Leoht", "HydraPanel"], [...ASTERA, ...asteraModes([1])]),
   ...fam("Quasar Science", ["Rainbow 2 (2ft)"], pxModes(12, QUASAR)),
