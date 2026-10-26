@@ -91,3 +91,11 @@ export function asteraSpecFromName(name: string, channels: number): AsteraSpec |
   if (px < 2) return undefined;
   return { code: Number(m[1]), cell: "XY", px, strobe: st, tokens };
 }
+
+/** Profiles 168–171 from Astera's single-head chart (AX3/AX5/AX7/AX9/AX10/FP5/FP7/PB15 DMX Profiles V3). */
+const XYC = ["D", "CCT", "GM", "CRO", "X16", "X16b", "Y16", "Y16b"];
+const XYC16 = ["D16", "D16b", "CCT", "GM", "CRO", "X16", "X16b", "Y16", "Y16b"];
+export const ASTERA_HEAD_XY: AsteraSpec[] = [
+  { code: 168, cell: "XY", px: 1, strobe: 0, tokens: XYC }, { code: 169, cell: "XY", px: 1, strobe: 0, tokens: XYC16 },
+  { code: 170, cell: "XY", px: 1, strobe: 1, tokens: XYC }, { code: 171, cell: "XY", px: 1, strobe: 1, tokens: XYC16 },
+];

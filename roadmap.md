@@ -267,3 +267,4 @@
 - [x] Godox M600R, AM1600R rebuilt + M300R, M1000R, M600Bi Pro added from official Godox DMX charts (499 verified). Open: Godox M200Bi (no official DMX table, only manual photos) and Beamlight Max90 (no chart found).
 - [ ] Verify unverified Arclight rental stock (Astera tubes, Nanlite, Nanlux Evoke, Kino Flo, DMG, Aladdin/LiteGear generic BI)
 - [ ] ARRI SkyPanel X (X21) official DMX chart
+- [ ] SkyPanel X: search more for ARRI DMX spec (same profile, pixel counts differ)

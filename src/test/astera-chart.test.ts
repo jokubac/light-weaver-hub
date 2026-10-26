@@ -17,3 +17,9 @@ describe("Astera tube pixel tiers", () => {
   it("Helios profile 98 is 2 px", () => expect(px(0.5)).toBe(2));
   it("Hyperion profile 98 is 8 px", () => expect(px(2)).toBe(8));
 });
+
+import { ASTERA_HEAD_XY, asteraChannels } from "@/lib/astera";
+// Astera single-head chart V3: profiles 168/169/170/171 are 8/9/9/10 channels.
+describe("Astera head xy profiles", () => {
+  it("168–171 channel counts", () => expect(ASTERA_HEAD_XY.map(asteraChannels)).toEqual([8, 9, 9, 10]));
+});
