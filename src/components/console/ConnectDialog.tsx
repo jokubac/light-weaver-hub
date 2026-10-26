@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { NumberField } from "./NumberField";
 import { connectMoonLite, disconnectMoonLite } from "@/lib/moonlite";
 import type { DiscoveredNode } from "@/hooks/use-transmitter-discovery";
+import { TransmitterRoutes } from "./TransmitterRoutes";
+
 
 interface Node { name: string; ip: string; universes?: number | undefined }
 
@@ -19,7 +21,7 @@ interface Node { name: string; ip: string; universes?: number | undefined }
  * bridge app on the same network that exposes GET http://<bridge>/nodes and forwards DMX.
  * The installed app (Android/iOS) can instead send UDP straight from the tablet.
  */
-export function ConnectDialog({ open, onOpenChange, conn, setConn, status, discovery }: { open: boolean; onOpenChange: (o: boolean) => void; conn: Connection; setConn: (c: Connection) => void; status: BridgeStatus; discovery: { nodes: DiscoveredNode[]; scanning: boolean; error: string | null; scan: () => Promise<void> } }) {
+export function ConnectDialog({ open, onOpenChange, conn, setConn, status, discovery, universes = [] }: { open: boolean; onOpenChange: (o: boolean) => void; conn: Connection; setConn: (c: Connection) => void; status: BridgeStatus; discovery: { nodes: DiscoveredNode[]; scanning: boolean; error: string | null; scan: () => Promise<void> }; universes?: number[] }) {
   const { scanning, nodes, scan } = discovery;
   const [pairing, setPairing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -110,7 +112,11 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
             <button type="submit" className="flex items-center gap-1 rounded-md bg-surface-elevated px-3 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add</button>
           </form></details>
           </div>
+          <details className="text-xs"><summary className="cursor-pointer font-semibold uppercase tracking-wider text-muted-foreground">Advanced</summary>
+            <div className="mt-2"><TransmitterRoutes conn={conn} setConn={setConn} universes={universes} /></div>
+          </details>
           {msg && <p role="alert" className="text-xs text-destructive">{msg}</p>}
+
           {conn.node && (
             <div className="flex items-center justify-between rounded-lg border border-success/50 px-3 py-2 text-sm">
               <span><Check className="mr-1 inline h-4 w-4 text-success" />{conn.node.name} <span className="font-mono text-xs text-muted-foreground">{conn.node.ip}</span></span>
