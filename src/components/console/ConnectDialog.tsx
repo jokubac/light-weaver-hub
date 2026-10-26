@@ -5,7 +5,7 @@ import { Wifi, Cable, Radar, Loader2, Check, Plus, Download, Smartphone, Router,
 import type { BridgeStatus } from "@/lib/output";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Connection } from "@/lib/store";
-import { TRANSMITTERS, getTransmitter, detectTransmitter } from "@/lib/transmitters";
+import { detectTransmitter } from "@/lib/transmitters";
 import { isNativeApp } from "@/lib/native-udp";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "./NumberField";
@@ -24,7 +24,6 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
   const [pairing, setPairing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [manual, setManual] = useState("");
-  const [showModel, setShowModel] = useState(false);
 
   const native = isNativeApp();
   const direct = conn.transport === "direct" && native;
@@ -51,11 +50,9 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
   const pick = (n: Node) => {
     // auto-detect the transmitter model from the name it reports in the Art-Net reply
     const hit = detectTransmitter(n.name, n.universes);
-    setShowModel(false);
     setConn({ ...conn, node: { name: n.name, ip: n.ip }, transmitter: hit?.id ?? conn.transmitter });
   };
 
-  const tx = getTransmitter(conn.transmitter ?? undefined);
   const opt = (active: boolean) => `flex flex-1 items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`;
 
   return (
@@ -65,10 +62,10 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
         <div className="space-y-4">
           <div className="flex gap-2">
             <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, transport: "direct", node: conn.transport === "bluetooth" ? null : conn.node }); }} disabled={!native} className={`${opt(!!direct)} h-auto whitespace-normal disabled:opacity-40`}>
-              <Smartphone className="h-4 w-4" />Direct from this tablet
+              <Smartphone className="h-4 w-4" />Direct
             </Button>
             <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, transport: "bridge", node: conn.transport === "bluetooth" ? null : conn.node }); }} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
-              <Router className="h-4 w-4" />Via bridge computer
+              <Router className="h-4 w-4" />Via bridge
             </Button>
           </div>
           <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? "Connecting…" : "Connect MoonLite via Bluetooth"}</Button>
@@ -121,28 +118,6 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
               <Button variant="ghost" onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">Disconnect</Button>
             </div>
           )}
-          <div hidden={conn.transport === "bluetooth"} className="space-y-2 rounded-lg border border-border p-3 text-xs">
-            {tx ? (
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-success">{tx.brand} {tx.model}</span>
-                <button onClick={() => setShowModel((s) => !s)} className="text-[11px] text-muted-foreground underline">{showModel ? "Hide" : "Change"}</button>
-              </div>
-            ) : (
-              <div className="font-semibold">Transmitter model (optional)</div>
-            )}
-            {(!tx || showModel) && (
-              <select value={conn.transmitter ?? ""} onChange={(e) => setConn({ ...conn, transmitter: e.target.value || null })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm">
-                <option value="">Not set</option>
-                {TRANSMITTERS.map((t) => <option key={t.id} value={t.id}>{t.brand} {t.model} · {t.universes} univ.</option>)}
-              </select>
-            )}
-            {tx && <p className="text-muted-foreground">{tx.universes} universe{tx.universes > 1 ? "s" : ""} · {tx.radio.join(", ")} · {tx.protocols.map((p) => (p === "artnet" ? "Art-Net" : "sACN")).join(" / ")} · starts at Art-Net {tx.artnetStart} / sACN {tx.sacnStart} · colour order {tx.order}</p>}
-            <label className="flex items-center justify-between rounded-md bg-surface-elevated px-3 py-2 font-semibold">
-              Auto-set universes & channel order
-              <Checkbox checked={conn.autoMap} onCheckedChange={(c) => setConn({ ...conn, autoMap: c === true })} />
-            </label>
-            <p className="text-muted-foreground">{conn.autoMap ? "Universe 1 in the app goes to the transmitter's first input, colours are sent in its order, extra universes it can't carry are skipped." : "Off: universes and RGB order are sent exactly as patched."}</p>
-          </div>
 
         </div>
       </DialogContent>
