@@ -276,3 +276,4 @@
 - [x] Add fixtures fits the side panel
 - [x] PATCH: alphabetical sorting done
 - [x] PATCH + Add fixtures: side panel (verified)
+- [x] PATCH sheet restored to full-screen (no split column); Add fixtures opens as a side panel that leaves the patch sheet visible. Browser check at 1280 px.
