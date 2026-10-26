@@ -47,6 +47,8 @@ export interface FixtureMode {
   /** generic ordered per-channel layout for GDTF-imported / custom fixtures whose channel order
    *  doesn't match one of the built-in `kind` layouts; one entry per DMX byte, in address order. */
   channelMap?: ChannelMapEntry[];
+  /** old non-chart mode kept only so saved patches keep their mode index; hidden for new patches */
+  legacy?: boolean;
 }
 
 export interface FixtureDef {
@@ -162,6 +164,7 @@ const QUASAR = [
   m("RGBX 5ch", 5, "rgbw"), m("Full 8-bit 12ch", 12, "full"), m("Full 16-bit 20ch", 20, "full"),
 ];
 const ASTERA = ASTERA_BASE;
+const asLegacy = (ms: FixtureMode[]): FixtureMode[] => ms.map((x) => ({ ...x, legacy: true }));
 
 const KINO = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGB 8-bit", 5, "rgb"), m("RGBW 8-bit", 6, "rgbw"), m("Full 8-bit", 12, "full"), m("Full 16-bit", 20, "full")];
 const LITEPANELS = [m("CCT 8-bit", 4, "cctgm"), m("CCT 16-bit", 7, "cctgm"), m("HSI 8-bit", 5, "hsi"), m("RGBWW 8-bit", 6, "rgbw"), m("Gel 8-bit", 4, "cctgm"), m("Full 16-bit", 21, "full")];
@@ -227,7 +230,7 @@ export const FIXTURE_LIBRARY: FixtureDef[] = [
   ...fam("Astera", ["AX1 PixelTube"], [...asteraPx(8).map((x) => x).concat(asteraPx(16).slice(-5)), ...asteraModes([1, 4, 8]), ...asteraModes([16])]),
   ...fam("Astera", ["Hyperion Tube"], [...asteraPx(32), ...asteraModes([1, 4, 8, 16], [], 2)]),
   ...fam("Astera", ["PixelBrick"], [...asteraPx(4), ...asteraModes([1, 4])]),
-  ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb", "Leoht", "HydraPanel"], [...ASTERA, ...asteraModes([1]), ...ASTERA_HEAD_XY.map((s) => ({ ...asteraMode(s), name: `Profile ${s.code} — D${s.tokens![0] === "D16" ? "16" : ""} CCT GM C XY${s.strobe ? " S" : ""}`, source: "https://astera-led.com/wp-content/uploads/FP5_NYX_Bulb_DMX_Profiles_V3.pdf" }))]),
+  ...fam("Astera", ["AX3 LightDrop", "AX5 TriplePAR", "AX9 PowerPar", "NYX Bulb", "Leoht", "HydraPanel"], [...asLegacy(ASTERA), ...asteraModes([1]), ...ASTERA_HEAD_XY.map((s) => ({ ...asteraMode(s), name: `Profile ${s.code} — D${s.tokens![0] === "D16" ? "16" : ""} CCT GM C XY${s.strobe ? " S" : ""}`, source: "https://astera-led.com/wp-content/uploads/FP5_NYX_Bulb_DMX_Profiles_V3.pdf" }))]),
   ...fam("Quasar Science", ["Rainbow 2 (2ft)"], pxModes(12, QUASAR)),
   ...fam("Quasar Science", ["Rainbow 2 (4ft)", "Double Rainbow (4ft)"], pxModes(24, QUASAR)),
   ...fam("Quasar Science", ["Rainbow 2 (8ft)", "Double Rainbow (8ft)"], pxModes(48, QUASAR)),
@@ -870,4 +873,4 @@ export const MAX_UNIVERSE = 32768;
 
 /** True only when every mode comes from a manufacturer's own DMX chart (verified-fixtures / Astera tables). */
 export const isVerifiedDef = (d: Pick<FixtureDef, "modes">): boolean =>
-  d.modes.length > 0 && d.modes.every((m) => m.source === "manufacturer" || !!m.astera);
+  d.modes.some((m) => !m.legacy) && d.modes.every((m) => m.legacy || m.source === "manufacturer" || !!m.astera);
