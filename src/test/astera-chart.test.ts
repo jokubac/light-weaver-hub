@@ -33,3 +33,15 @@ describe("Astera single-head verified", () => {
     }
   });
 });
+
+describe("HydraPanel official chart", () => {
+  it("is verified and maps Titan tiers to 2/3/6 px", () => {
+    const d = LIB2.find((x) => x.brand === "Astera" && x.model === "HydraPanel")!;
+    expect(isV(d)).toBe(true);
+    const by = (c: number) => d.modes.find((m) => m.astera?.code === c)!;
+    expect(by(41).channels).toBe(23);
+    expect(by(73).channels).toBe(12);
+    expect(by(141).channels).toBe(54);
+    expect(by(17).pixels).toBe(2);
+  });
+});
