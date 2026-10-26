@@ -1448,10 +1448,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           </Button>
         </div>
         <span className="h-6 w-px bg-border" />
-        <Button variant="secondary" onClick={() => setFadersOpen((o) => !o)} aria-pressed={fadersOpen} title="Fader bank" className="text-xs font-bold">FADERS</Button>
-        <span className="h-6 w-px bg-border" />
-        <Button variant="secondary" onClick={toggleBlind} aria-pressed={blind} title={blind ? "BLIND on — stage is frozen. Tap to send your changes live" : "BLIND — edit without changing the stage"}
-          className={`text-xs font-bold ${blind ? "animate-pulse bg-warning text-primary-foreground" : ""}`}>{blind ? "APPLY" : "BLIND"}</Button>
+        {blind && <Button variant="secondary" onClick={toggleBlind} aria-pressed title="BLIND on — stage is frozen. Tap to send your changes live"
+          className="animate-pulse bg-warning text-xs font-bold text-primary-foreground">APPLY</Button>}
         <Button variant="secondary" size="icon" onClick={() => setScreenLocked(true)} aria-label="Lock screen" title="Lock screen — prevents accidental touches"><Lock /></Button>
         {screenLocked && <ScreenLock onUnlock={() => setScreenLocked(false)} />}
         <span className="h-6 w-px bg-border" />
@@ -1464,6 +1462,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             <Button variant="secondary" size="icon" aria-label="More" title="More" className={redShift ? "text-primary" : ""}><MoreHorizontal /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setFadersOpen((o) => !o)}><Gauge />Faders {fadersOpen ? "· ON" : ""}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={toggleBlind}><Moon />{blind ? "Apply (end Blind)" : "Blind"}</DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setMonitorOpen(true)}><Gauge />Monitor</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setRedShift((v) => !v)}><Moon />Red Shift {redShift ? "· ON" : ""}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setSettingsOpen(true)}><SettingsIcon />Settings</DropdownMenuItem>
