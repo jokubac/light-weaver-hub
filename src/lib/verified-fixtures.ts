@@ -302,6 +302,28 @@ const NA = (n: number): Slot[] => Array.from({ length: n }, () => SP);
 const ULT_CCT: Slot = ["Spare", 0];
 const ULT_FX: Slot = ["Spare", 0.2549];
 const nl = (name: string, parts: [Slot[], boolean][]) => mm(name, parts);
+// Nanlite PavoSlim 60C/60CL/120C/240C/240CL DMX Reference Guide (2024): crossfade stays 8-bit in 16-bit modes;
+// every mode ends with Strobe + reserved, which "DMX Reduced Channels" removes.
+function pavoSlim(name: string, pre: Slot[], post: Slot[], res8: number, res16: number): FixtureMode[] {
+  const hasX = post.length > 0;
+  const b8: [Slot[], boolean][] = [[[...pre, ...(hasX ? (["Crossfade"] as Slot[]) : []), ...post], false]];
+  const b16: [Slot[], boolean][] = [[pre, true], ...(hasX ? ([[["Crossfade"], false], [post, true]] as [Slot[], boolean][]) : [])];
+  return [
+    nl(`${name} 8bit`, [...b8, [[STROBE, ...NA(res8)], false]]),
+    nl(`${name} 16bit`, [...b16, [[STROBE, ...NA(res16)], false]]),
+    nl(`${name} 8bit (Reduced)`, b8),
+    nl(`${name} 16bit (Reduced)`, b16),
+  ];
+}
+const PAVOSLIM_MODES: FixtureMode[] = [
+  ...pavoSlim("CCT & RGBW", ["Dimmer", "CCT", GM], ["Red", "Green", "Blue", "White"], 2, 4),
+  ...pavoSlim("CCT & HSI", ["Dimmer", "CCT", GM], ["Hue", "Saturation"], 2, 4),
+  ...pavoSlim("CCT", ["Dimmer", "CCT", GM], [], 2, 4),
+  ...pavoSlim("HSI", ["Dimmer", "Hue", "Saturation"], [], 2, 4),
+  ...pavoSlim("RGBW", ["Dimmer", "Red", "Green", "Blue", "White"], [], 2, 4),
+  ...pavoSlim("RGB", ["Red", "Green", "Blue"], [], 2, 4),
+];
+
 const EVOKE1200_MODES: FixtureMode[] = [
   nl("Daylight 8bit", [[["Dimmer", FAN], false]]),
   nl("Daylight 16bit", [[["Dimmer"], true], [[FAN], false]]),
@@ -633,6 +655,7 @@ const AMARAN_FX_MODES: FixtureMode[] = [
 ];
 
 export const VERIFIED_FIXTURES: FixtureDef[] = [
+  ...["PavoSlim 60C", "PavoSlim 60CL", "PavoSlim 120C", "PavoSlim 240C", "PavoSlim 240CL"].map((model): FixtureDef => ({ id: `gdtf-nanlite-${model.toLowerCase().replace(/\s+/g, "-")}`, brand: "Nanlite", model, cctRange: [2700, 7500], lightType: "LED colour", modes: PAVOSLIM_MODES })),
   { id: "gdtf-aputure-f21x", brand: "Aputure", model: "F21X", watts: 100, cctRange: [2500, 7500], lightType: "LED bi-colour", modes: AMARAN_FX_MODES },
   { id: "gdtf-aputure-f22x", brand: "Aputure", model: "F22X", watts: 200, cctRange: [2500, 7500], lightType: "LED bi-colour", modes: AMARAN_FX_MODES },
   { id: "gdtf-aputure-f22c", brand: "Aputure", model: "F22C", watts: 200, cctRange: [2500, 7500], lightType: "LED colour", modes: AMARAN_FC_MODES },

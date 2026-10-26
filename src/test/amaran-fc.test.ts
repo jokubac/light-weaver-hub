@@ -23,3 +23,11 @@ describe("amaran F21x/F22x official chart", () => {
     });
   }
 });
+
+// Nanlite PavoSlim DMX Reference Guide: full / reduced footprints per mode
+describe("Nanlite PavoSlim official chart", () => {
+  it("footprints match the chart", () => {
+    const d = VERIFIED_FIXTURES.find((f) => f.model === "PavoSlim 120C")!;
+    expect(d.modes.map((m) => m.channels)).toEqual([11, 20, 8, 15, 9, 16, 6, 11, 6, 11, 3, 6, 6, 11, 3, 6, 8, 15, 5, 10, 6, 11, 3, 6]);
+  });
+});

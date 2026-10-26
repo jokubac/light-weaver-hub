@@ -274,7 +274,7 @@ const customDefs = (): FixtureDef[] => {
   for (const d of FIXTURE_LIBRARY) {
     const v = verified.get(key(d.brand, d.model));
     // Keep hand-built chart profiles (they carry exact per-channel encoders).
-    if (!v || d.modes.some((m) => m.profile)) continue;
+    if (!v || d.modes.some((m) => m.profile) || RENTAL_SUPERSEDED[d.id]) continue; // superseded rows keep their old modes for saved patches
     d.modes = v.modes;
     if (v.watts) d.watts = v.watts;
     if (v.cctRange) d.cctRange = v.cctRange;
