@@ -74,5 +74,5 @@ export const RENTAL_ALIASES: Record<string, Stock[]> = {
  *  and its rental-house tag moves to the official entry. */
 export const RENTAL_SUPERSEDED: Record<string, string> = {
   "fiilex-g3-color": "gdtf-fiilex-g3-color", "fiilex-g6-color": "gdtf-fiilex-g6-color",
-  "nanlux-evoke-5000b": "gdtf-nanlux-evoke-5000b",
+  "nanlux-evoke-5000b": "gdtf-nanlux-evoke-5000b", "nanlite-forza-60c": "gdtf-nanlite-forza-60c", "aputure-amaran-f22c": "gdtf-aputure-f22c",
 };

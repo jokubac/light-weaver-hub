@@ -698,6 +698,11 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; 
   ...["Matrix Color", "P3 Color", "Q5 Color", "Q8 Color", "Q10 Color", "QUAD Color"].map((model) => ({ brand: "Fiilex", model, chart: "Fiilex COLOR Series DMX / RDM Mapping V1" })),
   // K10/K40: old-firmware community modes stay for saved patches but are hidden; the V2 chart modes are the official set.
   ...["K10", "K40 Color"].map((model) => ({ brand: "Fiilex", model, chart: "Fiilex COLOR Series DMX / RDM Mapping V2", keepNames: (FIILEX_K_V2 as FixtureMode[]).map((m) => m.name) })),
+  // Nanlite Forza 60C DMX Reference Guide V1 (2022-04-30): all 18 standard modes match (14/25/14/25/10/17/7/12/7/12/11/20/11/20/7/12/7/12).
+  // The chart's ULTIMATE DMX modes are not in this profile.
+  { brand: "Nanlite", model: "Forza 60C", chart: "Nanlite Forza 60C DMX Reference Guide V1" },
+  // amaran F21c & F22c DMX Profile Specification V1.0: modes 1–7 = 10/6/9/7/6/8/9 ch.
+  { brand: "Aputure", model: "F22C", chart: "amaran F21C & F22C DMX Profile Specification V1.0" },
   { brand: "Fiilex", model: "MotoQ3", chart: "Fiilex MOTOQ3 DMX Mapping (09/2026)" },
   // Moto PXL16 ICTHS (mode 307) is 89 ch in the chart but 93 in the community file: hidden for new patches, kept for saved indices.
   { brand: "Fiilex", model: "MotoK40", chart: "Fiilex K10-MOTOYOKE / MOTOK40 DMX Mapping (09/2026)", legacyModes: ["Mode 307"] },
