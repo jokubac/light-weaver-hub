@@ -274,3 +274,5 @@
 
 - [ ] Verify all unverified fixtures against official charts (ongoing; next: PavoTube II 6C, Kino Flo Celeb/Select/FreeStyle 41, DMG, LiteGear)
 - [ ] PATCH: "Add fixtures" opens full-window — make it fit the panel
+- [x] PATCH: alphabetical sorting done
+- [ ] PATCH + Add fixtures: open as side panel instead of full screen (fix in progress, verifying)
