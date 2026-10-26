@@ -62,10 +62,10 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
         <div className="space-y-4">
           <div className="flex gap-2">
             <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, transport: "direct", node: conn.transport === "bluetooth" ? null : conn.node }); }} disabled={!native} className={`${opt(!!direct)} h-auto whitespace-normal disabled:opacity-40`}>
-              <Smartphone className="h-4 w-4" />Direct from this tablet
+              <Smartphone className="h-4 w-4" />Direct
             </Button>
             <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, transport: "bridge", node: conn.transport === "bluetooth" ? null : conn.node }); }} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
-              <Router className="h-4 w-4" />Via bridge computer
+              <Router className="h-4 w-4" />Via bridge
             </Button>
           </div>
           <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? "Connecting…" : "Connect MoonLite via Bluetooth"}</Button>
