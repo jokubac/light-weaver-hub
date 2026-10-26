@@ -340,6 +340,15 @@ const EVOKE2400B_MODES: FixtureMode[] = [
   nl("Ultimate DMX 8bit - CCT", [[["Dimmer", ULT_CCT, "CCT", GM, ...NA(7), ZOOM, SP, SP, FAN], false]]),
   nl("Ultimate DMX 8bit - Effect", [[["Dimmer", ULT_FX, ...NA(9), ZOOM, SP, SP, FAN], false]]),
 ];
+// Nanlux Evoke 5000B DMX chart V1.1 (2025-02-12): Dimmer, CCT, G/M, then Fan, Strobe, Zoom (default 127) + 4 reserved;
+// "DMX Reduce Channels" ON drops that tail (3 / 6 ch).
+const E5_TAIL: Slot[] = [FAN, STROBE, ["Zoom", 0.498], ...NA(4)];
+const EVOKE5000B_MODES: FixtureMode[] = [
+  nl("CCT 8bit", [[["Dimmer", "CCT", GM, ...E5_TAIL], false]]),
+  nl("CCT 16bit", [[["Dimmer", "CCT", GM], true], [E5_TAIL, false]]),
+  nl("CCT 8bit (Reduced)", [[["Dimmer", "CCT", GM], false]]),
+  nl("CCT 16bit (Reduced)", [[["Dimmer", "CCT", GM], true]]),
+];
 
 // Nanlux Evoke 150C / 600C DMX Charts V1.2 (Nebula C8 engine, 1000–20000K, Zoom added in V1.2).
 // Every mode ends with Fan, Strobe, Zoom (default 127) + 4 reserved; "Reduced" drops that tail.
@@ -629,6 +638,7 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
   { id: "gdtf-nanlux-evoke-600c", brand: "Nanlux", model: "Evoke 600C", cctRange: [1000, 20000], lightType: "LED colour", modes: C8_MODES },
   { id: "gdtf-nanlux-evoke-1200", brand: "Nanlux", model: "Evoke 1200", watts: 1200, lightType: "LED daylight", modes: EVOKE1200_MODES },
   { id: "gdtf-nanlux-evoke-1200b", brand: "Nanlux", model: "Evoke 1200B", watts: 1200, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE1200B_MODES },
+  { id: "gdtf-nanlux-evoke-5000b", brand: "Nanlux", model: "Evoke 5000B", watts: 5000, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE5000B_MODES },
   { id: "gdtf-nanlux-evoke-2400b", brand: "Nanlux", model: "Evoke 2400B", watts: 2400, cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: EVOKE2400B_MODES },
   { id: "gdtf-nanlite-forza-500b-ii", brand: "Nanlite", model: "Forza 500B II", cctRange: [2700, 6500], lightType: "Bi-colour LED", modes: FORZA500BII_MODES },
   { id: "gdtf-nanlite-forza-720", brand: "Nanlite", model: "Forza 720", lightType: "LED daylight", modes: FORZA720_MODES },
