@@ -1,4 +1,5 @@
 import { SPEC_PAGE_CHECKED } from "./spec-checked";
+import FIILEX_K_V2 from "./fiilex-k-color-v2.json";
 import { GODOX_FIXTURES } from "./godox";
 import { GEMINI_FIXTURES } from "./litepanels-gemini";
 import { DMG_FIXTURES } from "./dmg";
@@ -383,6 +384,9 @@ const DYNO_ULTIMATE: FixtureMode[] = [
 ];
 /** Official modes missing from an otherwise correct community profile; appended (never reordered) by gdtf-curate. */
 export const VERIFIED_EXTRA_MODES: { brand: string; model: string; modes: FixtureMode[] }[] = [
+  // Fiilex COLOR Series DMX/RDM Mapping V2 (CB 5.0, 09/2026): modes 401–521 parsed from the chart tables, each footprint
+  // checked against the chart index. GEL and ALL MODES are omitted (tables not machine-readable), 1-ch EZ 3200K/5600K dropped.
+  ...["K10", "K40 Color"].map((model) => ({ brand: "Fiilex", model, modes: FIILEX_K_V2 as FixtureMode[] })),
   { brand: "Nanlux", model: "Dyno 650C", modes: DYNO_ULTIMATE },
   { brand: "Nanlux", model: "Dyno 1200C", modes: DYNO_ULTIMATE },
 ];
@@ -646,7 +650,7 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
  *  gdtf-curate tags their modes as manufacturer-sourced so PATCH shows them as official. */
 const ROBE_CHECKED: string[] = ["ColorSpot 250 AT", "Robin BMFL Blade", "Robin BMFL FollowSpot", "Robin BMFL FollowSpot LT", "Robin BMFL Spot", "Robin BMFL WashBeam", "Robin BMFL WashBeam EV", "Robin ColorStrobe IP", "Robin Cuete", "Robin CycFX 8", "Robin DL4F Wash", "Robin DL4X Spot", "Robin DL7F Wash", "Robin DLF Wash", "Robin DLX Spot", "Robin Esprite", "Robin Esprite Fresnel", "Robin Esprite FS", "Robin Esprite PC", "Robin Footsie1 MC", "Robin Footsie2 MC", "Robin Forte", "Robin Forte Fresnel", "Robin Forte FS", "Robin Forte PC", "Robin iBeam 250", "Robin iBeam 350", "Robin iBolt", "Robin iEsprite", "Robin iEsprite Fresnel", "Robin iEsprite LTL FS", "Robin iEsprite LTL WB", "Robin iForte", "Robin iForte FS", "Robin iForte LTX FS", "Robin iForte LTX WB", "Robin iPainte", "Robin iPAINTE LTM WB", "Robin iParFect 150 FW RGBA", "Robin iParFect 150 FW RGBW", "Robin iPointe65", "Robin iProMotion", "Robin iT12 Fresnel", "Robin iT12 PC", "Robin iT12 Profile", "Robin LEDBeam 350", "Robin LEDBeam 350 FW", "Robin LedPOINTE", "Robin MegaPointe", "Robin MiniMe", "Robin MiniPointe", "Robin MMX Blade", "Robin MMX Spot", "Robin Painte", "Robin Painte Spot", "Robin ParFect 150 FW RGBA", "Robin ParFect 150 FW RGBW", "Robin ParFect 150 RGBA", "Robin ParFect 150 RGBW", "Robin Pointe", "Robin ProMotion", "Robin SilverScan", "Robin Spikie", "Robin Spote", "Robin SuperSpikie", "Robin T1 Fresnel", "Robin T1 PC", "Robin T1 Profile", "Robin T1 Profile FS", "Robin T15 Fresnel", "Robin T15 PC", "Robin T2 Fresnel", "Robin T2 PC", "Robin T2 Profile", "Robin T2 Profile FS", "Robin T32 CYC Slim", "Robin TX1 PosiProfile", "Robin Viva", "Robin Viva CMY", "RoboSpot MotionCamera", "SVOPATT Classic"];
 
-export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; modesFrom?: string; padTo?: Record<string, number>; legacyModes?: string[] }[] = [
+export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; modesFrom?: string; padTo?: Record<string, number>; legacyModes?: string[]; keepNames?: string[] }[] = [
   // Rosco Braq Cube (manual R4) and Pica Cube (manual R5) DMX Channel Layout: 4C 8-bit R,G,B,W / 16-bit coarse+fine pairs — exact match.
   { brand: "Rosco", model: "Braq Cube 4C", chart: "Rosco Braq Cube User Manual R4" },
   { brand: "Rosco", model: "Pica Cube 4C", chart: "Rosco Pica Cube User Manual R5" },
@@ -682,6 +686,8 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; 
   { brand: "ARRI", model: "SkyPanel S30RP", chart: "ARRI official GDTF DMX v4.4" },
   // Fiilex COLOR Series (P,Q,G) DMX/RDM Mapping V1 (CB 5.0): every library mode number matches its chart footprint.
   ...["Matrix Color", "P3 Color", "Q5 Color", "Q8 Color", "Q10 Color", "QUAD Color"].map((model) => ({ brand: "Fiilex", model, chart: "Fiilex COLOR Series DMX / RDM Mapping V1" })),
+  // K10/K40: old-firmware community modes stay for saved patches but are hidden; the V2 chart modes are the official set.
+  ...["K10", "K40 Color"].map((model) => ({ brand: "Fiilex", model, chart: "Fiilex COLOR Series DMX / RDM Mapping V2", keepNames: (FIILEX_K_V2 as FixtureMode[]).map((m) => m.name) })),
   { brand: "Fiilex", model: "MotoQ3", chart: "Fiilex MOTOQ3 DMX Mapping (09/2026)" },
   // Moto PXL16 ICTHS (mode 307) is 89 ch in the chart but 93 in the community file: hidden for new patches, kept for saved indices.
   { brand: "Fiilex", model: "MotoK40", chart: "Fiilex K10-MOTOYOKE / MOTOK40 DMX Mapping (09/2026)", legacyModes: ["Mode 307"] },
