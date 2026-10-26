@@ -5,7 +5,7 @@ import { Wifi, Cable, Radar, Loader2, Check, Plus, Download, Smartphone, Router,
 import type { BridgeStatus } from "@/lib/output";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Connection } from "@/lib/store";
-import { TRANSMITTERS, getTransmitter, detectTransmitter } from "@/lib/transmitters";
+import { getTransmitter, detectTransmitter } from "@/lib/transmitters";
 import { isNativeApp } from "@/lib/native-udp";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "./NumberField";
@@ -24,7 +24,6 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
   const [pairing, setPairing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [manual, setManual] = useState("");
-  const [showModel, setShowModel] = useState(false);
 
   const native = isNativeApp();
   const direct = conn.transport === "direct" && native;
@@ -51,7 +50,6 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
   const pick = (n: Node) => {
     // auto-detect the transmitter model from the name it reports in the Art-Net reply
     const hit = detectTransmitter(n.name, n.universes);
-    setShowModel(false);
     setConn({ ...conn, node: { name: n.name, ip: n.ip }, transmitter: hit?.id ?? conn.transmitter });
   };
 
