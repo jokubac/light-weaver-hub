@@ -5,7 +5,7 @@ import { FramingPad } from "./FramingPad";
 type UpdEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => void;
 
 const LABELS: Partial<Record<BeamAttr, string>> = {
-  Strobe: "Shutter / Strobe", GoboRot: "Gobo rotation", Gobo2: "Gobo 2", PrismRot: "Prism rotation", ShaperRot: "Framing rotation",
+  Strobe: "Shutter / Strobe", Zoom: "Zoom / Fresnel focus", GoboRot: "Gobo rotation", Gobo2: "Gobo 2", PrismRot: "Prism rotation", ShaperRot: "Framing rotation",
 };
 const label = (a: BeamAttr) => LABELS[a] ?? a.replace(/^Blade(\d)(A|B|Rot)$/, (_m, n, x) => `Blade ${n} ${x === "Rot" ? "rotation" : x}`);
 const GROUPS: { title: string; attrs: BeamAttr[] }[] = [
