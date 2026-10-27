@@ -144,12 +144,12 @@ export function FixtureControls({
         <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
       </Section>
 
-      {beamChannels(first).size > 0 && <Section title="Position & Beam"><BeamControls first={first} updateEach={updateEach} /></Section>}
+      {sel.some((f) => beamChannels(f).size > 0) && <Section title="Position & Beam"><BeamControls first={first} updateEach={updateEach} /></Section>}
 
-      {<><Section title="Advanced">
+      {<>{sel.length > 1 && <Section title="Advanced">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fan</div>
         <FanControl value={first.fan} update={update} />
-      </Section>
+      </Section>}
 
       <Section title="Trigger">
         <div className="grid grid-cols-2 gap-2">
