@@ -12,7 +12,7 @@ export function joinCellState(cells: PatchedFixture[]): Pick<PatchedFixture, "in
   const same = states.every((s) => JSON.stringify(s) === JSON.stringify(states[0]));
   const first = cells[0]!;
   if (same) return { intensity: first.intensity, on: first.on };
-  const lit = cells.map((c) => fixtureState({ ...c, fx: c.fxPlaying ? c.fx : undefined } as PatchedFixture, 0, 1));
+  const lit = cells.map((c) => fixtureState(c, 0, 1));
   const max = Math.max(...lit.map((s) => s.v));
   const k = max > 0 ? 1 / max : 0;
   return {
