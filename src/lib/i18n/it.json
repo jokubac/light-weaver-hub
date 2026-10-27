@@ -1094,5 +1094,9 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "Accedi per aprire i tuoi progetti, preferiti ed effetti salvati su qualsiasi dispositivo.",
   "Unpark the selected lights": "Rimuovi Park dalle luci selezionate",
   "or": "o",
-  "Parked": "Parcheggiato"
+  "Parked": "Parcheggiato",
+  "Email": "Email",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "Un faro ogni N — es. 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Un faro sì e uno no — nell'intervallo digitato o nella selezione (anche i pixel espansi)",
+  "Password": "Password"
 }

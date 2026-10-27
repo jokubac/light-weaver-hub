@@ -1096,5 +1096,7 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "Войдите, чтобы открывать свои проекты, избранное и сохранённые эффекты на любом устройстве.",
   "Unpark the selected lights": "Распарковать выбранные приборы",
   "or": "или",
-  "Parked": "Запаркован"
+  "Parked": "Запаркован",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "Каждый N-й прибор — например, 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Каждый второй прибор — из введённого диапазона или текущего выделения (включая развёрнутые пиксели)"
 }

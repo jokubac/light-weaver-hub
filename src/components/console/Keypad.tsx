@@ -7,7 +7,7 @@ import { t as tr } from "@/lib/i18n";
 interface Props {
   count: number;
   selectedNums?: number[];
-  onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number) => void;
+  onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number, pattern?: { step: number; offset: number }) => void;
   onStep: (dir: 1 | -1) => void;
   onFlash: () => void;
   onPreview?: (select: number[]) => void;
@@ -49,7 +49,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
   const run = () => {
     const r = parseCommand(cmd, count);
     if (r.error) { setMsg(r.error); return; }
-    onRun(r.select, r.level, r.cct, r.levelDelta, r.cctDelta);
+    onRun(r.select, r.level, r.cct, r.levelDelta, r.cctDelta, r.pattern);
     setMsg(`✓ ${cmd.trim()}`);
     setCmd("");
   };
@@ -75,7 +75,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
       </div>
       <div className="flex gap-1.5">
         {ext && <div className="grid w-24 shrink-0 grid-cols-1 gap-1.5" aria-label={tr("Extended keys")}>
-          {["ODD", "EVEN", "."].map((x) => <button key={x} onClick={() => (x === "." ? setCmd((c) => c + ".") : press(x))} className={`${k} text-primary`}>{x}</button>)}
+          {["ODD", "EVEN", "NTH", "."].map((x) => <button key={x} title={x === "ODD" ? tr("Every other light — of the typed range, or of the selection (also expanded pixels)") : x === "EVEN" ? tr("Every other light, starting from the 2nd") : x === "NTH" ? tr("Every Nth light — e.g. 1 THRU 16 NTH 3") : undefined} onClick={() => (x === "." ? setCmd((c) => c + ".") : press(x))} className={`${k} text-primary`}>{x}</button>)}
           {["@ 10", "@ 25", "@ 50", "@ 75"].map((x) => <button key={x} onClick={() => setCmd((c) => `${c.split("@")[0]!.trimEnd()} ${x}`.trimStart())} className={k}>{x}</button>)}
           <button onClick={() => setCmd((c) => `${c.split("@")[0]!.trimEnd()} @ +10`.trimStart())} className={k}>+10%</button>
           <button onClick={() => setCmd((c) => `${c.split("@")[0]!.trimEnd()} @ -10`.trimStart())} className={k}>−10%</button>

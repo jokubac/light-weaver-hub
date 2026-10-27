@@ -1094,5 +1094,9 @@
   "Select the lights for the new group first.": "먼저 새 그룹에 추가할 조명을 선택하세요.",
   "Sign in to open your projects, favourites and saved effects on any device.": "모든 기기에서 프로젝트, 즐겨찾기 및 저장된 이펙트를 열려면 로그인하세요.",
   "Unpark the selected lights": "선택한 조명 파크 해제",
-  "Parked": "파킹됨"
+  "Parked": "파킹됨",
+  "Email": "이메일",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "N번째마다 조명 선택 — 예: 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "입력한 범위 또는 선택 항목에서 조명을 하나씩 건너뛰어 선택 (확장된 픽셀도 포함)",
+  "or": "또는"
 }

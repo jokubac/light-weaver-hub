@@ -10,6 +10,8 @@ export interface CommandResult {
   cct?: number;
   levelDelta?: number;
   cctDelta?: number;
+  /** ODD / EVEN / NTH with no numbers: thin the current selection (every `step`th, starting at `offset`) */
+  pattern?: { step: number; offset: number };
   error?: string;
 }
 
@@ -35,11 +37,20 @@ export function parseCommand(cmd: string, count: number): CommandResult {
     if (!t.length) return cctDelta != null ? { cctDelta } : cct != null ? { cct } : {};
   }
   if (!t.length) return { error: "Empty command" };
+  if (t.length === 1 && t[0] === "NTH") return { error: "NTH needs a number, e.g. NTH 3" };
   const at = t.indexOf("@");
   const rawSel = at < 0 ? t : t.slice(0, at);
   // trailing ODD / EVEN thin the selection to every other light
-  const thin = rawSel.includes("ODD") ? 0 : rawSel.includes("EVEN") ? 1 : -1;
-  const selTokens = rawSel.filter((x) => x !== "ODD" && x !== "EVEN");
+  // "NTH 3" keeps every 3rd light of the range (or of the current selection)
+  let step = 2;
+  let thin = rawSel.includes("ODD") ? 0 : rawSel.includes("EVEN") ? 1 : -1;
+  const ni = rawSel.indexOf("NTH");
+  if (ni >= 0) {
+    step = Number(rawSel[ni + 1]);
+    if (!Number.isInteger(step) || step < 1) return { error: "NTH needs a number, e.g. NTH 3" };
+    thin = 0;
+  }
+  const selTokens = rawSel.filter((x, i) => x !== "ODD" && x !== "EVEN" && x !== "NTH" && !(ni >= 0 && i === ni + 1));
   const lvlTokens = at < 0 ? [] : t.slice(at + 1);
   const res: CommandResult = cctDelta != null ? { cctDelta } : cct != null ? { cct } : {};
 
@@ -63,9 +74,9 @@ export function parseCommand(cmd: string, count: number): CommandResult {
       for (const n of nums) if (n >= 1 && n <= count) (mode === "+" ? set.add(n) : set.delete(n));
     }
     res.select = [...set].sort((x, y) => x - y);
-    if (thin >= 0) res.select = res.select.filter((_, i) => i % 2 === thin);
+    if (thin >= 0) res.select = res.select.filter((_, i) => i % step === thin);
     if (!res.select.length) return { error: "No such lights" };
-  }
+  } else if (thin >= 0) res.pattern = { step, offset: thin };
 
   if (at >= 0) {
     const v = lvlTokens.join("").replace(/%$/, "");

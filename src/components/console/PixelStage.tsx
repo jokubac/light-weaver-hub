@@ -1,5 +1,4 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { pickPattern } from "@/lib/select-pattern";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type React from "react";
@@ -344,8 +343,6 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             <span aria-hidden className="mx-1 h-6 w-px bg-border" />
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />{tr("Add fixtures")}</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>{tr("Select all")}</Button>
-            <Button size="sm" variant="secondary" disabled={!px.length} title={tr("Every other light")} onClick={() => setSel((s) => new Set(pickPattern(px.map((f) => f.uid), [...s], "odd")))}>{tr("Odd")}</Button>
-            <Button size="sm" variant="secondary" disabled={!px.length} title={tr("Every other light, from the 2nd")} onClick={() => setSel((s) => new Set(pickPattern(px.map((f) => f.uid), [...s], "even")))}>{tr("Even")}</Button>
             {onRemoveLight && <Button size="sm" variant="secondary" disabled={!sel.size} title={tr("Remove the selected lights from this page (Delete key). Add them back with Add fixtures.")} aria-label={tr("Remove selected lights")} onClick={() => { onRemoveLight([...sel]); setSel(new Set()); }}>{tr("✕ Remove")}{sel.size ? ` ${sel.size}` : tr("")}</Button>}
             <Button size="sm" variant="secondary" disabled={!sel.size} title={tr("Rotate the selected lights 90°")} aria-label={tr("Rotate selected lights 90 degrees")} onClick={() => gridArrange("rotate")}><RotateCw />90°</Button>
             <Popover>

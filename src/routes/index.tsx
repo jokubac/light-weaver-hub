@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { pickPattern } from "@/lib/select-pattern";
 import { subscribeLang, langVersion, loadSavedLang, getLang, isRtl } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
@@ -1056,7 +1055,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     const now = performance.now();
     setPulses((p) => ({ ...p, ...Object.fromEntries(outFixtures.filter((f) => uids.includes(f.uid)).map((f) => [f.uid, { at: now, base: fixtureState(f, t).v, target: fixtureState(f, t).v > 0.05 ? 0 : 1 }])) }));
   };
-  const runCommand = (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number) => {
+  const runCommand = (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number, pattern?: { step: number; offset: number }) => {
+    if (pattern && !select) select = fixtures.map((f, i) => (selected.length > 1 && !selected.includes(f.uid) ? 0 : i + 1)).filter(Boolean).filter((_, i) => i % pattern.step === pattern.offset);
     const ids = select ? select.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x) : selected;
     if (select) { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }
     const command = { ...(level != null ? { level } : {}), ...(cct != null ? { cct } : {}), ...(levelDelta != null ? { levelDelta } : {}), ...(cctDelta != null ? { cctDelta } : {}) };
@@ -1338,9 +1338,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
               <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
                 <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className={chip(false)}>{tr("Select all")}</button>
                 <button onClick={() => setSelected([])} className={chip(false)}>{tr("Clear")}</button>
-                <button title={tr("Every other light (of the selection, or of all)")} onClick={() => setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, "odd"))} className={chip(false)}>{tr("Odd")}</button>
-                <button title={tr("Every other light, starting from the 2nd")} onClick={() => setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, "even"))} className={chip(false)}>{tr("Even")}</button>
-                <button title={tr("Every Nth light")} onClick={() => { const n = Number(prompt("Select every Nth light — N =", "3")); if (n > 0) setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, n)); }} className={chip(false)}>{tr("Nth")}</button>
                  <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title={tr("Drag a finger across lights to select them")}
                   className={chip(sweep)}>{tr("Sweep")}{sweep ? tr("on") : tr("off")}</button>
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
@@ -1417,7 +1414,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                       <div className="flex shrink-0 items-center gap-1">
                         <div title={f.name} className="flex min-w-0 flex-1 items-center gap-1 truncate text-[11px] font-semibold">
                           {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
-                          {f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.name}
+                          {f.on === false && <Power className="h-3 w-3 shrink-0 text-destructive" />}{f.split ? <><span className="shrink-0 rounded bg-primary/15 px-1 font-mono text-primary">PX{f.split.index + 1}</span><span className="truncate font-normal text-muted-foreground">{f.split.name}</span></> : f.name}
                         </div>
                         <FixtureMenu f={f} fixtures={fixtures} locked={locked} groups={groups}
                           onChange={(p) => updateOne(f.uid, p)} onSplit={() => splitPixels(f)} onJoin={() => joinPixels(f)} onGroup={(g, on) => setGroup(f, g, on)}

@@ -1096,5 +1096,7 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "Přihlaste se a otevřete své projekty, oblíbené položky a uložené efekty na libovolném zařízení.",
   "Unpark the selected lights": "Odparkovat vybraná světla",
   "or": "nebo",
-  "Parked": "Zaparkováno"
+  "Parked": "Zaparkováno",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "Každé n-té svítidlo — např. 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Každé druhé svítidlo — ze zadaného rozsahu nebo z výběru (včetně rozbalených pixelů)"
 }

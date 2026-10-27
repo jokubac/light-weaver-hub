@@ -1095,5 +1095,8 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "Inicia sesión para abrir tus proyectos, favoritos y efectos guardados en cualquier dispositivo.",
   "Unpark the selected lights": "Quitar Park a los focos seleccionados",
   "or": "o",
-  "Parked": "Aparcado"
+  "Parked": "Aparcado",
+  "Email": "Correo electrónico",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "Una de cada N luminarias — p. ej., 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Una de cada dos luminarias — del rango introducido o de la selección (también los píxeles expandidos)"
 }
