@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { isIosApp, pairBluetoothMidi, type MidiMap } from "@/lib/midi";
 import { APP_VERSION } from "@/lib/app-version";
+import { LANGS, getLang, setLang, isRtl } from "@/lib/i18n";
 
 import { t as tr } from "@/lib/i18n";
 export interface BtDevice { id: string; name: string; battery: number | null }
@@ -22,6 +23,7 @@ export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, ta
   macros: Macro[]; setMacros: (m: Macro[]) => void; macroLearn: string | null; setMacroLearn: (id: string | null) => void;
 }) {
   const [ios, setIos] = useState(false);
+  const [lang, setLangLocal] = useState(getLang());
   useEffect(() => setIos(isIosApp()), []);
   const mapFor = (t: string) => midi.maps.filter((m) => m.target === t);
   const upd = (id: string, p: Partial<Macro>) => setMacros(macros.map((m) => (m.id === id ? { ...m, ...p } : m)));
