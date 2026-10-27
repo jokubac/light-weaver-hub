@@ -1642,6 +1642,14 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
         progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
+      {masterHint && !masterHintOff && master <= 0 && (
+        <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-glow" />
+          <span className="min-w-0 flex-1">{tr("Master is off — perhaps you forgot to turn the master up?")}</span>
+          <button onClick={() => { try { localStorage.setItem("nox-master-hint", "off"); } catch { /* private mode */ } setMasterHintOff(true); }}
+            className="shrink-0 rounded-md border border-border bg-surface-elevated px-2 py-1 text-xs">{tr("Don't show again")}</button>
+        </div>
+      )}
     </div>
   );
 }
