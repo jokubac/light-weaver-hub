@@ -17,7 +17,7 @@ describe("i18n", () => {
   it("switches to Lithuanian and back", async () => {
     await setLang("lt");
     expect(getLang()).toBe("lt");
-    expect(t("Add fixtures")).toBe("Pridėti įrenginius");
+    expect(t("Add fixtures")).toBe("Pridėti šviestuvus");
     await setLang("en");
     expect(getLang()).toBe("en");
     expect(t("Add fixtures")).toBe("Add fixtures");
