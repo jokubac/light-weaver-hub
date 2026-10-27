@@ -36,7 +36,10 @@ export function parseCommand(cmd: string, count: number): CommandResult {
   }
   if (!t.length) return { error: "Empty command" };
   const at = t.indexOf("@");
-  const selTokens = at < 0 ? t : t.slice(0, at);
+  const rawSel = at < 0 ? t : t.slice(0, at);
+  // trailing ODD / EVEN thin the selection to every other light
+  const thin = rawSel.includes("ODD") ? 0 : rawSel.includes("EVEN") ? 1 : -1;
+  const selTokens = rawSel.filter((x) => x !== "ODD" && x !== "EVEN");
   const lvlTokens = at < 0 ? [] : t.slice(at + 1);
   const res: CommandResult = cctDelta != null ? { cctDelta } : cct != null ? { cct } : {};
 
@@ -60,6 +63,7 @@ export function parseCommand(cmd: string, count: number): CommandResult {
       for (const n of nums) if (n >= 1 && n <= count) (mode === "+" ? set.add(n) : set.delete(n));
     }
     res.select = [...set].sort((x, y) => x - y);
+    if (thin >= 0) res.select = res.select.filter((_, i) => i % 2 === thin);
     if (!res.select.length) return { error: "No such lights" };
   }
 
