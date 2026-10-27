@@ -7,7 +7,7 @@ import { t as tr } from "@/lib/i18n";
 interface Props {
   count: number;
   selectedNums?: number[];
-  onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number) => void;
+  onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number, pattern?: { step: number; offset: number }) => void;
   onStep: (dir: 1 | -1) => void;
   onFlash: () => void;
   onPreview?: (select: number[]) => void;
