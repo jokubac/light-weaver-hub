@@ -13,7 +13,7 @@ import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixtur
 import { CallSheet } from "./CallSheet";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern } from "@/lib/patch-order";
 
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
 export function describeDef(d: FixtureDef): { type: string; cct: string } {
@@ -46,7 +46,43 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     if (cancel || !current?.moved || current.uid === current.target) return;
     const target = fixtures.findIndex((f) => f.uid === current.target);
     if (target < 0) return;
-    onReorder(movePatchFixture(fixtures, current.uid, target));
+    const block = dragBlock(current.uid);
+    onReorder(movePatchBlock(fixtures, block, blockLanding(fixtures, block, target).insertAt));
+  };
+  /** dragging a picked row carries every picked row with it */
+  const dragBlock = (uid: string) => (picked.includes(uid) && picked.length > 1 ? picked : [uid]);
+  const landing = (() => {
+    if (!drag || drag.uid === drag.target) return null;
+    const t = fixtures.findIndex((f) => f.uid === drag.target);
+    if (t < 0) return null;
+    const block = dragBlock(drag.uid);
+    const next = movePatchBlock(fixtures, block, blockLanding(fixtures, block, t).insertAt);
+    const set = new Set(block);
+    // rows (by uid in the current list) whose position the block will take
+    return new Set(blockLanding(fixtures, block, t).rows.map((i) => next[i]).filter((f) => f && !set.has(f.uid)).map((f) => f!.uid).concat(fixtures.filter((_, i) => blockLanding(fixtures, block, t).rows.includes(i)).map((f) => f.uid)));
+  })();
+  const lastPick = useRef<string | null>(null);
+  const rowClick = (e: React.MouseEvent, uid: string) => {
+    if ((e.target as HTMLElement).closest("input,button,select,a,[role=checkbox]")) return;
+    const order = fixtures.map((f) => f.uid);
+    if (e.shiftKey && lastPick.current) {
+      const a = order.indexOf(lastPick.current), b = order.indexOf(uid);
+      const range = order.slice(Math.min(a, b), Math.max(a, b) + 1);
+      setPicked((p) => [...new Set([...p, ...range])]);
+    } else if (e.ctrlKey || e.metaKey) setPicked((p) => (p.includes(uid) ? p.filter((x) => x !== uid) : [...p, uid]));
+    else setPicked((p) => (p.length === 1 && p[0] === uid ? [] : [uid]));
+    lastPick.current = uid;
+  };
+  const bulkRename = () => {
+    const pattern = prompt(`Rename ${picked.length} lights.\nUse {n} for the number (e.g. "Key {n}"), or a comma list (e.g. "Key, Fill, Back").`, "Light {n}");
+    if (!pattern) return;
+    let start = 1, step = 1;
+    if (!pattern.includes(",")) {
+      const st = prompt("Start number", "1"); if (st === null) return; start = Number(st) || 1;
+      const sp = prompt("Step", "1"); if (sp === null) return; step = Number(sp) || 1;
+    }
+    const order = fixtures.filter((f) => picked.includes(f.uid));
+    renamePattern(pattern, order.length, start, step).forEach((name, i) => onUpdate(order[i]!.uid, { name }));
   };
   const each = (p: Partial<PatchedFixture>) => picked.forEach((id) => onUpdate(id, p));
   const unpatch = () => {
@@ -102,6 +138,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
               {picked.length > 0 && <>
                 <span className="ml-2 flex gap-1">{LABEL_COLORS.map((c) => <button key={c} onClick={() => each({ label: c })} aria-label={`Colour ${c}`} className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />)}
                   <button onClick={() => each({ label: undefined } as never)} className="px-1 text-muted-foreground" aria-label="Remove colour">×</button></span>
+                <button onClick={bulkRename} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Rename…</button>
                 <button onClick={() => { const g = prompt(`Groups, comma separated${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove all`); if (g !== null) each(groupsPatch(g.split(","))); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Groups…</button>
               </>}
               <button onClick={unpatch} disabled={!picked.length} className="ml-auto flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1.5 font-semibold text-destructive-foreground disabled:opacity-40"><Unplug className="h-3.5 w-3.5" />Unpatch{picked.length ? ` (${picked.length})` : ""}</button>
@@ -125,7 +162,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                   const d = getDef(f.defId); const m = d.modes[f.modeIdx]; const ch = m?.channels ?? 1;
                   const clash = overlaps(fixtures, f.universe, f.address, ch, f.uid).length > 0;
                   return (
-                    <Frag key={f.uid}><tr data-patch-uid={f.uid} className={`border-b border-border/60 break-inside-avoid ${picked.includes(f.uid) ? "bg-muted/60" : ""} ${drag?.uid === f.uid ? "opacity-50" : ""} ${drag?.target === f.uid && drag.uid !== f.uid ? "outline outline-2 outline-primary" : ""}`}>
+                    <Frag key={f.uid}><tr data-patch-uid={f.uid} className={`border-b border-border/60 break-inside-avoid ${picked.includes(f.uid) ? "bg-muted/60" : ""} ${drag && dragBlock(drag.uid).includes(f.uid) ? "opacity-50" : ""} ${landing?.has(f.uid) ? "outline outline-2 outline-primary bg-primary/10" : ""} cursor-pointer`} onClick={(e) => rowClick(e, f.uid)}>
                       <td className="pr-2 print:hidden"><Checkbox checked={picked.includes(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6" /></td>
                       <td className="py-1.5 pr-2 font-mono text-muted-foreground print:py-0.5">{number}</td>
                       <td className="pr-2 print:hidden"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
@@ -138,7 +175,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <td className="pr-2 font-mono">{ch}</td>
                       <td className="pr-2 print:hidden">{groupText(f)}</td>
                       <td className="whitespace-nowrap print:hidden">
-                        <Button variant="ghost" size="icon" aria-label={`Move ${f.name}`} title="Drag to reorder" className="h-9 w-9 touch-none cursor-grab select-none active:cursor-grabbing"
+                        <Button variant="ghost" size="icon" aria-label={`Move ${f.name}`} title="Drag to reorder (selected lights move together)" className="h-9 w-9 touch-none cursor-grab select-none active:cursor-grabbing"
                           onPointerDown={(e) => {
                             if (e.button !== 0) return;
                             e.preventDefault();
