@@ -16,6 +16,7 @@ import {
   Plus,
   Lightbulb,
   LightbulbOff,
+  AlertTriangle,
   Check,
   Folder,
   Clapperboard,
@@ -471,6 +472,12 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [master, setMaster] = useState(scene.master);
   const [bo, setBo] = useState<{ target: 0 | 1; at: number; from: number }>({ target: 0, at: -10, from: 0 });
   const [selected, setSelected] = useState<string[]>([]);
+  // Gentle reminder when lights are programmed while the master fader sits at 0%.
+  const [masterHint, setMasterHint] = useState(false);
+  const [masterHintOff, setMasterHintOff] = useState(false);
+  const masterHintTs = useRef(0);
+  useEffect(() => { try { if (localStorage.getItem("nox-master-hint") === "off") setMasterHintOff(true); } catch { /* private mode */ } }, []);
+  useEffect(() => { if (!masterHint) return; const id = setTimeout(() => setMasterHint(false), 6000); return () => clearTimeout(id); }, [masterHint]);
   const [copied, setCopied] = useState<{ name: string; settings: FixtureSettings } | null>(null);
   const lastPick = useRef<string | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -704,11 +711,24 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
 
   const exit = () => { save(); onExit(); };
 
-  const updateSelected = (patch: Partial<PatchedFixture>) =>
+  const OUT_KEYS = new Set(["intensity", "cct", "gm", "hue", "saturation", "crossfade", "cctOnly", "fx", "on", "fxPlaying", "fan", "gel", "beam"]);
+  const hintMaster = () => {
+    if (masterHintOff || master > 0 || Date.now() - masterHintTs.current < 8000) return;
+    masterHintTs.current = Date.now();
+    setMasterHint(true);
+  };
+  const updateSelected = (patch: Partial<PatchedFixture>) => {
+    if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
     setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
-  const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) =>
+  };
+  const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => {
+    hintMaster();
     setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
-  const updateOne = (id: string, patch: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
+  };
+  const updateOne = (id: string, patch: Partial<PatchedFixture>) => {
+    if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
+    setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
+  };
 
   const fire = (kind: TriggerKind) => {
     const targets = selected.length ? selected : fixtures.map((f) => f.uid);
@@ -1622,6 +1642,14 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
         progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
+      {masterHint && !masterHintOff && master <= 0 && (
+        <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-glow" />
+          <span className="min-w-0 flex-1">{tr("Master is off — perhaps you forgot to turn the master up?")}</span>
+          <button onClick={() => { try { localStorage.setItem("nox-master-hint", "off"); } catch { /* private mode */ } setMasterHintOff(true); }}
+            className="shrink-0 rounded-md border border-border bg-surface-elevated px-2 py-1 text-xs">{tr("Don't show again")}</button>
+        </div>
+      )}
     </div>
   );
 }
