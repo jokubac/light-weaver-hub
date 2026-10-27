@@ -292,3 +292,4 @@
 - [ ] Pixel effects disappearing bug
 - [ ] Multi-language (EN/LT)
 - [ ] Astera: verify unverified models; Kelvin ranges per model
+- [ ] Multi-language UI (i18n): 24 languages from user list, picker in Settings, Arabic RTL, translations via AI — in progress
