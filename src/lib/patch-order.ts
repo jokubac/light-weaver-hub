@@ -36,3 +36,34 @@ export function movePatchFixture(fixtures: PatchedFixture[], uid: string, target
   result.splice(targetIndex, 0, fixture);
   return result;
 }
+/** Moves a block of fixtures (kept in patch order) so its first fixture lands at targetIndex of the remaining list. */
+export function movePatchBlock(fixtures: PatchedFixture[], uids: string[], targetIndex: number): PatchedFixture[] {
+  const set = new Set(uids);
+  const block = fixtures.filter((f) => set.has(f.uid));
+  if (!block.length) return fixtures;
+  const rest = fixtures.filter((f) => !set.has(f.uid));
+  const at = Math.max(0, Math.min(rest.length, targetIndex));
+  return [...rest.slice(0, at), ...block, ...rest.slice(at)];
+}
+
+/** Indices a dragged block will occupy when dropped on the row at dropIndex (in the current list). */
+export function blockLanding(fixtures: PatchedFixture[], uids: string[], dropIndex: number): { insertAt: number; rows: number[] } {
+  const set = new Set(uids);
+  const before = fixtures.slice(0, dropIndex).filter((f) => !set.has(f.uid)).length;
+  const n = fixtures.filter((f) => set.has(f.uid)).length;
+  const draggedFirst = fixtures.findIndex((f) => set.has(f.uid));
+  const insertAt = dropIndex > draggedFirst ? before + 1 - (set.has(fixtures[dropIndex]?.uid ?? "") ? 1 : 0) : before;
+  return { insertAt, rows: Array.from({ length: n }, (_, i) => insertAt + i) };
+}
+
+/** Bulk names: "{n}" is replaced with start + i*step; without it the number is appended. A comma list is used as-is. */
+export function renamePattern(pattern: string, count: number, start = 1, step = 1): string[] {
+  if (pattern.includes(",")) {
+    const list = pattern.split(",").map((s) => s.trim()).filter(Boolean);
+    return Array.from({ length: count }, (_, i) => list[i] ?? `${list[list.length - 1] ?? ""} ${i + 1}`);
+  }
+  return Array.from({ length: count }, (_, i) => {
+    const n = String(start + i * step);
+    return pattern.includes("{n}") ? pattern.split("{n}").join(n) : `${pattern} ${n}`.trim();
+  });
+}
