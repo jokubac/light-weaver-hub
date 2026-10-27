@@ -1,6 +1,7 @@
 // Multi-language support for the NOX console UI.
 // Dictionaries live in src/lib/i18n/<code>.json and map the English UI string
 // to its translation; a missing entry falls back to the English string itself.
+// Each language file is lazy-loaded on first use to keep the startup bundle small.
 export interface LangInfo { code: string; label: string; rtl?: boolean }
 
 export const LANGS: LangInfo[] = [
@@ -32,16 +33,18 @@ export const LANGS: LangInfo[] = [
 
 const LANG_KEY = "nox-lang";
 
-const modules = import.meta.glob("./i18n/*.json", { eager: true, import: "default" }) as Record<string, Record<string, string>>;
-const dicts = new Map<string, Record<string, string>>();
-for (const [path, dict] of Object.entries(modules)) {
-  const code = path.replace(/^.*\/i18n\//, "").replace(/\.json$/, "");
-  dicts.set(code, dict);
-}
+const loaders = import.meta.glob("./i18n/*.json") as Record<string, () => Promise<{ default: Record<string, string> }>>;
+const loaded = new Map<string, Record<string, string>>();
 
 let lang = "en";
 let version = 0;
 const listeners = new Set<() => void>();
+const pending = new Map<string, Promise<void>>();
+
+function notify() {
+  version++;
+  for (const fn of listeners) fn();
+}
 
 export function getLang(): string {
   return lang;
@@ -54,26 +57,39 @@ export function isRtl(code = lang): boolean {
 /** Translate a UI string. Keys are the English strings themselves. */
 export function t(key: string): string {
   if (lang === "en") return key;
-  return dicts.get(lang)?.[key] ?? key;
+  return loaded.get(lang)?.[key] ?? key;
 }
 
-export function setLang(code: string) {
-  if (!LANGS.some((l) => l.code === code) || code === lang) return;
-  lang = code;
+function valid(code: string): boolean {
+  return !!LANGS.some((l) => l.code === code);
+}
+
+async function ensureDict(code: string) {
+  if (code === "en" || loaded.has(code)) return;
+  let p = pending.get(code);
+  if (!p) {
+    p = (loaders[`./i18n/${code}.json`]?.() ?? Promise.reject(new Error(`no dictionary for ${code}`)))
+      .then((m) => { loaded.set(code, m.default); pending.delete(code); });
+    pending.set(code, p);
+  }
+  await p;
+}
+
+/** Switch the UI language. Loads the dictionary, saves the choice, re-renders. */
+export async function setLang(code: string) {
+  if (!valid(code) || code === lang) return;
   try { localStorage.setItem(LANG_KEY, code); } catch { /* private mode */ }
-  version++;
-  for (const fn of listeners) fn();
+  await ensureDict(code);
+  if (lang === code) return;
+  lang = code;
+  notify();
 }
 
 /** Read the saved language on the client. Call once from a mount effect. */
 export function loadSavedLang() {
   let saved: string | null = null;
   try { saved = localStorage.getItem(LANG_KEY); } catch { /* private mode */ }
-  if (saved && saved !== lang && LANGS.some((l) => l.code === saved)) {
-    lang = saved;
-    version++;
-    for (const fn of listeners) fn();
-  }
+  if (saved && saved !== lang && valid(saved)) void setLang(saved);
 }
 
 export function subscribeLang(fn: () => void): () => void {

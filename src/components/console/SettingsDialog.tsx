@@ -42,7 +42,7 @@ export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, ta
         <div className="space-y-5 text-xs">
           <label className="flex items-center justify-between gap-2 rounded-md bg-surface-elevated px-3 py-2 font-semibold">
             <span className="flex items-center gap-1.5"><Languages className="h-4 w-4" />{tr("Language")}</span>
-            <select value={lang} dir="ltr" onChange={(e) => { const v = e.target.value; setLang(v); setLangLocal(v); }} className="max-w-[60%] rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none focus:border-primary">
+            <select value={lang} dir="ltr" onChange={(e) => { const v = e.target.value; void setLang(v); setLangLocal(v); }} className="max-w-[60%] rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none focus:border-primary">
               {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
             </select>
           </label>
