@@ -496,9 +496,9 @@ export interface PatchedFixture {
   /** one pixel of a split pixel fixture, controlled as its own light */
   split?: { from: string; name: string; index: number; of: number; cpp: number };
   /** after joining split pixels that differed: per-pixel colour (0-255, already scaled by each pixel's brightness) */
-  pixelHold?: [number, number, number][];
+  pixelHold?: [number, number, number][] | undefined;
   /** after joining: each pixel's own settings, restored when the light is expanded again */
-  pixelCells?: import("./store").LookState[];
+  pixelCells?: import("./store").LookState[] | undefined;
   /** battery the light runs on (V-mount / Instagrid) for runtime estimates */
   power?: import("./power").PowerSource;
   /** REC overlap: the outgoing cue still on this light; output is the merge of both, effects included */

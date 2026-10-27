@@ -3,7 +3,7 @@ import { normalizeFixture, type PatchedFixture } from "./dmx";
 import { joinCellState, withPixelHold } from "./pixel-hold";
 
 const cell = (i: number, intensity: number): PatchedFixture =>
-  ({ ...normalizeFixture({ uid: `c${i}`, defId: "astera-titan-tube", modeIndex: 0, universe: 1, address: 1 + i * 3, name: `T px${i + 1}` } as PatchedFixture), intensity, on: true, fxPlaying: false });
+  ({ ...normalizeFixture({ uid: `c${i}`, defId: "astera-titan-tube", modeIdx: 0, universe: 1, address: 1 + i * 3, name: `T px${i + 1}` }), intensity, on: true, fxPlaying: false });
 
 describe("joining split pixels", () => {
   it("every other pixel lit stays every other pixel lit after joining", () => {
