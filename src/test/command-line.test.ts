@@ -36,3 +36,10 @@ describe("ODD / EVEN", () => {
   it("1 THRU 6 ODD selects 1,3,5", () => expect(pc2("1 THRU 6 ODD @ 50", 10).select).toEqual([1, 3, 5]));
   it("1 THRU 6 EVEN selects 2,4,6", () => expect(pc2("1 THRU 6 EVEN", 10).select).toEqual([2, 4, 6]));
 });
+
+describe("Decimal point on the keypad", () => {
+  it("@ 50.5 sets half a percent more than 50", () => expect(pc2("1 @ 50.5", 10).level).toBeCloseTo(0.505));
+  it("@ 25. (trailing dot) still means 25", () => expect(pc2("1 @ 25.", 10).level).toBeCloseTo(0.25));
+  it("CCT 3200.5 is accepted", () => expect(pc2("1 CCT 3200.5", 10).cct).toBe(3201));
+  it("@ .5 is rejected, not silently zero", () => expect(pc2("1 @ .5", 10).error).toBeTruthy());
+});
