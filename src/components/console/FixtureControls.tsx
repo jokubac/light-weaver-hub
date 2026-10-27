@@ -50,7 +50,7 @@ export function Control({
         {entry ? <EntryField label={label} entry={entry} onChange={onChange} /> : <span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} min={min * (display.endsWith("%") ? 100 : 1)} max={max * (display.endsWith("%") ? 100 : 1)} value={+(value * (display.endsWith("%") ? 100 : 1)).toFixed(2)} onChange={(n) => { if (n !== undefined) onChange(Math.max(min, Math.min(max, n / (display.endsWith("%") ? 100 : 1)))); }} className="w-16 rounded border border-input bg-surface-elevated px-1 py-0.5 text-right" />{display.endsWith("%") ? "%" : ""}</span>}
       </div>
       <input
-        type="range" min={min} max={max} step={(max - min) / 400} value={value}
+        type="range" min={min} max={max} step={(max - min) / 10000} value={value}
         onChange={(e) => onChange(+e.target.value)}
         aria-label={`${label} slider`}
         className="w-full"
@@ -144,12 +144,12 @@ export function FixtureControls({
         <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
       </Section>
 
-      {beamChannels(first).size > 0 && <Section title="Position & Beam"><BeamControls first={first} updateEach={updateEach} /></Section>}
+      {sel.some((f) => beamChannels(f).size > 0) && <Section title="Position & Beam"><BeamControls first={first} updateEach={updateEach} /></Section>}
 
-      {<><Section title="Advanced">
+      {<>{sel.length > 1 && <Section title="Advanced">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Fan</div>
         <FanControl value={first.fan} update={update} />
-      </Section>
+      </Section>}
 
       <Section title="Trigger">
         <div className="grid grid-cols-2 gap-2">

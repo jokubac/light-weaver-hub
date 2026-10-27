@@ -36,17 +36,18 @@ export function CctMacros({ value, update }: { value: number; update: Upd }) {
 }
 
 const GM_STEPS: { v: number; l: string }[] = [
-  { v: -1, l: "−1" }, { v: -0.5, l: "−½" }, { v: -0.25, l: "−¼" }, { v: 0, l: "0" }, { v: 0.25, l: "+¼" }, { v: 0.5, l: "+½" }, { v: 1, l: "+1" },
+  { v: -1, l: "−1" }, { v: -0.5, l: "−½" }, { v: -0.25, l: "−¼" }, { v: -0.125, l: "−⅛" }, { v: -0.0625, l: "−1/16" }, { v: 0, l: "0" },
+  { v: 0.0625, l: "+1/16" }, { v: 0.125, l: "+⅛" }, { v: 0.25, l: "+¼" }, { v: 0.5, l: "+½" }, { v: 1, l: "+1" },
 ];
 export function GmMacros({ value, update }: { value: number; update: Upd }) {
   return (
     <div className="space-y-1">
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-6 gap-1">
         {GM_STEPS.map((s) => (
-          <button key={s.v} onClick={() => update({ gm: s.v })} className={`rounded-md py-2 text-[11px] font-semibold active:scale-95 ${Math.abs(value - s.v) < 0.01 ? "bg-primary text-primary-foreground" : s.v < 0 ? "bg-surface-elevated text-[rgb(255,120,220)]" : s.v > 0 ? "bg-surface-elevated text-success" : "bg-surface-elevated"}`}>{s.l}</button>
+          <button key={s.v} onClick={() => update({ gm: s.v })} className={`rounded-md py-2 text-[11px] font-semibold active:scale-95 ${Math.abs(value - s.v) < 0.005 ? "bg-primary text-primary-foreground" : s.v < 0 ? "bg-surface-elevated text-[rgb(255,120,220)]" : s.v > 0 ? "bg-surface-elevated text-success" : "bg-surface-elevated"}`}>{s.l}</button>
         ))}
       </div>
-      <p className="text-[10px] text-muted-foreground">− = minus green (magenta) · + = plus green · steps like ¼, ½, full gel</p>
+      <p className="text-[10px] text-muted-foreground">− = minus green (magenta) · + = plus green · steps from 1/16 to full gel</p>
     </div>
   );
 }

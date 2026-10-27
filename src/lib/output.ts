@@ -2,7 +2,7 @@
 // local CRMX bridge, which sends Art-Net / sACN to the transmitter.
 // Channel layouts are generic per mode type — check against each fixture's DMX chart.
 
-import { fixtureState, resolveCctMix, getMode, kelvin, BEAM_ATTRS, type BeamAttr, type PatchedFixture } from "./dmx";
+import { fixtureState, resolveCctMix, getMode, getDef, kelvin, BEAM_ATTRS, type BeamAttr, type PatchedFixture } from "./dmx";
 const BEAM_SET = new Set<string>(BEAM_ATTRS);
 import type { Connection } from "./store";
 import { asteraTokens, CELL_TOKENS } from "./astera";
@@ -137,12 +137,14 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
     if (f.split.cpp >= 4) w(Math.min(r, g, b) * v);
     return;
   }
+  /** fraction of the light's own CCT range: the console's 2000–10000 K value is re-encoded onto the fixture's real span */
+  const cctFrac = cctToFixture(kelvin(f.cct), getDef(f.defId).cctRange);
   if (mode.channelMap) {
     // imported (GDTF / Fixture builder) layouts: one entry per DMX slot, "fine" = low byte of a 16-bit pair
     const valueFor = (attr: string): number => {
       switch (attr) {
         case "Dimmer": return v;
-        case "CCT": return f.cct;
+        case "CCT": return cctFrac;
         case "GM": return (f.gm + 1) / 2;
         case "Hue": return hue;
         case "Saturation": return saturation;
@@ -210,7 +212,7 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
     return;
   }
   const w = writer(buf, f.address, wide);
-  const cct = f.cct, gm = (f.gm + 1) / 2;
+  const cct = cctFrac, gm = (f.gm + 1) / 2;
   switch (mode.kind) {
     case "dim": w(v); break;
     case "cct": w(v); w(cct); break;
@@ -350,4 +352,10 @@ export function createSender(onStatus: (s: BridgeStatus) => void) {
     if (conn.transport === "direct" && isNativeApp()) return direct(conn, universes);
     return bridge(conn, universes);
   };
+}
+
+/** Kelvin → 0..1 on a fixture range; no range keeps the console's 2000–10000 K scale. */
+export function cctToFixture(k: number, range?: [number, number]): number {
+  const [lo, hi] = range && range[1] > range[0] ? range : [2000, 10000];
+  return Math.max(0, Math.min(1, (k - lo) / (hi - lo)));
 }

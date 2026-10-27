@@ -37,3 +37,4 @@
 - Timeline: + Fixture / + Group / simple + Effect / + REC (own effects), clip settings in right sidebar, floating visualiser (TimelineVisualiser) that can be moved, resized and closed.
 - BLIND freezes the last built DMX universes in the sender effect while editing continues; Screen Lock is a UI overlay only, output keeps running.
 - Park (Project.parked), cue Tracking/Cue-only, programmer diff and MTC decoding live in pure src/lib/show-control.ts; Park holds a light at its stored state for output and for the live fixture state (index.tsx re-applies it on every fixture write), so no cue, fader, keypad or effect edit moves a parked light until it is unparked.
+- Non-Astera CCT channels (simple kinds and channelMaps without physicalRange) encode Kelvin onto FixtureDef.cctRange via cctToFixture, so the shown Kelvin matches each light's real span.

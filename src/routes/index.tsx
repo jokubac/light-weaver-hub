@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pickPattern } from "@/lib/select-pattern";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
 import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
@@ -1307,6 +1308,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
               <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
                 <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className={chip(false)}>Select all</button>
                 <button onClick={() => setSelected([])} className={chip(false)}>Clear</button>
+                <button title="Every other light (of the selection, or of all)" onClick={() => setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, "odd"))} className={chip(false)}>Odd</button>
+                <button title="Every other light, starting from the 2nd" onClick={() => setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, "even"))} className={chip(false)}>Even</button>
+                <button title="Every Nth light" onClick={() => { const n = Number(prompt("Select every Nth light — N =", "3")); if (n > 0) setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, n)); }} className={chip(false)}>Nth</button>
                  <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
                   className={chip(sweep)}>Sweep {sweep ? "on" : "off"}</button>
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />

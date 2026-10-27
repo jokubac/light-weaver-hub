@@ -30,3 +30,9 @@ describe("parseCommand", () => {
     expect(inverseFlash({ ...f, on: false }, .5, 0, 1)).toMatchObject({ intensity: 1, on: true });
   });
 });
+
+import { parseCommand as pc2 } from "@/lib/command-line";
+describe("ODD / EVEN", () => {
+  it("1 THRU 6 ODD selects 1,3,5", () => expect(pc2("1 THRU 6 ODD @ 50", 10).select).toEqual([1, 3, 5]));
+  it("1 THRU 6 EVEN selects 2,4,6", () => expect(pc2("1 THRU 6 EVEN", 10).select).toEqual([2, 4, 6]));
+});
