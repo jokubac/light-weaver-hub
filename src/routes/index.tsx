@@ -16,6 +16,7 @@ import {
   Plus,
   Lightbulb,
   LightbulbOff,
+  AlertTriangle,
   Check,
   Folder,
   Clapperboard,
@@ -471,6 +472,12 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [master, setMaster] = useState(scene.master);
   const [bo, setBo] = useState<{ target: 0 | 1; at: number; from: number }>({ target: 0, at: -10, from: 0 });
   const [selected, setSelected] = useState<string[]>([]);
+  // Gentle reminder when lights are programmed while the master fader sits at 0%.
+  const [masterHint, setMasterHint] = useState(false);
+  const [masterHintOff, setMasterHintOff] = useState(false);
+  const masterHintTs = useRef(0);
+  useEffect(() => { try { if (localStorage.getItem("nox-master-hint") === "off") setMasterHintOff(true); } catch { /* private mode */ } }, []);
+  useEffect(() => { if (!masterHint) return; const id = setTimeout(() => setMasterHint(false), 6000); return () => clearTimeout(id); }, [masterHint]);
   const [copied, setCopied] = useState<{ name: string; settings: FixtureSettings } | null>(null);
   const lastPick = useRef<string | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
