@@ -278,6 +278,36 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
         <Button size="icon" variant={repeat ? "default" : "secondary"} aria-label={trUI("Repeat")} aria-pressed={repeat} title={trUI("Repeat")} onClick={onRepeat}><Repeat /></Button>
         <span className="w-20 font-mono text-sm tabular-nums">{fmt(time)}</span>
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
+        <Popover>
+          <PopoverTrigger asChild><Button variant={timeline.loop?.on ? "default" : "secondary"} size="sm">{trUI("Loop & tempo")}<ChevronDown /></Button></PopoverTrigger>
+          <PopoverContent align="start" className="flex w-56 flex-col gap-1.5 p-2">
+          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Loop start at playhead (I)")} onClick={() => setLoop({ a: time })}>{trUI("In")}</Button>
+          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Loop end at playhead (O)")} onClick={() => setLoop({ b: time, on: true })}>{trUI("Out")}</Button>
+          <Button className="w-full justify-start" variant={timeline.loop?.on ? "default" : "secondary"} size="sm" aria-pressed={!!timeline.loop?.on} title={trUI("Loop the In–Out region (L)")} onClick={() => setLoop({ on: !timeline.loop?.on })}><Repeat2 />{trUI("Loop")}</Button>
+          <label className="flex items-center gap-1 text-xs">{trUI("BPM")}<NumberField aria-label={trUI("Tempo")} allowEmpty placeholder="—" min={20} max={300} value={timeline.bpm} onChange={(v) => setTimeline({ ...timeline, bpm: v })} className={field} /></label>
+          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Tap 3+ times to set the tempo")} onClick={tap}>{trUI("Tap")}</Button>
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild><Button variant={"secondary"} size="sm">{trUI("Layers")}<ChevronDown /></Button></PopoverTrigger>
+          <PopoverContent align="start" className="flex w-56 flex-col gap-1.5 p-2">
+          <Button className="w-full justify-start" variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />{trUI("Layer")}</Button>
+          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Adjustment layer — changes brightness and colour of every layer below it")} onClick={addAdjust}><SlidersHorizontal />{trUI("Adjust")}</Button>
+          <Button className="w-full justify-start" variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? trUI("Replace audio") : trUI("Add audio")}</Button>
+          <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild><Button variant={"secondary"} size="sm">{trUI("File")}<ChevronDown /></Button></PopoverTrigger>
+          <PopoverContent align="start" className="flex w-56 flex-col gap-1.5 p-2">
+          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Save this timeline for later")} onClick={() => { const n = prompt(trUI("Timeline name"), ""); if (n !== null) onSaveAs?.(n); }}>{trUI("Save")}</Button>
+          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Export this timeline as an effect file")} onClick={() => { const b = new Blob([JSON.stringify({ nox: "timeline-effect", v: 1, timeline }, null, 1)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "timeline-effect.noxfx.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }}>{trUI("Export effect")}</Button>
+          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Import a timeline effect file")} onClick={() => fxRef.current?.click()}>{trUI("Import effect")}</Button>
+          <input ref={fxRef} type="file" accept=".json,application/json" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; try { const d = JSON.parse(await f.text()); const tl = d?.timeline ?? d; if (!Array.isArray(tl?.tracks) || !Array.isArray(tl?.clips)) throw 0; setTimeline(tl); } catch { alert(trUI("This file is not a timeline effect.")); } }} />
+          </PopoverContent>
+        </Popover>
+        <Button variant="secondary" size="sm" aria-label={trUI("Marker")} title={trUI("Playback stops here until GO")} onClick={addMarker}><Flag />{trUI("Marker")}</Button>
+        <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <AddMenu label={trUI("Fixture")} onPick={addClip} search sections={[{ title: "Lights", items: fixtures.map((f, i) => ({ value: `light:${f.uid}`, label: f.name, hint: `${i + 1}` })), empty: "Patch lights first" }]} />
         <AddMenu label={trUI("Group")} onPick={addClip} sections={[
           ...(selected.length > 1 ? [{ title: "Selection", items: [{ value: "on", label: "Selected lights", hint: `${selected.length}` }] }] : []),
@@ -296,42 +326,13 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <Button size="icon" variant="secondary" aria-label={trUI("Undo")} title={trUI("Undo (Ctrl+Z)")} disabled={!hist.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button size="icon" variant="secondary" aria-label={trUI("Redo")} title={trUI("Redo (Ctrl+Shift+Z)")} disabled={!hist.current.canRedo} onClick={redo}><Redo2 /></Button>
-        <Button variant="secondary" size="sm" title={trUI("Split clips at the playhead (S)")} onClick={split}><Scissors />{trUI("Split")}</Button>
-        <Button variant="secondary" size="sm" aria-label={trUI("Delete selected")} title={trUI("Delete the selected clips")} disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 />{trUI("Delete")}</Button>
-        <Button variant="secondary" size="sm" title={trUI("Select every clip")} onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />{trUI("Select all")}</Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Split")} title={trUI("Split clips at the playhead (S)")} onClick={split}><Scissors /></Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Delete selected")} title={trUI("Delete the selected clips")} disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 /></Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Select all")} title={trUI("Select every clip")} onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed /></Button>
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-        <Button variant={magnet ? "default" : "secondary"} size="sm" aria-pressed={magnet} title={trUI("Magnet — clips snap to the ends of other clips and the playhead")} onClick={() => setMagnet((m) => !m)}><Magnet />{trUI("Magnet")}</Button>
-        <Button variant={viz ? "default" : "secondary"} size="sm" title={trUI("Show or hide the light visualiser")} onClick={() => setViz((v) => !v)}><MonitorPlay />{trUI("Visualiser")}</Button>
+        <Button size="icon" variant={magnet ? "default" : "secondary"} aria-label={trUI("Magnet")} aria-pressed={magnet} title={trUI("Magnet — clips snap to the ends of other clips and the playhead")} onClick={() => setMagnet((m) => !m)}><Magnet /></Button>
+        <Button size="icon" variant={viz ? "default" : "secondary"} aria-label={trUI("Visualiser")} title={trUI("Show or hide the light visualiser")} onClick={() => setViz((v) => !v)}><MonitorPlay /></Button>
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-        <Popover>
-          <PopoverTrigger asChild><Button variant={timeline.loop?.on ? "default" : "secondary"} size="sm">{trUI("Loop & tempo")}<ChevronDown /></Button></PopoverTrigger>
-          <PopoverContent align="start" className="flex w-56 flex-col gap-1.5 p-2">
-          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Loop start at playhead (I)")} onClick={() => setLoop({ a: time })}>{trUI("In")}</Button>
-          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Loop end at playhead (O)")} onClick={() => setLoop({ b: time, on: true })}>{trUI("Out")}</Button>
-          <Button className="w-full justify-start" variant={timeline.loop?.on ? "default" : "secondary"} size="sm" aria-pressed={!!timeline.loop?.on} title={trUI("Loop the In–Out region (L)")} onClick={() => setLoop({ on: !timeline.loop?.on })}><Repeat2 />{trUI("Loop")}</Button>
-          <label className="flex items-center gap-1 text-xs">{trUI("BPM")}<NumberField aria-label={trUI("Tempo")} allowEmpty placeholder="—" min={20} max={300} value={timeline.bpm} onChange={(v) => setTimeline({ ...timeline, bpm: v })} className={field} /></label>
-          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Tap 3+ times to set the tempo")} onClick={tap}>{trUI("Tap")}</Button>
-          </PopoverContent>
-        </Popover>
-        <Popover>
-          <PopoverTrigger asChild><Button variant={"secondary"} size="sm">{trUI("Layers")}<ChevronDown /></Button></PopoverTrigger>
-          <PopoverContent align="start" className="flex w-56 flex-col gap-1.5 p-2">
-          <Button className="w-full justify-start" variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />{trUI("Layer")}</Button>
-          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Adjustment layer — changes brightness and colour of every layer below it")} onClick={addAdjust}><SlidersHorizontal />{trUI("Adjust")}</Button>
-          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Playback stops here until GO")} onClick={addMarker}><Flag />{trUI("Marker")}</Button>
-          <Button className="w-full justify-start" variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? trUI("Replace audio") : trUI("Add audio")}</Button>
-          <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
-          </PopoverContent>
-        </Popover>
-        <Popover>
-          <PopoverTrigger asChild><Button variant={"secondary"} size="sm">{trUI("File")}<ChevronDown /></Button></PopoverTrigger>
-          <PopoverContent align="start" className="flex w-56 flex-col gap-1.5 p-2">
-          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Save this timeline for later")} onClick={() => { const n = prompt(trUI("Timeline name"), ""); if (n !== null) onSaveAs?.(n); }}>{trUI("Save")}</Button>
-          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Export this timeline as an effect file")} onClick={() => { const b = new Blob([JSON.stringify({ nox: "timeline-effect", v: 1, timeline }, null, 1)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "timeline-effect.noxfx.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }}>{trUI("Export effect")}</Button>
-          <Button className="w-full justify-start" variant="secondary" size="sm" title={trUI("Import a timeline effect file")} onClick={() => fxRef.current?.click()}>{trUI("Import effect")}</Button>
-          <input ref={fxRef} type="file" accept=".json,application/json" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; try { const d = JSON.parse(await f.text()); const tl = d?.timeline ?? d; if (!Array.isArray(tl?.tracks) || !Array.isArray(tl?.clips)) throw 0; setTimeline(tl); } catch { alert(trUI("This file is not a timeline effect.")); } }} />
-          </PopoverContent>
-        </Popover>
         <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">{trUI("Zoom")}<input type="range" min={5} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} className="w-28" /></label>
       </div>
 
