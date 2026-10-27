@@ -339,14 +339,14 @@ function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, on
   const toggle = (id: string) => setOpen((o) => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   return (
     <div className="min-h-screen">
-      <Header title={tr("NOX")} subtitle="Projects & scenes" right={account} />
+      <Header title={tr("NOX")} subtitle={tr("Projects & scenes")} right={account} />
       <main className="mx-auto max-w-3xl space-y-6 p-5">
         <div className="space-y-3">
           <NewItemForm placeholder={tr("New project name (e.g. Commercial Day 1)")} onCreate={(n) => onCreate(n, color)} />
           <ColorSwatches value={color} onChange={setColor} />
         </div>
         {projects.length === 0 ? (
-          <Empty icon={<Folder className="h-10 w-10" />} text="No projects yet. Create one to start patching lights." />
+          <Empty icon={<Folder className="h-10 w-10" />} text={tr("No projects yet. Create one to start patching lights.")} />
         ) : (
           <div className="overflow-hidden rounded-xl border border-border bg-card">
             {projects.map((p) => {
@@ -1500,7 +1500,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
           <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
             {fixtures.length === 0 ? (
-              <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Open PATCH to add them." />
+              <Empty icon={<Lightbulb className="h-10 w-10" />} text={tr("No lights patched. Open PATCH to add them.")} />
             ) : (
               fixtureBoard()
             )}
@@ -1605,7 +1605,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="fixture-area min-h-0 flex-1 overflow-auto p-4">
           {fixtures.length === 0 ? (
-            <Empty icon={<Lightbulb className="h-10 w-10" />} text="No lights patched. Choose a manufacturer, model and mode in the patch panel." />
+            <Empty icon={<Lightbulb className="h-10 w-10" />} text={tr("No lights patched. Choose a manufacturer, model and mode in the patch panel.")} />
           ) : (
               fixtureBoard()
           )}

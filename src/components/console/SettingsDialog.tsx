@@ -38,7 +38,7 @@ export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, ta
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader><DialogTitle>{tr("Settings")}</DialogTitle><p className="font-mono text-xs text-muted-foreground">NOX v{APP_VERSION}</p></DialogHeader>
+        <DialogHeader><DialogTitle>{tr("Settings")}</DialogTitle><p className="font-mono text-xs text-muted-foreground">{tr("NOX v")}{APP_VERSION}</p></DialogHeader>
         <div className="space-y-5 text-xs">
           <label className="flex items-center justify-between gap-2 rounded-md bg-surface-elevated px-3 py-2 font-semibold">
             <span className="flex items-center gap-1.5"><Languages className="h-4 w-4" />{tr("Language")}</span>
