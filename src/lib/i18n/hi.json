@@ -1095,5 +1095,8 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "किसी भी डिवाइस पर अपने प्रोजेक्ट्स, फ़ेवरेट्स और सहेजे गए इफ़ेक्ट्स खोलने के लिए साइन इन करें।",
   "Unpark the selected lights": "चयनित लाइटों को अनपार्क करें",
   "or": "या",
-  "Parked": "पार्क किया गया"
+  "Parked": "पार्क किया गया",
+  "Email": "ईमेल",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "हर Nवीं लाइट — जैसे 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "एक छोड़कर हर अगली लाइट — दर्ज की गई रेंज में से, या चयन में से (विस्तारित पिक्सेल भी)"
 }

@@ -1096,5 +1096,7 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "Log in om je projecten, favorieten en opgeslagen effecten op elk apparaat te openen.",
   "Unpark the selected lights": "Parkering van geselecteerde lampen opheffen",
   "or": "of",
-  "Parked": "Geparkeerd"
+  "Parked": "Geparkeerd",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "Elke zoveelste lamp — bijv. 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Om de andere lamp — binnen het ingevoerde bereik of de selectie (ook uitgeklapte pixels)"
 }

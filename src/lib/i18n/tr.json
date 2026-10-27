@@ -1096,5 +1096,7 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "Projelerinizi, favorilerinizi ve kayıtlı efektlerinizi herhangi bir cihazda açmak için giriş yapın.",
   "Unpark the selected lights": "Seçili ışıkları parktan çıkar",
   "or": "veya",
-  "Parked": "Park edildi"
+  "Parked": "Park edildi",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "Her N'inci ışık — ör. 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Girilen aralıkta veya seçimde birer ışık atlayarak (genişletilmiş pikseller de dahil)"
 }

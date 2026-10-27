@@ -1096,5 +1096,7 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "Logi sisse, et avada oma projektid, lemmikud ja salvestatud efektid mis tahes seadmes.",
   "Unpark the selected lights": "Vabasta valitud valgustid",
   "or": "või",
-  "Parked": "Pargitud"
+  "Parked": "Pargitud",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "Iga N-s valgusti — nt 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Iga teine valgusti — sisestatud vahemikus või valikus (ka laiendatud pikslid)"
 }

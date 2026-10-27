@@ -1096,5 +1096,7 @@
   "Sign in to open your projects, favourites and saved effects on any device.": "Logga in för att öppna dina projekt, favoriter och sparade effekter på valfri enhet.",
   "Unpark the selected lights": "Avparkera valda lampor",
   "or": "eller",
-  "Parked": "Parkerad"
+  "Parked": "Parkerad",
+  "Every Nth light — e.g. 1 THRU 16 NTH 3": "Var N:e armatur — t.ex. 1 THRU 16 NTH 3",
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Varannan armatur — i det angivna intervallet eller i markeringen (även expanderade pixlar)"
 }
