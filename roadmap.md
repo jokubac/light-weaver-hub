@@ -293,6 +293,6 @@
 - [ ] Astera: verify unverified models; Kelvin ranges per model
 - [x] Multi-language UI (i18n): 24 languages, picker in Settings, Arabic RTL, tab/macro labels translated — done
 
-- [ ] Park: show marker on the parked lights themselves
-- [ ] Blind: yellow glowing ring around the whole app edge (like REC red border)
-- [ ] Review translations for all languages
+- [x] Park: show marker on the parked lights themselves
+- [x] Blind: yellow glowing ring around the whole app edge (like REC red border)
+- [x] Review translations for all languages

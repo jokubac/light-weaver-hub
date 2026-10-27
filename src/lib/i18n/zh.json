@@ -1095,5 +1095,6 @@
   "Select the lights for the new group first.": "请先选择要加入新组的灯具。",
   "Sign in to open your projects, favourites and saved effects on any device.": "登录后即可在任意设备上打开项目、收藏和已保存的效果。",
   "Unpark the selected lights": "解锁所选灯具",
-  "or": "或"
+  "or": "或",
+  "Parked": "已停驻"
 }

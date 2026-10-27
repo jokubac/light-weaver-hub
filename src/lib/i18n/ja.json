@@ -1094,5 +1094,6 @@
   "Scan failed.": "スキャンに失敗しました。",
   "Select the lights for the new group first.": "先に新しいグループの器具を選択してください。",
   "Sign in to open your projects, favourites and saved effects on any device.": "サインインすると、どのデバイスでもプロジェクトやお気に入り、保存したエフェクトを開くことができます。",
-  "Unpark the selected lights": "選択したライトをアンパーク"
+  "Unpark the selected lights": "選択したライトをアンパーク",
+  "Parked": "パーク中"
 }
