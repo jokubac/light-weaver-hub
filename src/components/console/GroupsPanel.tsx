@@ -4,6 +4,7 @@ import { Plus, Pencil, X, Power, Check, Copy, Play, Square, ChevronDown, Chevron
 import type { PatchedFixture } from "@/lib/dmx";
 import { groupNamesOf, inGroup, membersOf } from "@/lib/fixture-groups";
 
+import { t as tr } from "@/lib/i18n";
 export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, onUngroup, onUpdate, onCopy, onRemoveMember }: {
   fixtures: PatchedFixture[];
   selected: string[];
@@ -24,15 +25,15 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
 
   return (
     <div className="space-y-4">
-      <form onSubmit={(e) => { e.preventDefault(); if (name.trim() && selected.length) { onCreate(name.trim()); setName(""); } }} className="space-y-1.5" aria-label="Create group">
+      <form onSubmit={(e) => { e.preventDefault(); if (name.trim() && selected.length) { onCreate(name.trim()); setName(""); } }} className="space-y-1.5" aria-label={tr("Create group")}>
         <div className="flex gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" aria-label="Group name" className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-          <Button variant="ghost" type="submit" disabled={!name.trim() || !selected.length} className="flex items-center gap-1 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-40"><Plus className="h-3.5 w-3.5" />Group</Button>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Group name")} aria-label={tr("Group name")} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+          <Button variant="ghost" type="submit" disabled={!name.trim() || !selected.length} className="flex items-center gap-1 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-40"><Plus className="h-3.5 w-3.5" />{tr("Group")}</Button>
         </div>
-        <p className="text-[10px] text-muted-foreground">{selected.length ? `${selected.length} selected lights will be grouped.` : "Select lights first, then name the group."}</p>
+        <p className="text-[10px] text-muted-foreground">{selected.length ? `${selected.length} selected lights will be grouped.` : tr("Select lights first, then name the group.")}</p>
       </form>
 
-      {groups.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No groups yet.</p>}
+      {groups.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{tr("No groups yet.")}</p>}
       {groups.map((g) => {
         const members = membersOf(fixtures, g);
         const lvl = members.reduce((s, f) => s + f.intensity, 0) / members.length;
@@ -48,16 +49,16 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
               </Button>
               {editing?.g === g ? (
                 <form className="flex min-w-0 flex-1 gap-1" onSubmit={(e) => { e.preventDefault(); if (editing.v.trim()) onRename(g, editing.v.trim()); setEditing(null); }}>
-                   <input autoFocus aria-label="Rename group" value={editing.v} onChange={(e) => setEditing({ g, v: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-                  <Button variant="ghost" type="submit" aria-label="Save name"><Check className="h-4 w-4 text-success" /></Button>
+                   <input autoFocus aria-label={tr("Rename group")} value={editing.v} onChange={(e) => setEditing({ g, v: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                  <Button variant="ghost" type="submit" aria-label={tr("Save name")}><Check className="h-4 w-4 text-success" /></Button>
                 </form>
               ) : (
                 <Button variant="ghost" aria-pressed={members.every((f) => selected.includes(f.uid))} onClick={() => onSelect(g)} className={`min-w-0 flex-1 justify-start truncate px-1 text-left text-sm font-semibold ${members.every((f) => selected.includes(f.uid)) ? "text-primary" : ""}`}>{g} <span className="text-muted-foreground">({members.length})</span></Button>
               )}
-              <Button variant="ghost" onClick={() => onUpdate(g, { on: !anyOn })} className={`rounded p-1.5 ${anyOn ? "text-success" : "text-muted-foreground"}`} aria-label="Group on/off"><Power className="h-4 w-4" /></Button>
-              {hasFx && <Button variant="ghost" onClick={() => onUpdate(g, { fxPlaying: !fxOn })} className={`rounded p-1.5 ${fxOn ? "text-destructive" : "text-amber-glow"}`} aria-label="Group effect play/stop">{fxOn ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>}
-              <Button variant="ghost" onClick={() => setEditing({ g, v: g })} className="h-7 w-7 shrink-0 p-1.5 text-muted-foreground" aria-label={`Rename group ${g}`} title="Rename group"><Pencil className="h-3.5 w-3.5" /></Button>
-              <Button variant="ghost" onClick={() => onUngroup(g)} className="h-7 w-7 shrink-0 p-1.5 text-muted-foreground hover:text-destructive" aria-label="Ungroup"><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" onClick={() => onUpdate(g, { on: !anyOn })} className={`rounded p-1.5 ${anyOn ? "text-success" : "text-muted-foreground"}`} aria-label={tr("Group on/off")}><Power className="h-4 w-4" /></Button>
+              {hasFx && <Button variant="ghost" onClick={() => onUpdate(g, { fxPlaying: !fxOn })} className={`rounded p-1.5 ${fxOn ? "text-destructive" : "text-amber-glow"}`} aria-label={tr("Group effect play/stop")}>{fxOn ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>}
+              <Button variant="ghost" onClick={() => setEditing({ g, v: g })} className="h-7 w-7 shrink-0 p-1.5 text-muted-foreground" aria-label={`Rename group ${g}`} title={tr("Rename group")}><Pencil className="h-3.5 w-3.5" /></Button>
+              <Button variant="ghost" onClick={() => onUngroup(g)} className="h-7 w-7 shrink-0 p-1.5 text-muted-foreground hover:text-destructive" aria-label={tr("Ungroup")}><X className="h-4 w-4" /></Button>
             </div>
             {!closed && <>
             <div className="flex items-center gap-2">
@@ -65,18 +66,18 @@ export function GroupsPanel({ fixtures, selected, onSelect, onCreate, onRename, 
               <span className="w-12 text-right font-mono text-xs">{+(lvl * 100).toFixed(1)}%</span>
             </div>
             <div className="flex gap-1.5">
-              <Button variant="secondary" size="sm" disabled={!fixtures.some((f) => selected.includes(f.uid) && !inGroup(f, g))} onClick={() => onCreate(g)} aria-label={`Add selected lights to ${g}`} title="Add selected lights to group" className="shrink-0 gap-1 text-[11px]"><Plus className="h-3 w-3" />Add</Button>
-              <Button variant="ghost" disabled={!selected.length} onClick={() => onCopy(g, `${g} copy`)} title="Selected lights become a new group with the same settings" className="flex flex-1 items-center justify-center gap-1 rounded bg-surface py-1.5 text-[11px] font-semibold disabled:opacity-40"><Copy className="h-3 w-3" />Duplicate to selected</Button>
+              <Button variant="secondary" size="sm" disabled={!fixtures.some((f) => selected.includes(f.uid) && !inGroup(f, g))} onClick={() => onCreate(g)} aria-label={`Add selected lights to ${g}`} title={tr("Add selected lights to group")} className="shrink-0 gap-1 text-[11px]"><Plus className="h-3 w-3" />{tr("Add")}</Button>
+              <Button variant="ghost" disabled={!selected.length} onClick={() => onCopy(g, `${g} copy`)} title={tr("Selected lights become a new group with the same settings")} className="flex flex-1 items-center justify-center gap-1 rounded bg-surface py-1.5 text-[11px] font-semibold disabled:opacity-40"><Copy className="h-3 w-3" />{tr("Duplicate to selected")}</Button>
               {groups.length > 1 && (
-                <select value="" onChange={(e) => e.target.value && onCopy(g, e.target.value)} className="flex-1 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Copy settings to group">
-                  <option value="">Sync to group…</option>
+                <select value="" onChange={(e) => e.target.value && onCopy(g, e.target.value)} className="flex-1 rounded border border-input bg-surface px-1 text-[11px]" aria-label={tr("Copy settings to group")}>
+                  <option value="">{tr("Sync to group…")}</option>
                   {groups.filter((x) => x !== g).map((x) => <option key={x} value={x}>{x}</option>)}
                 </select>
               )}
             </div>
             <div className="flex flex-wrap gap-1">
               {members.map((f) => <span key={f.uid} className="flex items-center gap-0.5 rounded bg-surface py-0.5 pl-1.5 pr-0.5 text-[10px]">{f.name}
-                <button onClick={() => onRemoveMember(f.uid, g)} aria-label={`Remove ${f.name} from ${g}`} title="Remove from this group" className="rounded p-0.5 text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button></span>)}
+                <button onClick={() => onRemoveMember(f.uid, g)} aria-label={`Remove ${f.name} from ${g}`} title={tr("Remove from this group")} className="rounded p-0.5 text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button></span>)}
             </div>
             </>}
           </div>

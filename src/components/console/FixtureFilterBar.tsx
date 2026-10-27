@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { PatchedFixture } from "@/lib/dmx";
 import { getDef, getMode } from "@/lib/dmx";
 
+import { t as tr } from "@/lib/i18n";
 export type PixelFilter = "all" | "pixel" | "single";
 export interface FixtureFilter { brand: string; model: string; pixel: PixelFilter }
 
@@ -28,14 +29,14 @@ export function FixtureFilterBar({ fixtures, value, onChange }: { fixtures: Patc
   const models = [...new Set(defs.filter((d) => !value.brand || d.brand === value.brand).map((d) => d.model))].sort();
   return (
     <div className="flex flex-wrap gap-1">
-      <select aria-label="Filter by pixel" value={value.pixel} onChange={(e) => onChange({ ...value, pixel: e.target.value as PixelFilter })} className={sel}>
-        <option value="all">All types</option><option value="pixel">Pixel</option><option value="single">No pixels</option>
+      <select aria-label={tr("Filter by pixel")} value={value.pixel} onChange={(e) => onChange({ ...value, pixel: e.target.value as PixelFilter })} className={sel}>
+        <option value="all">{tr("All types")}</option><option value="pixel">{tr("Pixel")}</option><option value="single">{tr("No pixels")}</option>
       </select>
-      <select aria-label="Filter by manufacturer" value={value.brand} onChange={(e) => onChange({ ...value, brand: e.target.value, model: "" })} className={sel}>
-        <option value="">All manufacturers</option>{brands.map((b) => <option key={b} value={b}>{b}</option>)}
+      <select aria-label={tr("Filter by manufacturer")} value={value.brand} onChange={(e) => onChange({ ...value, brand: e.target.value, model: "" })} className={sel}>
+        <option value="">{tr("All manufacturers")}</option>{brands.map((b) => <option key={b} value={b}>{b}</option>)}
       </select>
-      <select aria-label="Filter by model" value={value.model} onChange={(e) => onChange({ ...value, model: e.target.value })} className={sel}>
-        <option value="">All models</option>{models.map((m) => <option key={m} value={m}>{m}</option>)}
+      <select aria-label={tr("Filter by model")} value={value.model} onChange={(e) => onChange({ ...value, model: e.target.value })} className={sel}>
+        <option value="">{tr("All models")}</option>{models.map((m) => <option key={m} value={m}>{m}</option>)}
       </select>
     </div>
   );

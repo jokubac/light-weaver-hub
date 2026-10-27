@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
 
+import { t as tr } from "@/lib/i18n";
 export const SAVE_COLOURS = ["#f5a524", "#ef4444", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#14b8a6", "#e5e7eb"];
 
 export interface SaveItem { id: string; name: string; color?: string | undefined; info?: string }
@@ -33,7 +34,7 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
       <button disabled={disabled} onClick={() => { setOpen((o) => !o); setName(""); setEditing(null); }} className="h-8 whitespace-nowrap rounded-md bg-surface-elevated px-3 text-xs font-semibold disabled:opacity-40">{label}</button>
       {open && <div className="absolute left-0 top-full z-50 mt-1 w-80 space-y-3 rounded-md border border-border bg-popover p-3 text-xs text-popover-foreground shadow-lg">
         <div className="space-y-2">
-          <div className="font-semibold uppercase tracking-wide text-muted-foreground">New {kind.toLowerCase()}</div>
+          <div className="font-semibold uppercase tracking-wide text-muted-foreground">{tr("New")}{kind.toLowerCase()}</div>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={fallback}
             onKeyDown={(e) => { if (e.key === "Enter" && canCreate) { onCreate(name.trim() || fallback, color); setName(""); } }}
             className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
@@ -45,12 +46,12 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
           </div>
           <button disabled={!canCreate} onClick={() => { onCreate(name.trim() || fallback, color); setName(""); }}
             className="w-full rounded-md bg-primary py-1.5 font-semibold text-primary-foreground disabled:opacity-40">
-            {canCreate ? `Create ${kind.toLowerCase()}` : "Select lights first"}
+            {canCreate ? `Create ${kind.toLowerCase()}` : tr("Select lights first")}
           </button>
         </div>
         <div className="space-y-1 border-t border-border pt-2">
-          <div className="font-semibold uppercase tracking-wide text-muted-foreground">{kind}s ({items.length})</div>
-          {!items.length && <div className="py-2 text-muted-foreground">None yet</div>}
+          <div className="font-semibold uppercase tracking-wide text-muted-foreground">{kind}{tr("s (")}{items.length})</div>
+          {!items.length && <div className="py-2 text-muted-foreground">{tr("None yet")}</div>}
           <div className="max-h-64 space-y-1 overflow-y-auto">
             {items.map((it, i) => (
               <div key={it.id} className="rounded-md bg-surface-elevated p-1.5">
@@ -61,10 +62,10 @@ export function SavePopover({ label, kind, items, disabled, canCreate, onCreate,
                         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                         className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
                     : <button className="min-w-0 flex-1 truncate text-left font-semibold" onClick={() => onPick?.(it.id)} title={onPick ? (kind === "Look" ? "Apply this look" : "Select") : undefined}>{it.name}{it.info && <span className="ml-1 font-normal text-muted-foreground">{it.info}</span>}</button>}
-                  <button aria-label="Move up" onClick={() => move(i, -1)} className="p-0.5 disabled:opacity-30" disabled={i === 0}><ArrowUp className="h-3.5 w-3.5" /></button>
-                  <button aria-label="Move down" onClick={() => move(i, 1)} className="p-0.5 disabled:opacity-30" disabled={i === items.length - 1}><ArrowDown className="h-3.5 w-3.5" /></button>
-                  <button aria-label="Rename" onClick={() => setEditing(editing === it.id ? null : it.id)} className="p-0.5"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button aria-label="Delete" onClick={() => { if (confirm(`Delete "${it.name}"?`)) onDelete(it.id); }} className="p-0.5 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button aria-label={tr("Move up")} onClick={() => move(i, -1)} className="p-0.5 disabled:opacity-30" disabled={i === 0}><ArrowUp className="h-3.5 w-3.5" /></button>
+                  <button aria-label={tr("Move down")} onClick={() => move(i, 1)} className="p-0.5 disabled:opacity-30" disabled={i === items.length - 1}><ArrowDown className="h-3.5 w-3.5" /></button>
+                  <button aria-label={tr("Rename")} onClick={() => setEditing(editing === it.id ? null : it.id)} className="p-0.5"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button aria-label={tr("Delete")} onClick={() => { if (confirm(`Delete "${it.name}"?`)) onDelete(it.id); }} className="p-0.5 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
                 {editing === it.id && (
                   <div className="mt-1.5 flex gap-1">

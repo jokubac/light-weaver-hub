@@ -10,6 +10,7 @@ import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Tab
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FixtureFilterBar, matchFilter, useFixtureFilter } from "@/components/console/FixtureFilterBar";
 
+import { t as tr } from "@/lib/i18n";
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
 export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined; lo?: number | undefined; hi?: number | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined; lk?: string | undefined; locked?: boolean | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
@@ -498,11 +499,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
 
   const editPanel = (
     <div className="space-y-4">
-      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? "Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it." : "Drag to draw a wall at any angle — it snaps straight or 45° when close. Drag a wall end to lengthen it; drop it on another end to join them. Tap a wall to delete it.") : mode === "text" ? "Tap the grid to drop a text label." : mode === "light" ? (pickGroup ? "Tap the grid to drop the whole group together, centred where you tap." : "Pick a light or a group below, then tap the grid to place it. The next free light is picked automatically.") : "Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select."}</p>
+      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? tr("Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it.") : tr("Drag to draw a wall at any angle — it snaps straight or 45° when close. Drag a wall end to lengthen it; drop it on another end to join them. Tap a wall to delete it.")) : mode === "text" ? tr("Tap the grid to drop a text label.") : mode === "light" ? (pickGroup ? tr("Tap the grid to drop the whole group together, centred where you tap.") : tr("Pick a light or a group below, then tap the grid to place it. The next free light is picked automatically.")) : tr("Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select.")}</p>
       {mode === "walls" && (
         <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => setWallRect(false)} aria-pressed={!wallRect} className={chip(!wallRect)}><PenLine className="h-3.5 w-3.5" />Line</button>
-          <button onClick={() => setWallRect(true)} aria-pressed={wallRect} className={chip(wallRect)}><span className="inline-block h-3 w-3.5 border-2 border-current" />Rectangle</button>
+          <button onClick={() => setWallRect(false)} aria-pressed={!wallRect} className={chip(!wallRect)}><PenLine className="h-3.5 w-3.5" />{tr("Line")}</button>
+          <button onClick={() => setWallRect(true)} aria-pressed={wallRect} className={chip(wallRect)}><span className="inline-block h-3 w-3.5 border-2 border-current" />{tr("Rectangle")}</button>
         </div>
       )}
       {(() => {
@@ -512,45 +513,45 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         const placeAll = () => { let items = grid.items; const add: string[] = []; for (const { f } of list) if (!placed.has(f.uid)) { const id = nid(); add.push(id); items = [...items, { id, kind: "fixture", uid: f.uid, ...freeSpot(items) }]; } setGrid({ ...grid, items }); setEsel(add); };
         return (
           <div className="space-y-1.5">
-            {mode !== "light" && <p className="text-[10px] text-muted-foreground">Pick a light or a group below, then tap the grid to place it there.</p>}
+            {mode !== "light" && <p className="text-[10px] text-muted-foreground">{tr("Pick a light or a group below, then tap the grid to place it there.")}</p>}
             {(groups.length > 0 || onCreateGroup) && (
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Groups</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{tr("Groups")}</p>
                 <div className="flex flex-wrap gap-1">
                   {groups.map((g) => { const ms = membersOf(fixtures, g); const left = ms.filter((f) => !placed.has(f.uid)).length; return (
                     <button key={g} onClick={() => { setMode("light"); setPickGroup(pickGroup === g ? null : g); }} aria-pressed={pickGroup === g}
                       className={`${chip(pickGroup === g)} disabled:opacity-40`}>{g}<span className="font-mono opacity-70">{left}/{ms.length}</span></button>); })}
-                  {onCreateGroup && <button onClick={() => newGroup()} className="rounded-md border border-dashed border-primary px-2 py-1 text-xs font-semibold text-primary">+ Group</button>}
+                  {onCreateGroup && <button onClick={() => newGroup()} className="rounded-md border border-dashed border-primary px-2 py-1 text-xs font-semibold text-primary">{tr("+ Group")}</button>}
                 </div>
-                {pickGroup && <p className="text-[10px] text-muted-foreground">Tap the grid to drop all {membersOf(fixtures, pickGroup).length} lights of “{pickGroup}” together (lights already on the grid move here). Tap the group again to stop.</p>}
+                {pickGroup && <p className="text-[10px] text-muted-foreground">{tr("Tap the grid to drop all")}{membersOf(fixtures, pickGroup).length}{tr("lights of “")}{pickGroup}{tr("” together (lights already on the grid move here). Tap the group again to stop.")}</p>}
               </div>
             )}
-            <input value={lq} onChange={(e) => setLq(e.target.value)} placeholder="Search light name or #" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+            <input value={lq} onChange={(e) => setLq(e.target.value)} placeholder={tr("Search light name or #")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
             <FixtureFilterBar fixtures={fixtures} value={flt} onChange={setFlt} />
-            <Button size="sm" variant="secondary" className="w-full" disabled={list.every(({ f }) => placed.has(f.uid))} onClick={placeAll}>Select all ({list.filter(({ f }) => !placed.has(f.uid)).length}) → place on grid</Button>
+            <Button size="sm" variant="secondary" className="w-full" disabled={list.every(({ f }) => placed.has(f.uid))} onClick={placeAll}>{tr("Select all (")}{list.filter(({ f }) => !placed.has(f.uid)).length}{tr(") → place on grid")}</Button>
             <div className="max-h-72 space-y-1 overflow-y-auto">
               {list.map(({ f, n }) => { const done = placed.has(f.uid); const on = !pickGroup && cur?.uid === f.uid; return (
                 <button key={f.uid} onClick={() => { setMode("light"); setPickGroup(null); setNextUid(f.uid); }} aria-pressed={on}
                   className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"} disabled:opacity-40`}>
-                  <span className="font-mono font-bold">#{n}</span><span className="flex-1 truncate">{f.name}</span>{done && <span className="text-[10px]">on grid</span>}
+                  <span className="font-mono font-bold">#{n}</span><span className="flex-1 truncate">{f.name}</span>{done && <span className="text-[10px]">{tr("on grid")}</span>}
                 </button>); })}
             </div>
           </div>
         );
       })()}
       <div className="grid grid-cols-1 gap-1.5">
-        <Button variant="secondary" size="sm" onClick={addTable}><Table2 />Macros table</Button>
+        <Button variant="secondary" size="sm" onClick={addTable}><Table2 />{tr("Macros table")}</Button>
         <Button variant="secondary" size="sm" disabled={fixtures.every((f) => placed.has(f.uid))}
-          onClick={() => { let items = grid.items; for (const f of fixtures) if (!placed.has(f.uid)) items = [...items, { id: nid(), kind: "fixture", uid: f.uid, ...freeSpot(items) }]; setGrid({ ...grid, items }); }}>All lights</Button>
+          onClick={() => { let items = grid.items; for (const f of fixtures) if (!placed.has(f.uid)) items = [...items, { id: nid(), kind: "fixture", uid: f.uid, ...freeSpot(items) }]; setGrid({ ...grid, items }); }}>{tr("All lights")}</Button>
       </div>
       {one && one.kind !== "image" && (
         <section className="space-y-2 rounded-lg border border-primary/50 p-2">
-          <div className="flex items-center justify-between"><h3 className="text-xs font-bold uppercase">{one.kind === "table" ? "Table" : one.kind === "text" ? "Text" : "Box"}</h3>
-            {one.kind !== "table" && one.kind !== "text" && <button onClick={() => openPicker(one)} className="text-xs font-semibold text-primary">Macro / fixture…</button>}</div>
-          {one.kind === "table" && <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder="Table name" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />}
+          <div className="flex items-center justify-between"><h3 className="text-xs font-bold uppercase">{one.kind === "table" ? tr("Table") : one.kind === "text" ? tr("Text") : tr("Box")}</h3>
+            {one.kind !== "table" && one.kind !== "text" && <button onClick={() => openPicker(one)} className="text-xs font-semibold text-primary">{tr("Macro / fixture…")}</button>}</div>
+          {one.kind === "table" && <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder={tr("Table name")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />}
           {one.kind === "table" && (<>
-            <p className="text-[11px] text-muted-foreground">{one.cols ?? 4} × {one.rows ?? 3} cells — drag the table corner to change; the cells follow automatically.</p>
-            <Button size="sm" className="w-full" onClick={() => fillTable(one)}>Put macros in table</Button>
+            <p className="text-[11px] text-muted-foreground">{one.cols ?? 4} × {one.rows ?? 3}{tr("cells — drag the table corner to change; the cells follow automatically.")}</p>
+            <Button size="sm" className="w-full" onClick={() => fillTable(one)}>{tr("Put macros in table")}</Button>
           </>)}
           {one.kind === "text" && <FontSizeRow value={one.fs} onPick={(px) => patch(one.id, { fs: px })} />}
           <ColourRow value={one.color} onPick={(c) => patch(one.id, { color: c || undefined })} />
@@ -559,11 +560,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
       )}
       {esel.length > 1 && (
         <section className="space-y-2">
-          <h3 className="text-xs font-bold uppercase text-muted-foreground">{esel.length} selected</h3>
+          <h3 className="text-xs font-bold uppercase text-muted-foreground">{esel.length}{tr("selected")}</h3>
           <ColourRow value={undefined} onPick={(c) => setGrid({ ...grid, items: grid.items.map((i) => (esel.includes(i.id) ? { ...i, color: c || undefined } : i)) })} />
           {selText.length > 0 && <FontSizeRow value={selText.find((i) => i.fs != null)?.fs} onPick={(px) => setGrid({ ...grid, items: grid.items.map((i) => (esel.includes(i.id) && i.kind === "text" ? { ...i, fs: px } : i)) })} />}
 
-          {tables.length > 0 && <div className="flex flex-wrap gap-1">{tables.map((t) => <Button key={t.id} variant="secondary" size="sm" onClick={() => fillTable(t)}>Into {t.text || "table"}</Button>)}</div>}
+          {tables.length > 0 && <div className="flex flex-wrap gap-1">{tables.map((t) => <Button key={t.id} variant="secondary" size="sm" onClick={() => fillTable(t)}>{tr("Into")}{t.text || "table"}</Button>)}</div>}
           <div className="grid grid-cols-3 gap-1">
             {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => doArrange(k)} aria-pressed={last === k} className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[10px] font-semibold active:scale-95 ${last === k ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{GRID_ICON[k]}</svg>{l}</button>)}
@@ -573,20 +574,19 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const setC = (v: number) => { const nc = Math.max(1, Math.min(n, v || 1)); setGridCols(nc); const res = arrange(selItems, "grid", gap, Math.max(sz, FXW, FXH), nc); setGrid({ ...grid, items: grid.items.map((i) => { const m = res.find((x) => x.id === i.id); return m ? { ...i, x: m.x, y: m.y, w: undefined, h: undefined, s: undefined } : i; }) }); };
             return (
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <label className="flex items-center gap-1">Columns<input type="number" min={1} max={n} value={c} onChange={(e) => setC(+e.target.value)} className="w-12 rounded border border-border bg-background px-1 py-0.5 text-foreground" /></label>
-                <label className="flex items-center gap-1">Rows<input type="number" min={1} max={n} value={rws} onChange={(e) => setC(Math.ceil(n / Math.max(1, +e.target.value || 1)))} className="w-12 rounded border border-border bg-background px-1 py-0.5 text-foreground" /></label>
+                <label className="flex items-center gap-1">{tr("Columns")}<input type="number" min={1} max={n} value={c} onChange={(e) => setC(+e.target.value)} className="w-12 rounded border border-border bg-background px-1 py-0.5 text-foreground" /></label>
+                <label className="flex items-center gap-1">{tr("Rows")}<input type="number" min={1} max={n} value={rws} onChange={(e) => setC(Math.ceil(n / Math.max(1, +e.target.value || 1)))} className="w-12 rounded border border-border bg-background px-1 py-0.5 text-foreground" /></label>
               </div>
             );
           })()}
-          <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Spacing
-            <input type="range" min={0} max={2} step={0.05} value={gap} onChange={(e) => onGap(+e.target.value)} className="flex-1" />
+          <label className="flex items-center gap-2 text-[11px] text-muted-foreground">{tr("Spacing")}<input type="range" min={0} max={2} step={0.05} value={gap} onChange={(e) => onGap(+e.target.value)} className="flex-1" />
             <span className="w-8 text-right font-mono">{Math.round(gap * 100)}%</span>
           </label>
         </section>
       )}
-      {esel.length > 0 && <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => removeIds(esel)}><Trash2 />Delete {esel.length > 1 ? `${esel.length} items` : "item"}</Button>}
+      {esel.length > 0 && <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => removeIds(esel)}><Trash2 />{tr("Delete")}{esel.length > 1 ? `${esel.length} items` : tr("item")}</Button>}
       <section className="space-y-2">
-        <h3 className="text-xs font-bold uppercase text-muted-foreground">Pictures ({images.length + (grid.bg ? 1 : 0)})</h3>
+        <h3 className="text-xs font-bold uppercase text-muted-foreground">{tr("Pictures (")}{images.length + (grid.bg ? 1 : 0)})</h3>
         {images.map((im, k) => (
           <div key={im.id} className={`flex items-center gap-2 rounded-md border p-1.5 ${esel.includes(im.id) ? "border-primary" : "border-border"}`}>
             <button onClick={() => setEsel([im.id])} className="h-10 w-10 shrink-0 overflow-hidden rounded bg-surface-elevated"><img src={im.src} alt={`Picture ${k + 1}`} className="h-full w-full object-cover" style={{ filter: im.invert ? "invert(1)" : undefined }} /></button>
@@ -594,16 +594,16 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <div className="flex flex-wrap gap-1">
                 <button onClick={() => { const c = { x: im.x + W(im) / 2, y: im.y + H(im) / 2 }; const w = W(im) / 1.2, h = H(im) / 1.2; patch(im.id, { w, h, x: c.x - w / 2, y: c.y - h / 2 }); }} className="rounded bg-surface-elevated px-2 text-xs font-bold">−</button>
                 <button onClick={() => { const c = { x: im.x + W(im) / 2, y: im.y + H(im) / 2 }; const w = W(im) * 1.2, h = H(im) * 1.2; patch(im.id, { w, h, x: c.x - w / 2, y: c.y - h / 2 }); }} className="rounded bg-surface-elevated px-2 text-xs font-bold">+</button>
-                <button onClick={() => patch(im.id, { invert: !im.invert })} aria-pressed={!!im.invert} className={`rounded px-2 text-[10px] font-bold ${im.invert ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>Invert</button>
-                <button onClick={() => removeIds([im.id])} aria-label="Remove picture" className="rounded px-1 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => patch(im.id, { invert: !im.invert })} aria-pressed={!!im.invert} className={`rounded px-2 text-[10px] font-bold ${im.invert ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{tr("Invert")}</button>
+                <button onClick={() => removeIds([im.id])} aria-label={tr("Remove picture")} className="rounded px-1 text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
-              <input type="range" aria-label="Opacity" min={0.1} max={1} step={0.05} value={im.opacity ?? 1} onChange={(e) => patch(im.id, { opacity: +e.target.value })} className="w-full" />
+              <input type="range" aria-label={tr("Opacity")} min={0.1} max={1} step={0.05} value={im.opacity ?? 1} onChange={(e) => patch(im.id, { opacity: +e.target.value })} className="w-full" />
             </div>
           </div>
         ))}
-        {grid.bg && <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => setGrid({ ...grid, bg: undefined })}><Trash2 />Remove old background</Button>}
+        {grid.bg && <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => setGrid({ ...grid, bg: undefined })}><Trash2 />{tr("Remove old background")}</Button>}
       </section>
-      {grid.walls.length > 0 && <Button variant="ghost" size="sm" className="w-full" onClick={() => setGrid({ ...grid, walls: [] })}><Trash2 />Clear walls</Button>}
+      {grid.walls.length > 0 && <Button variant="ghost" size="sm" className="w-full" onClick={() => setGrid({ ...grid, walls: [] })}><Trash2 />{tr("Clear walls")}</Button>}
     </div>
   );
 
@@ -623,24 +623,23 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const ids = new Set(selItems.map((i) => i.id));
             const linked = selItems.some((i) => i.lk);
             return (<>
-              <button onClick={() => { const fx = grid.items.filter((i) => i.kind === "fixture"); if (live) onSelect(fx.map((i) => i.uid!)); else setEsel(fx.map((i) => i.id)); }} className={chip(false)} aria-label="Select all lights on grid">Select all</button>
-              <button disabled={selItems.length < 2} onClick={() => { const lk = `lk-${Date.now().toString(36)}`; setGrid({ ...grid, items: grid.items.map((i) => (ids.has(i.id) ? { ...i, lk } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Group selected lights"><Link2 className="h-3.5 w-3.5" />Group</button>
-              <button disabled={!linked} onClick={() => { const lks = new Set(selItems.map((i) => i.lk).filter(Boolean)); setGrid({ ...grid, items: grid.items.map((i) => (i.lk && lks.has(i.lk) ? { ...i, lk: undefined } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Ungroup selected lights"><Unlink className="h-3.5 w-3.5" />Ungroup</button>
-              <button disabled={!selItems.some((i) => i.kind === "fixture")} onClick={() => { const fids = new Set(selItems.filter((i) => i.kind === "fixture").map((i) => i.id)); setGrid({ ...grid, items: layoutTables(grid.items.map((i) => { if (!fids.has(i.id)) return i; const b = boxOf(i, sz); return { ...i, w: b.h, h: b.w, x: i.x + (b.w - b.h) / 2, y: i.y + (b.h - b.w) / 2 }; }), sz) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label="Rotate selected lights 90 degrees" title="Rotate the selected lights 90°"><RotateCw className="h-3.5 w-3.5" />90°</button>
+              <button onClick={() => { const fx = grid.items.filter((i) => i.kind === "fixture"); if (live) onSelect(fx.map((i) => i.uid!)); else setEsel(fx.map((i) => i.id)); }} className={chip(false)} aria-label={tr("Select all lights on grid")}>{tr("Select all")}</button>
+              <button disabled={selItems.length < 2} onClick={() => { const lk = `lk-${Date.now().toString(36)}`; setGrid({ ...grid, items: grid.items.map((i) => (ids.has(i.id) ? { ...i, lk } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label={tr("Group selected lights")}><Link2 className="h-3.5 w-3.5" />{tr("Group")}</button>
+              <button disabled={!linked} onClick={() => { const lks = new Set(selItems.map((i) => i.lk).filter(Boolean)); setGrid({ ...grid, items: grid.items.map((i) => (i.lk && lks.has(i.lk) ? { ...i, lk: undefined } : i)) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label={tr("Ungroup selected lights")}><Unlink className="h-3.5 w-3.5" />{tr("Ungroup")}</button>
+              <button disabled={!selItems.some((i) => i.kind === "fixture")} onClick={() => { const fids = new Set(selItems.filter((i) => i.kind === "fixture").map((i) => i.id)); setGrid({ ...grid, items: layoutTables(grid.items.map((i) => { if (!fids.has(i.id)) return i; const b = boxOf(i, sz); return { ...i, w: b.h, h: b.w, x: i.x + (b.w - b.h) / 2, y: i.y + (b.h - b.w) / 2 }; }), sz) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label={tr("Rotate selected lights 90 degrees")} title={tr("Rotate the selected lights 90°")}><RotateCw className="h-3.5 w-3.5" />90°</button>
             </>);
           })()}
-          <button onClick={() => setView(HOME)} className={chip(false)} aria-label="Recenter grid"><LocateFixed className="h-3.5 w-3.5" />Recenter</button>
+          <button onClick={() => setView(HOME)} className={chip(false)} aria-label={tr("Recenter grid")}><LocateFixed className="h-3.5 w-3.5" />{tr("Recenter")}</button>
           <span className="font-mono text-[10px] text-muted-foreground">{Math.round(view.z * 100)}%</span>
           {!live && (<>
-            <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={chip(mode === "select")}><MousePointer2 className="h-3.5 w-3.5" />Select</button>
-            <button onClick={() => setMode("walls")} aria-pressed={mode === "walls"} className={chip(mode === "walls")}><PenLine className="h-3.5 w-3.5" />Walls</button>
-            <button onClick={() => setMode("text")} aria-pressed={mode === "text"} className={chip(mode === "text")}><Type className="h-3.5 w-3.5" />Text</button>
-            <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />Import pictures or PDF
-            <input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
+            <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={chip(mode === "select")}><MousePointer2 className="h-3.5 w-3.5" />{tr("Select")}</button>
+            <button onClick={() => setMode("walls")} aria-pressed={mode === "walls"} className={chip(mode === "walls")}><PenLine className="h-3.5 w-3.5" />{tr("Walls")}</button>
+            <button onClick={() => setMode("text")} aria-pressed={mode === "text"} className={chip(mode === "text")}><Type className="h-3.5 w-3.5" />{tr("Text")}</button>
+            <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />{tr("Import pictures or PDF")}<input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
             </label>
           </>)}
           {live && <button onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} aria-label={panelOpen ? "Hide fixture controls" : "Show fixture controls"} title={panelOpen ? "Hide fixture controls" : "Show fixture controls"} className={`${chip(false)} ml-auto`}>
-            {panelOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}<span className="hidden sm:inline">{panelOpen ? "Hide controls" : "Show controls"}</span>
+            {panelOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}<span className="hidden sm:inline">{panelOpen ? tr("Hide controls") : tr("Show controls")}</span>
           </button>}
         </div>
         <div ref={vp} data-grid-bg="" className="relative min-h-0 flex-1 select-none overflow-hidden bg-background" style={{ touchAction: "none" }}
@@ -737,7 +736,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 onPointerDown={(e) => { if (live || mode !== "walls" || i >= grid.walls.length) return; e.stopPropagation(); setGrid({ ...grid, walls: grid.walls.filter((_, k) => k !== i) }); }} />
             ))}
             {!live && mode === "walls" && !wall && grid.walls.flatMap((w, i) => ([1, 2] as const).map((en) => (
-              <circle key={`${i}-${en}`} cx={(en === 1 ? w.x1 : w.x2) * CELL} cy={(en === 1 ? w.y1 : w.y2) * CELL} r={9} aria-label="Drag wall end"
+              <circle key={`${i}-${en}`} cx={(en === 1 ? w.x1 : w.x2) * CELL} cy={(en === 1 ? w.y1 : w.y2) * CELL} r={9} aria-label={tr("Drag wall end")}
                 className="cursor-move fill-background stroke-primary" strokeWidth={3} style={{ pointerEvents: "auto" }}
                 onPointerDown={(e) => { e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); setWEnd({ i, e: en }); }} />
             )))}
@@ -787,7 +786,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                       const taken = grid.items.some((m) => m.macro && m.x < cx + cw - 0.001 && m.x + W(m) > cx + 0.001 && m.y < cy + cw - 0.001 && m.y + H(m) > cy + 0.001);
                       if (taken) return <div key={k} />;
                       return (
-                      <button key={k} type="button" aria-label="Add macro here" disabled={mode !== "select"}
+                      <button key={k} type="button" aria-label={tr("Add macro here")} disabled={mode !== "select"}
                         className="m-0.5 flex items-center justify-center rounded-md border border-border/60 bg-surface-elevated/55 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => { e.stopPropagation(); addSquare(it.id, cx, cy, cw); }}>
@@ -803,7 +802,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                       {px.cells.map((col, k) => <div key={k} style={{ background: col }} />)}</div>; })()}
                   <div className="flex justify-between gap-1"><span className="truncate">{it.text || f.name}</span><span className="font-mono">{Math.round(f.intensity * 100)}%</span></div>
                 </>) : it.macro ? (<>
-                  {!live && mode === "select" && <button type="button" aria-label="Delete macro" className="absolute right-0.5 top-0.5 z-20 rounded bg-background/80 p-0.5 text-muted-foreground hover:text-destructive" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeIds([it.id]); }}><X className="h-3 w-3" /></button>}
+                  {!live && mode === "select" && <button type="button" aria-label={tr("Delete macro")} className="absolute right-0.5 top-0.5 z-20 rounded bg-background/80 p-0.5 text-muted-foreground hover:text-destructive" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeIds([it.id]); }}><X className="h-3 w-3" /></button>}
                   {(() => {
                     const a = MACRO_ACTIONS.find((x) => x.id === it.macro!.action);
                     if (!a?.fader) return <div className="nox-outline-2 flex flex-1 items-center justify-center text-center text-[11px] font-bold leading-tight text-foreground"
@@ -830,7 +829,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   })()}
                 </>) : it.kind === "text" ? (
                   editText === it.id ? (
-                    <textarea autoFocus aria-label="Edit text label" placeholder="Type…" value={it.text ?? ""}
+                    <textarea autoFocus aria-label={tr("Edit text label")} placeholder={tr("Type…")} value={it.text ?? ""}
                       onPointerDown={(e) => e.stopPropagation()}
                       onChange={(e) => patch(it.id, { text: e.target.value })}
                       onBlur={() => setEditText(null)}
@@ -867,13 +866,13 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
 
       <Dialog open={!!pick} onOpenChange={(o) => !o && setPicker(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-auto">
-          <DialogHeader><DialogTitle>Assign box</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tr("Assign box")}</DialogTitle></DialogHeader>
           {pick && (<div className="space-y-4">
             <ColourRow value={pick.color} onPick={(c) => patch(pick.id, { color: c || undefined })} />
             {pick.kind === "fixture" ? (<>
-              <input aria-label="Box name" placeholder={fixtures.find((f) => f.uid === pick.uid)?.name ?? "Name"} value={pick.text ?? ""} onChange={(e) => patch(pick.id, { text: e.target.value || undefined })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+              <input aria-label={tr("Box name")} placeholder={fixtures.find((f) => f.uid === pick.uid)?.name ?? "Name"} value={pick.text ?? ""} onChange={(e) => patch(pick.id, { text: e.target.value || undefined })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
               <section>
-                <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">Size</h3>
+                <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">{tr("Size")}</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {SIZE_STOPS.map(([v, lbl]) => { const cur = (pick.s ?? fixtureBox(sz).w) / fixtureBox(sz).w; return (
                     <button key={lbl} aria-pressed={Math.abs(cur - v) < 0.06} onClick={() => patch(pick.id, { s: v === 1 ? undefined : fixtureBox(sz).w * v, w: undefined, h: undefined })}
@@ -881,7 +880,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 </div>
               </section>
               <section>
-                <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">Swap to another fixture</h3>
+                <h3 className="mb-1.5 text-xs font-bold uppercase text-muted-foreground">{tr("Swap to another fixture")}</h3>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                   {fixtures.map((f, i) => { const on = pick.uid === f.uid; const taken = placed.has(f.uid) && !on; return (
                     <button key={f.uid} disabled={taken} onClick={() => { patch(pick.id, { uid: f.uid }); setPicker(null); }}
@@ -890,12 +889,12 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               </section>
             </>) : (
             <section className="space-y-2">
-              <h3 className="text-xs font-bold uppercase text-muted-foreground">Macros</h3>
+              <h3 className="text-xs font-bold uppercase text-muted-foreground">{tr("Macros")}</h3>
               <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                 {sortedActions.map((a) => <button key={a.id} onClick={() => { setAction(a.id); setAmount(a.def ?? 0); setLim({}); }} className={`rounded-md border px-2 py-1.5 text-left text-xs font-semibold ${action === a.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{a.label}</button>)}
               </div>
               <section>
-                <h3 className="text-xs font-bold uppercase text-muted-foreground">Size</h3>
+                <h3 className="text-xs font-bold uppercase text-muted-foreground">{tr("Size")}</h3>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {SIZE_STOPS.map(([v, lbl]) => { const cur = pick.sk ?? (pick.cs != null && pick.cs >= 1 && pick.cs <= 4 ? pick.cs : 1); return (
                     <button key={lbl} aria-pressed={Math.abs(cur - v) < 0.06} onClick={() => patch(pick.id, v >= 1 ? { sk: undefined, cs: v, rs: pick.rs ?? 1 } : { sk: v })}
@@ -903,16 +902,15 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 </div>
               </section>
               <div className="flex flex-wrap items-center gap-2">
-                {meta?.unit && <label className="flex items-center gap-2 text-xs">Amount<input type="number" value={amount} onChange={(e) => setAmount(+e.target.value)} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{meta.unit}</label>}
-                <input aria-label="Button name" placeholder="Name (optional)" value={label} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-                {meta?.fader && (() => { const r = FADER_RANGE[action]!; return <label className="flex items-center gap-1.5 text-xs">Limits
-                  <input type="number" aria-label="Fader minimum" placeholder={String(r[0])} min={r[0]} max={r[1]} value={lim.lo ?? ""} onChange={(e) => setLim({ ...lim, lo: e.target.value === "" ? undefined : +e.target.value })} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm text-foreground outline-none focus:border-primary" />
-                  –<input type="number" aria-label="Fader maximum" placeholder={String(r[1])} min={r[0]} max={r[1]} value={lim.hi ?? ""} onChange={(e) => setLim({ ...lim, hi: e.target.value === "" ? undefined : +e.target.value })} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>; })()}
-                <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim(), ...(meta?.pick && param ? { param } : {}), ...(meta?.fader ? { lo: lim.lo, hi: lim.hi } : {}) }, ...(meta?.fader && !pick.macro ? { cs: 3, rs: 1 } : {}) }); setPicker(null); }}>Set macro</Button>
+                {meta?.unit && <label className="flex items-center gap-2 text-xs">{tr("Amount")}<input type="number" value={amount} onChange={(e) => setAmount(+e.target.value)} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{meta.unit}</label>}
+                <input aria-label={tr("Button name")} placeholder={tr("Name (optional)")} value={label} onChange={(e) => setLabel(e.target.value)} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                {meta?.fader && (() => { const r = FADER_RANGE[action]!; return <label className="flex items-center gap-1.5 text-xs">{tr("Limits")}<input type="number" aria-label={tr("Fader minimum")} placeholder={String(r[0])} min={r[0]} max={r[1]} value={lim.lo ?? ""} onChange={(e) => setLim({ ...lim, lo: e.target.value === "" ? undefined : +e.target.value })} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                  –<input type="number" aria-label={tr("Fader maximum")} placeholder={String(r[1])} min={r[0]} max={r[1]} value={lim.hi ?? ""} onChange={(e) => setLim({ ...lim, hi: e.target.value === "" ? undefined : +e.target.value })} className="w-20 text-right font-mono rounded-md border border-input bg-surface-elevated px-2 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>; })()}
+                <Button size="sm" onClick={() => { patch(pick.id, { kind: "macro", uid: undefined, macro: { action, amount, label: label.trim(), ...(meta?.pick && param ? { param } : {}), ...(meta?.fader ? { lo: lim.lo, hi: lim.hi } : {}) }, ...(meta?.fader && !pick.macro ? { cs: 3, rs: 1 } : {}) }); setPicker(null); }}>{tr("Set macro")}</Button>
               </div>
               {meta?.pick === "group" && (<div className="flex flex-wrap gap-1.5 text-xs">
                 {groups.map((g) => <button key={g} onClick={() => setParam(g)} aria-pressed={param === g} className={`rounded-md border px-2 py-1 ${param === g ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{g}</button>)}
-                {onCreateGroup && <button onClick={() => { const n = newGroup(); if (n) setParam(n); }} className="rounded-md border border-dashed border-primary px-2 py-1 font-semibold text-primary">+ Group</button>}
+                {onCreateGroup && <button onClick={() => { const n = newGroup(); if (n) setParam(n); }} className="rounded-md border border-dashed border-primary px-2 py-1 font-semibold text-primary">{tr("+ Group")}</button>}
               </div>)}
               {meta?.pick === "gel" && (() => {
                 const brands = ["All", ...Array.from(new Set(GELS.map((g) => g.brand)))];
@@ -925,15 +923,15 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 const chip = (on: boolean) => `rounded-md border px-2 py-1 ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`;
                 return (<div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-1 text-xs">
-                    <span className="w-20 shrink-0 text-[11px] font-bold uppercase text-muted-foreground">Manufacturer</span>
+                    <span className="w-20 shrink-0 text-[11px] font-bold uppercase text-muted-foreground">{tr("Manufacturer")}</span>
                     {brands.map((b) => <button key={b} onClick={() => setGelBrand(b as "All" | "Rosco" | "LEE")} aria-pressed={gelBrand === b} className={chip(gelBrand === b)}>{b}</button>)}
                   </div>
                   <div className="flex flex-wrap items-center gap-1 text-xs">
-                    <span className="w-20 shrink-0 text-[11px] font-bold uppercase text-muted-foreground">Type</span>
+                    <span className="w-20 shrink-0 text-[11px] font-bold uppercase text-muted-foreground">{tr("Type")}</span>
                     {(["All", "Correction", "Effect"] as const).map((k) => <button key={k} onClick={() => setGelKind(k)} aria-pressed={gelKind === k} className={chip(gelKind === k)}>{k}</button>)}
                     <span className="ml-auto font-mono text-[11px] text-muted-foreground">{list.length}</span>
                   </div>
-                  <input aria-label="Search filters" placeholder="Search filter (e.g. 1/2 CTO, 201)" value={gelQ} onChange={(e) => setGelQ(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                  <input aria-label={tr("Search filters")} placeholder={tr("Search filter (e.g. 1/2 CTO, 201)")} value={gelQ} onChange={(e) => setGelQ(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
                   <div className="grid max-h-64 grid-cols-2 gap-1 overflow-auto text-xs sm:grid-cols-3">
                     {list.map((g) => (
                       <button key={g.id} onClick={() => setParam(g.id)} aria-pressed={param === g.id} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-left ${param === g.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}><span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: g.hex }} /><span className="truncate">{g.brand} {g.code} {g.name}</span></button>))}
@@ -941,14 +939,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 </div>);
               })()}
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <span className="text-muted-foreground">Box span</span>
+                <span className="text-muted-foreground">{tr("Box span")}</span>
                 {[[1, 1], [2, 1], [3, 1], [4, 1], [1, 2], [2, 2], [3, 2], [4, 2]].map(([c, r]) => { const on = (pick.cs ?? 1) === c && (pick.rs ?? 1) === r; return (
                   <button key={`${c}x${r}`} onClick={() => patch(pick.id, { cs: c, rs: r })} aria-pressed={on} className={`rounded-md border px-2 py-1 font-mono ${on ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{c}×{r}</button>); })}
               </div>
             </section>)}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-              {pick.kind === "macro" ? <Button variant="ghost" size="sm" onClick={() => patch(pick.id, { kind: "empty", macro: undefined })}>Clear macro</Button> : <span />}
-              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { const ids = [pick.id, ...(pick.kind === "table" ? tableCarry(grid.items, { id: pick.id, x: pick.x, y: pick.y, w: W(pick), h: H(pick) }, sz).map((i) => i.id) : [])]; removeIds(ids); setPicker(null); }}><Trash2 className="h-3.5 w-3.5" />Remove</Button>
+              {pick.kind === "macro" ? <Button variant="ghost" size="sm" onClick={() => patch(pick.id, { kind: "empty", macro: undefined })}>{tr("Clear macro")}</Button> : <span />}
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => { const ids = [pick.id, ...(pick.kind === "table" ? tableCarry(grid.items, { id: pick.id, x: pick.x, y: pick.y, w: W(pick), h: H(pick) }, sz).map((i) => i.id) : [])]; removeIds(ids); setPicker(null); }}><Trash2 className="h-3.5 w-3.5" />{tr("Remove")}</Button>
             </div>
 
           </div>)}
@@ -961,9 +959,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
 function ColourRow({ value, onPick }: { value: string | undefined; onPick: (c: string) => void }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] text-muted-foreground">Colour</span>
+      <span className="text-[11px] text-muted-foreground">{tr("Colour")}</span>
       {COLORS.map((c) => <button key={c || "none"} aria-label={c ? `Colour ${c}` : "No colour"} onClick={() => onPick(c)} className={`h-6 w-6 rounded-full border-2 ${(value ?? "") === c ? "border-primary" : "border-border"} ${c ? "" : "bg-surface-elevated"}`} style={c ? { background: c } : undefined} />)}
-      <input type="color" aria-label="Custom colour" value={value || "#3b82f6"} onChange={(e) => onPick(e.target.value)} className="h-6 w-8 cursor-pointer rounded border border-border bg-transparent" />
+      <input type="color" aria-label={tr("Custom colour")} value={value || "#3b82f6"} onChange={(e) => onPick(e.target.value)} className="h-6 w-8 cursor-pointer rounded border border-border bg-transparent" />
     </div>
   );
 }
@@ -973,10 +971,9 @@ const FS_MIN = 8, FS_MAX = 96;
 function FontSizeRow({ value, onPick }: { value: number | undefined; onPick: (px: number) => void }) {
   const v = Math.round(value ?? 12);
   return (
-    <label className="flex items-center gap-2 text-[11px] text-muted-foreground">Font size
-      <button onClick={() => onPick(Math.max(FS_MIN, v - 2))} aria-label="Smaller text" className="rounded bg-surface-elevated px-2 text-xs font-bold">−</button>
-      <input type="range" aria-label="Font size" min={FS_MIN} max={FS_MAX} step={1} value={v} onChange={(e) => onPick(+e.target.value)} className="flex-1" />
-      <button onClick={() => onPick(Math.min(FS_MAX, v + 2))} aria-label="Bigger text" className="rounded bg-surface-elevated px-2 text-xs font-bold">+</button>
+    <label className="flex items-center gap-2 text-[11px] text-muted-foreground">{tr("Font size")}<button onClick={() => onPick(Math.max(FS_MIN, v - 2))} aria-label={tr("Smaller text")} className="rounded bg-surface-elevated px-2 text-xs font-bold">−</button>
+      <input type="range" aria-label={tr("Font size")} min={FS_MIN} max={FS_MAX} step={1} value={v} onChange={(e) => onPick(+e.target.value)} className="flex-1" />
+      <button onClick={() => onPick(Math.min(FS_MAX, v + 2))} aria-label={tr("Bigger text")} className="rounded bg-surface-elevated px-2 text-xs font-bold">+</button>
       <span className="w-8 text-right font-mono">{v}</span>
     </label>
   );

@@ -2,6 +2,7 @@ import { BEAM_ATTRS, getMode, type BeamAttr, type ChannelMapEntry, type PatchedF
 import { Control } from "./FixtureControls";
 import { FramingPad } from "./FramingPad";
 
+import { t as tr } from "@/lib/i18n";
 type UpdEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => void;
 
 const LABELS: Partial<Record<BeamAttr, string>> = {
@@ -41,7 +42,7 @@ export function BeamControls({ first, updateEach }: { first: PatchedFixture; upd
           <div key={g.title} className="space-y-3">
             <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               {g.title}
-              <button onClick={() => updateEach((f) => { const beam = { ...f.beam }; attrs.forEach((a) => delete beam[a]); return { beam }; })} className="rounded bg-surface-elevated px-2 py-0.5 normal-case">Reset</button>
+              <button onClick={() => updateEach((f) => { const beam = { ...f.beam }; attrs.forEach((a) => delete beam[a]); return { beam }; })} className="rounded bg-surface-elevated px-2 py-0.5 normal-case">{tr("Reset")}</button>
             </div>
             {g.title === "Position" && <PanTiltPad pan={value("Pan")} tilt={value("Tilt")} hasPan={chans.has("Pan")} hasTilt={chans.has("Tilt")} set={set} />}
             {g.title === "Framing" && <FramingPad has={(a) => chans.has(a)} value={value} set={set} />}
@@ -81,7 +82,7 @@ function PanTiltPad({ pan, tilt, hasPan, hasTilt, set }: { pan: number; tilt: nu
   };
   return (
     <div
-      aria-label="Pan and tilt pad"
+      aria-label={tr("Pan and tilt pad")}
       onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); move(e); }}
       onPointerMove={move}
       className="relative aspect-[2/1] w-full touch-none rounded-md border border-input bg-surface-elevated"

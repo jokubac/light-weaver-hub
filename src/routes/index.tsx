@@ -91,6 +91,7 @@ import {
   type Look,
 } from "@/lib/store";
 
+import { t as tr } from "@/lib/i18n";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -252,14 +253,14 @@ function Header({ title, subtitle, onBack, right }: { title: string; subtitle?: 
   return (
     <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-surface/95 px-5 py-2 backdrop-blur">
       {onBack && (
-        <button onClick={onBack} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back">
+        <button onClick={onBack} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label={tr("Back")}>
           <ArrowLeft className="h-5 w-5" />
         </button>
       )}
       <div className="min-w-0 flex-1">
         {title === "NOX" ? (
           <div className="flex items-center gap-4">
-            <NoxLogo className="h-12 w-12 shrink-0" title="NOX" />
+            <NoxLogo className="h-12 w-12 shrink-0" title={tr("NOX")} />
             <h1 className="truncate font-display text-lg font-bold text-primary">{subtitle ?? "NOX"}</h1>
           </div>
         ) : (
@@ -293,8 +294,7 @@ function NewItemForm({ placeholder, onCreate }: { placeholder: string; onCreate:
         className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
       />
       <button type="submit" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground active:scale-95">
-        <Plus className="h-4 w-4" /> Create
-      </button>
+        <Plus className="h-4 w-4" />{tr("Create")}</button>
     </form>
   );
 }
@@ -304,15 +304,15 @@ const fmtDate = (t: number) => new Date(t).toLocaleDateString(undefined, { month
 /* ---------------- Projects ---------------- */
 
 function AccountButton({ email, sync }: { email: string | null; sync: "off" | "syncing" | "ok" | "error" }) {
-  if (!email) return <div className="flex items-center gap-3"><span className="font-mono text-[10px] text-muted-foreground">v{APP_VERSION}</span><Button asChild size="sm"><Link to="/auth"><LogIn className="h-4 w-4" />Sign in</Link></Button></div>;
+  if (!email) return <div className="flex items-center gap-3"><span className="font-mono text-[10px] text-muted-foreground">{tr("v")}{APP_VERSION}</span><Button asChild size="sm"><Link to="/auth"><LogIn className="h-4 w-4" />{tr("Sign in")}</Link></Button></div>;
   return (
     <div className="flex items-center gap-2">
       <div className="hidden text-right sm:block">
         <p className="max-w-40 truncate text-xs">{email}</p>
-        <p className="text-[10px] text-muted-foreground">{sync === "syncing" ? "Syncing…" : sync === "error" ? "Sync failed — saved on this device" : "Synced to account"}</p>
+        <p className="text-[10px] text-muted-foreground">{sync === "syncing" ? tr("Syncing…") : sync === "error" ? tr("Sync failed — saved on this device") : tr("Synced to account")}</p>
       </div>
       <Cloud className={`h-4 w-4 ${sync === "error" ? "text-destructive" : "text-primary"}`} />
-      <button onClick={() => void supabase.auth.signOut()} className="rounded-lg bg-surface-elevated p-2.5" aria-label="Sign out"><LogOut className="h-4 w-4" /></button>
+      <button onClick={() => void supabase.auth.signOut()} className="rounded-lg bg-surface-elevated p-2.5" aria-label={tr("Sign out")}><LogOut className="h-4 w-4" /></button>
     </div>
   );
 }
@@ -329,10 +329,10 @@ function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, on
   const toggle = (id: string) => setOpen((o) => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   return (
     <div className="min-h-screen">
-      <Header title="NOX" subtitle="Projects & scenes" right={account} />
+      <Header title={tr("NOX")} subtitle="Projects & scenes" right={account} />
       <main className="mx-auto max-w-3xl space-y-6 p-5">
         <div className="space-y-3">
-          <NewItemForm placeholder="New project name (e.g. Commercial Day 1)" onCreate={(n) => onCreate(n, color)} />
+          <NewItemForm placeholder={tr("New project name (e.g. Commercial Day 1)")} onCreate={(n) => onCreate(n, color)} />
           <ColorSwatches value={color} onChange={setColor} />
         </div>
         {projects.length === 0 ? (
@@ -348,7 +348,7 @@ function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, on
                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: p.color }} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-display font-semibold">{p.name}</div>
-                      <div className="text-[11px] text-muted-foreground">{p.scenes.length} scenes · {fmtDate(p.createdAt)}</div>
+                      <div className="text-[11px] text-muted-foreground">{p.scenes.length}{tr("scenes ·")}{fmtDate(p.createdAt)}</div>
                     </div>
                     <div onClick={(e) => e.stopPropagation()}>
                       <ItemMenu name={p.name} color={p.color} onDuplicate={() => onDuplicate(p.id)} onDelete={() => onDelete(p.id)}
@@ -357,13 +357,13 @@ function ProjectsScreen({ projects, account, initialOpen, onCreate, onDelete, on
                   </div>
                   {isOpen && (
                     <div className="space-y-1 pb-3 pl-10 pr-3">
-                      <div className="pb-1"><NewItemForm placeholder="New scene (e.g. Interview, Night, Fire)" onCreate={(n) => onCreateScene(p.id, n)} /></div>
+                      <div className="pb-1"><NewItemForm placeholder={tr("New scene (e.g. Interview, Night, Fire)")} onCreate={(n) => onCreateScene(p.id, n)} /></div>
                       {p.scenes.map((s) => (
                         <div key={s.id} onClick={() => onOpenScene(p.id, s.id)} className="flex cursor-pointer items-center gap-3 rounded-lg border-l-2 bg-surface-elevated px-3 py-2 hover:bg-primary/10" style={{ borderColor: sceneColor(s, p) }}>
                           <Clapperboard className="h-4 w-4 shrink-0 text-muted-foreground" />
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-sm font-semibold">{s.name}</div>
-                            <div className="text-[10px] text-muted-foreground">{s.fixtures.length} fixtures · {fmtDate(s.createdAt)}</div>
+                            <div className="text-[10px] text-muted-foreground">{s.fixtures.length}{tr("fixtures ·")}{fmtDate(s.createdAt)}</div>
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
                             <ItemMenu name={s.name} color={sceneColor(s, p)} onColor={(c) => onColorScene(p.id, s.id, c)} onDuplicate={() => onDuplicateScene(p.id, s.id)} onDelete={() => onDeleteScene(p.id, s.id)} onRename={(n) => onRenameScene(p.id, s.id, n)} />
@@ -387,7 +387,7 @@ function SceneSwitcher({ projects, project, scene, onPick }: { projects: Project
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left shadow-none transition-opacity hover:bg-transparent hover:opacity-75" aria-label="Switch project or scene">
+        <button className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left shadow-none transition-opacity hover:bg-transparent hover:opacity-75" aria-label={tr("Switch project or scene")}>
           <div className="min-w-0">
             <div className="truncate font-display text-lg font-semibold">{scene.name}</div>
             <div className="truncate text-xs" style={{ color: project.color }}>{project.name}</div>
@@ -399,7 +399,7 @@ function SceneSwitcher({ projects, project, scene, onPick }: { projects: Project
         {projects.map((p) => (
           <div key={p.id}>
             <DropdownMenuLabel className="flex items-center gap-2 text-xs"><span className="h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />{p.name}</DropdownMenuLabel>
-            {p.scenes.length === 0 && <div className="px-6 pb-1 text-[11px] text-muted-foreground">No scenes</div>}
+            {p.scenes.length === 0 && <div className="px-6 pb-1 text-[11px] text-muted-foreground">{tr("No scenes")}</div>}
             {p.scenes.map((s) => (
               <DropdownMenuItem key={s.id} className="pl-6" disabled={s.id === scene.id} onSelect={() => onPick(p.id, s.id)}>
                 {s.id === scene.id ? <Check className="h-3.5 w-3.5" /> : <Clapperboard className="h-3.5 w-3.5" />}{s.name}
@@ -1246,8 +1246,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       className={`h-11 rounded-lg px-5 text-sm font-bold active:scale-95 ${panel === p && panelOpen ? "bg-primary text-primary-foreground" : panel === p ? "bg-primary/30" : "bg-surface-elevated"}`}>{label}</Button>
   );
   const groupsAside = () => (
-          <aside aria-label="Groups, looks, effects and REC" className="max-h-[45vh] w-full shrink-0 space-y-3 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
-            <CollapsibleSection title="Groups">
+          <aside aria-label={tr("Groups, looks, effects and REC")} className="max-h-[45vh] w-full shrink-0 space-y-3 overflow-auto border-t border-border bg-surface p-3 lg:max-h-none lg:w-72 lg:border-l lg:border-t-0">
+            <CollapsibleSection title={tr("Groups")}>
             <GroupsPanel fixtures={fixtures} selected={selected} onRemoveMember={(id, g) => setFixtures((fs) => fs.map((x) => (x.uid === id ? removeFromGroup(x, g) : x)))} onCreate={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, g) : x)))}
               onSelect={(g) => { const ids = membersOf(fixtures, g).map((f) => f.uid); setSelected((s) => ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : [...new Set([...s, ...ids])]); }} onRename={renameGroup} onUngroup={ungroup} onUpdate={updateGroup}
               onCopy={(from, to) => setFixtures((fs) => {
@@ -1261,25 +1261,25 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                 });
               })} />
             </CollapsibleSection>
-            <CollapsibleSection title="Looks"><LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} /></CollapsibleSection>
-            <CollapsibleSection title="Effects"><EffectsRail hideTitle fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
+            <CollapsibleSection title={tr("Looks")}><LooksRail fixtures={fixtures} selected={selected} looks={project.looks ?? []} setLooks={onLooks} onRecall={recallLook} lastLook={lastLook} /></CollapsibleSection>
+            <CollapsibleSection title={tr("Effects")}><EffectsRail hideTitle fixture={sel[0]} layer={activePixel} onFixture={(fx) => updateSelected({ fx, fxPlaying: false })} onPixel={(saved) => {
               if (!activePixel) return;
               const order = sel.filter((f) => pixelCount(f) > 1).map((f) => f.uid);
               setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
             }} /></CollapsibleSection>
-            <CollapsibleSection title="REC"><RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></CollapsibleSection>
-            <CollapsibleSection title="Timelines">
+            <CollapsibleSection title={tr("REC")}><RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></CollapsibleSection>
+            <CollapsibleSection title={tr("Timelines")}>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <input aria-label="Timeline save name" value={tlName} onChange={(e) => setTlName(e.target.value)} placeholder="Timeline name"
+                  <input aria-label={tr("Timeline save name")} value={tlName} onChange={(e) => setTlName(e.target.value)} placeholder={tr("Timeline name")}
                     className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs" />
-                  <Button variant="secondary" className="h-7 shrink-0 px-2 text-[10px] font-bold" onClick={saveTimeline}>Save</Button>
+                  <Button variant="secondary" className="h-7 shrink-0 px-2 text-[10px] font-bold" onClick={saveTimeline}>{tr("Save")}</Button>
                 </div>
-                {(project.timelines ?? []).length === 0 && <p className="text-[10px] text-muted-foreground">Nothing saved yet. Saving keeps the current timeline, with its layers and clips, apart from the scene.</p>}
+                {(project.timelines ?? []).length === 0 && <p className="text-[10px] text-muted-foreground">{tr("Nothing saved yet. Saving keeps the current timeline, with its layers and clips, apart from the scene.")}</p>}
                 {(project.timelines ?? []).map((t) => (
                   <div key={t.id} className="flex items-center gap-1.5 rounded-md bg-surface-elevated px-2 py-1">
                     <button onClick={() => applyTimeline(t)} className="min-w-0 flex-1 truncate text-left text-xs font-semibold">{t.name}</button>
-                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{Math.round(timelineLength(t.timeline))}s</span>
+                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{Math.round(timelineLength(t.timeline))}{tr("s")}</span>
                     <button aria-label={`Delete timeline ${t.name}`} onClick={() => onTimelines((project.timelines ?? []).filter((x) => x.id !== t.id))}><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 ))}
@@ -1306,15 +1306,15 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const fixtureBoard = () => (
             <>
               <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-3 flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
-                <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className={chip(false)}>Select all</button>
-                <button onClick={() => setSelected([])} className={chip(false)}>Clear</button>
-                <button title="Every other light (of the selection, or of all)" onClick={() => setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, "odd"))} className={chip(false)}>Odd</button>
-                <button title="Every other light, starting from the 2nd" onClick={() => setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, "even"))} className={chip(false)}>Even</button>
-                <button title="Every Nth light" onClick={() => { const n = Number(prompt("Select every Nth light — N =", "3")); if (n > 0) setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, n)); }} className={chip(false)}>Nth</button>
-                 <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title="Drag a finger across lights to select them"
-                  className={chip(sweep)}>Sweep {sweep ? "on" : "off"}</button>
+                <button onClick={() => setSelected(fixtures.map((f) => f.uid))} className={chip(false)}>{tr("Select all")}</button>
+                <button onClick={() => setSelected([])} className={chip(false)}>{tr("Clear")}</button>
+                <button title={tr("Every other light (of the selection, or of all)")} onClick={() => setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, "odd"))} className={chip(false)}>{tr("Odd")}</button>
+                <button title={tr("Every other light, starting from the 2nd")} onClick={() => setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, "even"))} className={chip(false)}>{tr("Even")}</button>
+                <button title={tr("Every Nth light")} onClick={() => { const n = Number(prompt("Select every Nth light — N =", "3")); if (n > 0) setSelected((s) => pickPattern(fixtures.map((f) => f.uid), s, n)); }} className={chip(false)}>{tr("Nth")}</button>
+                 <button onClick={() => { setSweep((s) => !s); setSwapping(false); setSwapSource(null); }} aria-pressed={sweep} title={tr("Drag a finger across lights to select them")}
+                  className={chip(sweep)}>{tr("Sweep")}{sweep ? tr("on") : tr("off")}</button>
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
-                 <button aria-label="Keypad" aria-pressed={keypadOpen} title="Keypad — type e.g. 1 + 3 + 5 @ 80"
+                 <button aria-label={tr("Keypad")} aria-pressed={keypadOpen} title={tr("Keypad — type e.g. 1 + 3 + 5 @ 80")}
                    onClick={() => setKeypadOpen((o) => !o)} className={chip(keypadOpen)}><Keyboard /></button>
                  <FanPopover count={selected.length} className={chip(false)} onApply={(attr, vals) => {
                    // on-screen order (tile order), not the order lights were tapped
@@ -1331,9 +1331,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                  {(() => { const allParked = selected.length > 0 && selected.every((u) => parked[u]); const n = Object.keys(parked).length; return (
                    <button aria-pressed={allParked} title={allParked ? "Unpark the selected lights" : "Park — hold the selected lights at their current output, whatever cues or effects do"}
                      onClick={() => { if (!selected.length) { setMonitorOpen(true); return; } const next = { ...parked }; if (allParked) selected.forEach((u) => delete next[u]); else outFixtures.filter((f) => selected.includes(f.uid)).forEach((f) => { next[f.uid] = lookStateOf(f); }); onParked(next); }}
-                     className={chip(allParked)}><ParkingSquare />{allParked ? "Unpark" : "Park"}{n > 0 && <span className="ml-1 font-mono text-[10px] text-warning">{n}</span>}</button>); })()}
+                     className={chip(allParked)}><ParkingSquare />{allParked ? tr("Unpark") : tr("Park")}{n > 0 && <span className="ml-1 font-mono text-[10px] text-warning">{n}</span>}</button>); })()}
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
-                <SavePopover label="+ Group" kind="Group" canCreate={selected.length > 0}
+                <SavePopover label={tr("+ Group")} kind="Group" canCreate={selected.length > 0}
                    items={groups.map((g) => ({ id: g, name: g, color: groupMeta.colors[g], info: `${membersOf(fixtures, g).length}` }))}
                   onCreate={(name, color) => { setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, name) : x))); saveGroupMeta({ order: [...groupMeta.order.filter((o) => o !== name), name], colors: { ...groupMeta.colors, [name]: color } }); }}
                   onChange={(items) => {
@@ -1343,7 +1343,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   }}
                   onDelete={(id) => setFixtures((fs) => fs.map((x) => removeFromGroup(x, id)))}
                   onPick={(id) => setSelected(membersOf(fixtures, id).map((f) => f.uid))} />
-                <SavePopover label="+ Look" kind="Look" canCreate={fixtures.length > 0}
+                <SavePopover label={tr("+ Look")} kind="Look" canCreate={fixtures.length > 0}
                   items={(project.looks ?? []).map((l) => ({ id: l.id, name: l.name, color: l.color, info: `${l.states.length}` }))}
                   onPick={(id) => { const l = (project.looks ?? []).find((x) => x.id === id); if (l) recallLook(l); }}
                   onCreate={(name, color) => { const src = fixtures; onLooks([{ id: uid(), name, color, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); }}
@@ -1353,14 +1353,14 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                    <RecDialog inline open onOpenChange={(o) => { if (!o) setRecDrop(false); }} selected={sel} all={fixtures} recordings={recordings} setRecordings={onRecordings} pixels={layers} />
                  </RecDrop>
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
-                 <Button variant="secondary" size="icon" aria-label="Swap fixture positions" aria-pressed={swapping} title="Swap fixture positions"
+                 <Button variant="secondary" size="icon" aria-label={tr("Swap fixture positions")} aria-pressed={swapping} title={tr("Swap fixture positions")}
                    onClick={() => { setSwapping((s) => !s); setSwapSource(null); setSweep(false); holdEnd(); }}
                    className={`h-8 w-8 rounded-md shadow-sm ${swapping ? "bg-primary text-primary-foreground" : ""}`}><ArrowLeftRight className="h-4 w-4" /></Button>
                  <Button variant="secondary" size="icon" aria-label={locked ? "Unlock patch" : "Lock patch"} aria-pressed={locked} onClick={() => setLocked((l) => !l)} title={locked ? "Patch locked — tap to unlock editing" : "Patch unlocked — tap to lock"} className={`h-8 w-8 rounded-md shadow-sm ${locked ? "" : "bg-amber-glow text-primary-foreground"}`}>
                    {locked ? <Lock /> : <Unlock />}
                  </Button>
-                 <button aria-label="Macro timeline" title="Macro timeline" onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">{selected.length} selected</span>
+                 <button aria-label={tr("Macro timeline")} title={tr("Macro timeline")} onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
+                <span className="ml-auto font-mono text-[10px] text-muted-foreground">{selected.length}{tr("selected")}</span>
               </div>
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
                 onPointerDown={(e) => { if (!sweep) return; e.preventDefault(); swept.current = new Set(); sweepAt(e.clientX, e.clientY); }}
@@ -1393,7 +1393,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                           level={outLevel} onPower={(p) => setFixtures((fs) => fs.map((x) => { if (x.uid !== f.uid) return x; const { power: _p, ...rest } = x; return p ? { ...rest, power: p } : rest; }))} />
                       </div>
                       <div className="flex shrink-0 justify-between gap-1 text-[9px] text-muted-foreground">
-                        <span className="truncate">U{f.universe}.{f.address}</span>
+                        <span className="truncate">{tr("U")}{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
                       {groupsOf(f).length > 0 && <div className="shrink-0 truncate text-[9px] text-primary">{groupText(f)}</div>}
@@ -1401,7 +1401,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                         <div title={`${fmtHours(b.hours)} left`} className={`flex shrink-0 items-center gap-1 text-[9px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
                           <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)}
                         </div>); })()}
-                      {f.fx.kind !== "none" && <div className={`shrink-0 truncate text-[9px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? "■" : "▶"} {f.fx.kind}</div>}
+                      {f.fx.kind !== "none" && <div className={`shrink-0 truncate text-[9px] font-semibold uppercase ${f.fxPlaying === false ? "text-muted-foreground" : "text-amber-glow"}`}>{f.fxPlaying === false ? tr("■") : tr("▶")} {f.fx.kind}</div>}
                     </div>
                   );
                 })}
@@ -1427,7 +1427,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     ) : panel === "pixels" ? (
       pixelPanel()
     ) : sel.length === 0 ? (
-      <p className="py-10 text-center text-sm text-muted-foreground">Tap lights to select and control them.</p>
+      <p className="py-10 text-center text-sm text-muted-foreground">{tr("Tap lights to select and control them.")}</p>
     ) : (
       <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
         onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
@@ -1438,45 +1438,44 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   return (
     <div className="flex h-screen min-w-0 flex-col overflow-hidden" onPointerDownCapture={beginFixtureEdit} onPointerUp={() => queueMicrotask(endFixtureEdit)} onPointerCancel={endFixtureEdit}>
       <div className="hw-bar flex flex-wrap items-center gap-2.5 border-b border-border bg-surface px-3 py-2">
-        <button onClick={exit} className="grid h-11 w-11 place-items-center rounded-lg bg-surface-elevated text-primary active:scale-95" aria-label="Exit"><ArrowLeft className="h-5 w-5" /></button>
+        <button onClick={exit} className="grid h-11 w-11 place-items-center rounded-lg bg-surface-elevated text-primary active:scale-95" aria-label={tr("Exit")}><ArrowLeft className="h-5 w-5" /></button>
         <SceneSwitcher projects={projects} project={project} scene={scene} onPick={(pid, sid) => { save(); onSwitch(pid, sid); }} />
         <div className="flex-1" />
-        <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />Auto-saved</div>
+        <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />{tr("Auto-saved")}</div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-amber-glow">MASTER</span>
-          <input aria-label="Master" type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
-          <NumberField aria-label="Master percent" min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
-          <Button variant="secondary" size="icon" aria-label="Blackout" aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
+          <span className="text-xs font-semibold text-amber-glow">{tr("MASTER")}</span>
+          <input aria-label={tr("Master")} type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
+          <NumberField aria-label={tr("Master percent")} min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
+          <Button variant="secondary" size="icon" aria-label={tr("Blackout")} aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
             {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
             {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
           </Button>
         </div>
         <span className="h-6 w-px bg-border" />
-        {blind && <Button variant="secondary" onClick={toggleBlind} aria-pressed title="BLIND on — stage is frozen. Tap to send your changes live"
-          className="animate-pulse bg-warning text-xs font-bold text-primary-foreground">APPLY</Button>}
-        <Button variant="secondary" size="icon" onClick={() => setScreenLocked(true)} aria-label="Lock screen" title="Lock screen — prevents accidental touches"><Lock /></Button>
+        {blind && <Button variant="secondary" onClick={toggleBlind} aria-pressed title={tr("BLIND on — stage is frozen. Tap to send your changes live")}
+          className="animate-pulse bg-warning text-xs font-bold text-primary-foreground">{tr("APPLY")}</Button>}
+        <Button variant="secondary" size="icon" onClick={() => setScreenLocked(true)} aria-label={tr("Lock screen")} title={tr("Lock screen — prevents accidental touches")}><Lock /></Button>
         {screenLocked && <ScreenLock onUnlock={() => setScreenLocked(false)} />}
         <span className="h-6 w-px bg-border" />
         <Button variant="secondary" onClick={() => setConnOpen(true)} title={!conn.node || bridge === "off" || bridge === "error" ? "Disconnected" : bridge === "slow" ? "Slow bridge response" : "Bridge responding — fixture reception not verified"}
           className={`text-xs font-bold ${conn.node && bridge === "ok" ? "bg-success text-primary-foreground" : conn.node && bridge === "slow" ? "bg-warning text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
-          <Radio />CONNECT
-        </Button>
+          <Radio />{tr("CONNECT")}</Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="icon" aria-label="More" title="More" className={redShift ? "text-primary" : ""}><MoreHorizontal /></Button>
+            <Button variant="secondary" size="icon" aria-label={tr("More")} title={tr("More")} className={redShift ? "text-primary" : ""}><MoreHorizontal /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setFadersOpen((o) => !o)}><Gauge />Faders {fadersOpen ? "· ON" : ""}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={toggleBlind}><Moon />{blind ? "Apply (end Blind)" : "Blind"}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setFadersOpen((o) => !o)}><Gauge />{tr("Faders")}{fadersOpen ? tr("· ON") : tr("")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={toggleBlind}><Moon />{blind ? tr("Apply (end Blind)") : tr("Blind")}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setMonitorOpen(true)}><Gauge />Monitor</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setRedShift((v) => !v)}><Moon />Red Shift {redShift ? "· ON" : ""}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSettingsOpen(true)}><SettingsIcon />Settings</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setMonitorOpen(true)}><Gauge />{tr("Monitor")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setRedShift((v) => !v)}><Moon />{tr("Red Shift")}{redShift ? tr("· ON") : tr("")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setSettingsOpen(true)}><SettingsIcon />{tr("Settings")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <ShowMonitor open={monitorOpen} onOpenChange={setMonitorOpen} fixtures={fixtures} level={outLevel} parked={parked} setParked={onParked} />
       </div>
-      <div aria-label="Console views" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
+      <div aria-label={tr("Console views")} className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
         <ViewTabs fill tabs={([["fixtures", "FIXTURES", fixturesOpen || !(gridOpen || seqOpen || pixOpen || patchOpen)], ["grid", "PLOT", gridOpen], ["timeline", "TIMELINE", seqOpen], ["pixels", "PIXEL", pixOpen], ["patch", "PATCH", patchOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => (on && k === "patch" ? undefined : openWin(k as "fixtures" | "grid" | "timeline" | "pixels" | "patch")) }))} />
         <button onClick={() => setGroupsOpen((o) => !o)} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}
           className={`inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-md shadow-sm transition active:scale-95 [&_svg]:size-4 ${groupsOpen ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
@@ -1496,7 +1495,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
               fixtureBoard()
             )}
           </div>
-          <aside aria-label="Fixture controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
+          <aside aria-label={tr("Fixture controls")} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
             {controlPanel()}
           </aside>
           {groupsOpen && groupsAside()}

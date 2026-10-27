@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { BATTERY_PRESETS, batteryStatus, fixtureWatts, fmtHours, type PowerKind, type PowerSource } from "@/lib/power";
 
+import { t as tr } from "@/lib/i18n";
 const inputCls = "mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary";
 
 export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
@@ -18,7 +19,7 @@ export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Power — {f.name}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tr("Power —")}{f.name}</DialogTitle></DialogHeader>
         <div className="space-y-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           <div className="grid grid-cols-4 gap-1.5">
             {kinds.map((k) => <button key={k.id} onClick={() => setD({ ...d, kind: k.id })} className={`rounded-md py-2 text-xs ${d.kind === k.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-foreground"}`}>{k.label}</button>)}
@@ -31,19 +32,19 @@ export function PowerDialog({ f, open, onOpenChange, onChange, level }: {
                 ))}
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <label>Capacity kWh<NumberField min={0} value={d.kwh} onChange={(v) => setD({ ...d, kwh: v ?? 0 })} className={inputCls} /></label>
-                <label>Charged %<NumberField min={0} max={100} value={Math.round(d.charge * 100)} onChange={(v) => setD({ ...d, charge: (v ?? 0) / 100 })} className={inputCls} /></label>
-                <label>Light W<NumberField min={0} value={d.watts || null} onChange={(v) => setD({ ...d, watts: v ?? 0 })} className={inputCls} /></label>
+                <label>{tr("Capacity kWh")}<NumberField min={0} value={d.kwh} onChange={(v) => setD({ ...d, kwh: v ?? 0 })} className={inputCls} /></label>
+                <label>{tr("Charged %")}<NumberField min={0} max={100} value={Math.round(d.charge * 100)} onChange={(v) => setD({ ...d, charge: (v ?? 0) / 100 })} className={inputCls} /></label>
+                <label>{tr("Light W")}<NumberField min={0} value={d.watts || null} onChange={(v) => setD({ ...d, watts: v ?? 0 })} className={inputCls} /></label>
               </div>
-              <p className="normal-case tracking-normal">{autoW > 0 ? `${fixtureDef.model}: ${autoW} W max.` : "Power unknown"} {autoW > 0 && d.watts !== autoW && <button onClick={() => setD({ ...d, watts: autoW })} className="text-primary underline">Use {autoW} W</button>}</p>
-              <p className="normal-case tracking-normal text-foreground">At 100% output: about <b>{fmtHours(st.hours)}</b>. Lower intensity stretches it — the estimate updates live while you work.</p>
-              {f.power && <p className="normal-case tracking-normal">Now: {Math.round(batteryStatus(f.power, f, level).pct * 100)}% left · {fmtHours(batteryStatus(f.power, f, level).hours)} at current level</p>}
+              <p className="normal-case tracking-normal">{autoW > 0 ? `${fixtureDef.model}: ${autoW} W max.` : tr("Power unknown")} {autoW > 0 && d.watts !== autoW && <button onClick={() => setD({ ...d, watts: autoW })} className="text-primary underline">{tr("Use")}{autoW}{tr("W")}</button>}</p>
+              <p className="normal-case tracking-normal text-foreground">{tr("At 100% output: about")}<b>{fmtHours(st.hours)}</b>{tr(". Lower intensity stretches it — the estimate updates live while you work.")}</p>
+              {f.power && <p className="normal-case tracking-normal">{tr("Now:")}{Math.round(batteryStatus(f.power, f, level).pct * 100)}{tr("% left ·")}{fmtHours(batteryStatus(f.power, f, level).hours)}{tr("at current level")}</p>}
             </>
           )}
         </div>
         <DialogFooter className="gap-2">
-          {f.power && <button onClick={() => { onChange(null); onOpenChange(false); }} className="rounded-lg bg-surface-elevated px-4 py-2.5 text-sm font-semibold">Remove</button>}
-          <button onClick={() => { onChange(d.kind === "mains" ? null : { ...d, usedWh: 0 }); onOpenChange(false); }} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">Save (resets from charge %)</button>
+          {f.power && <button onClick={() => { onChange(null); onOpenChange(false); }} className="rounded-lg bg-surface-elevated px-4 py-2.5 text-sm font-semibold">{tr("Remove")}</button>}
+          <button onClick={() => { onChange(d.kind === "mains" ? null : { ...d, usedWh: 0 }); onOpenChange(false); }} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">{tr("Save (resets from charge %)")}</button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

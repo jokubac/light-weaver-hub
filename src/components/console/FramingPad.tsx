@@ -1,5 +1,6 @@
 import type { BeamAttr } from "@/lib/dmx";
 
+import { t as tr } from "@/lib/i18n";
 // Blade n: frame edge (clockwise: 1 top, 2 right, 3 bottom, 4 left), its A/B end corners and the inward direction.
 const EDGES: { a: [number, number]; b: [number, number]; d: [number, number] }[] = [
   { a: [0, 0], b: [100, 0], d: [0, 1] },
@@ -79,7 +80,7 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
   };
   return (
     <div className="space-y-1">
-      <svg viewBox="-10 -10 120 120" aria-label="Framing shutters" className="aspect-square w-full touch-none select-none rounded-md border border-input bg-background">
+      <svg viewBox="-10 -10 120 120" aria-label={tr("Framing shutters")} className="aspect-square w-full touch-none select-none rounded-md border border-input bg-background">
         <defs>
           <clipPath id="framing-beam"><circle cx="50" cy="50" r="50" /></clipPath>
         </defs>
@@ -119,7 +120,7 @@ export function FramingPad({ has, value, set }: { has: (a: BeamAttr) => boolean;
           // every blade edge first, every corner dot on top, so a moved blade never hides another blade's dots
           return <>{parts.map((x) => x.line)}{parts.flatMap((x) => x.dots)}</>; })()}
       </svg>
-      <p className="text-[10px] text-muted-foreground">Drag a blade edge to slide it, or a dot to cut a corner.</p>
+      <p className="text-[10px] text-muted-foreground">{tr("Drag a blade edge to slide it, or a dot to cut a corner.")}</p>
     </div>
   );
 }

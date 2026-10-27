@@ -4,6 +4,7 @@ import { useFavorites } from "@/lib/favorites";
 import { FAN_MODES, cctFromKelvin, kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, hexToHs, type Gel } from "@/lib/gels";
 
+import { t as tr } from "@/lib/i18n";
 type Upd = (p: Partial<PatchedFixture>) => void;
 type UpdEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => void;
 
@@ -27,7 +28,7 @@ export function CctMacros({ value, update }: { value: number; update: Upd }) {
     <div className="space-y-2">
       <div className="grid grid-cols-6 gap-1">
         {KELVINS.map((n) => (
-          <button key={n} onClick={() => apply(n)} className={`rounded-md py-2 font-mono text-[11px] font-semibold active:scale-95 ${kelvin(value) === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{n >= 10000 ? "10K" : `${n / 1000}K`.replace(".", ",")}</button>
+          <button key={n} onClick={() => apply(n)} className={`rounded-md py-2 font-mono text-[11px] font-semibold active:scale-95 ${kelvin(value) === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{n >= 10000 ? tr("10K") : `${n / 1000}K`.replace(".", ",")}</button>
         ))}
       </div>
 
@@ -47,7 +48,7 @@ export function GmMacros({ value, update }: { value: number; update: Upd }) {
           <button key={s.v} onClick={() => update({ gm: s.v })} className={`rounded-md py-2 text-[11px] font-semibold active:scale-95 ${Math.abs(value - s.v) < 0.005 ? "bg-primary text-primary-foreground" : s.v < 0 ? "bg-surface-elevated text-[rgb(255,120,220)]" : s.v > 0 ? "bg-surface-elevated text-success" : "bg-surface-elevated"}`}>{s.l}</button>
         ))}
       </div>
-      <p className="text-[10px] text-muted-foreground">− = minus green (magenta) · + = plus green · steps from 1/16 to full gel</p>
+      <p className="text-[10px] text-muted-foreground">{tr("− = minus green (magenta) · + = plus green · steps from 1/16 to full gel")}</p>
     </div>
   );
 }
@@ -66,16 +67,16 @@ export function ColorWheel({ hue, sat, crossfade, update }: { hue: number; sat: 
   const a = ((hue - 90) * Math.PI) / 180;
   return (
     <div className="flex items-center gap-4">
-      <div ref={ref} aria-label="Colour wheel" onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pick(e); }} onPointerMove={(e) => e.buttons && pick(e)}
+      <div ref={ref} aria-label={tr("Colour wheel")} onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pick(e); }} onPointerMove={(e) => e.buttons && pick(e)}
         className="relative aspect-square w-40 shrink-0 touch-none rounded-full"
         style={{ background: "radial-gradient(circle, #fff 0%, transparent 70%), conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}>
         <div className="pointer-events-none absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background shadow"
           style={{ left: `${50 + Math.cos(a) * sat * 50}%`, top: `${50 + Math.sin(a) * sat * 50}%`, background: `hsl(${hue} ${sat * 100}% ${100 - sat * 50}%)` }} />
       </div>
       <div className="space-y-1 font-mono text-xs">
-        <div>H {Math.round(hue)}°</div>
-        <div>S {Math.round(sat * 100)}%</div>
-        <div className="text-muted-foreground">Mix {Math.round(crossfade * 100)}%</div>
+        <div>{tr("H")}{Math.round(hue)}°</div>
+        <div>{tr("S")}{Math.round(sat * 100)}%</div>
+        <div className="text-muted-foreground">{tr("Mix")}{Math.round(crossfade * 100)}%</div>
       </div>
     </div>
   );
@@ -114,33 +115,33 @@ export function GelPicker({ value, update }: { value?: string; update: Upd }) {
         <div className="flex items-center gap-2 rounded-md bg-primary/15 px-2 py-1.5 text-xs">
           <span className="h-5 w-5 rounded" style={{ background: cur.hex }} />
           <span className="flex-1 font-semibold">{cur.brand} {cur.code} · {cur.name}</span>
-          <button onClick={() => update({ gel: "" })} aria-label="Clear gel"><X className="h-3.5 w-3.5" /></button>
+          <button onClick={() => update({ gel: "" })} aria-label={tr("Clear gel")}><X className="h-3.5 w-3.5" /></button>
         </div>
       )}
       <div className="flex gap-1">
         {(["all", "Rosco", "LEE", "fav"] as const).map((b) => (
-          <button key={b} onClick={() => setBrand(b)} className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold ${brand === b ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{b === "all" ? "All" : b === "fav" ? `★ ${fav.list.length}` : b}</button>
+          <button key={b} onClick={() => setBrand(b)} className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold ${brand === b ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{b === "all" ? tr("All") : b === "fav" ? `★ ${fav.list.length}` : b}</button>
         ))}
       </div>
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Number or name (e.g. 201, CTO, 3202)" className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Number or name (e.g. 201, CTO, 3202)")} className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
       </div>
       <div className="max-h-56 space-y-1 overflow-auto">
         {hits.map((g) => (
           <div key={g.id} className={`flex items-center gap-1 rounded-md pr-2 ${value === g.id ? "bg-primary/20" : "bg-surface-elevated"}`}>
           <button onClick={() => apply(g)} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-xs active:scale-[0.98]">
             <span className="h-5 w-5 shrink-0 rounded border border-border" style={{ background: g.hex }} />
-            <span className="w-14 font-mono font-semibold">{g.brand === "LEE" ? "L" : "R"}{g.code}</span>
+            <span className="w-14 font-mono font-semibold">{g.brand === "LEE" ? tr("L") : tr("R")}{g.code}</span>
             <span className="min-w-0 flex-1 truncate">{g.name}</span>
-            {g.kelvin && <span className="font-mono text-[10px] text-muted-foreground">{g.kelvin}K</span>}
+            {g.kelvin && <span className="font-mono text-[10px] text-muted-foreground">{g.kelvin}{tr("K")}</span>}
           </button>
-          <button onClick={() => fav.toggle(g.id)} aria-label="Favourite gel"><Star className={`h-3.5 w-3.5 ${fav.has(g.id) ? "fill-amber-glow text-amber-glow" : "text-muted-foreground"}`} /></button>
+          <button onClick={() => fav.toggle(g.id)} aria-label={tr("Favourite gel")}><Star className={`h-3.5 w-3.5 ${fav.has(g.id) ? "fill-amber-glow text-amber-glow" : "text-muted-foreground"}`} /></button>
           </div>
         ))}
-        {hits.length === 0 && <p className="py-3 text-center text-xs text-muted-foreground">{brand === "fav" ? "No favourites yet — tap ★ on a gel" : "No gels found"}</p>}
+        {hits.length === 0 && <p className="py-3 text-center text-xs text-muted-foreground">{brand === "fav" ? tr("No favourites yet — tap ★ on a gel") : tr("No gels found")}</p>}
       </div>
-      <p className="text-[10px] text-muted-foreground">{GELS.length} gels. Colours are approximate on LED lights.</p>
+      <p className="text-[10px] text-muted-foreground">{GELS.length}{tr("gels. Colours are approximate on LED lights.")}</p>
     </div>
   );
 }

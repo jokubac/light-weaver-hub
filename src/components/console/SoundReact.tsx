@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AUDIO_TARGETS, VIDEO_AUDIO_TARGETS, audioRunning, defaultAudioSettings, levels, listInputs, listOutputs, loadAudioFile, setAudioSettings, startAudio, stopAudio, type AudioReact, type AudioSettings, type Band } from "@/lib/audio-react";
 import type { PixelLayer } from "@/lib/pixels";
 
+import { t as tr } from "@/lib/i18n";
 const KEY = "nox-audio-settings";
 const BANDS: Band[] = ["bass", "mid", "high", "level"];
 
@@ -38,34 +39,34 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
   );
   return (
     <Popover>
-      <PopoverTrigger asChild><Button size="sm" variant={a.enabled && on ? "default" : "secondary"} aria-label="Sound reactive"><AudioLines />Sound{a.enabled && on ? " ●" : ""}</Button></PopoverTrigger>
+      <PopoverTrigger asChild><Button size="sm" variant={a.enabled && on ? "default" : "secondary"} aria-label={tr("Sound reactive")}><AudioLines />{tr("Sound")}{a.enabled && on ? tr(" ●") : tr("")}</Button></PopoverTrigger>
       <PopoverContent align="start" className="w-80 space-y-2 p-3 text-xs">
         <div className="flex items-center gap-1.5">
-          <select aria-label="Sound source" value={s.source} onChange={(e) => { const n = upd({ source: e.target.value as AudioSettings["source"] }); if (on) void listen(n); }} className={`flex-1 ${field}`}>
-            <option value="device">Device audio (what's playing)</option><option value="file">Audio file (WAV…)</option><option value="input">Sound card input</option><option value="mic">Microphone</option><option value="timeline">TIMELINE audio</option>
+          <select aria-label={tr("Sound source")} value={s.source} onChange={(e) => { const n = upd({ source: e.target.value as AudioSettings["source"] }); if (on) void listen(n); }} className={`flex-1 ${field}`}>
+            <option value="device">{tr("Device audio (what's playing)")}</option><option value="file">{tr("Audio file (WAV…)")}</option><option value="input">{tr("Sound card input")}</option><option value="mic">{tr("Microphone")}</option><option value="timeline">{tr("TIMELINE audio")}</option>
           </select>
-          <Button size="sm" variant={on ? "destructive" : "default"} onClick={() => { if (on) { stopAudio(); setOn(false); } else void listen(); }}>{on ? "Stop" : "Listen"}</Button>
+          <Button size="sm" variant={on ? "destructive" : "default"} onClick={() => { if (on) { stopAudio(); setOn(false); } else void listen(); }}>{on ? tr("Stop") : tr("Listen")}</Button>
         </div>
         {s.source === "input" && (
-          <select aria-label="Input device" value={s.deviceId ?? ""} onChange={(e) => { const n = upd({ deviceId: e.target.value || undefined }); if (on) void listen(n); }} className={`w-full ${field}`}>
-            <option value="">Default input</option>
+          <select aria-label={tr("Input device")} value={s.deviceId ?? ""} onChange={(e) => { const n = upd({ deviceId: e.target.value || undefined }); if (on) void listen(n); }} className={`w-full ${field}`}>
+            <option value="">{tr("Default input")}</option>
             {inputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Input ${i + 1}`}</option>)}
           </select>
         )}
         {s.source === "file" && (
           <label className={`flex w-full cursor-pointer items-center gap-1.5 ${field}`}>
-            <span className="font-semibold">Choose file</span><span className="truncate text-muted-foreground">{fileName ?? "WAV, AIFF, FLAC, MP3"}</span>
+            <span className="font-semibold">{tr("Choose file")}</span><span className="truncate text-muted-foreground">{fileName ?? "WAV, AIFF, FLAC, MP3"}</span>
             <input type="file" accept="audio/*,.wav,.aif,.aiff,.flac" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFileName(loadAudioFile(f)); void listen(); } }} />
           </label>
         )}
         {(s.source === "file" || s.source === "timeline") && (
-          <select aria-label="Output device" value={s.outputId ?? ""} onFocus={async () => setOutputs(await listOutputs())} onChange={(e) => { const n = upd({ outputId: e.target.value || undefined }); if (on) void listen(n); }} className={`w-full ${field}`}>
-            <option value="">Default output</option>
+          <select aria-label={tr("Output device")} value={s.outputId ?? ""} onFocus={async () => setOutputs(await listOutputs())} onChange={(e) => { const n = upd({ outputId: e.target.value || undefined }); if (on) void listen(n); }} className={`w-full ${field}`}>
+            <option value="">{tr("Default output")}</option>
             {outputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Output ${i + 1}`}</option>)}
           </select>
         )}
         {err && <p className="text-destructive">{err}</p>}
-        <div className="grid grid-cols-4 gap-1" aria-label="Sound meter">
+        <div className="grid grid-cols-4 gap-1" aria-label={tr("Sound meter")}>
           {BANDS.map((b) => <div key={b} className="text-center"><div className="relative h-10 overflow-hidden rounded bg-surface-elevated"><div className={`absolute inset-x-0 bottom-0 ${b === "bass" && meter.beat ? "bg-destructive" : "bg-primary"}`} style={{ height: `${Math.round(meter[b] * 100)}%` }} /></div><span className="capitalize text-muted-foreground">{b}</span></div>)}
         </div>
         {slider("Gain", "gain", 0.25, 8, 0.25, (v) => `×${v}`)}
@@ -73,7 +74,7 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
         {slider("Attack", "attack", 0, 0.5, 0.01, (v) => `${Math.round(v * 1000)}ms`)}
         {slider("Release", "release", 0.02, 2, 0.02, (v) => `${Math.round(v * 1000)}ms`)}
         <label className="flex items-center gap-1.5 border-t border-border pt-2 font-semibold">
-          <input type="checkbox" checked={a.enabled} onChange={(e) => setA({ enabled: e.target.checked })} />This effect reacts to sound</label>
+          <input type="checkbox" checked={a.enabled} onChange={(e) => setA({ enabled: e.target.checked })} />{tr("This effect reacts to sound")}</label>
         {[...AUDIO_TARGETS, ...(layer.kind === "video" ? VIDEO_AUDIO_TARGETS : [])].map(([k, label, band]) => {
           const t = a[k] ?? { on: false, band, amount: 0.7 };
           return (
@@ -87,7 +88,7 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
             </div>
           );
         })}
-        <p className="text-[11px] text-muted-foreground">Sound is analysed raw on this device — no compression, echo cancelling or auto gain. WAV/AIFF/FLAC play lossless to the chosen output; nothing is re-encoded or sent out.</p>
+        <p className="text-[11px] text-muted-foreground">{tr("Sound is analysed raw on this device — no compression, echo cancelling or auto gain. WAV/AIFF/FLAC play lossless to the chosen output; nothing is re-encoded or sent out.")}</p>
       </PopoverContent>
     </Popover>
   );

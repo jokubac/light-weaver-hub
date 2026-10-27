@@ -28,6 +28,7 @@ import {
   type PatchedFixture,
 } from "@/lib/dmx";
 
+import { t as tr } from "@/lib/i18n";
 const chartTag = (d: Pick<FixtureDef, "modes">) => (isVerifiedDef(d) ? " · ✓ official chart" : " · ⚠ unverified");
 
 /** Pixel count for a mode, including layouts derived at getMode time (Astera names, "Pixel N" modes). */
@@ -169,23 +170,23 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Patch</h2>
-        <button onClick={() => setShowMap((v) => !v)} className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${showMap ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Grid3x3 className="h-3.5 w-3.5" />DMX map</button>
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">{tr("Patch")}</h2>
+        <button onClick={() => setShowMap((v) => !v)} className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${showMap ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Grid3x3 className="h-3.5 w-3.5" />{tr("DMX map")}</button>
       </div>
       {showMap && modeIdx === null && (
         <div className="space-y-2 rounded-lg bg-surface-elevated/50 p-2">
           <div className="flex flex-wrap gap-1">
             {universes.map((u) => (
-              <button key={u} onClick={() => setMapU(u)} className={`rounded px-2 py-1 font-mono text-[11px] ${mapU === u ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>U{u}</button>
+              <button key={u} onClick={() => setMapU(u)} className={`rounded px-2 py-1 font-mono text-[11px] ${mapU === u ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{tr("U")}{u}</button>
             ))}
-            <NumberField integer min={1} max={MAX_UNIVERSE} value={mapU} onChange={(v) => v && setMapU(v)} className="w-14 rounded border border-input bg-surface px-1 text-[11px]" aria-label="Universe" />
+            <NumberField integer min={1} max={MAX_UNIVERSE} value={mapU} onChange={(v) => v && setMapU(v)} className="w-14 rounded border border-input bg-surface px-1 text-[11px]" aria-label={tr("Universe")} />
           </div>
           <DmxMap fixtures={fixtures} universe={mapU} />
         </div>
       )}
       {crumbs.length > 0 && (
         <div className="flex items-center gap-2">
-          <button onClick={back} className="rounded-md bg-surface-elevated p-2 text-primary" aria-label="Back"><ChevronLeft className="h-4 w-4" /></button>
+          <button onClick={back} className="rounded-md bg-surface-elevated p-2 text-primary" aria-label={tr("Back")}><ChevronLeft className="h-4 w-4" /></button>
           <button onClick={reset} className="min-w-0 truncate text-left text-xs text-muted-foreground">{crumbs.join(" › ")}</button>
         </div>
       )}
@@ -194,19 +195,19 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         <div className="space-y-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search brand, model" className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Search brand, model")} className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
           </div>
-          <div className="flex flex-wrap items-center gap-1" aria-label="Fixture filters">
+          <div className="flex flex-wrap items-center gap-1" aria-label={tr("Fixture filters")}>
             {([["all", "All"], ["ok", "✓ Verified"], ["no", "⚠ Unverified"]] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setVerF(k)} className={chip(verF === k)}>{l}</button>)}
             <span className="mx-1 h-4 w-px bg-border" />
             {([["all", "Any"], ["px", "Pixel"], ["none", "No pixels"]] as const).filter(([k]) => !pixelOnly || k === "px").map(([k, l]) => <button key={k} type="button" onClick={() => { setPxF(k); if (k === "none") setPxN(null); }} className={chip(pxF === k)}>{l}</button>)}
             {pxF !== "none" && (
-              <select value={pxN ?? ""} onChange={(e) => { const v = e.target.value ? +e.target.value : null; setPxN(v); if (v !== null) setPxF("px"); }} aria-label="Pixel count" className="rounded-md border border-input bg-surface-elevated px-2 py-1 text-[11px]">
-                <option value="">Pixels: any</option>
-                {pxOptions.map((n) => <option key={n} value={n}>{n} px</option>)}
+              <select value={pxN ?? ""} onChange={(e) => { const v = e.target.value ? +e.target.value : null; setPxN(v); if (v !== null) setPxF("px"); }} aria-label={tr("Pixel count")} className="rounded-md border border-input bg-surface-elevated px-2 py-1 text-[11px]">
+                <option value="">{tr("Pixels: any")}</option>
+                {pxOptions.map((n) => <option key={n} value={n}>{n}{tr("px")}</option>)}
               </select>
             )}
-            {filtersOn && <button type="button" onClick={() => { setVerF("all"); setPxF(pixelOnly ? "px" : "all"); setPxN(null); }} className="px-1 text-[11px] text-primary underline">Clear</button>}
+            {filtersOn && <button type="button" onClick={() => { setVerF("all"); setPxF(pixelOnly ? "px" : "all"); setPxN(null); }} className="px-1 text-[11px] text-primary underline">{tr("Clear")}</button>}
           </div>
         </div>
       )}
@@ -214,23 +215,23 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       {!def && <MoreSources fixtures={fixtures} onAdd={onAdd} onPick={(d) => { setBrand(d.brand); setDef(d); setModeIdx(0); }} />}
       {!def && q ? (
         <List>
-          {gdtfHits.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Manufacturer GDTF{gdtfBusy ? " · loading…" : ""}</p>}
+          {gdtfHits.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{tr("Manufacturer GDTF")}{gdtfBusy ? tr(" · loading…") : tr("")}</p>}
           {gdtfHits.filter((d) => isPx(d) && passF(d)).map((d) => (
             <Row key={`g-${d.id}`} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
           ))}
-          {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? "No fixtures found" : "Loading fixture library…"}</p>}
+          {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? tr("No fixtures found") : tr("Loading fixture library…")}</p>}
         </List>
       ) : !brand ? (
         <List>
-          {favPairs.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixture + mode</p>}
+          {favPairs.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">{tr("★ Favourite fixture + mode")}</p>}
           {favPairs.filter(({ d, i }) => !pixelOnly || pxCount(d, i) > 0).sort((a, b) => byBrandModel(a.d, b.d)).map(({ d, i, k }) => (
             <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => void chooseDef(d, i)} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
           ))}
-          {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">★ Favourite fixtures</p>}
+          {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">{tr("★ Favourite fixtures")}</p>}
           {availableDefs.filter((d) => fav.has(d.id) && isPx(d) && passF(d)).sort(byBrandModel).map((d) => (
             <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes${chartTag(d)}`} />
           ))}
-          <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturers{gdtfLib ? ` · ${gdtfLib.length} fixtures` : " · loading…"}</p>
+          <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Manufacturers")}{gdtfLib ? ` · ${gdtfLib.length} fixtures` : tr(" · loading…")}</p>
           {gdtfBrands.map((b) => ({ b, n: (gdtfLib ?? []).filter((d) => d.brand === b && passF(d)).length })).filter(({ n }) => n > 0).map(({ b, n }) => (
             <Row key={b} starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => setBrand(b)} title={b} sub={`${n} models`} />
           ))}
@@ -245,7 +246,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
         <List>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder="Search mode" className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
+            <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder={tr("Search mode")} className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
           </div>
           <div className="flex flex-wrap gap-1.5">
             {CAP_FILTERS.filter((c) => caps.includes(c.id) || def.modes.some((_, i) => modeHasCap(def, i, c.id))).map((c) => (
@@ -263,9 +264,9 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
       {showPatched && fixtures.length > 0 && (
         <div className={`space-y-2 rounded-lg bg-surface-elevated/50 p-2 ${defaultMap ? "" : "order-first"}`}>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-auto text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Patched ({fixtures.length})</span>
-            <button onClick={() => setUnpick(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-2 py-1 text-[11px] font-semibold">Select all</button>
-            <button onClick={() => setUnpick([])} disabled={!unpick.length} className="rounded-md bg-surface-elevated px-2 py-1 text-[11px] font-semibold disabled:opacity-40">Deselect</button>
+            <span className="mr-auto text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Patched (")}{fixtures.length})</span>
+            <button onClick={() => setUnpick(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-2 py-1 text-[11px] font-semibold">{tr("Select all")}</button>
+            <button onClick={() => setUnpick([])} disabled={!unpick.length} className="rounded-md bg-surface-elevated px-2 py-1 text-[11px] font-semibold disabled:opacity-40">{tr("Deselect")}</button>
             <button
               onClick={() => {
                 if (unpick.length === 0) return;
@@ -278,7 +279,7 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
               disabled={unpick.length === 0}
               className="flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-[11px] font-semibold text-destructive-foreground disabled:opacity-40"
             >
-              <Unplug className="h-3.5 w-3.5" />Unpatch{unpick.length > 0 ? ` (${unpick.length})` : ""}
+              <Unplug className="h-3.5 w-3.5" />{tr("Unpatch")}{unpick.length > 0 ? ` (${unpick.length})` : tr("")}
             </button>
           </div>
           <div className="max-h-96 space-y-1 overflow-y-auto">
@@ -294,23 +295,23 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
                     {f.label && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.label }} />}
                     <FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-7 w-9 shrink-0" />
                     <span className="min-w-0 flex-1 truncate font-semibold">{f.name}</span>
-                    <span className={`shrink-0 font-mono text-[10px] ${clash.length ? "text-destructive" : "text-muted-foreground"}`}>U{f.universe}.{f.address} · {ch}ch</span>
+                    <span className={`shrink-0 font-mono text-[10px] ${clash.length ? "text-destructive" : "text-muted-foreground"}`}>{tr("U")}{f.universe}.{f.address} · {ch}{tr("ch")}</span>
                     <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`rounded p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
                   </div>
                   {editing === f.uid && (
                     <div className="space-y-2 border-t border-border p-2">
-                      <Field label="Name"><input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} className={inputCls} /></Field>
+                      <Field label={tr("Name")}><input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} className={inputCls} /></Field>
                       <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
-                      <Field label="Mode">
+                      <Field label={tr("Mode")}>
                         <select value={f.modeIdx} onChange={(e) => onUpdate(f.uid, { modeIdx: +e.target.value })} className={inputCls}>
-                          {d.modes.map((m, i) => <option key={m.name} value={i}>{m.name}{pxCount(d, i) ? ` (${pxCount(d, i)} px)` : ""} · {m.channels} ch</option>)}
+                          {d.modes.map((m, i) => <option key={m.name} value={i}>{m.name}{pxCount(d, i) ? ` (${pxCount(d, i)} px)` : tr("")} · {m.channels}{tr("ch")}</option>)}
                         </select>
                       </Field>
                       <div className="grid grid-cols-2 gap-2">
-                        <Field label="Universe"><NumberField integer min={1} max={MAX_UNIVERSE} value={f.universe} onChange={(v) => v && onUpdate(f.uid, { universe: v })} className={inputCls} /></Field>
-                        <Field label="Address"><NumberField integer min={1} max={512} value={f.address} onChange={(v) => v && onUpdate(f.uid, { address: Math.min(v, 513 - ch) })} className={inputCls} /></Field>
+                        <Field label={tr("Universe")}><NumberField integer min={1} max={MAX_UNIVERSE} value={f.universe} onChange={(v) => v && onUpdate(f.uid, { universe: v })} className={inputCls} /></Field>
+                        <Field label={tr("Address")}><NumberField integer min={1} max={512} value={f.address} onChange={(v) => v && onUpdate(f.uid, { address: Math.min(v, 513 - ch) })} className={inputCls} /></Field>
                       </div>
-                      {clash.length > 0 && <p className="flex gap-1.5 text-[11px] text-destructive"><AlertTriangle className="h-3.5 w-3.5" />Overlaps {clash.map((c) => c.name).join(", ")}</p>}
+                      {clash.length > 0 && <p className="flex gap-1.5 text-[11px] text-destructive"><AlertTriangle className="h-3.5 w-3.5" />{tr("Overlaps")}{clash.map((c) => c.name).join(", ")}</p>}
                       <DmxMap fixtures={fixtures} universe={f.universe} highlight={f.uid} onPick={(a) => onUpdate(f.uid, { address: Math.min(a, 513 - ch) })} />
                     </div>
                   )}
@@ -360,10 +361,10 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
 
   return (
     <div className="space-y-3 rounded-lg bg-surface-elevated p-3">
-      <Field label="Name"><input value={baseName} onChange={(e) => setBaseName(e.target.value)} className={inputCls} /></Field>
+      <Field label={tr("Name")}><input value={baseName} onChange={(e) => setBaseName(e.target.value)} className={inputCls} /></Field>
       <FixtureIconPicker model={def.model} value={icon} onChange={setIcon} />
       <div>
-        <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Colour tag (optional)</span>
+        <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Colour tag (optional)")}</span>
         <div className="flex flex-wrap gap-1.5">
           {LABEL_COLORS.map((c) => (
             <button key={c} type="button" onClick={() => setLabel(label === c ? null : c)} aria-label={`Tag ${c}`}
@@ -372,21 +373,20 @@ function PatchConfig({ fixtures, def, modeIdx, onAdd }: { fixtures: PatchedFixtu
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Universe"><NumberField integer min={1} max={MAX_UNIVERSE} value={universe} onChange={(v) => v && changeUniverse(v)} className={inputCls} /></Field>
-        <Field label="Start address"><NumberField integer min={1} max={512} value={address} onChange={(v) => v && setAddress(v)} className={inputCls} /></Field>
-        <Field label="Quantity"><NumberField integer min={1} max={256} value={qty} onChange={(v) => v && setQty(v)} className={inputCls} /></Field>
-        <Field label="Offset (gap ch)"><NumberField integer min={0} max={100} value={offset} onChange={(v) => setOffset(v ?? 0)} className={inputCls} /></Field>
+        <Field label={tr("Universe")}><NumberField integer min={1} max={MAX_UNIVERSE} value={universe} onChange={(v) => v && changeUniverse(v)} className={inputCls} /></Field>
+        <Field label={tr("Start address")}><NumberField integer min={1} max={512} value={address} onChange={(v) => v && setAddress(v)} className={inputCls} /></Field>
+        <Field label={tr("Quantity")}><NumberField integer min={1} max={256} value={qty} onChange={(v) => v && setQty(v)} className={inputCls} /></Field>
+        <Field label={tr("Offset (gap ch)")}><NumberField integer min={0} max={100} value={offset} onChange={(v) => setOffset(v ?? 0)} className={inputCls} /></Field>
       </div>
       <DmxMap fixtures={fixtures} universe={universe} planned={planned} onPick={setAddress} />
       <p className="text-[11px] text-muted-foreground">
-        {ch} ch each · {shown.slots.slice(0, 6).map((s) => `U${s.universe}.${s.address}`).join(", ")}{shown.slots.length > 6 ? "…" : ""} · {used} fixtures already in U{universe}
+        {ch}{tr("ch each ·")}{shown.slots.slice(0, 6).map((s) => `U${s.universe}.${s.address}`).join(", ")}{shown.slots.length > 6 ? tr("…") : tr("")} · {used}{tr("fixtures already in U")}{universe}
       </p>
-      {strict.overflows && !problem && <p className="flex items-start gap-2 text-xs text-amber-glow"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />Doesn't fit in U{universe} — you'll be asked to continue into the next universe.</p>}
+      {strict.overflows && !problem && <p className="flex items-start gap-2 text-xs text-amber-glow"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{tr("Doesn't fit in U")}{universe}{tr("— you'll be asked to continue into the next universe.")}</p>}
       {problem && <p className="flex items-start gap-2 text-xs text-destructive"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{problem}</p>}
       <div className="flex gap-2">
-        <button onClick={() => setAddress(findFreeAddress(fixtures, universe, ch) ?? 1)} className="flex-1 rounded-md bg-surface py-2.5 text-xs font-semibold">Next free</button>
-        <button disabled={!!problem} onClick={patch} className="flex-[2] rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40">
-          Patch {qty > 1 ? `${qty} fixtures` : "fixture"}
+        <button onClick={() => setAddress(findFreeAddress(fixtures, universe, ch) ?? 1)} className="flex-1 rounded-md bg-surface py-2.5 text-xs font-semibold">{tr("Next free")}</button>
+        <button disabled={!!problem} onClick={patch} className="flex-[2] rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40">{tr("Patch")}{qty > 1 ? `${qty} fixtures` : tr("fixture")}
         </button>
       </div>
     </div>
@@ -451,17 +451,15 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
 
   return (
     <div className="rounded-lg bg-surface-elevated/50">
-      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        More sources
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("More sources")}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="space-y-2 p-2 pt-0">
           <div className="flex flex-wrap gap-1.5">
             <input ref={fileRef} type="file" accept=".gdtf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleGdtfFile(f); e.target.value = ""; }} />
-            <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><FileUp className="h-3.5 w-3.5" />Import GDTF</button>
-            <button onClick={() => setBuilder(true)} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Wrench className="h-3.5 w-3.5" />Fixture builder</button>
-            <button onClick={() => onPick(getDef("generic-dimmer"))} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Zap className="h-3.5 w-3.5" />Patch dimmer</button>
+            <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><FileUp className="h-3.5 w-3.5" />{tr("Import GDTF")}</button>
+            <button onClick={() => setBuilder(true)} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Wrench className="h-3.5 w-3.5" />{tr("Fixture builder")}</button>
+            <button onClick={() => onPick(getDef("generic-dimmer"))} className="flex items-center gap-1 rounded-md bg-surface px-2 py-1.5 text-[11px] font-semibold"><Zap className="h-3.5 w-3.5" />{tr("Patch dimmer")}</button>
           </div>
           {gdtfMsg && <p className="text-[11px] text-muted-foreground">{gdtfMsg}</p>}
           <GdtfLibrarySearch onPick={onPick} />
@@ -470,7 +468,7 @@ function MoreSources({ fixtures, onAdd, onPick }: { fixtures: PatchedFixture[]; 
 
           {userFixtures.length > 0 && (
             <div className="space-y-1 rounded-md bg-surface p-2">
-              <span className="text-[11px] font-semibold">Custom fixtures</span>
+              <span className="text-[11px] font-semibold">{tr("Custom fixtures")}</span>
               {userFixtures.map((d) => (
                 <div key={d.id} className="flex items-center gap-2 rounded bg-surface-elevated px-2 py-1 text-[11px]">
                   <span className="min-w-0 flex-1 truncate">{d.brand} {d.model}</span>
@@ -505,7 +503,7 @@ function Row({ title, sub, onClick, starred, onStar, footprint }: { title: strin
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
       </Button>
-      {footprint && <Button variant="ghost" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="shrink-0 px-2 text-[11px] text-muted-foreground">DMX {open ? "▴" : "▾"}</Button>}
+      {footprint && <Button variant="ghost" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="shrink-0 px-2 text-[11px] text-muted-foreground">{tr("DMX")}{open ? tr("▴") : tr("▾")}</Button>}
     </div>
     {open && footprint && (
       <ol className="grid grid-cols-2 gap-x-3 gap-y-0.5 px-3 pb-2.5 font-mono text-[11px] text-muted-foreground sm:grid-cols-3">
@@ -527,17 +525,17 @@ function GdtfLibrarySearch({ onPick }: { onPick: (d: FixtureDef) => void }) {
     <div className="space-y-1.5 rounded-md bg-surface p-2">
       <div className="flex items-center gap-1.5">
         <Search className="h-3.5 w-3.5 text-muted-foreground" />
-        <input value={q} onFocus={open} onChange={(e) => setQ(e.target.value)} placeholder={list ? `Search ${list.length} GDTF fixtures…` : "Search GDTF library…"} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label="Search GDTF library" />
+        <input value={q} onFocus={open} onChange={(e) => setQ(e.target.value)} placeholder={list ? `Search ${list.length} GDTF fixtures…` : "Search GDTF library…"} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label={tr("Search GDTF library")} />
       </div>
       {err && <p className="text-[11px] text-destructive">{err}</p>}
-      {q && list && hits.length === 0 && <p className="text-[11px] text-muted-foreground">No match.</p>}
+      {q && list && hits.length === 0 && <p className="text-[11px] text-muted-foreground">{tr("No match.")}</p>}
       {hits.length > 0 && (
         <div className="max-h-56 space-y-1 overflow-y-auto">
           {hits.map((d) => (
             <button key={d.id} disabled={!!busy} onClick={async () => { setBusy(d.id); try { onPick(await installGdtfFixture(d)); setQ(""); } finally { setBusy(null); } }} className="flex w-full items-center gap-2 rounded bg-surface-elevated px-2 py-1 text-left text-[11px] disabled:opacity-50">
               {d.icon ? <img src={`/gdtf-library/icons/${d.icon}`} alt="" loading="lazy" className="h-6 w-6 shrink-0 object-contain" /> : <span className="h-6 w-6 shrink-0" />}
               <span className="min-w-0 flex-1 truncate"><span className="font-semibold">{d.brand}</span> {d.model}</span>
-              <span className="shrink-0 text-muted-foreground">{busy === d.id ? "…" : `${d.modes.length} modes`}</span>
+              <span className="shrink-0 text-muted-foreground">{busy === d.id ? tr("…") : `${d.modes.length} modes`}</span>
             </button>
           ))}
         </div>

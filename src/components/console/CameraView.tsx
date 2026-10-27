@@ -4,6 +4,7 @@ import { rayBlocked, wallPanels, wallSegments, type Opening, type WallStroke } f
 import { cameraBasis, exposureGain, horizontalFov, projectCameraSpace, type PlotCamera } from "@/lib/plot-camera";
 import type { SetObject } from "@/lib/plot-objects";
 
+import { t as tr } from "@/lib/i18n";
 export interface CamLight { x: number; y: number; z: number; rot: number; tilt: number; beam: number; watts: number; level: number; rgb: [number, number, number] }
 type V3 = [number, number, number];
 interface Poly { pts: V3[]; n: V3; albedo: V3; emissive?: V3; glass?: boolean }
@@ -92,7 +93,7 @@ export function CameraView({ cam, size, strokes, openings, objects, floorZ, ligh
     }
     ctx.globalCompositeOperation = "source-over";
   });
-  return <canvas ref={ref} className="aspect-video w-full rounded-md bg-background" aria-label="Camera view" />;
+  return <canvas ref={ref} className="aspect-video w-full rounded-md bg-background" aria-label={tr("Camera view")} />;
 }
 
 function buildScene(size: [number, number], strokes: WallStroke[], openings: Opening[], objects: SetObject[], cam: PlotCamera): Poly[] {
