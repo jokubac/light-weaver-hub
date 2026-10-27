@@ -296,3 +296,4 @@
 - [x] Park: show marker on the parked lights themselves
 - [x] Blind: yellow glowing ring around the whole app edge (like REC red border)
 - [x] Review translations for all languages
+- [ ] Keypad: decimal point (taškas) key for numeric entry
