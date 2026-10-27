@@ -279,3 +279,15 @@
 - [x] PATCH sheet restored to full-screen (no split column); Add fixtures opens as a side panel that leaves the patch sheet visible. Browser check at 1280 px.
 - [x] Add fixtures opens as a full-screen overlay over the patch sheet (closes with the same button); PATCH itself stays full screen. Browser check at 1280 px.
 - [x] Transmitter routes + Hold Last State moved out of the Add fixtures panel into the Connect window's new Advanced section; browser verified both places.
+
+## Batch 2026-10-27
+- [x] Kelvin encodes onto each light's own CCT range
+- [ ] G/M 1/8 1/16 steps; intensity 0.01 steps
+- [ ] PATCH: whole-row select, bulk rename, move preview, drag a block of lights to swap places
+- [ ] Odd/Even/Every-Nth selection; extended keypad
+- [ ] Hide Position/Beam/Fan when unsupported
+- [ ] Pixel expand/collapse with per-pixel edits
+- [ ] REC → timeline, timeline presets, record timeline to effect
+- [ ] Timeline multi-select drag doesn't pan; manual control during playback
+- [ ] Pixel effects disappearing bug
+- [ ] Multi-language (EN/LT)
