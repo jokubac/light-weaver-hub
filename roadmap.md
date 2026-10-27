@@ -290,6 +290,5 @@
 - [ ] REC → timeline, timeline presets, record timeline to effect
 - [ ] Timeline multi-select drag doesn't pan; manual control during playback
 - [ ] Pixel effects disappearing bug
-- [ ] Multi-language (EN/LT)
 - [ ] Astera: verify unverified models; Kelvin ranges per model
-- [ ] Multi-language UI (i18n): 24 languages from user list, picker in Settings, Arabic RTL, translations via AI — in progress
+- [x] Multi-language UI (i18n): 24 languages, picker in Settings, Arabic RTL, tab/macro labels translated — done
