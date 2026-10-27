@@ -326,14 +326,13 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <Button size="icon" variant="secondary" aria-label={trUI("Undo")} title={trUI("Undo (Ctrl+Z)")} disabled={!hist.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button size="icon" variant="secondary" aria-label={trUI("Redo")} title={trUI("Redo (Ctrl+Shift+Z)")} disabled={!hist.current.canRedo} onClick={redo}><Redo2 /></Button>
-        <Button variant="secondary" size="sm" title={trUI("Split clips at the playhead (S)")} onClick={split}><Scissors />{trUI("Split")}</Button>
-        <Button variant="secondary" size="sm" aria-label={trUI("Delete selected")} title={trUI("Delete the selected clips")} disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 />{trUI("Delete")}</Button>
-        <Button variant="secondary" size="sm" title={trUI("Select every clip")} onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />{trUI("Select all")}</Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Split")} title={trUI("Split clips at the playhead (S)")} onClick={split}><Scissors /></Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Delete selected")} title={trUI("Delete the selected clips")} disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 /></Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Select all")} title={trUI("Select every clip")} onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed /></Button>
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-        <Button variant={magnet ? "default" : "secondary"} size="sm" aria-pressed={magnet} title={trUI("Magnet — clips snap to the ends of other clips and the playhead")} onClick={() => setMagnet((m) => !m)}><Magnet />{trUI("Magnet")}</Button>
-        <Button variant={viz ? "default" : "secondary"} size="sm" title={trUI("Show or hide the light visualiser")} onClick={() => setViz((v) => !v)}><MonitorPlay />{trUI("Visualiser")}</Button>
+        <Button size="icon" variant={magnet ? "default" : "secondary"} aria-label={trUI("Magnet")} aria-pressed={magnet} title={trUI("Magnet — clips snap to the ends of other clips and the playhead")} onClick={() => setMagnet((m) => !m)}><Magnet /></Button>
+        <Button size="icon" variant={viz ? "default" : "secondary"} aria-label={trUI("Visualiser")} title={trUI("Show or hide the light visualiser")} onClick={() => setViz((v) => !v)}><MonitorPlay /></Button>
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-        <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">{trUI("Zoom")}<input type="range" min={5} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} className="w-28" /></label>
         <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">{trUI("Zoom")}<input type="range" min={5} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} className="w-28" /></label>
       </div>
 
