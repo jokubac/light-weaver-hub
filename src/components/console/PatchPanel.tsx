@@ -520,7 +520,7 @@ function GdtfLibrarySearch({ onPick }: { onPick: (d: FixtureDef) => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const hits = useMemo(() => (list ? searchGdtfLibrary(list, q) : []), [list, q]);
-  const open = () => { if (!list) loadGdtfLibrary().then(setList, () => setErr("Library could not be loaded.")); };
+  const open = () => { if (!list) loadGdtfLibrary().then(setList, () => setErr(tr("Library could not be loaded."))); };
   return (
     <div className="space-y-1.5 rounded-md bg-surface p-2">
       <div className="flex items-center gap-1.5">

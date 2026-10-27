@@ -27,7 +27,7 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
   const upd = (p: Partial<AudioSettings>) => { const n = { ...s, ...p }; setS(n); setAudioSettings(n); localStorage.setItem(KEY, JSON.stringify(n)); return n; };
   const listen = async (n = s) => {
     try { await startAudio(n); setOn(true); setErr(null); setInputs(await listInputs()); setOutputs(await listOutputs()); }
-    catch (e) { setOn(false); setErr(e instanceof Error ? e.message : "Could not open audio"); }
+    catch (e) { setOn(false); setErr(e instanceof Error ? e.message : tr("Could not open audio")); }
   };
   const a: AudioReact = layer.audio ?? { enabled: false };
   const setA = (p: Partial<AudioReact>) => onLayer({ audio: { ...a, ...p } });

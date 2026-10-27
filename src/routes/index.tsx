@@ -1113,7 +1113,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     if (m.action === "group") { const ids = m.param ? membersOf(fixtures, m.param).map((f) => f.uid) : []; setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; return; }
     if (m.action === "trigger") { fire((m.param as TriggerKind) ?? "lightning"); return; }
     if (m.action === "group_new") {
-      if (!selected.length) { window.alert("Select the lights for the new group first."); return; }
+      if (!selected.length) { window.alert(tr("Select the lights for the new group first.")); return; }
       const name = window.prompt(`New group name (${selected.length} selected light${selected.length > 1 ? "s" : ""}):`)?.trim();
       if (!name) return;
       setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? addToGroup(f, name) : f)));
@@ -1359,7 +1359,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                    });
                  }} />
                  {(() => { const allParked = selected.length > 0 && selected.every((u) => parked[u]); const n = Object.keys(parked).length; return (
-                   <button aria-pressed={allParked} title={allParked ? "Unpark the selected lights" : "Park — hold the selected lights at their current output, whatever cues or effects do"}
+                   <button aria-pressed={allParked} title={allParked ? tr("Unpark the selected lights") : tr("Park — hold the selected lights at their current output, whatever cues or effects do")}
                      onClick={() => { if (!selected.length) { setMonitorOpen(true); return; } const next = { ...parked }; if (allParked) selected.forEach((u) => delete next[u]); else outFixtures.filter((f) => selected.includes(f.uid)).forEach((f) => { next[f.uid] = lookStateOf(f); }); onParked(next); }}
                      className={chip(allParked)}><ParkingSquare />{allParked ? tr("Unpark") : tr("Park")}{n > 0 && <span className="ml-1 font-mono text-[10px] text-warning">{n}</span>}</button>); })()}
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
@@ -1411,6 +1411,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                        className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"} ${cursor === f.uid && browsing.current ? "ring-2 ring-foreground/70 ring-offset-1 ring-offset-background bg-foreground/5" : ""}`}>
                       {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
                       <span aria-hidden="true" className="pointer-events-none absolute left-1 top-1.5 z-10 rounded bg-surface-elevated/90 px-1 font-mono text-[9px] font-semibold leading-tight text-foreground/80">#{i + 1}</span>
+                      {parked[f.uid] && <span title={tr("Parked")} aria-label={tr("Parked")} className="pointer-events-none absolute right-1 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded bg-primary px-1 font-mono text-[9px] font-bold leading-none text-primary-foreground shadow">P</span>}
 
                       <FixtureGlyph className="min-h-0 w-full flex-1" model={def.model} icon={f.icon} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
                       <div className="flex shrink-0 items-center gap-1">
@@ -1461,7 +1462,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     ) : (
       <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
         onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
-        remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
+        remove={() => { if (!confirm(tr("Remove selected fixtures from this scene?"))) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
     )
   );
 
@@ -1533,7 +1534,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       )}
       {gridOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
-          <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected} groups={groups} onCreateGroup={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, g) : x)))}
+          <GridBoard grid={grid} setGrid={(g) => { setGrid(g); latest.current.grid = g; save(); }} fixtures={fixtures} selected={selected} parked={parked} groups={groups} onCreateGroup={(g) => setFixtures((fs) => fs.map((x) => (selected.includes(x.uid) ? addToGroup(x, g) : x)))}
             onToggle={(id) => { toggleSelect(id); setPanel("control"); setPanelOpen(true); }} onSelect={(ids) => { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; setPanel("control"); setPanelOpen(true); }} onRun={(m) => macroRef.current.fire(m, "grid")} colorOf={(f) => { const px = frame.get(f.uid); if (px?.length) { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const pv = of.on === false ? 0 : of.intensity * outLevel; const n = px.length; const [r, g, b] = [0, 1, 2].map((k) => Math.round((px.reduce((a, c) => a + c[k]!, 0) / n) * pv)); return `rgb(${r},${g},${b})`; } return fixtureColor(locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f, t, outLevel); }} controls={controlPanel()}
             pixelsOf={(f) => { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const pv = of.on === false ? 0 : of.intensity * outLevel; const pix = frame.get(f.uid); const [cols, rows] = pixelGrid(f); const m = getDef(f.defId).model.toLowerCase();
               const tube = f.icon && f.icon !== "auto" ? f.icon.startsWith("tube-") : /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip|batten|\bbar\b|dotline|pixel ?line|rr50|rr100|rainbow/.test(m);
@@ -1642,6 +1643,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
         progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
+      {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
       {masterHint && !masterHintOff && master <= 0 && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
           <AlertTriangle className="h-4 w-4 shrink-0 text-amber-glow" />

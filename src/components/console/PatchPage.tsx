@@ -107,7 +107,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     try {
       const json = JSON.parse(await file.text());
       const list: PatchedFixture[] = (Array.isArray(json) ? json : json.fixtures ?? []).map(normalizeFixture);
-      if (!list.length) { alert("No fixtures found in this file."); return; }
+      if (!list.length) { alert(tr("No fixtures found in this file.")); return; }
       const replace = confirm(`Import ${list.length} fixtures.\n\nOK = replace the current patch\nCancel = add them to the current patch`);
       if (replace) onReplace(list);
       else { const ids = new Set(fixtures.map((f) => f.uid)); onAdd(list.map((f) => (ids.has(f.uid) ? { ...f, uid: crypto.randomUUID() } : f))); }
