@@ -31,6 +31,7 @@ import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type Patche
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { FixtureControls } from "@/components/console/FixtureControls";
 import { FixtureGlyph } from "@/components/console/FixtureGlyph";
+import { joinCellState, withPixelHold, clearsPixelHold } from "@/lib/pixel-hold";
 import { copyFixtureSettings, type FixtureSettings } from "@/lib/fixture-settings";
 import { PixelPanel } from "@/components/console/PixelPanel";
 import { PixelAddPatched } from "@/components/console/PixelAddPatched";
@@ -587,7 +588,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mixFrom]);
-  const frame = applyPixelMaster(pixelMix ? mixFrames(renderLayers(pixelMix.from, fixtures, t, mixMasks), baseFrame, pixelMix.k) : baseFrame, pixelMaster);
+  const frame = withPixelHold(applyPixelMaster(pixelMix ? mixFrames(renderLayers(pixelMix.from, fixtures, t, mixMasks), baseFrame, pixelMix.k) : baseFrame, pixelMaster), fixtures);
 
   // Stream real DMX to the bridge (Art-Net / sACN → CRMX transmitter)
   const [bridge, setBridge] = useState<BridgeStatus>("off");
@@ -718,15 +719,17 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   };
   const updateSelected = (patch: Partial<PatchedFixture>) => {
     if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
-    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
+    const drop = clearsPixelHold(patch) ? { pixelHold: undefined, pixelCells: undefined } : {};
+    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch, ...drop } : f)));
   };
   const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => {
     hintMaster();
-    setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
+    setFixtures((fs) => fs.map((f) => { if (!selected.includes(f.uid)) return f; const p = fn(f); return { ...f, ...p, ...(clearsPixelHold(p) ? { pixelHold: undefined, pixelCells: undefined } : {}) }; }));
   };
   const updateOne = (id: string, patch: Partial<PatchedFixture>) => {
     if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
-    setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
+    const drop = clearsPixelHold(patch) ? { pixelHold: undefined, pixelCells: undefined } : {};
+    setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch, ...drop } : f)));
   };
 
   const fire = (kind: TriggerKind) => {
@@ -750,7 +753,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     const n = pixelCount(f);
     const cpp = Math.max(1, Math.floor(getMode(f).channels / n));
     const cells: PatchedFixture[] = Array.from({ length: n }, (_, i) => ({
-      ...structuredClone(f), uid: uid(), name: `${f.name} px${i + 1}`, address: f.address + i * cpp, group: f.name,
+      ...structuredClone({ ...f, pixelHold: undefined, pixelCells: undefined }), ...(f.pixelCells?.[i] ? structuredClone(f.pixelCells[i]) : {}),
+      uid: uid(), name: `${f.name} px${i + 1}`, address: f.address + i * cpp, group: f.name,
       split: { from: f.uid, name: f.name, index: i, of: n, cpp },
     }));
     setFixtures((fs) => fs.flatMap((x) => (x.uid === f.uid ? cells : [x])));
@@ -763,7 +767,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       const cells = fs.filter((x) => x.split?.from === sp.from).sort((a, b) => a.split!.index - b.split!.index);
       const first = cells[0]!;
       const { split: _s, ...base } = first;
-      const joined: PatchedFixture = { ...base, uid: sp.from, name: sp.name, address: first.address };
+      const joined: PatchedFixture = { ...base, ...joinCellState(cells), uid: sp.from, name: sp.name, address: first.address };
       let placed = false;
       return fs.flatMap((x) => {
         if (x.split?.from !== sp.from) return [x];
