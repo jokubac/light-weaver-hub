@@ -13,7 +13,7 @@ export function LooksRail({ fixtures, selected, looks, setLooks, onRecall, lastL
     const src = onlySel ? fixtures.filter((f) => selected.includes(f.uid)) : fixtures;
     if (!src.length) return;
     const fallback = `Look ${looks.length + 1}`;
-    const name = prompt("Look name", fallback)?.trim() || fallback;
+    const name = prompt(tr("Look name"), fallback)?.trim() || fallback;
     setLooks([{ id: uid(), name, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...looks]);
   };
 

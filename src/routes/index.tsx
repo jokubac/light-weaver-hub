@@ -1113,7 +1113,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     if (m.action === "group") { const ids = m.param ? membersOf(fixtures, m.param).map((f) => f.uid) : []; setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; return; }
     if (m.action === "trigger") { fire((m.param as TriggerKind) ?? "lightning"); return; }
     if (m.action === "group_new") {
-      if (!selected.length) { window.alert("Select the lights for the new group first."); return; }
+      if (!selected.length) { window.alert(tr("Select the lights for the new group first.")); return; }
       const name = window.prompt(`New group name (${selected.length} selected light${selected.length > 1 ? "s" : ""}):`)?.trim();
       if (!name) return;
       setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? addToGroup(f, name) : f)));
@@ -1359,7 +1359,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                    });
                  }} />
                  {(() => { const allParked = selected.length > 0 && selected.every((u) => parked[u]); const n = Object.keys(parked).length; return (
-                   <button aria-pressed={allParked} title={allParked ? "Unpark the selected lights" : "Park — hold the selected lights at their current output, whatever cues or effects do"}
+                   <button aria-pressed={allParked} title={allParked ? tr("Unpark the selected lights") : tr("Park — hold the selected lights at their current output, whatever cues or effects do")}
                      onClick={() => { if (!selected.length) { setMonitorOpen(true); return; } const next = { ...parked }; if (allParked) selected.forEach((u) => delete next[u]); else outFixtures.filter((f) => selected.includes(f.uid)).forEach((f) => { next[f.uid] = lookStateOf(f); }); onParked(next); }}
                      className={chip(allParked)}><ParkingSquare />{allParked ? tr("Unpark") : tr("Park")}{n > 0 && <span className="ml-1 font-mono text-[10px] text-warning">{n}</span>}</button>); })()}
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
@@ -1461,7 +1461,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     ) : (
       <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
         onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
-        remove={() => { if (!confirm("Remove selected fixtures from this scene?")) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
+        remove={() => { if (!confirm(tr("Remove selected fixtures from this scene?"))) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
     )
   );
 

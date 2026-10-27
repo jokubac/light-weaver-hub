@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { NoxLogo } from "@/components/NoxLogo";
 import { APP_VERSION } from "@/lib/app-version";
+import { t as tr, loadSavedLang, subscribeLang, langVersion } from "@/lib/i18n";
+import { useEffect, useSyncExternalStore } from "react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -21,6 +23,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const nav = useNavigate();
+  useSyncExternalStore(subscribeLang, langVersion, () => 0);
+  useEffect(() => { void loadSavedLang(); }, []);
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +39,7 @@ function AuthPage() {
       : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
     setBusy(false);
     if (error) return setMsg(error.message);
-    if (mode === "up") return setMsg("Check your email to confirm the account, then sign in.");
+    if (mode === "up") return setMsg(tr("Check your email to confirm the account, then sign in."));
     void nav({ to: "/" });
   };
 
@@ -52,19 +56,19 @@ function AuthPage() {
             <NoxLogo className="h-32 w-32 drop-shadow-lg" title="NOX" />
             <h1 className="sr-only">NOX</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Sign in to open your projects, favourites and saved effects on any device.</p>
+          <p className="text-sm text-muted-foreground">{tr("Sign in to open your projects, favourites and saved effects on any device.")}</p>
         </div>
-        <button onClick={google} className="w-full rounded-lg bg-surface-elevated py-3 text-sm font-semibold active:scale-95">Continue with Google</button>
-        <div className="text-center text-xs text-muted-foreground">or</div>
+        <button onClick={google} className="w-full rounded-lg bg-surface-elevated py-3 text-sm font-semibold active:scale-95">{tr("Continue with Google")}</button>
+        <div className="text-center text-xs text-muted-foreground">{tr("or")}</div>
         <form onSubmit={submit} className="space-y-3">
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-          <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-          <button disabled={busy} className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground active:scale-95 disabled:opacity-50">{mode === "in" ? "Sign in" : "Create account"}</button>
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={tr("Email")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+          <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={tr("Password")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+          <button disabled={busy} className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground active:scale-95 disabled:opacity-50">{mode === "in" ? tr("Sign in") : tr("Create account")}</button>
         </form>
         {msg && <p className="text-sm text-primary">{msg}</p>}
         <div className="flex justify-between text-xs">
-          <button onClick={() => setMode(mode === "in" ? "up" : "in")} className="text-primary">{mode === "in" ? "Create an account" : "I have an account"}</button>
-          <button onClick={() => nav({ to: "/" })} className="text-muted-foreground">Continue without account</button>
+          <button onClick={() => setMode(mode === "in" ? "up" : "in")} className="text-primary">{mode === "in" ? tr("Create an account") : tr("I have an account")}</button>
+          <button onClick={() => nav({ to: "/" })} className="text-muted-foreground">{tr("Continue without account")}</button>
         </div>
         <p className="text-center font-mono text-xs text-muted-foreground">NOX v{APP_VERSION}</p>
       </div>

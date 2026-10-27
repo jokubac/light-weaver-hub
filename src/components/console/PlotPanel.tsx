@@ -633,7 +633,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
   };
   const removeMeter = (id: string) => {
     if (!ensureUnlocked()) return;
-    if (!confirm("Remove this light meter?")) return;
+    if (!confirm(tr("Remove this light meter?"))) return;
     setPlot({ ...plot, meters: (plot.meters ?? []).filter((m) => m.id !== id) });
     setMeterId(null);
   };

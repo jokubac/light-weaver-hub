@@ -18,13 +18,13 @@ export function RdmManager({ onAdd }: { onAdd: (dev: RdmDevice, universe: number
   const scan = async () => {
     setBusy("scan"); setError(null);
     try { const c = conn(); const d = await scanRdm(c.bridge, c.ip, universe); setDevices(d); rememberRdm(universe, d); if (!d.length) setError("No RDM lights found on this universe."); }
-    catch (e) { setError(e instanceof Error ? e.message : "Scan failed."); }
+    catch (e) { setError(e instanceof Error ? e.message : tr("Scan failed.")); }
     finally { setBusy(null); }
   };
   const change = async (d: RdmDevice, pid: number, data: number[]) => {
     setBusy(d.uid); setError(null);
     try { const c = conn(); const nd = await setRdm(c.bridge, c.ip, universe, d.uid, pid, data); if (nd) setDevices((l) => { const n = l?.map((x) => (x.uid === d.uid ? nd : x)) ?? null; if (n) rememberRdm(universe, n); return n; }); }
-    catch (e) { setError(e instanceof Error ? e.message : "Change failed."); }
+    catch (e) { setError(e instanceof Error ? e.message : tr("Change failed.")); }
     finally { setBusy(null); }
   };
   const toggleIdent = (d: RdmDevice) => { const on = !ident.has(d.uid); setIdent((s) => { const n = new Set(s); if (on) n.add(d.uid); else n.delete(d.uid); return n; }); void change(d, RDM_PID.identify, rdmData.identify(on)); };
