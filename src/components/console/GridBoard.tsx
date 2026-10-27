@@ -396,9 +396,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const macroLabel = (m: { action: MacroAction; amount: number; label: string; param?: string | undefined }) => {
     if (m.label) return m.label;
     const a = MACRO_ACTIONS.find((x) => x.id === m.action);
-    if (a?.pick === "gel") return m.param && GEL_BY_ID[m.param] ? `${GEL_BY_ID[m.param]!.brand} ${GEL_BY_ID[m.param]!.code}` : a.label;
-    if (a?.pick === "group") return m.param ? `Group ${m.param}` : a.label;
-    return a?.unit ? `${a.label} ${m.amount}${a.unit}` : (a?.label ?? m.action);
+    if (a?.pick === "gel") return m.param && GEL_BY_ID[m.param] ? `${GEL_BY_ID[m.param]!.brand} ${GEL_BY_ID[m.param]!.code}` : tr(a.label);
+    if (a?.pick === "group") return m.param ? `${tr("Group")} ${m.param}` : tr(a.label);
+    return a?.unit ? `${tr(a.label)} ${m.amount}${a.unit}` : (a ? tr(a.label) : m.action);
   };
   const openPicker = (it: GridItem) => { setPicker(it.id); if (it.macro) { setAction(it.macro.action); setAmount(it.macro.amount); setLabel(it.macro.label); setParam(it.macro.param ?? ""); setLim({ lo: it.macro.lo, hi: it.macro.hi }); } else { setLabel(""); setParam(""); setLim({}); } };
   const newGroup = () => {
@@ -819,9 +819,9 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                     const limited = it.macro!.lo != null || it.macro!.hi != null;
                     // The box itself detects the double tap (tapFader); the slider only drags.
                     return <div className="flex flex-1 flex-col justify-center gap-0.5 px-1">
-                      <div className="nox-outline-2 flex justify-between text-[10px] font-bold text-foreground"><span className="truncate">{it.macro!.label || a.label}</span><span className="font-mono">{show(val)}</span></div>
+                      <div className="nox-outline-2 flex justify-between text-[10px] font-bold text-foreground"><span className="truncate">{it.macro!.label || tr(a.label)}</span><span className="font-mono">{show(val)}</span></div>
                       {limited && <div className="flex justify-between font-mono text-[9px] text-muted-foreground"><span>{show(min)}</span><span>{show(max)}</span></div>}
-                      <input type="range" aria-label={a.label} min={min} max={max} step={step} value={Math.max(min, Math.min(max, val))} disabled={!live || !f0}
+                      <input type="range" aria-label={tr(a.label)} min={min} max={max} step={step} value={Math.max(min, Math.min(max, val))} disabled={!live || !f0}
                         onPointerDown={(e) => e.stopPropagation()}
                         onChange={(e) => onRun({ id: it.id, key: null, action: a.id, amount: +e.target.value })}
                         className="w-full accent-primary" />
@@ -891,7 +891,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <section className="space-y-2">
               <h3 className="text-xs font-bold uppercase text-muted-foreground">{tr("Macros")}</h3>
               <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                {sortedActions.map((a) => <button key={a.id} onClick={() => { setAction(a.id); setAmount(a.def ?? 0); setLim({}); }} className={`rounded-md border px-2 py-1.5 text-left text-xs font-semibold ${action === a.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{a.label}</button>)}
+                {sortedActions.map((a) => <button key={a.id} onClick={() => { setAction(a.id); setAmount(a.def ?? 0); setLim({}); }} className={`rounded-md border px-2 py-1.5 text-left text-xs font-semibold ${action === a.id ? "border-primary bg-primary/15" : "border-border bg-surface-elevated"}`}>{tr(a.label)}</button>)}
               </div>
               <section>
                 <h3 className="text-xs font-bold uppercase text-muted-foreground">{tr("Size")}</h3>

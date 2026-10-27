@@ -239,8 +239,8 @@ function TweakEditor({ tweak, onChange, hasPixels }: { tweak?: StepTweak | undef
         {TWEAKS.filter((t) => t.k !== "pixelSpeed" || hasPixels).map((t) => {
           const v = tweak?.[t.k] ?? t.def;
           return (
-            <label key={t.k} className="flex items-center gap-1"><span className="w-16 shrink-0">{t.label}</span>
-              <input type="range" min={t.min} max={t.max} step={t.step} value={v} onChange={(e) => set(t.k, +e.target.value, t.def)} onDoubleClick={() => set(t.k, t.def, t.def)} className="flex-1" aria-label={t.label} />
+            <label key={t.k} className="flex items-center gap-1"><span className="w-16 shrink-0">{tr(t.label)}</span>
+              <input type="range" min={t.min} max={t.max} step={t.step} value={v} onChange={(e) => set(t.k, +e.target.value, t.def)} onDoubleClick={() => set(t.k, t.def, t.def)} className="flex-1" aria-label={tr(t.label)} />
               <span className="w-10 text-right font-mono">{t.fmt(v)}</span></label>
           );
         })}

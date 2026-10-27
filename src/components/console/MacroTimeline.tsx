@@ -7,7 +7,7 @@ import { loadTakes, retime, saveTakes, type MacroLogEntry, type MacroTake } from
 import { t as tr } from "@/lib/i18n";
 const label = (e: MacroLogEntry) => {
   const a = MACRO_ACTIONS.find((x) => x.id === e.macro.action);
-  return `${a?.label ?? e.macro.action}${a?.unit ? ` ${e.macro.amount}${a.unit}` : ""}`;
+  return `${a ? tr(a.label) : e.macro.action}${a?.unit ? ` ${e.macro.amount}${a.unit}` : ""}`;
 };
 const time = (at: number) => {
   const d = new Date(at);

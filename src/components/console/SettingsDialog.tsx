@@ -95,11 +95,11 @@ export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, ta
                   <span className="w-6 font-mono text-muted-foreground">{i + 1}</span>
                   <select aria-label={`Macro ${i + 1} action`} value={m.action} onChange={(e) => { const na = MACRO_ACTIONS.find((x) => x.id === e.target.value); upd(m.id, { action: e.target.value as MacroAction, amount: na?.def ?? m.amount }); }}
                     className="rounded border border-input bg-background px-1.5 py-1">
-                    {MACRO_ACTIONS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+                    {MACRO_ACTIONS.map((x) => <option key={x.id} value={x.id}>{tr(x.label)}</option>)}
                   </select>
                   {a?.unit && <label className="flex items-center gap-1"><input aria-label={`Macro ${i + 1} amount`} type="number" value={m.amount} onChange={(e) => upd(m.id, { amount: Number(e.target.value) || 0 })} className="w-16 font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{a.unit}</label>}
                   {a?.pick === "trigger" && <select aria-label={`Macro ${i + 1} trigger`} value={m.param ?? "lightning"} onChange={(e) => upd(m.id, { param: e.target.value })}
-                    className="rounded border border-input bg-background px-1.5 py-1">{TRIGGERS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</select>}
+                    className="rounded border border-input bg-background px-1.5 py-1">{TRIGGERS.map((x) => <option key={x.id} value={x.id}>{tr(x.label)}</option>)}</select>}
                   <span className="min-w-0 flex-1 truncate font-mono text-[10px]">{[m.key, ...midiKeys.map((k) => k.key)].filter(Boolean).join(" · ") || "not set"}</span>
                   <button onClick={() => learnMacro(m.id)} className={`rounded px-2 py-1 text-[10px] font-bold ${macroLearn === m.id ? "animate-pulse bg-amber-glow text-primary-foreground" : "bg-background"}`}>{macroLearn === m.id ? tr("PRESS…") : tr("LEARN")}</button>
                   <button aria-label={`Remove macro ${i + 1}`} onClick={() => { setMacros(macros.filter((x) => x.id !== m.id)); if (midiKeys.length) setMidi({ ...midi, maps: midi.maps.filter((x) => x.target !== `macro:${m.id}`) }); }}><Trash2 className="h-3.5 w-3.5" /></button>
