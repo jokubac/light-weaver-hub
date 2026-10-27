@@ -121,7 +121,7 @@ type View =
   | { name: "console"; projectId: string; sceneId: string };
 
 function App() {
-  useSyncExternalStore(subscribeLang, langVersion);
+  useSyncExternalStore(subscribeLang, langVersion, langVersion);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>({ name: "projects" });
