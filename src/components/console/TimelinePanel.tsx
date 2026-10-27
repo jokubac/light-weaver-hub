@@ -118,6 +118,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
   const snapT = (t: number, skip: string[]) => magnet ? snapTime(t, [time, ...beats(timeline.bpm, len), ...timeline.clips.filter((c) => !skip.includes(c.id)).flatMap((c) => [c.start, c.start + c.length])], 10 / zoom) : t;
   const marqRef = useRef<{ idx: number; x: number; top: number; left: number; moved: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const fxRef = useRef<HTMLInputElement>(null);
   const len = Math.max(30, timelineLength(timeline) + 10, time + 5);
   const clip = sel.length === 1 ? timeline.clips.find((c) => c.id === sel[0]) : undefined;
   const selClips = timeline.clips.filter((c) => sel.includes(c.id));
