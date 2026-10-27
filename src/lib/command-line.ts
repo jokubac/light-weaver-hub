@@ -27,7 +27,7 @@ export function parseCommand(cmd: string, count: number): CommandResult {
   let cctDelta: number | undefined;
   if (ci >= 0) {
     const raw = all.slice(ci + 1).join("").replace(/K$/, "");
-    if (!/^[+-]?\d+(\.\d+)?$/.test(raw)) return { error: "CCT needs kelvin, e.g. CCT 3200 or CCT +200" };
+    if (!/^[+-]?\d+(\.\d*)?$/.test(raw)) return { error: "CCT needs kelvin, e.g. CCT 3200 or CCT +200" };
     const k = Number(raw);
     if (/^[+-]/.test(raw)) cctDelta = Math.round(k);
     else {
@@ -84,7 +84,7 @@ export function parseCommand(cmd: string, count: number): CommandResult {
     else if (v === "OUT") res.level = 0;
     else {
       const n = Number(v);
-      if (!/^[+-]?\d+(\.\d+)?$/.test(v) || !Number.isFinite(n)) return { error: "Level needs a number, FULL or OUT" };
+      if (!/^[+-]?\d+(\.\d*)?$/.test(v) || !Number.isFinite(n)) return { error: "Level needs a number, FULL or OUT" };
       if (/^[+-]/.test(v)) res.levelDelta = n / 100;
       else res.level = Math.max(0, Math.min(100, n)) / 100;
     }

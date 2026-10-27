@@ -22,7 +22,7 @@ interface Props {
   canRedo?: boolean;
 }
 
-const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "OUT", "0", "@", "FULL"];
+const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "OUT", "0", ".", "@", "FULL"];
 
 export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPreview, onCopy, onPaste, canPaste, onClose, onDeselect, onUndo, onRedo, canUndo, canRedo }: Props) {
   const [cmd, setCmd] = useState("");
@@ -87,9 +87,12 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
         ))}
         <button onClick={() => onStep(-1)} className={k}>{tr("LAST")}</button>
         <button onClick={() => onStep(1)} className={k}>{tr("NEXT")}</button>
+        <button onClick={() => press("CLR")} className={`${k} text-destructive`}>{tr("CLR")}</button>
         <button onClick={() => press("CCT")} className={`${k} col-span-2 text-primary`}>{tr("CCT")}</button>
         <button onClick={onCopy} disabled={!selectedNums.length} title={tr("Copy settings from the first selected light")} className={`${k} col-span-2 flex items-center justify-center gap-1 disabled:opacity-40`}><Copy className="h-4 w-4" />{tr("COPY")}</button>
         <button onClick={onPaste} disabled={!canPaste || !selectedNums.length} title={tr("Paste copied settings to the selected lights")} className={`${k} col-span-2 flex items-center justify-center gap-1 disabled:opacity-40`}><ClipboardPaste className="h-4 w-4" />{tr("PASTE")}</button>
+        <button onClick={() => setCmd((c) => `${c.split("@")[0]!.trimEnd()} @ 50`.trimStart())} className={k}>@ 50</button>
+        <button onClick={() => setCmd((c) => `${c.split("@")[0]!.trimEnd()} @ 25`.trimStart())} className={k}>@ 25</button>
         </div>
         <div className="flex w-20 flex-col gap-1.5">
           <button onClick={onFlash} disabled={!selectedNums.length} title={tr("Flash selected lights to check them")} className="rounded-lg bg-amber-glow py-3 text-xs font-black text-primary-foreground active:scale-95 disabled:opacity-40">{tr("FLASH")}</button>
