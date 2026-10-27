@@ -293,6 +293,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
           { title: "Saved light effects", items: [{ value: "fxsel", label: "From selected light" }, ...lib.lib.fx.map((x) => ({ value: `fx:${x.id}`, label: x.name }))] },
           { title: "Saved pixel effects", items: [...layers.map((l) => ({ value: `pxlayer:${l.id}`, label: l.name, hint: "PIXEL" })), ...lib.lib.pixel.map((x) => ({ value: `pixel:${x.id}`, label: x.name }))], empty: "None saved yet" },
         ]} />
+        <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <Button size="icon" variant="secondary" aria-label={trUI("Undo")} title={trUI("Undo (Ctrl+Z)")} disabled={!hist.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button size="icon" variant="secondary" aria-label={trUI("Redo")} title={trUI("Redo (Ctrl+Shift+Z)")} disabled={!hist.current.canRedo} onClick={redo}><Redo2 /></Button>
         <Button variant="secondary" size="sm" title={trUI("Split clips at the playhead (S)")} onClick={split}><Scissors />{trUI("Split")}</Button>
