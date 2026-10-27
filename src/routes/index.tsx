@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { pickPattern } from "@/lib/select-pattern";
+import { subscribeLang, langVersion, loadSavedLang, getLang, isRtl } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
 import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
@@ -120,6 +121,7 @@ type View =
   | { name: "console"; projectId: string; sceneId: string };
 
 function App() {
+  useSyncExternalStore(subscribeLang, langVersion);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>({ name: "projects" });
@@ -127,6 +129,14 @@ function App() {
   const { user } = useUser();
   const [sync, setSync] = useState<"off" | "syncing" | "ok" | "error">("off");
   const merged = useRef<string | null>(null);
+
+  useEffect(() => {
+    loadSavedLang();
+  }, []);
+  useEffect(() => {
+    document.documentElement.lang = getLang();
+    document.documentElement.dir = isRtl() ? "rtl" : "ltr";
+  }, [langVersion()]);
 
   useEffect(() => {
     setProjects(loadProjects());
