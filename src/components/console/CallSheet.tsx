@@ -10,6 +10,7 @@ import { buildCallSheet, fmtHours, type EquipmentLine } from "@/lib/callsheet";
 import { EQUIPMENT_CATALOGUE, type CatalogueNode } from "@/lib/equipment-catalogue";
 import type { CallSheetData } from "@/lib/store";
 
+import { t as tr } from "@/lib/i18n";
 const CATEGORY_LABEL: Record<EquipmentLine["category"], string> = {
   fixture: "Fixtures", power: "Cables & power", data: "DMX & data", stand: "Stands", grip: "Grip", modifier: "Modifiers", custom: "Other",
 };
@@ -72,36 +73,36 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3 print:hidden">
-        <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Close call sheet"><ArrowLeft className="h-5 w-5" /></button>
-        <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">{view === "call" ? "Call sheet" : "Equipment list"}</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
+        <button onClick={onClose} className="rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label={tr("Close call sheet")}><ArrowLeft className="h-5 w-5" /></button>
+        <div className="mr-auto min-w-0"><div className="font-display text-lg font-semibold">{view === "call" ? tr("Call sheet") : tr("Equipment list")}</div><div className="truncate text-xs text-muted-foreground">{title}</div></div>
         <div className="flex rounded-lg bg-surface-elevated p-1 text-xs font-semibold">
-          {(["call", "equipment"] as const).map((v) => <button key={v} onClick={() => setView(v)} aria-pressed={view === v} className={`rounded-md px-3 py-1.5 ${view === v ? "bg-primary text-primary-foreground" : ""}`}>{v === "call" ? "Call sheet" : "Equipment list"}</button>)}
+          {(["call", "equipment"] as const).map((v) => <button key={v} onClick={() => setView(v)} aria-pressed={view === v} className={`rounded-md px-3 py-1.5 ${view === v ? "bg-primary text-primary-foreground" : ""}`}>{v === "call" ? tr("Call sheet") : tr("Equipment list")}</button>)}
         </div>
-        <Button variant="secondary" onClick={() => window.print()} title="Print, or choose “Save as PDF” in the print dialog"><Printer />Print / PDF</Button>
+        <Button variant="secondary" onClick={() => window.print()} title={tr("Print, or choose “Save as PDF” in the print dialog")}><Printer />{tr("Print / PDF")}</Button>
       </div>
       <div className="callsheet-print min-h-0 flex-1 overflow-auto p-4">
-        <h1 className="mb-4 hidden font-display text-2xl font-bold print:block">{view === "call" ? "Call sheet" : "Equipment list"} — {production}</h1>
+        <h1 className="mb-4 hidden font-display text-2xl font-bold print:block">{view === "call" ? tr("Call sheet") : tr("Equipment list")} — {production}</h1>
         <div className="mx-auto max-w-6xl space-y-6">
           <section className="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-5 print:border-0 print:p-0">
-            <Field label="Production"><input value={production} onChange={(e) => setProduction(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></Field>
-            <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></Field>
-            <Field label="Location"><input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" placeholder="—" /></Field>
-            <Field label="Gaffer"><input value={gaffer} onChange={(e) => setGaffer(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" placeholder="—" /></Field>
-            <Field label="Shift (hours)"><NumberField integer min={1} max={48} value={shiftHours} onChange={(v) => v !== undefined && setShiftHours(v)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring text-center" /></Field>
+            <Field label={tr("Production")}><input value={production} onChange={(e) => setProduction(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></Field>
+            <Field label={tr("Date")}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></Field>
+            <Field label={tr("Location")}><input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" placeholder="—" /></Field>
+            <Field label={tr("Gaffer")}><input value={gaffer} onChange={(e) => setGaffer(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" placeholder="—" /></Field>
+            <Field label={tr("Shift (hours)")}><NumberField integer min={1} max={48} value={shiftHours} onChange={(v) => v !== undefined && setShiftHours(v)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring text-center" /></Field>
           </section>
 
 
           <section className="rounded-xl border border-border bg-surface p-4 print:border-0 print:p-0">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-display text-base font-semibold">Equipment list <span className="text-xs font-normal text-muted-foreground">({equipment.reduce((a, l) => a + l.qty, 0)} items)</span></h2>
+              <h2 className="font-display text-base font-semibold">{tr("Equipment list")}<span className="text-xs font-normal text-muted-foreground">({equipment.reduce((a, l) => a + l.qty, 0)}{tr("items)")}</span></h2>
               <div className="flex gap-2 print:hidden">
-                <Button variant="secondary" size="sm" onClick={() => setCatOpen((o) => !o)}><Plus className="h-3.5 w-3.5" />Catalogue</Button>
-                <Button variant="secondary" size="sm" onClick={addCustom}><Plus className="h-3.5 w-3.5" />Custom item</Button>
+                <Button variant="secondary" size="sm" onClick={() => setCatOpen((o) => !o)}><Plus className="h-3.5 w-3.5" />{tr("Catalogue")}</Button>
+                <Button variant="secondary" size="sm" onClick={addCustom}><Plus className="h-3.5 w-3.5" />{tr("Custom item")}</Button>
               </div>
             </div>
             {catOpen && (
               <div className="mb-4 space-y-2 rounded-lg bg-surface-elevated p-3 print:hidden">
-                <input value={catQ} onChange={(e) => setCatQ(e.target.value)} placeholder="Search catalogue: barrel clamp, 8x8, 32A, blackwrap…" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                <input value={catQ} onChange={(e) => setCatQ(e.target.value)} placeholder={tr("Search catalogue: barrel clamp, 8x8, 32A, blackwrap…")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
                 {catQ.trim() ? (
                   <div className="max-h-[60vh] space-y-0.5 overflow-auto">
                     {searchHits.map((h) => (
@@ -109,12 +110,12 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
                         <span className="truncate">{h.item}</span><span className="shrink-0 text-[10px] text-muted-foreground">{h.group} › {h.sub} +</span>
                       </button>
                     ))}
-                    {searchHits.length === 0 && <p className="py-3 text-center text-xs text-muted-foreground">Nothing found</p>}
+                    {searchHits.length === 0 && <p className="py-3 text-center text-xs text-muted-foreground">{tr("Nothing found")}</p>}
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-1 text-xs">
-                      <button onClick={() => setPath([])} className={`rounded px-2 py-1 font-semibold ${path.length ? "text-primary" : ""}`}>All</button>
+                      <button onClick={() => setPath([])} className={`rounded px-2 py-1 font-semibold ${path.length ? "text-primary" : ""}`}>{tr("All")}</button>
                       {path.map((p, i) => <Frag key={p}><span className="text-muted-foreground">›</span><button onClick={() => setPath(path.slice(0, i + 1))} className="rounded px-2 py-1 font-semibold text-primary">{p}</button></Frag>)}
                     </div>
                     <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-auto sm:grid-cols-3 lg:grid-cols-4">
@@ -125,7 +126,7 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
                       ))}
                       {node?.items?.map((it) => { const n = qtyOf(path[0]!, path[1]!, it); return (
                         <button key={it} onClick={() => addCatalogue(path[0]!, path[1]!, it)} className={`flex items-center justify-between gap-2 rounded-md px-3 py-3 text-left text-sm active:scale-95 ${n ? "bg-primary/15 text-foreground" : "bg-surface"}`}>
-                          <span className="truncate">{it}</span><span className="shrink-0 font-mono text-[10px] text-muted-foreground">{n ? `×${n}` : "+"}</span>
+                          <span className="truncate">{it}</span><span className="shrink-0 font-mono text-[10px] text-muted-foreground">{n ? `×${n}` : tr("+")}</span>
                         </button>
                       ); })}
                     </div>
@@ -134,13 +135,13 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
               </div>
             )}
             {grouped.length > 0 && <div className="flex flex-wrap items-center gap-2 print:hidden">
-              <label className="flex items-center gap-2 text-sm"><Checkbox aria-label="Select all items" checked={picked.length > 0 && picked.length === equipment.length} onCheckedChange={(c) => setPicked(c === true ? equipment.map((l) => l.id) : [])} />Select all</label>
-              {picked.length > 0 && <Button size="sm" variant="destructive" onClick={removePicked}><Trash2 className="h-3.5 w-3.5" />Delete {picked.length}</Button>}
+              <label className="flex items-center gap-2 text-sm"><Checkbox aria-label={tr("Select all items")} checked={picked.length > 0 && picked.length === equipment.length} onCheckedChange={(c) => setPicked(c === true ? equipment.map((l) => l.id) : [])} />{tr("Select all")}</label>
+              {picked.length > 0 && <Button size="sm" variant="destructive" onClick={removePicked}><Trash2 className="h-3.5 w-3.5" />{tr("Delete")}{picked.length}</Button>}
             </div>}
-            {grouped.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nothing on the list yet — patch lights or add from the catalogue.</p> : (
+            {grouped.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">{tr("Nothing on the list yet — patch lights or add from the catalogue.")}</p> : (
               <table className="equip-table w-full border-collapse text-base">
                 <thead><tr className="border-b-2 border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="w-8 print:hidden"></th><th className="w-8 py-1.5 pr-2">#</th><th className="pr-2">Item</th><th className="w-20 pr-2 text-right">Qty</th><th className="w-24 pr-2 text-center">Packed</th><th className="w-24 pr-2 text-center">Returned</th><th className="w-8 print:hidden"></th>
+                  <th className="w-8 print:hidden"></th><th className="w-8 py-1.5 pr-2">#</th><th className="pr-2">{tr("Item")}</th><th className="w-20 pr-2 text-right">{tr("Qty")}</th><th className="w-24 pr-2 text-center">{tr("Packed")}</th><th className="w-24 pr-2 text-center">{tr("Returned")}</th><th className="w-8 print:hidden"></th>
                 </tr></thead>
                 <tbody>
                   {(() => { let n = 0; return grouped.map(({ cat, lines }) => (
@@ -169,18 +170,18 @@ export function CallSheet({ title, fixtures, onClose, data = {}, onData, initial
             )}
             {view === "equipment" && (
               <div className="mt-8 hidden grid-cols-2 gap-8 text-xs print:grid">
-                <div className="border-t border-muted-foreground pt-1">Issued by (rental house)</div>
-                <div className="border-t border-muted-foreground pt-1">Received by (gaffer)</div>
+                <div className="border-t border-muted-foreground pt-1">{tr("Issued by (rental house)")}</div>
+                <div className="border-t border-muted-foreground pt-1">{tr("Received by (gaffer)")}</div>
               </div>
             )}
           </section>
 
           {view === "call" && <section className="rounded-xl border border-border bg-surface p-4">
-            <h2 className="mb-3 font-display text-base font-semibold">Battery charging plan <span className="text-xs font-normal text-muted-foreground">(shift: {shiftHours}h)</span></h2>
-            {base.battery.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">No battery-powered fixtures on batteries in this patch.</p> : (
+            <h2 className="mb-3 font-display text-base font-semibold">{tr("Battery charging plan")}<span className="text-xs font-normal text-muted-foreground">{tr("(shift:")}{shiftHours}{tr("h)")}</span></h2>
+            {base.battery.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">{tr("No battery-powered fixtures on batteries in this patch.")}</p> : (
               <table className="w-full border-collapse text-sm">
                 <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="py-1.5 pr-2">Fixture</th><th className="pr-2 text-right">Runtime / battery</th><th className="pr-2 text-right">Batteries for shift</th><th className="pr-2 text-right">Swaps</th>
+                  <th className="py-1.5 pr-2">{tr("Fixture")}</th><th className="pr-2 text-right">{tr("Runtime / battery")}</th><th className="pr-2 text-right">{tr("Batteries for shift")}</th><th className="pr-2 text-right">{tr("Swaps")}</th>
                 </tr></thead>
                 <tbody>
                   {base.battery.map((b) => (
@@ -232,7 +233,7 @@ function CountCell({ kind, n, total, returned, qty, label, onChange }: { kind: "
   return (
     <div className="inline-flex items-center gap-1">
       <button onClick={() => onChange(full ? 0 : kind === "packed" ? qty : total)} aria-label={label} aria-pressed={full}
-        className={`flex h-6 w-6 items-center justify-center rounded-sm border text-[11px] font-bold ${box}`}>{tone === "ok" ? "✓" : tone === "bad" ? "0" : ""}</button>
+        className={`flex h-6 w-6 items-center justify-center rounded-sm border text-[11px] font-bold ${box}`}>{tone === "ok" ? tr("✓") : tone === "bad" ? tr("0") : tr("")}</button>
       <NumberField integer min={0} max={999} value={n} onChange={(v) => v !== undefined && onChange(v)} className={`w-12 rounded border border-input bg-surface-elevated px-1 py-1 text-center font-mono text-sm focus:outline-none print:hidden ${txt}`} />
       <span className="hidden font-mono text-xs print:inline">{n || ""}</span>
     </div>

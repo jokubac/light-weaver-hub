@@ -13,6 +13,7 @@ import { useClock } from "./PixelPanel";
 import { PixelAddClose } from "./pixel-add-context";
 import { SoundReact } from "./SoundReact";
 
+import { t as tr } from "@/lib/i18n";
 type RGB = [number, number, number];
 
 /** One canvas per light instead of a DOM node per pixel, so hundreds of pixel lights stay smooth. */
@@ -294,94 +295,93 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 text-xs hw-bar">
           {onSelect && (
-            <div className="order-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1" aria-label="Effect layers">
+            <div className="order-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1" aria-label={tr("Effect layers")}>
               {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
                 const fx = layers.filter((l) => (l.group ?? l.id) === gid); const h = fx[0]!; const groups = new Set(layers.map((l) => l.group ?? l.id)).size;
                 return (
                   <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
-                    <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.playing ? "■" : "▶"}</button>
-                    {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.pausedAt != null ? "⏵" : "❚❚"}</button>}
-                    {onLive && <button onClick={() => onLive(gid, h.live === false)} aria-pressed={h.live !== false} aria-label={`${h.live !== false ? "Take page off the lights" : "Send page live to the lights"} ${gi + 1}`} title={h.live !== false ? "LIVE: lights follow this page. Tap for preview only." : "Preview only: lights don't see this page. Tap to go LIVE."} className={`rounded px-1.5 py-1 text-[10px] font-bold tracking-wide ${h.live !== false ? "bg-destructive text-destructive-foreground" : "border border-border text-muted-foreground"}`}>{h.live !== false ? "● LIVE" : "PREVIEW"}</button>}
-                    <span className="px-1 font-semibold text-muted-foreground">P{gi + 1}</span>
+                    <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.playing ? tr("■") : tr("▶")}</button>
+                    {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.pausedAt != null ? tr("⏵") : tr("❚❚")}</button>}
+                    {onLive && <button onClick={() => onLive(gid, h.live === false)} aria-pressed={h.live !== false} aria-label={`${h.live !== false ? "Take page off the lights" : "Send page live to the lights"} ${gi + 1}`} title={h.live !== false ? "LIVE: lights follow this page. Tap for preview only." : "Preview only: lights don't see this page. Tap to go LIVE."} className={`rounded px-1.5 py-1 text-[10px] font-bold tracking-wide ${h.live !== false ? "bg-destructive text-destructive-foreground" : "border border-border text-muted-foreground"}`}>{h.live !== false ? tr("● LIVE") : tr("PREVIEW")}</button>}
+                    <span className="px-1 font-semibold text-muted-foreground">{tr("P")}{gi + 1}</span>
                     {fx.map((l) => (
                       <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
                         <button onClick={() => onSelect(l.id)} className="px-2 py-1 font-semibold">{l.name}</button>
                         {onRemoveLayer && fx.length > 1 && <button onClick={() => { if (confirm(`Delete effect “${l.name}”?`)) onRemoveLayer(l.id); }} aria-label={`Delete effect ${l.name}`} className="pr-1.5 opacity-70 hover:opacity-100">✕</button>}
                       </span>
                     ))}
-                    {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to page ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">+ Effect</button>}
-                    {onDuplicateGroup && <button onClick={() => onDuplicateGroup(gid)} aria-label={`Duplicate page ${gi + 1}`} title="Duplicate page" className="px-1.5 py-1 opacity-70 hover:opacity-100">⧉</button>}
+                    {onAddEffect && <button onClick={() => onAddEffect(gid)} aria-label={`Add effect to page ${gi + 1}`} className="rounded px-1.5 py-1 font-semibold hover:bg-surface">{tr("+ Effect")}</button>}
+                    {onDuplicateGroup && <button onClick={() => onDuplicateGroup(gid)} aria-label={`Duplicate page ${gi + 1}`} title={tr("Duplicate page")} className="px-1.5 py-1 opacity-70 hover:opacity-100">⧉</button>}
                     {onRemoveGroup && groups > 1 && <button onClick={() => { if (confirm(`Delete page ${gi + 1} with all its effects?`)) onRemoveGroup(gid); }} aria-label={`Delete page ${gi + 1}`} className="px-1.5 py-1 opacity-70 hover:opacity-100 hover:text-destructive">✕</button>}
                   </span>
                 );
               })}
-              {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}><Plus />Page</Button>}
+              {onAdd && <Button size="sm" variant="secondary" onClick={onAdd}><Plus />{tr("Page")}</Button>}
             </div>
           )}
           <div className="order-1 flex flex-wrap items-center gap-1.5">
             {layer && onLayer && (
               <Popover>
-                <PopoverTrigger asChild><Button size="sm" variant={recording ? "destructive" : "secondary"} aria-label="Effect motion"><RotateCw />Motion {Math.round(layer.angle ?? 0)}°{layer.spin ? ` · ${layer.spin}°/s` : ""}{recording ? " ●" : ""}</Button></PopoverTrigger>
+                <PopoverTrigger asChild><Button size="sm" variant={recording ? "destructive" : "secondary"} aria-label={tr("Effect motion")}><RotateCw />{tr("Motion")}{Math.round(layer.angle ?? 0)}°{layer.spin ? ` · ${layer.spin}°/s` : tr("")}{recording ? tr(" ●") : tr("")}</Button></PopoverTrigger>
                 <PopoverContent align="start" className="w-72 space-y-2 p-3 text-xs">
-                  <div className="flex items-center gap-1.5"><span className="w-12 font-semibold">Rotate</span>
-                    <input type="number" step={5} min={-180} max={180} aria-label="Rotate degrees" value={Math.round(layer.angle ?? 0)} onChange={(e) => { const v = Number(e.target.value); if (!Number.isNaN(v)) setAngle(((v + 540) % 360) - 180); }} className="w-14 rounded bg-surface-elevated px-1 py-0.5 tabular-nums" />°
+                  <div className="flex items-center gap-1.5"><span className="w-12 font-semibold">{tr("Rotate")}</span>
+                    <input type="number" step={5} min={-180} max={180} aria-label={tr("Rotate degrees")} value={Math.round(layer.angle ?? 0)} onChange={(e) => { const v = Number(e.target.value); if (!Number.isNaN(v)) setAngle(((v + 540) % 360) - 180); }} className="w-14 rounded bg-surface-elevated px-1 py-0.5 tabular-nums" />°
                     <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 45 + 540) % 360) - 180)}>45°</Button>
                     <Button size="sm" variant="secondary" onClick={() => setAngle((((layer.angle ?? 0) + 90 + 540) % 360) - 180)}>90°</Button>
                   </div>
-                  <input type="range" min={-180} max={180} value={Math.round(layer.angle ?? 0)} onChange={(e) => setAngle(Number(e.target.value))} className="w-full" aria-label="Rotate slider" />
-                  <label className="flex items-center gap-1.5"><span className="w-12 font-semibold">Spin</span>
-                    <input type="number" step={5} value={layer.spin ?? 0} onChange={(e) => onLayer({ spin: Number(e.target.value) || 0 })} className="w-16 rounded bg-surface-elevated px-1 py-0.5" />°/s
-                  </label>
+                  <input type="range" min={-180} max={180} value={Math.round(layer.angle ?? 0)} onChange={(e) => setAngle(Number(e.target.value))} className="w-full" aria-label={tr("Rotate slider")} />
+                  <label className="flex items-center gap-1.5"><span className="w-12 font-semibold">{tr("Spin")}</span>
+                    <input type="number" step={5} value={layer.spin ?? 0} onChange={(e) => onLayer({ spin: Number(e.target.value) || 0 })} className="w-16 rounded bg-surface-elevated px-1 py-0.5" />{tr("°/s")}</label>
                   <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
-                    <Button size="sm" variant={recording ? "destructive" : "secondary"} onClick={toggleRec}>{recording ? "■ Stop REC" : "● REC move"}</Button>
-                    {layer.motion?.length ? <Button size="sm" variant="secondary" onClick={() => onLayer({ motion: [], motionLen: 0 })}>Clear move</Button> : null}
+                    <Button size="sm" variant={recording ? "destructive" : "secondary"} onClick={toggleRec}>{recording ? tr("■ Stop REC") : tr("● REC move")}</Button>
+                    {layer.motion?.length ? <Button size="sm" variant="secondary" onClick={() => onLayer({ motion: [], motionLen: 0 })}>{tr("Clear move")}</Button> : null}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">{layer.motion?.length ? `Recorded ${layer.motionLen?.toFixed(1)} s · loops` : recording ? "Drag the box or its bottom-right corner now…" : "Press REC, then drag the box or its corner"}</p>
+                  <p className="text-[11px] text-muted-foreground">{layer.motion?.length ? `Recorded ${layer.motionLen?.toFixed(1)} s · loops` : recording ? tr("Drag the box or its bottom-right corner now…") : tr("Press REC, then drag the box or its corner")}</p>
                 </PopoverContent>
               </Popover>
             )}
             {layer && onLayer && !layer.empty && <SoundReact layer={layer} onLayer={onLayer} />}
             <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-            {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />Add fixtures</Button>}
-            <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>Select all</Button>
-            <Button size="sm" variant="secondary" disabled={!px.length} title="Every other light" onClick={() => setSel((s) => new Set(pickPattern(px.map((f) => f.uid), [...s], "odd")))}>Odd</Button>
-            <Button size="sm" variant="secondary" disabled={!px.length} title="Every other light, from the 2nd" onClick={() => setSel((s) => new Set(pickPattern(px.map((f) => f.uid), [...s], "even")))}>Even</Button>
-            {onRemoveLight && <Button size="sm" variant="secondary" disabled={!sel.size} title="Remove the selected lights from this page (Delete key). Add them back with Add fixtures." aria-label="Remove selected lights" onClick={() => { onRemoveLight([...sel]); setSel(new Set()); }}>✕ Remove{sel.size ? ` ${sel.size}` : ""}</Button>}
-            <Button size="sm" variant="secondary" disabled={!sel.size} title="Rotate the selected lights 90°" aria-label="Rotate selected lights 90 degrees" onClick={() => gridArrange("rotate")}><RotateCw />90°</Button>
+            {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />{tr("Add fixtures")}</Button>}
+            <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>{tr("Select all")}</Button>
+            <Button size="sm" variant="secondary" disabled={!px.length} title={tr("Every other light")} onClick={() => setSel((s) => new Set(pickPattern(px.map((f) => f.uid), [...s], "odd")))}>{tr("Odd")}</Button>
+            <Button size="sm" variant="secondary" disabled={!px.length} title={tr("Every other light, from the 2nd")} onClick={() => setSel((s) => new Set(pickPattern(px.map((f) => f.uid), [...s], "even")))}>{tr("Even")}</Button>
+            {onRemoveLight && <Button size="sm" variant="secondary" disabled={!sel.size} title={tr("Remove the selected lights from this page (Delete key). Add them back with Add fixtures.")} aria-label={tr("Remove selected lights")} onClick={() => { onRemoveLight([...sel]); setSel(new Set()); }}>{tr("✕ Remove")}{sel.size ? ` ${sel.size}` : tr("")}</Button>}
+            <Button size="sm" variant="secondary" disabled={!sel.size} title={tr("Rotate the selected lights 90°")} aria-label={tr("Rotate selected lights 90 degrees")} onClick={() => gridArrange("rotate")}><RotateCw />90°</Button>
             <Popover>
-              <PopoverTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />Arrange{sel.size ? ` (${sel.size})` : ""}</Button></PopoverTrigger>
+              <PopoverTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />{tr("Arrange")}{sel.size ? ` (${sel.size})` : tr("")}</Button></PopoverTrigger>
               <PopoverContent align="end" className="w-64 p-2">
-                <div className="mb-1.5 text-xs font-semibold">{sel.size ? `Arrange ${sel.size} selected` : "Arrange all lights"}</div>
+                <div className="mb-1.5 text-xs font-semibold">{sel.size ? `Arrange ${sel.size} selected` : tr("Arrange all lights")}</div>
                 <div className="grid grid-cols-3 gap-1">
                   {GRID_ARRANGE.map(([k, l]) => <button key={k} onClick={() => { lastHow.current = k === "rotate" ? null : k; gridArrange(k); }} className="flex flex-col items-center gap-0.5 rounded-md bg-surface-elevated px-1 py-1.5 text-[10px] font-semibold active:scale-95">
                     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>{GRID_ICON[k]}</svg>{l}</button>)}
                 </div>
-                <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="w-20">Horizontal</span>
-                  <input type="range" aria-label="Horizontal spacing" min={0} max={10} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
-                  <span className="w-12 text-right font-mono">{gap} cell{gap === 1 ? "" : "s"}</span>
+                <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="w-20">{tr("Horizontal")}</span>
+                  <input type="range" aria-label={tr("Horizontal spacing")} min={0} max={10} step={1} value={gap} onChange={(e) => setGap(+e.target.value)} className="flex-1" />
+                  <span className="w-12 text-right font-mono">{gap}{tr("cell")}{gap === 1 ? tr("") : tr("s")}</span>
                 </label>
-                <label className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="w-20">Vertical</span>
-                  <input type="range" aria-label="Vertical spacing" min={0} max={10} step={1} value={gapY} onChange={(e) => setGapY(+e.target.value)} className="flex-1" />
-                  <span className="w-12 text-right font-mono">{gapY} cell{gapY === 1 ? "" : "s"}</span>
+                <label className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="w-20">{tr("Vertical")}</span>
+                  <input type="range" aria-label={tr("Vertical spacing")} min={0} max={10} step={1} value={gapY} onChange={(e) => setGapY(+e.target.value)} className="flex-1" />
+                  <span className="w-12 text-right font-mono">{gapY}{tr("cell")}{gapY === 1 ? tr("") : tr("s")}</span>
                 </label>
               </PopoverContent>
             </Popover>
             <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-            <Button size="icon" variant="secondary" aria-label="Zoom out" onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
-            <Button size="icon" variant="secondary" aria-label="Zoom in" onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
-            <Button size="icon" variant="secondary" aria-label="Recenter" title="Recenter the map" onClick={recenter}><Crosshair /></Button>
+            <Button size="icon" variant="secondary" aria-label={tr("Zoom out")} onClick={() => setCell((c) => Math.max(4, c / 1.25))}><ZoomOut /></Button>
+            <Button size="icon" variant="secondary" aria-label={tr("Zoom in")} onClick={() => setCell((c) => Math.min(60, c * 1.25))}><ZoomIn /></Button>
+            <Button size="icon" variant="secondary" aria-label={tr("Recenter")} title={tr("Recenter the map")} onClick={recenter}><Crosshair /></Button>
           </div>
         </div>
         <div ref={scroller} className="flex min-h-0 min-w-0 flex-1 touch-none overflow-auto p-3"
           onPointerDownCapture={gDown} onPointerMoveCapture={gMove} onPointerUpCapture={gUp} onPointerCancelCapture={gUp}>
-          {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No lights on the pixel map yet. Press “Add fixtures” to add pixel lights.</p> : (
+          {px.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">{tr("No lights on the pixel map yet. Press “Add fixtures” to add pixel lights.")}</p> : (
             <div ref={board} className="relative mx-auto my-auto shrink-0 rounded-md border border-border hw-screen" style={{ width: W * cell, height: H * cell, backgroundImage: "linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px)", backgroundSize: `${cell}px ${cell}px` }}>
               <canvas ref={bg} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-40" style={{ width: stage.W * cell, height: stage.H * cell, imageRendering: "pixelated" }} />
 
               {layers.filter((l) => l.id !== layer?.id).map((l) => { const a = layerArea(l, stage); return (
                 <button key={l.id} title={`Select ${l.name}`} onClick={() => onSelect?.(l.id)}
                   className="absolute z-[5] rounded-sm border border-dashed border-muted-foreground/70 text-left align-top" style={{ left: a.x * cell, top: a.y * cell, width: a.w * cell, height: a.h * cell, pointerEvents: "none" }}>
-                  <span className="pointer-events-auto absolute left-0 top-0 rounded-br bg-secondary px-1 text-[10px] font-semibold">{l.name}{l.playing ? " ▶" : ""}</span>
+                  <span className="pointer-events-auto absolute left-0 top-0 rounded-br bg-secondary px-1 text-[10px] font-semibold">{l.name}{l.playing ? tr(" ▶") : tr("")}</span>
                 </button>
               ); })}
               {layer && onArea && (() => {
@@ -392,12 +392,12 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                 const lk = lockedFx.has(layer.id);
                 const toggleLock = (e: React.MouseEvent) => { e.stopPropagation(); setLockedFx((s) => { const n = new Set(s); if (n.has(layer.id)) n.delete(layer.id); else n.add(layer.id); return n; }); };
                 return (
-                  <div aria-label="Effect area" className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-primary" style={{ left: area.x * cell, top: area.y * cell, width: area.w * cell, height: area.h * cell, transform: `rotate(${live?.angle ?? 0}deg)` }}>
+                  <div aria-label={tr("Effect area")} className="pointer-events-none absolute z-10 rounded-sm border-2 border-dashed border-primary" style={{ left: area.x * cell, top: area.y * cell, width: area.w * cell, height: area.h * cell, transform: `rotate(${live?.angle ?? 0}deg)` }}>
                     <button type="button" aria-label={lk ? "Unlock effect" : "Lock effect"} aria-pressed={lk} title={lk ? "Effect locked: tap to unlock" : "Lock effect so lights underneath can be selected"} onPointerDown={(e) => e.stopPropagation()} onClick={toggleLock}
                       className={`pointer-events-auto absolute -top-5 -left-6 flex h-5 w-5 items-center justify-center rounded-t ${lk ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{lk ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}</button>
                     {!lk && <>
-                    <div title="Move effect area" onPointerDown={start("move")} onPointerMove={move} onPointerUp={end}
-                      className="pointer-events-auto absolute -top-5 left-0 cursor-move touch-none rounded-t bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">Effect {area.w}×{area.h}</div>
+                    <div title={tr("Move effect area")} onPointerDown={start("move")} onPointerMove={move} onPointerUp={end}
+                      className="pointer-events-auto absolute -top-5 left-0 cursor-move touch-none rounded-t bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{tr("Effect")}{area.w}×{area.h}</div>
                     <div className="pointer-events-auto absolute -top-5 right-0 flex gap-px">
                       {([["Full", 1], ["1/2", 2], ["1/4", 4], ["1/8", 8], ["1/16", 16]] as const).map(([l, d]) => (
                         <button key={l} onPointerDown={(e) => e.stopPropagation()} onClick={() => setArea(d === 1 ? { x: 0, y: 0, w: W, h: H } : layerArea({ area: { x: area.x, y: area.y, w: Math.round(W / d), h: Math.round(H / d) } }, stage))}
@@ -413,7 +413,7 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                   </div>
                 );
               })()}
-              {mq && <div aria-label="Selection rectangle" className="pointer-events-none absolute z-20 border border-dashed border-primary bg-primary/10" style={{ left: mq.x * cell, top: mq.y * cell, width: mq.w * cell, height: mq.h * cell }} />}
+              {mq && <div aria-label={tr("Selection rectangle")} className="pointer-events-none absolute z-20 border border-dashed border-primary bg-primary/10" style={{ left: mq.x * cell, top: mq.y * cell, width: mq.w * cell, height: mq.h * cell }} />}
               {px.map((f) => {
                 const p = pos.get(f.uid)!; const [w, h] = canvasSize({ ...f, pixelPos: p });
                 return (
@@ -439,8 +439,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             </div>
           )}
         </div>
-        <section aria-label="All pixel lights" className="shrink-0 border-t border-border bg-surface p-2 hw-bar">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">All lights ({px.length})</div>
+        <section aria-label={tr("All pixel lights")} className="shrink-0 border-t border-border bg-surface p-2 hw-bar">
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("All lights (")}{px.length})</div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {px.map((f) => { const [c, r] = pixelGrid(f); const tall = r > c; return (
               <button key={f.uid} onClick={() => onToggle(f.uid)} className={`flex shrink-0 flex-col items-center gap-1 rounded-md p-1.5 ${layer?.order.includes(f.uid) ? "bg-primary/20 ring-1 ring-primary" : "bg-surface-elevated"}`}>
@@ -450,12 +450,12 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           </div>
         </section>
       </div>
-      <aside aria-label="Pixel effect controls" className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">{controls}</aside>
+      <aside aria-label={tr("Pixel effect controls")} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">{controls}</aside>
       {addFixtures && (
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
-            <DialogHeader><DialogTitle>Add pixel fixtures</DialogTitle></DialogHeader>
-            <p className="text-xs text-muted-foreground">Only pixel modes are shown.</p>
+            <DialogHeader><DialogTitle>{tr("Add pixel fixtures")}</DialogTitle></DialogHeader>
+            <p className="text-xs text-muted-foreground">{tr("Only pixel modes are shown.")}</p>
             <PixelAddClose.Provider value={() => setAddOpen(false)}>{addFixtures}</PixelAddClose.Provider>
           </DialogContent>
         </Dialog>

@@ -11,6 +11,7 @@ import { PIXEL_LIBRARY, PIXEL_GROUPS, lookOf, POLICE_FLASHES, defaultLayer, init
 import { pixelPreview } from "./pixel-preview";
 import { saveVideo, videoMissing } from "@/lib/pixel-media";
 
+import { t as tr } from "@/lib/i18n";
 type RGB = [number, number, number];
 
 export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, activeId, onActiveChange, pixelMaster = 1, onPixelMaster, hidePreview }: {
@@ -68,7 +69,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pixel map</h2>
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">{tr("Pixel map")}</h2>
       </div>
 
       {allPx.length === 0 && <p className="rounded-md bg-surface-elevated/60 px-2 py-1.5 text-[11px] text-muted-foreground">No pixel lights yet — you can prepare effects now. Patch a light in a pixel mode (search "pixel" in PATCH) to play them.</p>}
@@ -80,24 +81,24 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
             {l.playing && <span className="h-2 w-2 animate-pulse rounded-full bg-amber-glow" />}{l.name}
           </button>
         ))}
-        <button onClick={() => { const l = { ...layer, id: Math.random().toString(36).slice(2, 9), name: `${layer.name} copy`, order: [] }; setLayers([...layers, l]); setActiveId(l.id); }} className="rounded-md border border-dashed border-input px-2.5 py-1.5 text-xs">Duplicate</button>
-        <button onClick={addLayer} className="flex items-center gap-1 rounded-md border border-dashed border-input px-2.5 py-1.5 text-xs"><Plus className="h-3.5 w-3.5" />Layer</button>
+        <button onClick={() => { const l = { ...layer, id: Math.random().toString(36).slice(2, 9), name: `${layer.name} copy`, order: [] }; setLayers([...layers, l]); setActiveId(l.id); }} className="rounded-md border border-dashed border-input px-2.5 py-1.5 text-xs">{tr("Duplicate")}</button>
+        <button onClick={addLayer} className="flex items-center gap-1 rounded-md border border-dashed border-input px-2.5 py-1.5 text-xs"><Plus className="h-3.5 w-3.5" />{tr("Layer")}</button>
       </div>
 
       <div className="flex gap-2">
-        <input value={layer.name} onChange={(e) => set({ name: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label="Layer name" />
-        <button onClick={copyEffect} title="Copy this pixel effect" aria-label="Copy pixel effect" className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
-        <button onClick={pasteEffect} disabled={!effectClip} title="Paste the copied effect onto the selected lights" aria-label="Paste pixel effect" className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><ClipboardPaste className="h-4 w-4" /></button>
+        <input value={layer.name} onChange={(e) => set({ name: e.target.value })} className="min-w-0 flex-1 rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label={tr("Layer name")} />
+        <button onClick={copyEffect} title={tr("Copy this pixel effect")} aria-label={tr("Copy pixel effect")} className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
+        <button onClick={pasteEffect} disabled={!effectClip} title={tr("Paste the copied effect onto the selected lights")} aria-label={tr("Paste pixel effect")} className="rounded-md bg-surface-elevated px-2 py-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><ClipboardPaste className="h-4 w-4" /></button>
         {layers.length > 1 && (
-          <button onClick={() => { const rest = layers.filter((l) => l.id !== layer.id); setLayers(rest); setActiveId(rest[0]!.id); }} className="rounded-md bg-surface-elevated px-3 text-muted-foreground hover:text-destructive" aria-label="Delete layer"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={() => { const rest = layers.filter((l) => l.id !== layer.id); setLayers(rest); setActiveId(rest[0]!.id); }} className="rounded-md bg-surface-elevated px-3 text-muted-foreground hover:text-destructive" aria-label={tr("Delete layer")}><Trash2 className="h-4 w-4" /></button>
         )}
       </div>
 
       <div className="flex items-center gap-2 rounded-md bg-surface-elevated/60 px-2 py-1.5 text-[11px]">
-        <span className="min-w-0 flex-1 text-muted-foreground">{selPx.length ? `Programming ${selPx.length} selected pixel light${selPx.length > 1 ? "s" : ""}` : "No lights selected in the console — showing all pixel lights"}</span>
-        {selPx.length > 0 && <button onClick={() => set({ order: selPx.map((f) => f.uid) })} className="rounded bg-primary px-2 py-1 font-semibold text-primary-foreground">Use selected</button>}
+        <span className="min-w-0 flex-1 text-muted-foreground">{selPx.length ? `Programming ${selPx.length} selected pixel light${selPx.length > 1 ? "s" : ""}` : tr("No lights selected in the console — showing all pixel lights")}</span>
+        {selPx.length > 0 && <button onClick={() => set({ order: selPx.map((f) => f.uid) })} className="rounded bg-primary px-2 py-1 font-semibold text-primary-foreground">{tr("Use selected")}</button>}
       </div>
-      {!layer.playing && inMap.length > 0 && <p className="text-[10px] text-muted-foreground">Preview below — press ▶ on the page bar to send it to the lights.</p>}
+      {!layer.playing && inMap.length > 0 && <p className="text-[10px] text-muted-foreground">{tr("Preview below — press ▶ on the page bar to send it to the lights.")}</p>}
       {/* live preview of the layer grid */}
       {placed.length > 0 && !hidePreview && (
         <InfiniteGrid columns={W} rows={H}>
@@ -111,14 +112,12 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
         </InfiniteGrid>
       )}
 
-      <section className="space-y-2" aria-label="Pixel effects">
+      <section className="space-y-2" aria-label={tr("Pixel effects")}>
         <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={effectsOpen} aria-controls="pixel-effect-choices" onClick={() => setEffectsOpen((open) => !open)}>
-          {effectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          Effects
-          <span className="ml-auto text-xs text-muted-foreground">{lookOf(layer)?.label}</span>
+          {effectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}{tr("Effects")}<span className="ml-auto text-xs text-muted-foreground">{lookOf(layer)?.label}</span>
         </Button>
         <div id="pixel-effect-choices" hidden={!effectsOpen} className="space-y-3">
-          <p className="text-[10px] text-muted-foreground">Every effect plays over the whole PIXEL canvas like a video — each light shows the part it sits on.</p>
+          <p className="text-[10px] text-muted-foreground">{tr("Every effect plays over the whole PIXEL canvas like a video — each light shows the part it sits on.")}</p>
           {PIXEL_GROUPS.map((g) => (
             <div key={g} className="space-y-1">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{g}</div>
@@ -135,28 +134,28 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       {layer.kind === "video" && (
         <div className="space-y-1.5">
           <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-input py-3 text-xs font-semibold hover:border-primary">
-            {layer.videoName ? `Video: ${layer.videoName} — replace` : "Choose a video (MP4, MOV, WebM)"}
+            {layer.videoName ? `Video: ${layer.videoName} — replace` : tr("Choose a video (MP4, MOV, WebM)")}
             <input type="file" accept="video/*" className="hidden" onChange={async (e) => {
               const file = e.target.files?.[0]; e.target.value = "";
               if (!file) return;
               try { const id = await saveVideo(file); set({ videoId: id, videoName: file.name }); } catch { alert("This video could not be saved on this device."); }
             }} />
           </label>
-          {videoMissing(layer.videoId) && <p className="text-[10px] text-destructive">This video is not on this device — choose it again.</p>}
-          <p className="text-[10px] text-muted-foreground">The video fills the whole PIXEL canvas and loops; each light shows its spot. It is kept only on this device.</p>
+          {videoMissing(layer.videoId) && <p className="text-[10px] text-destructive">{tr("This video is not on this device — choose it again.")}</p>}
+          <p className="text-[10px] text-muted-foreground">{tr("The video fills the whole PIXEL canvas and loops; each light shows its spot. It is kept only on this device.")}</p>
         </div>
       )}
 
       {layer.kind === "text" && (
         <div className="space-y-1">
-          <input value={layer.text} onChange={(e) => set({ text: e.target.value.slice(0, 60) })} placeholder="Type text to scroll…" className="w-full font-mono uppercase rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-          <p className="text-[10px] text-muted-foreground">Text is {H} pixels tall.</p>
+          <input value={layer.text} onChange={(e) => set({ text: e.target.value.slice(0, 60) })} placeholder={tr("Type text to scroll…")} className="w-full font-mono uppercase rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+          <p className="text-[10px] text-muted-foreground">{tr("Text is")}{H}{tr("pixels tall.")}</p>
         </div>
       )}
 
       {layer.kind === "police" && (
         <div className="space-y-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Flash pattern</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Flash pattern")}</div>
           <div className="grid grid-cols-4 gap-1.5">
             {POLICE_FLASHES.map((p) => (
               <button key={p.n} onClick={() => set({ flashes: p.n })} className={`rounded-md py-2 text-xs font-semibold ${(layer.flashes ?? 2) === p.n ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{p.l}</button>
@@ -171,37 +170,35 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
       )}
 
       <div className="space-y-1.5">
-        <button onClick={() => set({ reverse: !layer.reverse })} className={`flex w-full items-center justify-center gap-1 rounded-md py-2 text-xs font-semibold ${layer.reverse ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><ArrowLeftRight className="h-3.5 w-3.5" />Reverse direction</button>
+        <button onClick={() => set({ reverse: !layer.reverse })} className={`flex w-full items-center justify-center gap-1 rounded-md py-2 text-xs font-semibold ${layer.reverse ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><ArrowLeftRight className="h-3.5 w-3.5" />{tr("Reverse direction")}</button>
       </div>
         </div>
       </section>
-      <section className="space-y-2" aria-label="Pixel speed settings">
-        {onPixelMaster && <Slider label="Pixel master" value={pixelMaster} min={0} max={1} display={`${Math.round(pixelMaster * 100)}%`} onChange={onPixelMaster} />}
-        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={speedOpen} aria-controls="pixel-speed-settings" onClick={() => setSpeedOpen((open) => !open)}>{speedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}Pixel speed</Button>
+      <section className="space-y-2" aria-label={tr("Pixel speed settings")}>
+        {onPixelMaster && <Slider label={tr("Pixel master")} value={pixelMaster} min={0} max={1} display={`${Math.round(pixelMaster * 100)}%`} onChange={onPixelMaster} />}
+        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={speedOpen} aria-controls="pixel-speed-settings" onClick={() => setSpeedOpen((open) => !open)}>{speedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}{tr("Pixel speed")}</Button>
         <div id="pixel-speed-settings" hidden={!speedOpen} className="space-y-3">
-      {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size, phase: layer.phase ?? 0 })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Use this speed & size on all layers (run in sync)</button>}
-      <SpeedControl label="Pixel speed" value={layer.speed} unit="×" onChange={(speed) => set({ speed })} />
-      {["runner", "meteor", "text"].includes(layer.kind) && <div className="font-mono text-[10px] text-muted-foreground">{+(layer.speed * 10).toFixed(3)} px/s · {+(W / (layer.speed * 10)).toFixed(3)} s / map</div>}
-      <Slider label="Brightness" value={layer.brightness ?? 1} min={0} max={1} display={`${Math.round((layer.brightness ?? 1) * 100)}%`} onChange={(brightness) => set({ brightness })} />
-      <Slider label="Background level" value={layer.background ?? 0} min={0} max={1} display={`${Math.round((layer.background ?? 0) * 100)}%`} onChange={(background) => set({ background })} />
-      {layer.kind === "runner" && <Slider label="Edge softness" value={layer.softness ?? 0} min={0} max={1} display={`${Math.round((layer.softness ?? 0) * 100)}%`} onChange={(softness) => set({ softness })} />}
-      {layer.kind === "strobe" && <Slider label="On time" value={layer.duty ?? 0.5} min={0.001} max={1} display={`${+((layer.duty ?? 0.5) * 100).toFixed(1)}%`} onChange={(duty) => set({ duty })} />}
-      {layer.kind === "sparkle" && <Slider label="Density" value={layer.density ?? 0.15} min={0} max={1} display={`${Math.round((layer.density ?? 0.15) * 100)}%`} onChange={(density) => set({ density })} />}
-      <Slider label="Spread" value={layer.spread ?? 0} min={0} max={8} step={0.5} display={`${layer.spread ?? 0} px`} onChange={(spread) => set({ spread })} />
-      <Slider label="Blur" value={layer.blur ?? 0} min={0} max={8} step={0.5} display={`${layer.blur ?? 0} px`} onChange={(blur) => set({ blur })} />
-      <Slider label="Edge fade" value={layer.feather ?? 0} min={0} max={20} step={1} display={`${layer.feather ?? 0} px`} onChange={(feather) => set({ feather })} />
-      <Slider label="Phase offset" value={layer.phase ?? 0} min={0} max={1} display={`${Math.round((layer.phase ?? 0) * 100)}%`} onChange={(phase) => set({ phase })} />
-      {layer.kind === "runner" && <Slider label="Runners" value={layer.runners ?? 1} min={1} max={8} step={1} display={`${layer.runners ?? 1}`} onChange={(v) => set({ runners: v })} />}
-      {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">A block of {layer.size} px travels through all {placed.length} lights ({W} px) one after another.</p>}
-      {["runner", "chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label="Size" value={layer.size} min={1} max={Math.max(32, W)} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
+      {layers.length > 1 && <button onClick={() => setLayers(layers.map((l) => ({ ...l, speed: layer.speed, size: layer.size, phase: layer.phase ?? 0 })))} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">{tr("Use this speed & size on all layers (run in sync)")}</button>}
+      <SpeedControl label={tr("Pixel speed")} value={layer.speed} unit="×" onChange={(speed) => set({ speed })} />
+      {["runner", "meteor", "text"].includes(layer.kind) && <div className="font-mono text-[10px] text-muted-foreground">{+(layer.speed * 10).toFixed(3)}{tr("px/s ·")}{+(W / (layer.speed * 10)).toFixed(3)}{tr("s / map")}</div>}
+      <Slider label={tr("Brightness")} value={layer.brightness ?? 1} min={0} max={1} display={`${Math.round((layer.brightness ?? 1) * 100)}%`} onChange={(brightness) => set({ brightness })} />
+      <Slider label={tr("Background level")} value={layer.background ?? 0} min={0} max={1} display={`${Math.round((layer.background ?? 0) * 100)}%`} onChange={(background) => set({ background })} />
+      {layer.kind === "runner" && <Slider label={tr("Edge softness")} value={layer.softness ?? 0} min={0} max={1} display={`${Math.round((layer.softness ?? 0) * 100)}%`} onChange={(softness) => set({ softness })} />}
+      {layer.kind === "strobe" && <Slider label={tr("On time")} value={layer.duty ?? 0.5} min={0.001} max={1} display={`${+((layer.duty ?? 0.5) * 100).toFixed(1)}%`} onChange={(duty) => set({ duty })} />}
+      {layer.kind === "sparkle" && <Slider label={tr("Density")} value={layer.density ?? 0.15} min={0} max={1} display={`${Math.round((layer.density ?? 0.15) * 100)}%`} onChange={(density) => set({ density })} />}
+      <Slider label={tr("Spread")} value={layer.spread ?? 0} min={0} max={8} step={0.5} display={`${layer.spread ?? 0} px`} onChange={(spread) => set({ spread })} />
+      <Slider label={tr("Blur")} value={layer.blur ?? 0} min={0} max={8} step={0.5} display={`${layer.blur ?? 0} px`} onChange={(blur) => set({ blur })} />
+      <Slider label={tr("Edge fade")} value={layer.feather ?? 0} min={0} max={20} step={1} display={`${layer.feather ?? 0} px`} onChange={(feather) => set({ feather })} />
+      <Slider label={tr("Phase offset")} value={layer.phase ?? 0} min={0} max={1} display={`${Math.round((layer.phase ?? 0) * 100)}%`} onChange={(phase) => set({ phase })} />
+      {layer.kind === "runner" && <Slider label={tr("Runners")} value={layer.runners ?? 1} min={1} max={8} step={1} display={`${layer.runners ?? 1}`} onChange={(v) => set({ runners: v })} />}
+      {layer.kind === "runner" && <p className="text-[10px] text-muted-foreground">{tr("A block of")}{layer.size}{tr("px travels through all")}{placed.length}{tr("lights (")}{W}{tr("px) one after another.")}</p>}
+      {["runner", "chase", "wave", "meteor", "bounce"].includes(layer.kind) && <Slider label={tr("Size")} value={layer.size} min={1} max={Math.max(32, W)} step={1} display={`${layer.size} px`} onChange={(v) => set({ size: v })} />}
 
         </div>
       </section>
-      <section className="space-y-2" aria-label="Pixel colours">
+      <section className="space-y-2" aria-label={tr("Pixel colours")}>
         <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={coloursOpen} aria-controls="pixel-colour-editor" onClick={() => setColoursOpen((open) => !open)}>
-          {coloursOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          Colours
-          {!coloursOpen && <span className="ml-auto flex gap-1" aria-hidden="true">{layer.colors.map((colour, i) => <span key={i} className="h-3 w-3 rounded-sm" style={{ background: colour }} />)}</span>}
+          {coloursOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}{tr("Colours")}{!coloursOpen && <span className="ml-auto flex gap-1" aria-hidden="true">{layer.colors.map((colour, i) => <span key={i} className="h-3 w-3 rounded-sm" style={{ background: colour }} />)}</span>}
         </Button>
         <div id="pixel-colour-editor" hidden={!coloursOpen}>
           <PaletteEditor colours={layer.colors} native={["rainbow", "plasma", "generator", "twinkle"].includes(layer.kind) && !layer.customPalette}
@@ -209,19 +206,19 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
             onReset={() => set({ customPalette: false, tint: "" })} />
         </div>
       </section>
-      <section className="space-y-2" aria-label="Pixel fixtures">
-        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={fixturesOpen} aria-controls="pixel-fixture-choices" onClick={() => setFixturesOpen((open) => !open)}>{fixturesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}Fixtures<span className="ml-auto text-xs text-muted-foreground">{inMap.length}</span></Button>
+      <section className="space-y-2" aria-label={tr("Pixel fixtures")}>
+        <Button variant="ghost" className="w-full justify-start px-0" aria-expanded={fixturesOpen} aria-controls="pixel-fixture-choices" onClick={() => setFixturesOpen((open) => !open)}>{fixturesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}{tr("Fixtures")}<span className="ml-auto text-xs text-muted-foreground">{inMap.length}</span></Button>
         <div id="pixel-fixture-choices" hidden={!fixturesOpen} className="space-y-3">
       {(() => { const gs = groupNamesOf(allPx); return gs.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Groups</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Groups")}</div>
           <div className="flex flex-wrap gap-1.5">{gs.map((g) => { const ids = membersOf(allPx, g).map((f) => f.uid); const all = ids.every((u) => inMap.includes(u)); return (
             <button key={g} aria-pressed={all} onClick={() => set({ order: all ? inMap.filter((u) => !ids.includes(u)) : [...inMap, ...ids.filter((u) => !inMap.includes(u))] })} className={`rounded-md px-2.5 py-1.5 text-xs font-semibold ${all ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{g}</button>); })}</div>
         </div>); })()}
       <div className="space-y-1.5">
         <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          <span>Lights in this layer (order = position)</span>
-          <button onClick={() => set({ order: inMap.length === px.length ? [] : px.map((f) => f.uid) })} className="text-primary">{inMap.length === px.length ? "None" : "All"}</button>
+          <span>{tr("Lights in this layer (order = position)")}</span>
+          <button onClick={() => set({ order: inMap.length === px.length ? [] : px.map((f) => f.uid) })} className="text-primary">{inMap.length === px.length ? tr("None") : tr("All")}</button>
         </div>
         {px.map((f) => {
           const on = inMap.includes(f.uid);
@@ -231,15 +228,15 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
             <div key={f.uid} className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${on ? "bg-primary/15" : "bg-surface-elevated"}`}>
               <Checkbox checked={on} onCheckedChange={() => toggle(f.uid)} />
               {on && <span className="w-5 font-mono text-amber-glow">{inMap.indexOf(f.uid) + 1}</span>}
-              <span className="min-w-0 flex-1 truncate">{f.name} <span className="text-muted-foreground">· {getDef(f.defId).model} · {pixelCount(f)} px{r > 1 ? ` (${c}×${r})` : ""}{other.length ? ` · also in ${other.join(", ")}` : ""}</span></span>
+              <span className="min-w-0 flex-1 truncate">{f.name} <span className="text-muted-foreground">· {getDef(f.defId).model} · {pixelCount(f)}{tr("px")}{r > 1 ? ` (${c}×${r})` : tr("")}{other.length ? ` · also in ${other.join(", ")}` : tr("")}</span></span>
               {on && <>
-                <button onClick={() => move(f.uid, -1)} aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
-                <button onClick={() => move(f.uid, 1)} aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
+                <button onClick={() => move(f.uid, -1)} aria-label={tr("Move up")}><ArrowUp className="h-3.5 w-3.5" /></button>
+                <button onClick={() => move(f.uid, 1)} aria-label={tr("Move down")}><ArrowDown className="h-3.5 w-3.5" /></button>
               </>}
             </div>
           );
         })}
-        <p className="text-[10px] text-muted-foreground">If a light is in several playing layers, the lower layer in the list wins.</p>
+        <p className="text-[10px] text-muted-foreground">{tr("If a light is in several playing layers, the lower layer in the list wins.")}</p>
       </div>
         </div>
       </section>
@@ -250,7 +247,7 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
 function Slider({ label, value, min, max, step, display, onChange }: { label: string; value: number; min: number; max: number; step?: number; display: string; onChange: (v: number) => void }) {
   return (
     <label className="block">
-      <div className="mb-1 flex justify-between text-xs"><span className="font-semibold uppercase tracking-wider text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} min={display.endsWith("%") ? min * 100 : min} max={display.endsWith("%") ? max * 100 : max} integer={step === 1} value={+(value * (display.endsWith("%") ? 100 : 1)).toFixed(2)} onChange={(n) => { if (n !== undefined) onChange(n / (display.endsWith("%") ? 100 : 1)); }} className="w-16 rounded border border-input bg-surface-elevated px-1 py-0.5 text-right" />{display.endsWith("%") ? "%" : display.endsWith("°") ? "°" : display.endsWith(" px") ? "px" : ""}</span></div>
+      <div className="mb-1 flex justify-between text-xs"><span className="font-semibold uppercase tracking-wider text-muted-foreground">{label}</span><span className="flex items-center gap-1 font-mono"><NumberField aria-label={`${label} value`} min={display.endsWith("%") ? min * 100 : min} max={display.endsWith("%") ? max * 100 : max} integer={step === 1} value={+(value * (display.endsWith("%") ? 100 : 1)).toFixed(2)} onChange={(n) => { if (n !== undefined) onChange(n / (display.endsWith("%") ? 100 : 1)); }} className="w-16 rounded border border-input bg-surface-elevated px-1 py-0.5 text-right" />{display.endsWith("%") ? tr("%") : display.endsWith("°") ? tr("°") : display.endsWith(" px") ? tr("px") : tr("")}</span></div>
       <input type="range" min={min} max={max} step={step ?? (max - min) / 200} value={value} onChange={(e) => onChange(+e.target.value)} className="w-full accent-[var(--color-primary)]" />
     </label>
   );
@@ -309,7 +306,7 @@ function InfiniteGrid({ children, columns, rows }: { children: React.ReactNode; 
   const end = (e: React.PointerEvent) => { pointers.current.delete(e.pointerId); begin(); };
   const cell = 11 * viewZoom;
   return <div className="space-y-2">
-    <div ref={viewport} aria-label="Pixel mapping viewport" className="relative h-56 touch-none overflow-hidden rounded-lg bg-background"
+    <div ref={viewport} aria-label={tr("Pixel mapping viewport")} className="relative h-56 touch-none overflow-hidden rounded-lg bg-background"
       style={{ backgroundImage: "linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)", backgroundSize: `${cell}px ${cell}px`, backgroundPosition: `${viewPan[0]}px ${viewPan[1]}px` }}
       onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pointers.current.set(e.pointerId, [e.clientX, e.clientY]); begin(); }}
       onPointerMove={(e) => {
@@ -323,9 +320,9 @@ function InfiniteGrid({ children, columns, rows }: { children: React.ReactNode; 
       onWheel={(e) => changeZoom(e.deltaY < 0 ? 1.1 : .9)}>
       <div data-testid="pixel-preview-grid" className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${viewPan[0]}px, ${viewPan[1]}px) scale(${viewZoom})` }}>{children}</div>
       <div className="absolute bottom-1.5 right-1.5 flex gap-1" onPointerDown={(e) => e.stopPropagation()}>
-        <Button size="icon" variant="secondary" onClick={() => changeZoom(1.25)} title="Zoom in" aria-label="Zoom in"><Plus /></Button>
-        <Button size="icon" variant="secondary" onClick={() => changeZoom(.8)} title="Zoom out" aria-label="Zoom out">−</Button>
-        <Button size="icon" variant="secondary" title="Scale to fit" aria-label="Scale to fit" aria-pressed={autoFit} onClick={() => setAutoFit(true)}><Scan /></Button>
+        <Button size="icon" variant="secondary" onClick={() => changeZoom(1.25)} title={tr("Zoom in")} aria-label={tr("Zoom in")}><Plus /></Button>
+        <Button size="icon" variant="secondary" onClick={() => changeZoom(.8)} title={tr("Zoom out")} aria-label={tr("Zoom out")}>−</Button>
+        <Button size="icon" variant="secondary" title={tr("Scale to fit")} aria-label={tr("Scale to fit")} aria-pressed={autoFit} onClick={() => setAutoFit(true)}><Scan /></Button>
       </div>
     </div>
   </div>;

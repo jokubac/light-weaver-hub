@@ -20,6 +20,7 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PROJECT_COLORS } from "@/lib/store";
 
+import { t as tr } from "@/lib/i18n";
 export function ColorSwatches({ value, onChange }: { value: string; onChange: (c: string) => void }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -61,22 +62,22 @@ export function ItemMenu({
     <div onClick={(e) => e.stopPropagation()}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="rounded-md p-2 text-muted-foreground hover:text-foreground" aria-label="More">
+          <button className="rounded-md p-2 text-muted-foreground hover:text-foreground" aria-label={tr("More")}>
             <MoreVertical className="h-5 w-5" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onDuplicate}><Copy className="mr-2 h-4 w-4" />Duplicate</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => { setDraft(name); setRenaming(true); }}><Pencil className="mr-2 h-4 w-4" />Rename</DropdownMenuItem>
-          {onColor && <DropdownMenuItem onSelect={() => setColoring(true)}><Palette className="mr-2 h-4 w-4" />Color</DropdownMenuItem>}
+          <DropdownMenuItem onSelect={onDuplicate}><Copy className="mr-2 h-4 w-4" />{tr("Duplicate")}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => { setDraft(name); setRenaming(true); }}><Pencil className="mr-2 h-4 w-4" />{tr("Rename")}</DropdownMenuItem>
+          {onColor && <DropdownMenuItem onSelect={() => setColoring(true)}><Palette className="mr-2 h-4 w-4" />{tr("Color")}</DropdownMenuItem>}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setDeleting(true)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setDeleting(true)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />{tr("Delete")}</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <Dialog open={renaming} onOpenChange={setRenaming}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Rename</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tr("Rename")}</DialogTitle></DialogHeader>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -87,7 +88,7 @@ export function ItemMenu({
           >
             <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
             <DialogFooter>
-              <button type="submit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">Save</button>
+              <button type="submit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">{tr("Save")}</button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -96,7 +97,7 @@ export function ItemMenu({
       {onColor && (
         <Dialog open={coloring} onOpenChange={setColoring}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Project color</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{tr("Project color")}</DialogTitle></DialogHeader>
             <ColorSwatches value={color ?? ""} onChange={(c) => { onColor(c); setColoring(false); }} />
           </DialogContent>
         </Dialog>
@@ -106,11 +107,11 @@ export function ItemMenu({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete "{name}"?</AlertDialogTitle>
-            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+            <AlertDialogDescription>{tr("This cannot be undone.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{tr("Cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{tr("Delete")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

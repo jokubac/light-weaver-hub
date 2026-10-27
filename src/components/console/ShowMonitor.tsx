@@ -7,6 +7,7 @@ import type { LookState } from "@/lib/store";
 import { batteryStatus, fmtHours } from "@/lib/power";
 import { loadRdmSnapshots } from "@/lib/rdm";
 
+import { t as tr } from "@/lib/i18n";
 interface Props {
   open: boolean; onOpenChange: (o: boolean) => void;
   fixtures: PatchedFixture[]; level: number;
@@ -25,47 +26,47 @@ export function ShowMonitor(p: Props) {
   return (
     <Dialog open={p.open} onOpenChange={p.onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader><DialogTitle>Monitor</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tr("Monitor")}</DialogTitle></DialogHeader>
         <Tabs defaultValue="bat">
-          <TabsList><TabsTrigger value="bat">Batteries</TabsTrigger><TabsTrigger value="park">Parked ({parkedList.length})</TabsTrigger></TabsList>
+          <TabsList><TabsTrigger value="bat">{tr("Batteries")}</TabsTrigger><TabsTrigger value="park">{tr("Parked (")}{parkedList.length})</TabsTrigger></TabsList>
 
           <TabsContent value="bat" className="space-y-3">
             <section>
-              <h3 className="mb-1 text-xs font-bold uppercase text-muted-foreground">Reported by the lights (RDM)</h3>
+              <h3 className="mb-1 text-xs font-bold uppercase text-muted-foreground">{tr("Reported by the lights (RDM)")}</h3>
               {rdmBat.length ? rdmBat.map(({ s, d }) => {
                 const pct = d.battery!.unit === "%" ? d.battery!.value / 100 : null;
                 return (
                   <div key={s.universe + d.uid} className="grid grid-cols-[1fr_6rem_8rem] items-center gap-2 py-1 text-xs">
-                    <span className="truncate">{d.label || d.model} <span className="text-muted-foreground">U{s.universe} · {d.address}</span></span>
+                    <span className="truncate">{d.label || d.model} <span className="text-muted-foreground">{tr("U")}{s.universe} · {d.address}</span></span>
                     <span className="font-mono">{d.battery!.value}{d.battery!.unit}</span>
                     {pct != null ? <Bar k={pct} warn={pct < 0.1} /> : <span />}
                   </div>
                 );
-              }) : <p className="text-xs text-muted-foreground">No readings yet. In PATCH → More sources → RDM, scan a universe; the battery levels then show here.</p>}
-              {rdm.length > 0 && <p className="mt-1 text-[10px] text-muted-foreground">Last scan: {new Date(Math.max(...rdm.map((s) => s.at))).toLocaleTimeString()}</p>}
+              }) : <p className="text-xs text-muted-foreground">{tr("No readings yet. In PATCH → More sources → RDM, scan a universe; the battery levels then show here.")}</p>}
+              {rdm.length > 0 && <p className="mt-1 text-[10px] text-muted-foreground">{tr("Last scan:")}{new Date(Math.max(...rdm.map((s) => s.at))).toLocaleTimeString()}</p>}
             </section>
             <section>
-              <h3 className="mb-1 text-xs font-bold uppercase text-muted-foreground">Estimated (V-mount / Instagrid set on the light)</h3>
+              <h3 className="mb-1 text-xs font-bold uppercase text-muted-foreground">{tr("Estimated (V-mount / Instagrid set on the light)")}</h3>
               {packs.length ? packs.map(({ f, s }) => (
                 <div key={f.uid} className="grid grid-cols-[1fr_6rem_8rem] items-center gap-2 py-1 text-xs">
                   <span className="truncate">{f.name}</span>
                   <span className="font-mono">{Math.round(s.pct * 100)}% · {fmtHours(s.hours)}</span>
                   <Bar k={s.pct} warn={s.pct < 0.1} />
                 </div>
-              )) : <p className="text-xs text-muted-foreground">No lights have a battery set.</p>}
+              )) : <p className="text-xs text-muted-foreground">{tr("No lights have a battery set.")}</p>}
             </section>
           </TabsContent>
 
 
           <TabsContent value="park" className="space-y-2">
-            <p className="text-xs text-muted-foreground">Parked lights stay at a fixed level whatever cues, faders or effects do. Park from the FIXTURES bar.</p>
+            <p className="text-xs text-muted-foreground">{tr("Parked lights stay at a fixed level whatever cues, faders or effects do. Park from the FIXTURES bar.")}</p>
             {parkedList.map((f) => (
               <div key={f.uid} className="flex items-center justify-between rounded bg-surface-elevated px-2 py-1 text-xs">
                 <span>{f.name} <span className="font-mono text-muted-foreground">{Math.round((p.parked[f.uid]!.intensity ?? 0) * 100)}%</span></span>
-                <Button size="sm" variant="secondary" onClick={() => { const n = { ...p.parked }; delete n[f.uid]; p.setParked(n); }}>Unpark</Button>
+                <Button size="sm" variant="secondary" onClick={() => { const n = { ...p.parked }; delete n[f.uid]; p.setParked(n); }}>{tr("Unpark")}</Button>
               </div>
             ))}
-            {parkedList.length > 0 && <Button variant="secondary" onClick={() => p.setParked({})}>Unpark all</Button>}
+            {parkedList.length > 0 && <Button variant="secondary" onClick={() => p.setParked({})}>{tr("Unpark all")}</Button>}
           </TabsContent>
         </Tabs>
       </DialogContent>

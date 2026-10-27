@@ -4,6 +4,7 @@ import { ItemMenu } from "./ItemMenu";
 import type { PatchedFixture } from "@/lib/dmx";
 import { uid, type Look, type LookState } from "@/lib/store";
 
+import { t as tr } from "@/lib/i18n";
 export const snapshot = (f: PatchedFixture): LookState => ({
   intensity: f.intensity, cct: f.cct, gm: f.gm, hue: f.hue, saturation: f.saturation, crossfade: f.crossfade,
   cctOnly: f.cctOnly, fx: structuredClone(f.fx), on: f.on ?? true, fxPlaying: f.fxPlaying ?? true,
@@ -37,18 +38,18 @@ export function LooksPanel({ fixtures, selected, looks, setLooks, onRecall, last
 
   return (
     <div className="space-y-4">
-      <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Looks</h2>
+      <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">{tr("Looks")}</h2>
       <div className="space-y-2 rounded-lg bg-surface-elevated p-3">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Look name (e.g. Scene 1 — wide)" className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Look name (e.g. Scene 1 — wide)")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
         <div className="flex gap-2">
-          <button disabled={!selected.length} onClick={() => save(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-surface py-2.5 text-xs font-semibold disabled:opacity-40"><Camera className="h-3.5 w-3.5" />Save selected ({selected.length})</button>
-          <button disabled={!fixtures.length} onClick={() => save(false)} className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"><Camera className="h-3.5 w-3.5" />Save all lights</button>
+          <button disabled={!selected.length} onClick={() => save(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-surface py-2.5 text-xs font-semibold disabled:opacity-40"><Camera className="h-3.5 w-3.5" />{tr("Save selected (")}{selected.length})</button>
+          <button disabled={!fixtures.length} onClick={() => save(false)} className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"><Camera className="h-3.5 w-3.5" />{tr("Save all lights")}</button>
         </div>
-        <p className="text-[10px] text-muted-foreground">Looks are shared across all scenes in this project.</p>
+        <p className="text-[10px] text-muted-foreground">{tr("Looks are shared across all scenes in this project.")}</p>
       </div>
 
       {looks.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">No looks saved yet.</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">{tr("No looks saved yet.")}</p>
       ) : (
         <div className="space-y-1.5">
           {looks.map((l) => (
@@ -57,7 +58,7 @@ export function LooksPanel({ fixtures, selected, looks, setLooks, onRecall, last
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-amber-glow text-primary-foreground"><Play className="h-4 w-4" /></span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">{l.name}</span>
-                  <span className="block text-[11px] text-muted-foreground">{l.states.length} lights · {new Date(l.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="block text-[11px] text-muted-foreground">{l.states.length}{tr("lights ·")}{new Date(l.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
                 </span>
               </button>
               <ItemMenu name={l.name}

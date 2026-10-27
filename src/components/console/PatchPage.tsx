@@ -15,6 +15,7 @@ import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
 import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern } from "@/lib/patch-order";
 
+import { t as tr } from "@/lib/i18n";
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
 export function describeDef(d: FixtureDef): { type: string; cct: string } {
   const kinds = new Set(d.modes.map((m) => m.kind));
@@ -116,35 +117,35 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background">
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3 print:hidden">
-        <button onClick={onClose} className="mr-auto rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label="Back to console"><ArrowLeft className="h-5 w-5" /></button>
-        <Button size="sm" variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Close the fixture list" : "Open the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? "Close fixtures" : "Add fixtures"}</Button>
-        <Button size="sm" variant="secondary" onClick={savePdf} title="Save the patch sheet as a PDF"><Printer />Save PDF</Button>
-        <Button size="sm" variant="secondary" onClick={exportPatch}><Download />Export</Button>
-        <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Upload />Import</Button>
-        {rows.length === 0 && <span className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures · {new Date().toLocaleDateString("sv-SE")}</span>}
+        <button onClick={onClose} className="mr-auto rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label={tr("Back to console")}><ArrowLeft className="h-5 w-5" /></button>
+        <Button size="sm" variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Close the fixture list" : "Open the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? tr("Close fixtures") : tr("Add fixtures")}</Button>
+        <Button size="sm" variant="secondary" onClick={savePdf} title={tr("Save the patch sheet as a PDF")}><Printer />{tr("Save PDF")}</Button>
+        <Button size="sm" variant="secondary" onClick={exportPatch}><Download />{tr("Export")}</Button>
+        <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Upload />{tr("Import")}</Button>
+        {rows.length === 0 && <span className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length}{tr("fixtures ·")}{new Date().toLocaleDateString("sv-SE")}</span>}
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPatch(f); e.target.value = ""; }} />
       </div>
       <div className="relative flex min-h-0 flex-1 flex-col">
         <main ref={mainRef} className="patch-print min-h-0 flex-1 overflow-auto p-4">
           <div className="mb-3 flex items-center gap-2 border-b border-border pb-2 print:mb-2">
-            <h1 className="truncate font-display text-base font-semibold uppercase tracking-wider">{title} — Patch sheet</h1>
+            <h1 className="truncate font-display text-base font-semibold uppercase tracking-wider">{title}{tr("— Patch sheet")}</h1>
           </div>
           {rows.length > 0 && (
             <div className="sticky -top-4 z-10 -mx-4 mb-2 flex flex-wrap items-center gap-1.5 border-b border-border bg-background/95 px-4 py-2 text-xs print:hidden">
-              <button onClick={() => setPicked(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Select all</button>
-              <button onClick={() => setPicked([])} disabled={!picked.length} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold disabled:opacity-40">Clear</button>
-              <span className="text-muted-foreground">{picked.length} selected</span>
+              <button onClick={() => setPicked(fixtures.map((f) => f.uid))} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">{tr("Select all")}</button>
+              <button onClick={() => setPicked([])} disabled={!picked.length} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold disabled:opacity-40">{tr("Clear")}</button>
+              <span className="text-muted-foreground">{picked.length}{tr("selected")}</span>
               {picked.length > 0 && <>
                 <span className="ml-2 flex gap-1">{LABEL_COLORS.map((c) => <button key={c} onClick={() => each({ label: c })} aria-label={`Colour ${c}`} className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />)}
-                  <button onClick={() => each({ label: undefined } as never)} className="px-1 text-muted-foreground" aria-label="Remove colour">×</button></span>
-                <button onClick={bulkRename} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Rename…</button>
-                <button onClick={() => { const g = prompt(`Groups, comma separated${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove all`); if (g !== null) each(groupsPatch(g.split(","))); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">Groups…</button>
+                  <button onClick={() => each({ label: undefined } as never)} className="px-1 text-muted-foreground" aria-label={tr("Remove colour")}>×</button></span>
+                <button onClick={bulkRename} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">{tr("Rename…")}</button>
+                <button onClick={() => { const g = prompt(`Groups, comma separated${groupNames.length ? ` (existing: ${groupNames.join(", ")})` : ""} — leave empty to remove all`); if (g !== null) each(groupsPatch(g.split(","))); }} className="rounded-md bg-surface-elevated px-2.5 py-1.5 font-semibold">{tr("Groups…")}</button>
               </>}
-              <button onClick={unpatch} disabled={!picked.length} className="ml-auto flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1.5 font-semibold text-destructive-foreground disabled:opacity-40"><Unplug className="h-3.5 w-3.5" />Unpatch{picked.length ? ` (${picked.length})` : ""}</button>
-              <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length} fixtures · {new Date().toLocaleDateString("sv-SE")}</span>
+              <button onClick={unpatch} disabled={!picked.length} className="ml-auto flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1.5 font-semibold text-destructive-foreground disabled:opacity-40"><Unplug className="h-3.5 w-3.5" />{tr("Unpatch")}{picked.length ? ` (${picked.length})` : tr("")}</button>
+              <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length}{tr("fixtures ·")}{new Date().toLocaleDateString("sv-SE")}</span>
             </div>
           )}
-          {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">No lights patched yet.</p> : (
+          {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">{tr("No lights patched yet.")}</p> : (
             <table className="w-full border-collapse text-xs print:text-[9px]">
               <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2 print:hidden"></th>
@@ -166,7 +167,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <td className="py-1.5 pr-2 font-mono text-muted-foreground print:py-0.5">{number}</td>
                       <td className="pr-2 print:hidden"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
-                        <input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} aria-label="Fixture name" className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" /></td>
+                        <input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} aria-label={tr("Fixture name")} className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" /></td>
                       <td className="pr-2">{d.brand} {d.model}</td>
                       <td className="pr-2 text-muted-foreground">{m?.name}</td>
                       <td className="pr-2 font-mono">{f.universe}</td>
@@ -174,7 +175,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <td className="pr-2 font-mono">{ch}</td>
                       <td className="pr-2 print:hidden">{groupText(f)}</td>
                       <td className="whitespace-nowrap print:hidden">
-                        <Button variant="ghost" size="icon" aria-label={`Move ${f.name}`} title="Drag to reorder (selected lights move together)" className="h-9 w-9 touch-none cursor-grab select-none active:cursor-grabbing"
+                        <Button variant="ghost" size="icon" aria-label={`Move ${f.name}`} title={tr("Drag to reorder (selected lights move together)")} className="h-9 w-9 touch-none cursor-grab select-none active:cursor-grabbing"
                           onPointerDown={(e) => {
                             if (e.button !== 0) return;
                             e.preventDefault();
@@ -210,29 +211,25 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <div className="grid gap-3 md:grid-cols-2">
                         <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                         <div className="space-y-2">
-                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Mode
-                            <select value={f.modeIdx} aria-label={`Mode for ${f.name}`} onChange={(e) => {
+                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">{tr("Mode")}<select value={f.modeIdx} aria-label={`Mode for ${f.name}`} onChange={(e) => {
                               const modeIdx = Number(e.target.value);
                               const mode = d.modes[modeIdx];
                               if (!mode) return;
                               onUpdate(f.uid, { modeIdx, address: Math.min(f.address, Math.max(1, 513 - mode.channels)) });
                             }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm normal-case text-foreground">
-                              {d.modes.map((mode, idx) => <option key={idx} value={idx}>{mode.name} · {mode.channels} ch</option>)}
+                              {d.modes.map((mode, idx) => <option key={idx} value={idx}>{mode.name} · {mode.channels}{tr("ch")}</option>)}
                             </select>
                           </label>
                           <div className="grid grid-cols-2 gap-2">
-                            <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Universe
-                              <NumberField integer min={1} max={MAX_UNIVERSE} value={f.universe} aria-label={`Universe for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { universe: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />
+                            <label className="block text-[10px] font-semibold uppercase text-muted-foreground">{tr("Universe")}<NumberField integer min={1} max={MAX_UNIVERSE} value={f.universe} aria-label={`Universe for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { universe: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />
                             </label>
-                            <label className="block text-[10px] font-semibold uppercase text-muted-foreground">DMX address
-                              <NumberField integer min={1} max={Math.max(1, 513 - ch)} value={f.address} aria-label={`DMX address for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { address: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />
+                            <label className="block text-[10px] font-semibold uppercase text-muted-foreground">{tr("DMX address")}<NumberField integer min={1} max={Math.max(1, 513 - ch)} value={f.address} aria-label={`DMX address for ${f.name}`} onChange={(v) => { if (v !== undefined) onUpdate(f.uid, { address: v }); }} className="mt-1 w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground" />
                             </label>
                           </div>
-                          {clash && <p role="alert" className="text-[11px] text-destructive">Overlaps {overlaps(fixtures, f.universe, f.address, ch, f.uid).map((fixture) => fixture.name).join(", ")}</p>}
-                          <div className="text-[10px] font-semibold uppercase text-muted-foreground">Colour</div>
+                          {clash && <p role="alert" className="text-[11px] text-destructive">{tr("Overlaps")}{overlaps(fixtures, f.universe, f.address, ch, f.uid).map((fixture) => fixture.name).join(", ")}</p>}
+                          <div className="text-[10px] font-semibold uppercase text-muted-foreground">{tr("Colour")}</div>
                           <div className="flex flex-wrap gap-1.5">{LABEL_COLORS.map((c) => <button key={c} onClick={() => onUpdate(f.uid, { label: c })} aria-label={`Colour ${c}`} className={`h-7 w-7 rounded-full border-2 ${f.label === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
-                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">Groups
-                            <input list="patch-groups" value={groupText(f)} onChange={(e) => onUpdate(f.uid, groupsPatch(e.target.value.split(",")))} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
+                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">{tr("Groups")}<input list="patch-groups" value={groupText(f)} onChange={(e) => onUpdate(f.uid, groupsPatch(e.target.value.split(",")))} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
                         </div>
                       </div>
                     </td></tr>}</Frag>

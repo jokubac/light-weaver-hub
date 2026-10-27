@@ -21,6 +21,7 @@ import { SettingsTransfer } from "./SettingsTransfer";
 import { plotEditSession } from "@/lib/plot-edit-session";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
+import { t as tr } from "@/lib/i18n";
 const WALL_H = 2.6; // drawn lines and boxes are treated as walls this tall
 const LREF = 8; // illuminance that reads as ~60% glow on the plot
 
@@ -1048,52 +1049,52 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
     <div className="flex min-h-0 flex-1 flex-col bg-background" onPointerDownCapture={() => { gesture.current = { active: true, recorded: false }; }} onPointerUp={() => { gesture.current.active = false; }} onPointerCancel={() => { gesture.current.active = false; }}>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2.5">
-        <h2 className="mr-2 font-display text-lg font-semibold">Live plot</h2>
+        <h2 className="mr-2 font-display text-lg font-semibold">{tr("Live plot")}</h2>
         <div className="flex overflow-hidden rounded-lg">
-          <button onClick={() => setView3d(false)} className={`px-3 py-2 text-xs font-bold ${!view3d ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>2D</button>
-          <button onClick={() => { setView3d(true); if (yaw === 0) setYaw(-30); }} className={`flex items-center gap-1 px-3 py-2 text-xs font-bold ${view3d ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Box className="h-3.5 w-3.5" />3D</button>
+          <button onClick={() => setView3d(false)} className={`px-3 py-2 text-xs font-bold ${!view3d ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{tr("2D")}</button>
+          <button onClick={() => { setView3d(true); if (yaw === 0) setYaw(-30); }} className={`flex items-center gap-1 px-3 py-2 text-xs font-bold ${view3d ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Box className="h-3.5 w-3.5" />{tr("3D")}</button>
         </div>
-        <Button variant="secondary" aria-label={tool === "pan" ? "Pan" : "Select / move"} title="Toggle Select / Pan" onClick={() => setTool(tool === "move" ? "pan" : "move")}>{tool === "pan" ? <Hand /> : <MousePointer2 />}{tool === "pan" ? "Pan" : "Select"}</Button>
-        <Button variant={multiSelect ? "default" : "secondary"} size="icon" aria-label="Multiselect" aria-pressed={multiSelect} title="Multiselect" onClick={() => { setMultiSelect(!multiSelect); setTool("move"); }}><ListChecks /></Button>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={["draw", "rect", "door", "window"].includes(tool) ? "default" : "secondary"}><Pencil />Build<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
-          <DropdownMenuItem onSelect={() => setTool("draw")}><Pencil />Wall</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setTool("rect")}><SquareIcon />Box</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setTool("door")}><DoorOpen />Door</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setTool("window")}><PanelsTopLeft />Window</DropdownMenuItem>
+        <Button variant="secondary" aria-label={tool === "pan" ? "Pan" : "Select / move"} title={tr("Toggle Select / Pan")} onClick={() => setTool(tool === "move" ? "pan" : "move")}>{tool === "pan" ? <Hand /> : <MousePointer2 />}{tool === "pan" ? tr("Pan") : tr("Select")}</Button>
+        <Button variant={multiSelect ? "default" : "secondary"} size="icon" aria-label={tr("Multiselect")} aria-pressed={multiSelect} title={tr("Multiselect")} onClick={() => { setMultiSelect(!multiSelect); setTool("move"); }}><ListChecks /></Button>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={["draw", "rect", "door", "window"].includes(tool) ? "default" : "secondary"}><Pencil />{tr("Build")}<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+          <DropdownMenuItem onSelect={() => setTool("draw")}><Pencil />{tr("Wall")}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setTool("rect")}><SquareIcon />{tr("Box")}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setTool("door")}><DoorOpen />{tr("Door")}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setTool("window")}><PanelsTopLeft />{tr("Window")}</DropdownMenuItem>
         </DropdownMenuContent></DropdownMenu>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "fixture" ? "default" : "secondary"}><LampDesk />Add fixture<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
-          {unplaced.length === 0 && <DropdownMenuItem disabled>No unplaced fixtures</DropdownMenuItem>}
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "fixture" ? "default" : "secondary"}><LampDesk />{tr("Add fixture")}<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+          {unplaced.length === 0 && <DropdownMenuItem disabled>{tr("No unplaced fixtures")}</DropdownMenuItem>}
           {unplaced.map((f) => <DropdownMenuItem key={f.uid} onSelect={() => { setPlacementUid(f.uid); setTool("fixture"); }}>{f.name}</DropdownMenuItem>)}
-          {unplaced.length > 1 && <DropdownMenuItem onSelect={placeAll}>Place all</DropdownMenuItem>}
+          {unplaced.length > 1 && <DropdownMenuItem onSelect={placeAll}>{tr("Place all")}</DropdownMenuItem>}
         </DropdownMenuContent></DropdownMenu>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "object" ? "default" : "secondary"}><Armchair />Props<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "object" ? "default" : "secondary"}><Armchair />{tr("Props")}<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
           {SET_OBJECTS.map((o) => <DropdownMenuItem key={o.kind} onSelect={() => { setObjectKind(o.kind); setTool("object"); }}>{o.label}</DropdownMenuItem>)}
         </DropdownMenuContent></DropdownMenu>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "camera" || tool === "meter" ? "default" : "secondary"}><Gauge />Test<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
-          <DropdownMenuItem onSelect={() => { setTool("camera"); clearSelection(); }}><Video />Camera</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => { setTool("meter"); clearSelection(); }}><Gauge />Meter</DropdownMenuItem>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant={tool === "camera" || tool === "meter" ? "default" : "secondary"}><Gauge />{tr("Test")}<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
+          <DropdownMenuItem onSelect={() => { setTool("camera"); clearSelection(); }}><Video />{tr("Camera")}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => { setTool("meter"); clearSelection(); }}><Gauge />{tr("Meter")}</DropdownMenuItem>
         </DropdownMenuContent></DropdownMenu>
-        <Button variant="secondary" size="icon" title="Undo" aria-label="Undo" disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
-        <Button variant="secondary" size="icon" title="Redo" aria-label="Redo" disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
-        <Button variant="destructive" size="sm" aria-label="Remove selected from plot" title="Remove selected item" disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />Remove</Button>
+        <Button variant="secondary" size="icon" title={tr("Undo")} aria-label={tr("Undo")} disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
+        <Button variant="secondary" size="icon" title={tr("Redo")} aria-label={tr("Redo")} disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
+        <Button variant="destructive" size="sm" aria-label={tr("Remove selected from plot")} title={tr("Remove selected item")} disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />{tr("Remove")}</Button>
         {(tool === "draw" || tool === "rect") && (
-          <input type="color" value={ink} onChange={(e) => setInk(e.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" aria-label="Drawing colour" />
+          <input type="color" value={ink} onChange={(e) => setInk(e.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" aria-label={tr("Drawing colour")} />
         )}
         <label className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-surface-elevated px-3 py-2 text-xs font-semibold">
-          <ImagePlus className="h-4 w-4" /><span className="hidden md:inline">Floor plan / photo</span>
+          <ImagePlus className="h-4 w-4" /><span className="hidden md:inline">{tr("Floor plan / photo")}</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
         </label>
-        {bgOf(fl) && <button onClick={removeImage} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">Remove image</button>}
-        {plot.strokes.some((s) => (s.floor ?? 0) === fl) && <button onClick={() => { if (ensureUnlocked() && confirm("Clear the drawing on this floor?"))  { const strokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl); setPlot({ ...plot, strokes, openings: remapOpenings(strokes) }); } }} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">Clear drawing</button>}
+        {bgOf(fl) && <button onClick={removeImage} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">{tr("Remove image")}</button>}
+        {plot.strokes.some((s) => (s.floor ?? 0) === fl) && <button onClick={() => { if (ensureUnlocked() && confirm("Clear the drawing on this floor?"))  { const strokes = plot.strokes.filter((s) => (s.floor ?? 0) !== fl); setPlot({ ...plot, strokes, openings: remapOpenings(strokes) }); } }} className="rounded-lg bg-surface-elevated px-3 py-2 text-xs">{tr("Clear drawing")}</button>}
         <div className="flex-1" />
-        <button onClick={onClose} className="rounded-lg bg-surface-elevated p-2.5" aria-label="Close plot"><X className="h-4 w-4" /></button>
+        <button onClick={onClose} className="rounded-lg bg-surface-elevated p-2.5" aria-label={tr("Close plot")}><X className="h-4 w-4" /></button>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div ref={wrap} className="relative min-h-[300px] flex-1 touch-none overflow-hidden">
           <canvas ref={canvas} style={{ width: dims.w, height: dims.h }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
             onDoubleClick={dbl} onContextMenu={(e) => e.preventDefault()}
-            aria-label="Live plot canvas" className={tool === "pan" ? "cursor-move" : tool === "move" ? "cursor-default" : "cursor-crosshair"} />
+            aria-label={tr("Live plot canvas")} className={tool === "pan" ? "cursor-move" : tool === "move" ? "cursor-default" : "cursor-crosshair"} />
           {box && (
             <div className="pointer-events-none absolute border border-primary bg-primary/10"
               style={{ left: Math.min(box[0], box[2]), top: Math.min(box[1], box[3]), width: Math.abs(box[2] - box[0]), height: Math.abs(box[3] - box[1]) }} />
@@ -1102,7 +1103,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
             <div className="absolute flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-surface/95 p-1 shadow-lg"
               style={{ left: clampN(quick[0], 90, dims.w - 90), top: clampN(quick[1] - 64, 4, dims.h - 40) }}
               onPointerDown={(e) => e.stopPropagation()}>
-              <button onClick={() => selItems.forEach((u) => update(u, { on: !allOn }))} className={`rounded-md p-1.5 ${allOn ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`} aria-label="On / off"><Power className="h-3.5 w-3.5" /></button>
+              <button onClick={() => selItems.forEach((u) => update(u, { on: !allOn }))} className={`rounded-md p-1.5 ${allOn ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`} aria-label={tr("On / off")}><Power className="h-3.5 w-3.5" /></button>
               <button onClick={() => nudge(-0.1)} className="rounded-md bg-surface-elevated px-2 py-1 text-xs font-bold">−10</button>
               <button onClick={() => nudge(-0.01)} className="rounded-md bg-surface-elevated px-2 py-1 text-xs font-bold">−1</button>
               <span className="w-10 text-center font-mono text-xs">{Math.round(first.intensity * 100)}%</span>
@@ -1116,27 +1117,27 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
             {floors.map((f, i) => (
               <button key={i} onClick={() => setActive(i)} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${i === fl ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{f.name}</button>
             ))}
-            <button onClick={addFloor} className="rounded-md bg-surface-elevated p-1.5" aria-label="Add floor"><Plus className="h-3.5 w-3.5" /></button>
+            <button onClick={addFloor} className="rounded-md bg-surface-elevated p-1.5" aria-label={tr("Add floor")}><Plus className="h-3.5 w-3.5" /></button>
           </div>
           {/* view */}
           <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-3 rounded-lg bg-surface/90 p-2 text-[10px] text-muted-foreground">
-            <label className="flex items-center gap-2">Turn <input type="range" min={-180} max={180} value={yaw} onChange={(e) => setYaw(+e.target.value)} className="w-24" /><NumberField aria-label="Plot turn degrees" value={yaw} min={-180} max={180} onChange={(v) => { if (v !== undefined) setYaw(v); }} className="w-12 rounded border border-input bg-surface-elevated px-1" /></label>
-            {view3d && <label className="flex items-center gap-2">Tilt <input type="range" min={15} max={89} value={pitch} onChange={(e) => setPitch(+e.target.value)} className="w-20" /><NumberField aria-label="Plot tilt degrees" value={pitch} min={15} max={89} onChange={(v) => { if (v !== undefined) setPitch(v); }} className="w-12 rounded border border-input bg-surface-elevated px-1" /></label>}
+            <label className="flex items-center gap-2">{tr("Turn")}<input type="range" min={-180} max={180} value={yaw} onChange={(e) => setYaw(+e.target.value)} className="w-24" /><NumberField aria-label={tr("Plot turn degrees")} value={yaw} min={-180} max={180} onChange={(v) => { if (v !== undefined) setYaw(v); }} className="w-12 rounded border border-input bg-surface-elevated px-1" /></label>
+            {view3d && <label className="flex items-center gap-2">{tr("Tilt")}<input type="range" min={15} max={89} value={pitch} onChange={(e) => setPitch(+e.target.value)} className="w-20" /><NumberField aria-label={tr("Plot tilt degrees")} value={pitch} min={15} max={89} onChange={(v) => { if (v !== undefined) setPitch(v); }} className="w-12 rounded border border-input bg-surface-elevated px-1" /></label>}
             <div className="flex items-center gap-1">
-              <button onClick={() => zoomAt(zoom / 1.25, dims.w / 2, dims.h / 2)} className="rounded-md bg-surface-elevated p-1.5" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
+              <button onClick={() => zoomAt(zoom / 1.25, dims.w / 2, dims.h / 2)} className="rounded-md bg-surface-elevated p-1.5" aria-label={tr("Zoom out")}><Minus className="h-3.5 w-3.5" /></button>
               <span className="w-10 text-center font-mono">{Math.round(zoom * 100)}%</span>
-              <button onClick={() => zoomAt(zoom * 1.25, dims.w / 2, dims.h / 2)} className="rounded-md bg-surface-elevated p-1.5" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
-              <button onClick={() => { setZoom(1); setPan([0, 0]); setYaw(view3d ? -30 : 0); }} className="rounded-md bg-surface-elevated p-1.5" aria-label="Reset view"><Maximize className="h-3.5 w-3.5" /></button>
+              <button onClick={() => zoomAt(zoom * 1.25, dims.w / 2, dims.h / 2)} className="rounded-md bg-surface-elevated p-1.5" aria-label={tr("Zoom in")}><Plus className="h-3.5 w-3.5" /></button>
+              <button onClick={() => { setZoom(1); setPan([0, 0]); setYaw(view3d ? -30 : 0); }} className="rounded-md bg-surface-elevated p-1.5" aria-label={tr("Reset view")}><Maximize className="h-3.5 w-3.5" /></button>
             </div>
-            <button onClick={() => setBeamsOn((b) => !b)} title="Only hides the light pools on this plot — the real lights keep running"
-              className={`rounded-md px-2 py-1.5 font-semibold ${beamsOn ? "bg-surface-elevated" : "bg-amber-glow text-primary-foreground"}`}>{beamsOn ? "Light preview on" : "Light preview off"}</button>
-            <span className="hidden xl:inline">2 fingers: move · pinch · twist · 3 fingers: tilt</span>
+            <button onClick={() => setBeamsOn((b) => !b)} title={tr("Only hides the light pools on this plot — the real lights keep running")}
+              className={`rounded-md px-2 py-1.5 font-semibold ${beamsOn ? "bg-surface-elevated" : "bg-amber-glow text-primary-foreground"}`}>{beamsOn ? tr("Light preview on") : tr("Light preview off")}</button>
+            <span className="hidden xl:inline">{tr("2 fingers: move · pinch · twist · 3 fingers: tilt")}</span>
           </div>
-          <div className="absolute right-3 top-3 rounded-md bg-surface/80 px-2 py-1 font-mono text-[10px] text-muted-foreground">∞ × ∞ m</div>
+          <div className="absolute right-3 top-3 rounded-md bg-surface/80 px-2 py-1 font-mono text-[10px] text-muted-foreground">{tr("∞ × ∞ m")}</div>
         </div>
 
         <aside className="max-h-[45vh] lg:max-h-none w-full shrink-0 space-y-4 overflow-auto border-t border-border bg-surface p-4 lg:w-80 lg:border-l lg:border-t-0">
-          {(selItems.length + objectIds.length + cameraIds.length > 0) && <div className="flex items-center justify-between gap-2 border-b border-border pb-2 text-xs"><span role="status" aria-label="Plot selection">{selItems.length} lights · {objectIds.length} objects · {cameraIds.length} cameras</span><Button variant="ghost" size="icon" aria-label="Clear plot selection" title="Clear selection" onClick={clearSelection}><X /></Button></div>}
+          {(selItems.length + objectIds.length + cameraIds.length > 0) && <div className="flex items-center justify-between gap-2 border-b border-border pb-2 text-xs"><span role="status" aria-label={tr("Plot selection")}>{selItems.length}{tr("lights ·")}{objectIds.length}{tr("objects ·")}{cameraIds.length}{tr("cameras")}</span><Button variant="ghost" size="icon" aria-label={tr("Clear plot selection")} title={tr("Clear selection")} onClick={clearSelection}><X /></Button></div>}
           {(plot.cameras?.length ?? 0) > 0 && (() => {
             const cams = plot.cameras ?? [];
             const cam = cams.find((c) => c.id === cameraId) ?? cams[0];
@@ -1157,32 +1158,32 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               <div className="space-y-2 border-t border-border pt-3">
                 <div className="flex items-center gap-2">
                   <Video className="h-4 w-4 shrink-0 text-primary" />
-                  <select aria-label="Select camera" value={cam.id} onChange={(e) => { const c = cams.find((c) => c.id === e.target.value); if (c) selectCamera(c); }} className="min-w-0 flex-1 rounded border border-input bg-surface-elevated p-2 text-xs">
+                  <select aria-label={tr("Select camera")} value={cam.id} onChange={(e) => { const c = cams.find((c) => c.id === e.target.value); if (c) selectCamera(c); }} className="min-w-0 flex-1 rounded border border-input bg-surface-elevated p-2 text-xs">
                     {cams.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
-                  <Button size="icon" variant="ghost" aria-label="Remove camera" title="Remove camera" onClick={() => removeCamera(cam.id)}><Trash2 /></Button>
+                  <Button size="icon" variant="ghost" aria-label={tr("Remove camera")} title={tr("Remove camera")} onClick={() => removeCamera(cam.id)}><Trash2 /></Button>
                 </div>
-                <Button size="sm" className="w-full" variant={camViewOpen ? "default" : "secondary"} onClick={() => setCamViewOpen(!camViewOpen)}><Video />{camViewOpen ? "Hide camera view" : "Camera view"}</Button>
+                <Button size="sm" className="w-full" variant={camViewOpen ? "default" : "secondary"} onClick={() => setCamViewOpen(!camViewOpen)}><Video />{camViewOpen ? tr("Hide camera view") : tr("Camera view")}</Button>
                 {camViewOpen && <CameraView cam={cam} size={plot.size} strokes={plot.strokes} openings={plot.openings ?? []} objects={plot.objects ?? []} floorZ={floors[cam.floor]?.z ?? 0} lights={camLights} />}
-                <input aria-label="Camera name" value={cam.name} onChange={(e) => editCam({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+                <input aria-label={tr("Camera name")} value={cam.name} onChange={(e) => editCam({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
                 {pick("Lens", cam.lens, LENSES, (n) => `${n} mm`, (lens) => editCam({ lens }))}
-                <Slider label="Focal length" value={cam.lens} min={8} max={300} step={1} unit=" mm" onChange={(lens) => editCam({ lens })} />
+                <Slider label={tr("Focal length")} value={cam.lens} min={8} max={300} step={1} unit=" mm" onChange={(lens) => editCam({ lens })} />
                 {pick("Iris", cam.fstop, FSTOPS, (n) => `f/${n}`, (fstop) => editCam({ fstop }))}
                 {pick("ISO", cam.iso, ISOS, (n) => `ISO ${n}`, (iso) => editCam({ iso }))}
                 {pick("Fps", cam.fps ?? 24, FPS_OPTIONS, (n) => `${n} fps`, (fps) => editCam({ fps }))}
                 {pick("Shutter angle", cam.shutterAngle ?? 180, SHUTTER_ANGLES, (n) => `${n}°`, (shutterAngle) => editCam({ shutterAngle }))}
-                <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Sensor</span>
+                <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">{tr("Sensor")}</span>
                   <select value={cam.sensor} onChange={(e) => editCam({ sensor: e.target.value as PlotCamera["sensor"] })} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
                     {SENSORS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
                   </select>
                 </label>
-                <p className="text-[10px] text-muted-foreground">Horizontal view {horizontalFov(cam).toFixed(1)}°</p>
-                <Slider label="Camera X" value={cam.x} unbounded min={cam.x - 50} max={cam.x + 50} step={0.1} unit=" m" onChange={(x) => editCam({ x })} />
-                <Slider label="Camera Y" value={cam.y} unbounded min={cam.y - 50} max={cam.y + 50} step={0.1} unit=" m" onChange={(y) => editCam({ y })} />
-                <Slider label="Camera height" value={cam.h} min={0.1} max={50} step={0.1} unit=" m" onChange={(h) => editCam({ h })} />
-                <Slider label="Camera pan" value={cam.rot} min={-180} max={180} unit="°" onChange={(rot) => editCam({ rot })} />
-                <Slider label="Camera tilt down" value={cam.tilt} min={-60} max={90} unit="°" onChange={(tilt) => editCam({ tilt })} />
-                {floors.length > 1 && <label className="flex items-center justify-between text-xs">Camera floor<select aria-label="Camera floor" value={cam.floor} onChange={(e) => { editCam({ floor: +e.target.value }); setActive(+e.target.value); }} className="rounded border border-input bg-surface-elevated p-2">{floors.map((f, i) => <option key={i} value={i}>{f.name}</option>)}</select></label>}
+                <p className="text-[10px] text-muted-foreground">{tr("Horizontal view")}{horizontalFov(cam).toFixed(1)}°</p>
+                <Slider label={tr("Camera X")} value={cam.x} unbounded min={cam.x - 50} max={cam.x + 50} step={0.1} unit=" m" onChange={(x) => editCam({ x })} />
+                <Slider label={tr("Camera Y")} value={cam.y} unbounded min={cam.y - 50} max={cam.y + 50} step={0.1} unit=" m" onChange={(y) => editCam({ y })} />
+                <Slider label={tr("Camera height")} value={cam.h} min={0.1} max={50} step={0.1} unit=" m" onChange={(h) => editCam({ h })} />
+                <Slider label={tr("Camera pan")} value={cam.rot} min={-180} max={180} unit="°" onChange={(rot) => editCam({ rot })} />
+                <Slider label={tr("Camera tilt down")} value={cam.tilt} min={-60} max={90} unit="°" onChange={(tilt) => editCam({ tilt })} />
+                {floors.length > 1 && <label className="flex items-center justify-between text-xs">{tr("Camera floor")}<select aria-label={tr("Camera floor")} value={cam.floor} onChange={(e) => { editCam({ floor: +e.target.value }); setActive(+e.target.value); }} className="rounded border border-input bg-surface-elevated p-2">{floors.map((f, i) => <option key={i} value={i}>{f.name}</option>)}</select></label>}
               </div>
             );
           })()}
@@ -1196,14 +1197,14 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
             return (
               <div className="space-y-2 border-t border-border pt-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="flex items-center gap-1.5 text-sm font-semibold"><Gauge className="h-4 w-4 text-amber-glow" />Light meter</h3>
-                  <Button variant="ghost" size="icon" aria-label="Remove light meter" title="Remove light meter" onClick={() => removeMeter(met.id)}><Trash2 className="h-4 w-4" /></Button>
+                  <h3 className="flex items-center gap-1.5 text-sm font-semibold"><Gauge className="h-4 w-4 text-amber-glow" />{tr("Light meter")}</h3>
+                  <Button variant="ghost" size="icon" aria-label={tr("Remove light meter")} title={tr("Remove light meter")} onClick={() => removeMeter(met.id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
-                <p className="font-mono text-sm">{Math.round(lux)} lx <span className="text-muted-foreground">· {fc.toFixed(1)} fc</span></p>
-                <Slider label="Meter height" value={met.z} min={0.1} max={3} step={0.05} unit=" m" onChange={(z) => setPlot({ ...plot, meters: (plot.meters ?? []).map((m) => m.id === met.id ? { ...m, z } : m) })} />
+                <p className="font-mono text-sm">{Math.round(lux)}{tr("lx")}<span className="text-muted-foreground">· {fc.toFixed(1)}{tr("fc")}</span></p>
+                <Slider label={tr("Meter height")} value={met.z} min={0.1} max={3} step={0.05} unit=" m" onChange={(z) => setPlot({ ...plot, meters: (plot.meters ?? []).map((m) => m.id === met.id ? { ...m, z } : m) })} />
                 {cams.length > 0 && (
                   <div className="space-y-1 rounded-md border border-border p-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Exposure per camera</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Exposure per camera")}</p>
                     {cams.map((cam) => {
                       const stop = roundToThirdStop(tStopFor(lux, cam.iso, shutterSeconds(cam.fps, cam.shutterAngle)));
                       const diff = stopsDifference(stop.value, cam.fstop);
@@ -1211,7 +1212,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                       return (
                         <div key={cam.id} className="flex items-center justify-between gap-2 text-[11px]">
                           <span className="truncate text-muted-foreground">{cam.name}</span>
-                          <span className="font-mono">needs {stop.label}<span className={`ml-1 ${diffColour}`}>({diff >= 0 ? "+" : ""}{diff.toFixed(1)} stop @ f/{cam.fstop})</span></span>
+                          <span className="font-mono">{tr("needs")}{stop.label}<span className={`ml-1 ${diffColour}`}>({diff >= 0 ? tr("+") : tr("")}{diff.toFixed(1)}{tr("stop @ f/")}{cam.fstop})</span></span>
                         </div>
                       );
                     })}
@@ -1222,25 +1223,25 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           })()}
           {(plot.objects ?? []).some((o) => o.kind === "person" && o.floor === fl) && (meterLights[fl]?.length ?? 0) > 0 && (
             <div className="space-y-1 border-t border-border pt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Person meters (auto)</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Person meters (auto)")}</p>
               {(plot.objects ?? []).filter((o) => o.kind === "person" && o.floor === fl).map((o) => {
                 const { lux, fc } = meterReading({ x: o.x, y: o.y, z: o.h - 0.15, floor: o.floor });
-                return <div key={o.id} className="flex items-center justify-between text-[11px]"><span>{o.name}</span><span className="font-mono">{Math.round(lux)} lx · {fc.toFixed(1)} fc</span></div>;
+                return <div key={o.id} className="flex items-center justify-between text-[11px]"><span>{o.name}</span><span className="font-mono">{Math.round(lux)}{tr("lx ·")}{fc.toFixed(1)}{tr("fc")}</span></div>;
               })}
             </div>
           )}
-          {tool === "fixture" && <label className="block space-y-2 text-xs">Add fixture<select aria-label="Fixture to place" value={placementUid} onChange={(e) => setPlacementUid(e.target.value)} className="w-full rounded border border-input bg-surface-elevated p-2"><option value="">{unplaced.length ? "Select fixture" : "No unplaced lights — patch first"}</option>{unplaced.map((f) => <option key={f.uid} value={f.uid}>{f.name}</option>)}</select></label>}
+          {tool === "fixture" && <label className="block space-y-2 text-xs">{tr("Add fixture")}<select aria-label={tr("Fixture to place")} value={placementUid} onChange={(e) => setPlacementUid(e.target.value)} className="w-full rounded border border-input bg-surface-elevated p-2"><option value="">{unplaced.length ? tr("Select fixture") : tr("No unplaced lights — patch first")}</option>{unplaced.map((f) => <option key={f.uid} value={f.uid}>{f.name}</option>)}</select></label>}
           {tool === "object" && <div className="grid grid-cols-2 gap-2">{SET_OBJECTS.map((o) => <Button key={o.kind} variant={objectKind === o.kind ? "default":"secondary"} onClick={() => setObjectKind(o.kind)}>{o.label}</Button>)}</div>}
-          {(tool === "draw" || tool === "rect") && <Slider label="New wall height" value={wallHeight} min={.2} max={12} step={.1} unit=" m" onChange={setWallHeight} />}
+          {(tool === "draw" || tool === "rect") && <Slider label={tr("New wall height")} value={wallHeight} min={.2} max={12} step={.1} unit=" m" onChange={setWallHeight} />}
           {wallIndex !== null && plot.strokes[wallIndex] && (() => {
             const st = plot.strokes[wallIndex]; if (!st) return null;
             const edit = (next: Plot["strokes"][number]) => setPlot({...plot,strokes:plot.strokes.map((s,i) => i === wallIndex ? next:s)});
             const origin = st.pts[0] ?? [0,0];
-            return <div className="space-y-2"><h3 className="text-sm font-semibold">Wall {wallIndex+1}</h3><fieldset className="space-y-2 disabled:opacity-50">
-              <Slider label="Wall height" value={st.height ?? WALL_H} min={.2} max={12} step={.1} unit=" m" onChange={(height) => edit({...st,height})} />
-              <Slider label="Wall X" value={origin[0] ?? 0} unbounded min={(origin[0] ?? 0) - 50} max={(origin[0] ?? 0) + 50} step={.1} unit=" m" onChange={(x) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a+x-(origin[0] ?? 0),b])})} />
-              <Slider label="Wall Y" value={origin[1] ?? 0} unbounded min={(origin[1] ?? 0) - 50} max={(origin[1] ?? 0) + 50} step={.1} unit=" m" onChange={(y) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a,b+y-(origin[1] ?? 0)])})} />
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Wall lengths</p>
+            return <div className="space-y-2"><h3 className="text-sm font-semibold">{tr("Wall")}{wallIndex+1}</h3><fieldset className="space-y-2 disabled:opacity-50">
+              <Slider label={tr("Wall height")} value={st.height ?? WALL_H} min={.2} max={12} step={.1} unit=" m" onChange={(height) => edit({...st,height})} />
+              <Slider label={tr("Wall X")} value={origin[0] ?? 0} unbounded min={(origin[0] ?? 0) - 50} max={(origin[0] ?? 0) + 50} step={.1} unit=" m" onChange={(x) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a+x-(origin[0] ?? 0),b])})} />
+              <Slider label={tr("Wall Y")} value={origin[1] ?? 0} unbounded min={(origin[1] ?? 0) - 50} max={(origin[1] ?? 0) + 50} step={.1} unit=" m" onChange={(y) => edit({...st,pts:st.pts.map(([a,b]):[number,number] => [a,b+y-(origin[1] ?? 0)])})} />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Wall lengths")}</p>
               {st.pts.slice(1).map((b,i) => {
                 const a = st.pts[i]!; const len = Math.hypot(b[0]-a[0], b[1]-a[1]);
                 const closed = st.pts.length > 2 && Math.hypot(st.pts[0]![0]-st.pts[st.pts.length-1]![0], st.pts[0]![1]-st.pts[st.pts.length-1]![1]) < 1e-3;
@@ -1252,35 +1253,35 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                   if (closed) pts[last] = [pts[0]![0], pts[0]![1]];
                   edit({...st,pts});
                 };
-                return <label key={i} className="flex items-center justify-between gap-2 text-xs"><span>Side {i+1}</span><span className="flex items-center gap-1"><NumberField aria-label={`Wall side ${i+1} length`} min={.05} value={+len.toFixed(2)} onChange={(v) => v && setLen(v)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>;
+                return <label key={i} className="flex items-center justify-between gap-2 text-xs"><span>{tr("Side")}{i+1}</span><span className="flex items-center gap-1"><NumberField aria-label={`Wall side ${i+1} length`} min={.05} value={+len.toFixed(2)} onChange={(v) => v && setLen(v)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />{tr("m")}</span></label>;
               })}
-            </fieldset><Button variant="ghost" size="sm" onClick={() => removeWall(wallIndex)}><Trash2 />Delete wall</Button></div>;
+            </fieldset><Button variant="ghost" size="sm" onClick={() => removeWall(wallIndex)}><Trash2 />{tr("Delete wall")}</Button></div>;
           })()}
           {objectId && (() => {
             const o = plot.objects?.find((o) => o.id === objectId); if (!o) return null;
             const edit = (patch: Partial<SetObject>) => setPlot({...plot,objects:(plot.objects ?? []).map((x) => x.id === o.id ? {...x,...patch}:x)});
-            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset className="space-y-2 disabled:opacity-50"><input aria-label="Object name" value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} unbounded={key === "x" || key === "y"} min={key === "x" || key === "y" ? o[key] - 50 : key === "rot" ? -180:0} max={key === "x" || key === "y" ? o[key] + 50 : max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />Remove object</Button></div>;
+            return <div className="space-y-2"><h3 className="text-sm font-semibold">{o.name}</h3><fieldset className="space-y-2 disabled:opacity-50"><input aria-label={tr("Object name")} value={o.name} onChange={(e) => edit({name:e.target.value})} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />{([['Object X','x',SW],['Object Y','y',SH],['Object width','w',20],['Object depth','d',20],['Object height','h',20],['Object rotation','rot',180]] as const).map(([label,key,max]) => <Slider key={key} label={label} value={o[key]} unbounded={key === "x" || key === "y"} min={key === "x" || key === "y" ? o[key] - 50 : key === "rot" ? -180:0} max={key === "x" || key === "y" ? o[key] + 50 : max} step={.1} unit={key === "rot" ? "°":" m"} onChange={(v) => edit({[key]:v})} />)}</fieldset><Button variant="ghost" size="sm" onClick={() => removeObject(o.id)}><Trash2 />{tr("Remove object")}</Button></div>;
           })()}
           {first && firstItem ? (
             <div className="space-y-3">
               <SettingsTransfer source={copiedSource} canCopy={!!first} onCopy={onCopy} onPaste={() => { record(); onPaste(); }} />
               <div className="flex items-center justify-between">
                 <p className="font-semibold">{selItems.length > 1 ? `${selItems.length} lights` : first.name}</p>
-                <button onClick={() => selItems.forEach((u) => update(u, { on: !allOn }))} className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-bold ${allOn ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}><Power className="h-3.5 w-3.5" />{allOn ? "ON" : "OFF"}</button>
+                <button onClick={() => selItems.forEach((u) => update(u, { on: !allOn }))} className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-bold ${allOn ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}><Power className="h-3.5 w-3.5" />{allOn ? tr("ON") : tr("OFF")}</button>
               </div>
-              <Slider label="Intensity" value={first.intensity * 100} min={0} max={100} unit="%" onChange={(v) => selItems.forEach((u) => update(u, { intensity: v / 100, on: true }))} />
-              <fieldset className="space-y-3 disabled:opacity-50"><Slider label="Direction (pan)" value={firstItem.rot} min={-180} max={180} unit="°" onChange={(v) => setItems({ rot: v })} />
-              <Slider label="Tilt down" value={firstItem.tilt ?? DEFAULT_TILT} min={0} max={90} unit="°" onChange={(v) => setItems({ tilt: v })} />
-              <Slider label="Height" value={firstItem.h} min={0.3} max={50} step={0.1} unit=" m" onChange={(v) => setItems({ h: v })} />
+              <Slider label={tr("Intensity")} value={first.intensity * 100} min={0} max={100} unit="%" onChange={(v) => selItems.forEach((u) => update(u, { intensity: v / 100, on: true }))} />
+              <fieldset className="space-y-3 disabled:opacity-50"><Slider label={tr("Direction (pan)")} value={firstItem.rot} min={-180} max={180} unit="°" onChange={(v) => setItems({ rot: v })} />
+              <Slider label={tr("Tilt down")} value={firstItem.tilt ?? DEFAULT_TILT} min={0} max={90} unit="°" onChange={(v) => setItems({ tilt: v })} />
+              <Slider label={tr("Height")} value={firstItem.h} min={0.3} max={50} step={0.1} unit=" m" onChange={(v) => setItems({ h: v })} />
               {selItems.length > 1 && <div className="space-y-2 rounded-md border border-border p-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Align & space</p>
-                <label className="flex items-center justify-between gap-2 text-xs"><span>Gap between lights</span><span className="flex items-center gap-1"><NumberField aria-label="Gap between lights" min={0} value={spaceGap} onChange={(v) => setSpaceGap(v ?? 0)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />m</span></label>
-                <div className="flex gap-1">{[0, 0.1, 0.5, 1].map((g) => <Button key={g} size="sm" variant={spaceGap === g ? "default" : "secondary"} className="flex-1" onClick={() => setSpaceGap(g)}>{g === 0 ? "Touch" : `${g} m`}</Button>)}</div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Align & space")}</p>
+                <label className="flex items-center justify-between gap-2 text-xs"><span>{tr("Gap between lights")}</span><span className="flex items-center gap-1"><NumberField aria-label={tr("Gap between lights")} min={0} value={spaceGap} onChange={(v) => setSpaceGap(v ?? 0)} className="w-20 rounded border border-input bg-surface-elevated p-1 text-right font-mono" />{tr("m")}</span></label>
+                <div className="flex gap-1">{[0, 0.1, 0.5, 1].map((g) => <Button key={g} size="sm" variant={spaceGap === g ? "default" : "secondary"} className="flex-1" onClick={() => setSpaceGap(g)}>{g === 0 ? tr("Touch") : `${g} m`}</Button>)}</div>
                 <div className="grid grid-cols-2 gap-1">
-                  <Button size="sm" variant="secondary" onClick={() => arrange("x", spaceGap)}>Row (left→right)</Button>
-                  <Button size="sm" variant="secondary" onClick={() => arrange("y", spaceGap)}>Column (top→bottom)</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setItems({ y: firstItem.y })}>Align Y only</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setItems({ x: firstItem.x })}>Align X only</Button>
+                  <Button size="sm" variant="secondary" onClick={() => arrange("x", spaceGap)}>{tr("Row (left→right)")}</Button>
+                  <Button size="sm" variant="secondary" onClick={() => arrange("y", spaceGap)}>{tr("Column (top→bottom)")}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setItems({ y: firstItem.y })}>{tr("Align Y only")}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setItems({ x: firstItem.x })}>{tr("Align X only")}</Button>
                 </div>
               </div>}
               {(() => {
@@ -1288,18 +1289,16 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                 const spec = OPTIC_BY_ID[o.optic];
                 return (
                   <>
-                    <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Optic</span>
+                    <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">{tr("Optic")}</span>
                       <select value={o.optic} onChange={(e) => { const id = e.target.value as Optic; setItems({ optic: id, beam: OPTIC_BY_ID[id].angle }); }} className="min-w-0 flex-1 rounded-md bg-surface-elevated px-2 py-1 text-xs">
                         {OPTICS.map((x) => <option key={x.id} value={x.id}>{x.label} · {x.angle}°</option>)}
                       </select>
                     </label>
-                    <Slider label="Beam angle" value={o.beam} min={spec.min} max={spec.max} unit="°" onChange={(v) => setItems({ optic: o.optic, beam: v })} />
-                    <p className="text-[10px] text-muted-foreground">≈ {o.watts} W · light fades with distance; walls block it</p>
-                    <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">Lux @3m</span>
+                    <Slider label={tr("Beam angle")} value={o.beam} min={spec.min} max={spec.max} unit="°" onChange={(v) => setItems({ optic: o.optic, beam: v })} />
+                    <p className="text-[10px] text-muted-foreground">≈ {o.watts}{tr("W · light fades with distance; walls block it")}</p>
+                    <label className="flex items-center justify-between gap-2 text-[11px]"><span className="text-muted-foreground">{tr("Lux @3m")}</span>
                       <span className="flex items-center gap-1 font-mono">
-                        <NumberField aria-label="Lux at 3 metres override" min={0} allowEmpty value={(first as any).lux3m} placeholder={String(Math.round(lux3mOf(getDef(first.defId).model, o.watts, o.beam)))} onChange={(v) => update(first.uid, { lux3m: v } as any)} className="w-20 rounded border border-input bg-surface-elevated px-1 text-right" />
-                        lx
-                      </span>
+                        <NumberField aria-label={tr("Lux at 3 metres override")} min={0} allowEmpty value={(first as any).lux3m} placeholder={String(Math.round(lux3mOf(getDef(first.defId).model, o.watts, o.beam)))} onChange={(v) => update(first.uid, { lux3m: v } as any)} className="w-20 rounded border border-input bg-surface-elevated px-1 text-right" />{tr("lx")}</span>
                     </label>
                   </>
                 );
@@ -1307,15 +1306,15 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
               </fieldset><div className="grid grid-cols-8 gap-1">{["#ffffff","#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => selItems.forEach((u) => update(u, c === "#ffffff" ? { crossfade: 0 } : { hue: hexToHs(c).h, saturation: hexToHs(c).s, crossfade: 1, cctOnly: false }))} className="h-6 rounded border border-input" style={{ background: c }} />)}</div>
               <ColourControls value={first} update={(p) => selItems.forEach((u) => update(u, p))} gm={first.gm} onGm={(gm) => selItems.forEach((u) => update(u, { gm }))} />
               {floors.length > 1 && (
-                <label className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Floor</span>
+                <label className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">{tr("Floor")}</span>
                   <select value={floorOf(firstItem)} onChange={(e) => { const n = +e.target.value; setItems({ floor: n }); setActive(n); }} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
                     {floors.map((f, i) => <option key={i} value={i}>{f.name}</option>)}
                   </select>
                 </label>
               )}
               <div className="flex gap-2">
-                <button onClick={onOpenControls} className="flex-1 rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground">Colour & effects…</button>
-                 <Button variant="secondary" size="icon" onClick={() => { if (!ensureUnlocked() || !confirm("Remove selected lights from the plot?")) return; const items = { ...plot.items }; selItems.forEach((u) => delete items[u]); setPlot({ ...plot, items }); }} aria-label="Remove from plot"><Trash2 className="h-4 w-4" /></Button>
+                <button onClick={onOpenControls} className="flex-1 rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground">{tr("Colour & effects…")}</button>
+                 <Button variant="secondary" size="icon" onClick={() => { if (!ensureUnlocked() || !confirm("Remove selected lights from the plot?")) return; const items = { ...plot.items }; selItems.forEach((u) => delete items[u]); setPlot({ ...plot, items }); }} aria-label={tr("Remove from plot")}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ) : (
@@ -1324,21 +1323,21 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
 
 
           <div className="space-y-2 border-t border-border pt-3">
-            <p className="text-xs font-semibold">Doors / windows</p>
+            <p className="text-xs font-semibold">{tr("Doors / windows")}</p>
             {(plot.openings ?? []).filter((o) => (plot.strokes[o.stroke]?.floor ?? 0) === fl).map((o, i) => <div key={o.id} className="space-y-2">
               <div className="flex items-center gap-2"><Button variant={openingId === o.id ? "default" : "secondary"} size="sm" onClick={() => setOpeningId(o.id)}>{o.kind === "door" ? <DoorOpen /> : <PanelsTopLeft />}{o.kind} {i + 1}</Button><Button variant="ghost" size="icon" aria-label={`Remove ${o.kind} ${i + 1}`} onClick={() => { if (ensureUnlocked() && confirm(`Delete this ${o.kind}?`)) setPlot({ ...plot, openings: plot.openings?.filter((x) => x.id !== o.id) ?? [] }); }}><Trash2 /></Button></div>
               {openingId === o.id && <fieldset className="space-y-2 disabled:opacity-50">
-                <Slider label="Opening width" value={o.width} min={0.2} max={Math.hypot((plot.strokes[o.stroke]?.pts[o.segment + 1]?.[0] ?? 0) - (plot.strokes[o.stroke]?.pts[o.segment]?.[0] ?? 0), (plot.strokes[o.stroke]?.pts[o.segment + 1]?.[1] ?? 0) - (plot.strokes[o.stroke]?.pts[o.segment]?.[1] ?? 0))} step={0.1} unit=" m" onChange={(width) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, width } : x) ?? [] })} />
-                <Slider label="Opening position" value={o.center * 100} min={0} max={100} unit="%" onChange={(v) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, center: v / 100 } : x) ?? [] })} />
-                <Slider label="Sill height" value={o.bottom} min={0} max={(plot.strokes[o.stroke]?.height ?? WALL_H) - 0.1} step={0.1} unit=" m" onChange={(bottom) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, bottom, height: Math.min(x.height, (plot.strokes[o.stroke]?.height ?? WALL_H) - bottom) } : x) ?? [] })} />
-                <Slider label="Opening height" value={o.height} min={0.1} max={(plot.strokes[o.stroke]?.height ?? WALL_H) - o.bottom} step={0.1} unit=" m" onChange={(height) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, height } : x) ?? [] })} />
+                <Slider label={tr("Opening width")} value={o.width} min={0.2} max={Math.hypot((plot.strokes[o.stroke]?.pts[o.segment + 1]?.[0] ?? 0) - (plot.strokes[o.stroke]?.pts[o.segment]?.[0] ?? 0), (plot.strokes[o.stroke]?.pts[o.segment + 1]?.[1] ?? 0) - (plot.strokes[o.stroke]?.pts[o.segment]?.[1] ?? 0))} step={0.1} unit=" m" onChange={(width) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, width } : x) ?? [] })} />
+                <Slider label={tr("Opening position")} value={o.center * 100} min={0} max={100} unit="%" onChange={(v) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, center: v / 100 } : x) ?? [] })} />
+                <Slider label={tr("Sill height")} value={o.bottom} min={0} max={(plot.strokes[o.stroke]?.height ?? WALL_H) - 0.1} step={0.1} unit=" m" onChange={(bottom) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, bottom, height: Math.min(x.height, (plot.strokes[o.stroke]?.height ?? WALL_H) - bottom) } : x) ?? [] })} />
+                <Slider label={tr("Opening height")} value={o.height} min={0.1} max={(plot.strokes[o.stroke]?.height ?? WALL_H) - o.bottom} step={0.1} unit=" m" onChange={(height) => setPlot({ ...plot, openings: plot.openings?.map((x) => x.id === o.id ? { ...x, height } : x) ?? [] })} />
               </fieldset>}
             </div>)}
           </div>
 
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">+ Fixture on {floors[fl]!.name}</p>
-            {unplaced.length === 0 && <p className="text-xs text-muted-foreground">{fixtures.length ? "All patched lights are on the plot." : "Patch lights first."}</p>}
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("+ Fixture on")}{floors[fl]!.name}</p>
+            {unplaced.length === 0 && <p className="text-xs text-muted-foreground">{fixtures.length ? tr("All patched lights are on the plot.") : tr("Patch lights first.")}</p>}
             <div className="flex flex-wrap gap-1.5">
               {unplaced.map((f) => (
                 <button key={f.uid} onClick={() => place(f.uid)} className="flex items-center gap-1 rounded-md bg-surface-elevated px-2.5 py-1.5 text-xs font-semibold hover:text-primary">
@@ -1346,23 +1345,23 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                 </button>
               ))}
             </div>
-            {unplaced.length > 1 && <button onClick={placeAll} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">Place all</button>}
+            {unplaced.length > 1 && <button onClick={placeAll} className="w-full rounded-md bg-surface-elevated py-2 text-xs font-semibold">{tr("Place all")}</button>}
           </div>
 
           <div className="space-y-2 rounded-lg border border-border p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Floor</p>
-            <input value={floors[fl]!.name} onChange={(e) => setFloor({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label="Floor name" />
-            {fl > 0 && <Slider label="Height above ground" value={floors[fl]!.z} min={0.5} max={60} step={0.1} unit=" m" onChange={(v) => setFloor({ z: v })} />}
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Floor")}</p>
+            <input value={floors[fl]!.name} onChange={(e) => setFloor({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" aria-label={tr("Floor name")} />
+            {fl > 0 && <Slider label={tr("Height above ground")} value={floors[fl]!.z} min={0.5} max={60} step={0.1} unit=" m" onChange={(v) => setFloor({ z: v })} />}
             <div className="flex gap-2">
-              <button onClick={addFloor} className="flex-1 rounded-md bg-surface-elevated py-1.5 text-xs font-semibold">+ Add floor</button>
-              {fl > 0 && <button onClick={deleteFloor} className="rounded-md bg-surface-elevated px-3 text-xs text-muted-foreground hover:text-destructive">Delete</button>}
+              <button onClick={addFloor} className="flex-1 rounded-md bg-surface-elevated py-1.5 text-xs font-semibold">{tr("+ Add floor")}</button>
+              {fl > 0 && <button onClick={deleteFloor} className="rounded-md bg-surface-elevated px-3 text-xs text-muted-foreground hover:text-destructive">{tr("Delete")}</button>}
             </div>
           </div>
 
-          {bgOf(fl) && <Slider label="Image visibility" value={(plot.bgOpacity ?? 0.8) * 100} min={5} max={100} unit="%" onChange={(v) => setPlot({ ...plot, bgOpacity: v / 100 })} />}
+          {bgOf(fl) && <Slider label={tr("Image visibility")} value={(plot.bgOpacity ?? 0.8) * 100} min={5} max={100} unit="%" onChange={(v) => setPlot({ ...plot, bgOpacity: v / 100 })} />}
           <div className="grid grid-cols-2 gap-2">
-            <label className="text-xs text-muted-foreground">Stage width <span className="ml-2 font-mono text-foreground">∞</span></label>
-            <label className="text-xs text-muted-foreground">Stage depth <span className="ml-2 font-mono text-foreground">∞</span></label>
+            <label className="text-xs text-muted-foreground">{tr("Stage width")}<span className="ml-2 font-mono text-foreground">∞</span></label>
+            <label className="text-xs text-muted-foreground">{tr("Stage depth")}<span className="ml-2 font-mono text-foreground">∞</span></label>
           </div>
         </aside>
       </div>

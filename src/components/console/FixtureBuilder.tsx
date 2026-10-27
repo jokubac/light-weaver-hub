@@ -7,6 +7,7 @@ import { buildMode } from "@/lib/gdtf";
 import { addCustomFixture } from "@/lib/custom-fixtures";
 import type { FixtureDef, FixtureMode } from "@/lib/dmx";
 
+import { t as tr } from "@/lib/i18n";
 interface ChannelEntry { attr: ChannelAttr; fine?: boolean }
 interface DraftMode { name: string; entries: ChannelEntry[] }
 
@@ -70,21 +71,21 @@ export function FixtureBuilder({ onClose, onCreated }: { onClose: () => void; on
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="flex max-h-[90vh] w-full max-w-lg flex-col gap-3 overflow-y-auto rounded-lg bg-surface p-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-sm font-semibold uppercase tracking-wider">Fixture builder</h3>
-          <button onClick={onClose} aria-label="Close" className="rounded p-1 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wider">{tr("Fixture builder")}</h3>
+          <button onClick={onClose} aria-label={tr("Close")} className="rounded p-1 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manufacturer</span>
-            <input value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} className={inputCls} placeholder="Acme" />
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Manufacturer")}</span>
+            <input value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} className={inputCls} placeholder={tr("Acme")} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Model</span>
-            <input value={model} onChange={(e) => setModel(e.target.value)} className={inputCls} placeholder="Par 100" />
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Model")}</span>
+            <input value={model} onChange={(e) => setModel(e.target.value)} className={inputCls} placeholder={tr("Par 100")} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Watts (optional)</span>
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Watts (optional)")}</span>
             <input type="number" min={0} value={watts} onChange={(e) => setWatts(e.target.value === "" ? "" : +e.target.value)} className={inputCls} placeholder="100" />
           </label>
         </div>
@@ -93,17 +94,17 @@ export function FixtureBuilder({ onClose, onCreated }: { onClose: () => void; on
           {modes.map((mode, i) => (
             <div key={i} className="space-y-2 rounded-lg bg-surface-elevated p-2.5">
               <div className="flex items-center gap-2">
-                <input value={mode.name} onChange={(e) => updateMode(i, { name: e.target.value })} className={`${inputCls} flex-1`} placeholder="Mode name" />
-                {modes.length > 1 && <button onClick={() => removeMode(i)} aria-label="Remove mode" className="rounded p-1.5 text-destructive"><Trash2 className="h-4 w-4" /></button>}
+                <input value={mode.name} onChange={(e) => updateMode(i, { name: e.target.value })} className={`${inputCls} flex-1`} placeholder={tr("Mode name")} />
+                {modes.length > 1 && <button onClick={() => removeMode(i)} aria-label={tr("Remove mode")} className="rounded p-1.5 text-destructive"><Trash2 className="h-4 w-4" /></button>}
               </div>
               <div className="space-y-1">
                 {mode.entries.map((e, c) => (
                   <div key={c} className="flex items-center gap-1.5 rounded bg-surface px-2 py-1 text-xs">
                     <span className="w-6 shrink-0 font-mono text-muted-foreground">{c + 1}</span>
                     <span className="flex-1 font-semibold">{attrLabel(e)}</span>
-                    <button onClick={() => moveChannel(i, c, -1)} disabled={c === 0} aria-label="Move up" className="rounded p-1 text-muted-foreground disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => moveChannel(i, c, 1)} disabled={c === mode.entries.length - 1} aria-label="Move down" className="rounded p-1 text-muted-foreground disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => removeChannel(i, c)} aria-label="Remove channel" className="rounded p-1 text-destructive"><X className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => moveChannel(i, c, -1)} disabled={c === 0} aria-label={tr("Move up")} className="rounded p-1 text-muted-foreground disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => moveChannel(i, c, 1)} disabled={c === mode.entries.length - 1} aria-label={tr("Move down")} className="rounded p-1 text-muted-foreground disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => removeChannel(i, c)} aria-label={tr("Remove channel")} className="rounded p-1 text-destructive"><X className="h-3.5 w-3.5" /></button>
                   </div>
                 ))}
               </div>
@@ -114,15 +115,13 @@ export function FixtureBuilder({ onClose, onCreated }: { onClose: () => void; on
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-muted-foreground">{mode.entries.length} ch</p>
+              <p className="text-[10px] text-muted-foreground">{mode.entries.length}{tr("ch")}</p>
             </div>
           ))}
-          <button onClick={addMode} className="flex w-full items-center justify-center gap-1 rounded-md bg-surface-elevated py-2 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add mode</button>
+          <button onClick={addMode} className="flex w-full items-center justify-center gap-1 rounded-md bg-surface-elevated py-2 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />{tr("Add mode")}</button>
         </div>
 
-        <button disabled={!canSave} onClick={save} className="rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40">
-          Save fixture
-        </button>
+        <button disabled={!canSave} onClick={save} className="rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40">{tr("Save fixture")}</button>
       </div>
     </div>
   );

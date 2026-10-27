@@ -1,5 +1,6 @@
 import { footprint, type PatchedFixture } from "@/lib/dmx";
 
+import { t as tr } from "@/lib/i18n";
 /** 512-channel universe map: shows each fixture's footprint, overlaps in red, planned patch as outline. */
 export function DmxMap({ fixtures, universe, planned = [], onPick, highlight }: { fixtures: PatchedFixture[]; universe: number; planned?: { address: number; channels: number }[]; onPick?: (ch: number) => void; highlight?: string }) {
   const inU = fixtures.filter((f) => f.universe === universe);
@@ -15,8 +16,8 @@ export function DmxMap({ fixtures, universe, planned = [], onPick, highlight }: 
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-        <span>Universe {universe} · {used}/512 used{onPick ? " · tap a channel to set the address" : ""}</span>
-        <span className={clashes ? "font-bold text-destructive" : "text-success"}>{clashes ? `${clashes} ch clash` : "No clashes"}</span>
+        <span>{tr("Universe")}{universe} · {used}{tr("/512 used")}{onPick ? tr(" · tap a channel to set the address") : tr("")}</span>
+        <span className={clashes ? "font-bold text-destructive" : "text-success"}>{clashes ? `${clashes} ch clash` : tr("No clashes")}</span>
       </div>
       <div className="rounded-md border border-border [container-type:inline-size]">
       <div className="grid h-[min(42vh,360px)] w-full grid-cols-[repeat(32,minmax(0,1fr))] grid-rows-[repeat(16,minmax(0,1fr))] gap-px bg-border p-px">

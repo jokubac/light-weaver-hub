@@ -14,6 +14,7 @@ import type { DiscoveredNode } from "@/hooks/use-transmitter-discovery";
 import { TransmitterRoutes } from "./TransmitterRoutes";
 
 
+import { t as tr } from "@/lib/i18n";
 interface Node { name: string; ip: string; universes?: number | undefined }
 
 /**
@@ -60,43 +61,40 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto">
-        <DialogHeader><DialogTitle>Connect to transmitter</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tr("Connect to transmitter")}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2">
             <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, transport: "direct", node: conn.transport === "bluetooth" ? null : conn.node }); }} disabled={!native} className={`${opt(!!direct)} h-auto whitespace-normal disabled:opacity-40`}>
-              <Smartphone className="h-4 w-4" />Direct
-            </Button>
+              <Smartphone className="h-4 w-4" />{tr("Direct")}</Button>
             <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, transport: "bridge", node: conn.transport === "bluetooth" ? null : conn.node }); }} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
-              <Router className="h-4 w-4" />Via bridge
-            </Button>
+              <Router className="h-4 w-4" />{tr("Via bridge")}</Button>
           </div>
-          <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? "Connecting…" : "Connect MoonLite via Bluetooth"}</Button>
-          {conn.transport === "bluetooth" && <label className="block text-xs">MoonLite universe<NumberField integer min={1} max={MAX_UNIVERSE} value={conn.bluetoothUniverse ?? 1} onChange={(v) => { if (v !== undefined) setConn({ ...conn, bluetoothUniverse: v }); }} aria-label="MoonLite universe" className="ml-2 w-16 rounded border border-input bg-surface-elevated px-2 py-1" /></label>}
+          <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? tr("Connecting…") : tr("Connect MoonLite via Bluetooth")}</Button>
+          {conn.transport === "bluetooth" && <label className="block text-xs">{tr("MoonLite universe")}<NumberField integer min={1} max={MAX_UNIVERSE} value={conn.bluetoothUniverse ?? 1} onChange={(v) => { if (v !== undefined) setConn({ ...conn, bluetoothUniverse: v }); }} aria-label={tr("MoonLite universe")} className="ml-2 w-16 rounded border border-input bg-surface-elevated px-2 py-1" /></label>}
           <div hidden={conn.transport === "bluetooth"} className="space-y-4">
-          {!native && <p className="text-xs text-muted-foreground">Direct sending needs the installed NOX app — the browser can't send Art-Net/sACN UDP by itself.</p>}
+          {!native && <p className="text-xs text-muted-foreground">{tr("Direct sending needs the installed NOX app — the browser can't send Art-Net/sACN UDP by itself.")}</p>}
           {!direct && (
             <div className="space-y-1.5 rounded-lg border border-border p-3 text-xs">
-              <div className="font-semibold">1. Run the bridge on a laptop on the transmitter's network</div>
-              <a href="/crmx-bridge.mjs" download className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-semibold text-primary-foreground"><Download className="h-3.5 w-3.5" />Download bridge</a>
-              <p className="text-muted-foreground">Install Node.js (nodejs.org), then in Terminal: <code className="rounded bg-surface-elevated px-1 font-mono">node crmx-bridge.mjs</code>. Open this console on the same laptop and keep the bridge address as <span className="font-mono">localhost:8765</span>.</p>
-              <div className="font-semibold">2. Scan and pick your CRMX transmitter</div>
+              <div className="font-semibold">{tr("1. Run the bridge on a laptop on the transmitter's network")}</div>
+              <a href="/crmx-bridge.mjs" download className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-semibold text-primary-foreground"><Download className="h-3.5 w-3.5" />{tr("Download bridge")}</a>
+              <p className="text-muted-foreground">{tr("Install Node.js (nodejs.org), then in Terminal:")}<code className="rounded bg-surface-elevated px-1 font-mono">{tr("node crmx-bridge.mjs")}</code>{tr(". Open this console on the same laptop and keep the bridge address as")}<span className="font-mono">{tr("localhost:8765")}</span>.</p>
+              <div className="font-semibold">{tr("2. Scan and pick your CRMX transmitter")}</div>
             </div>
           )}
           <div className="flex gap-2">
-            <button onClick={() => setConn({ ...conn, network: "wifi" })} className={opt(conn.network === "wifi")}><Wifi className="h-4 w-4" />Wireless</button>
-            <button onClick={() => setConn({ ...conn, network: "ethernet" })} className={opt(conn.network === "ethernet")}><Cable className="h-4 w-4" />Ethernet</button>
+            <button onClick={() => setConn({ ...conn, network: "wifi" })} className={opt(conn.network === "wifi")}><Wifi className="h-4 w-4" />{tr("Wireless")}</button>
+            <button onClick={() => setConn({ ...conn, network: "ethernet" })} className={opt(conn.network === "ethernet")}><Cable className="h-4 w-4" />{tr("Ethernet")}</button>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setConn({ ...conn, protocol: "artnet" })} className={opt(conn.protocol === "artnet")}>Art-Net</button>
-            <button onClick={() => setConn({ ...conn, protocol: "sacn" })} className={opt(conn.protocol === "sacn")}>sACN</button>
+            <button onClick={() => setConn({ ...conn, protocol: "artnet" })} className={opt(conn.protocol === "artnet")}>{tr("Art-Net")}</button>
+            <button onClick={() => setConn({ ...conn, protocol: "sacn" })} className={opt(conn.protocol === "sacn")}>{tr("sACN")}</button>
           </div>
           {!direct && (
-            <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Bridge address
-              <input value={conn.bridge} onChange={(e) => setConn({ ...conn, bridge: e.target.value.trim() })} className="w-full font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Bridge address")}<input value={conn.bridge} onChange={(e) => setConn({ ...conn, bridge: e.target.value.trim() })} className="w-full font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
             </label>
           )}
           <button onClick={scan} disabled={scanning} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-glow py-3 text-sm font-bold text-primary-foreground disabled:opacity-50">
-            {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radar className="h-4 w-4" />}{scanning ? "Scanning…" : `Scan for ${conn.protocol === "artnet" ? "Art-Net" : "sACN"} devices`}
+            {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radar className="h-4 w-4" />}{scanning ? tr("Scanning…") : `Scan for ${conn.protocol === "artnet" ? "Art-Net" : "sACN"} devices`}
           </button>
           {discovery.error && <p className="text-xs text-muted-foreground">{discovery.error}</p>}
           {nodes.map((n) => (
@@ -105,14 +103,14 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
               {conn.node?.ip === n.ip && <Check className="h-4 w-4 text-success" />}
             </button>
           ))}
-          {!scanning && nodes.length === 0 && <p className="text-xs text-muted-foreground">No transmitters found yet. Check the tablet is on the transmitter's Wi-Fi, then scan again.</p>}
-          <details className="text-xs"><summary className="cursor-pointer text-muted-foreground">Enter IP manually</summary>
+          {!scanning && nodes.length === 0 && <p className="text-xs text-muted-foreground">{tr("No transmitters found yet. Check the tablet is on the transmitter's Wi-Fi, then scan again.")}</p>}
+          <details className="text-xs"><summary className="cursor-pointer text-muted-foreground">{tr("Enter IP manually")}</summary>
           <form className="mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (manual.trim()) { pick({ name: "Manual transmitter", ip: manual.trim() }); setManual(""); } }}>
-            <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Transmitter IP, e.g. 2.0.0.10" className="min-w-0 flex-1 font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-            <button type="submit" className="flex items-center gap-1 rounded-md bg-surface-elevated px-3 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />Add</button>
+            <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder={tr("Transmitter IP, e.g. 2.0.0.10")} className="min-w-0 flex-1 font-mono rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
+            <button type="submit" className="flex items-center gap-1 rounded-md bg-surface-elevated px-3 text-xs font-semibold"><Plus className="h-3.5 w-3.5" />{tr("Add")}</button>
           </form></details>
           </div>
-          <details className="text-xs"><summary className="cursor-pointer font-semibold uppercase tracking-wider text-muted-foreground">Advanced</summary>
+          <details className="text-xs"><summary className="cursor-pointer font-semibold uppercase tracking-wider text-muted-foreground">{tr("Advanced")}</summary>
             <div className="mt-2"><TransmitterRoutes conn={conn} setConn={setConn} universes={universes} /></div>
           </details>
           {msg && <p role="alert" className="text-xs text-destructive">{msg}</p>}
@@ -120,8 +118,8 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
           {conn.node && (
             <div className="flex items-center justify-between rounded-lg border border-success/50 px-3 py-2 text-sm">
               <span><Check className="mr-1 inline h-4 w-4 text-success" />{conn.node.name} <span className="font-mono text-xs text-muted-foreground">{conn.node.ip}</span></span>
-              <span className={`text-[11px] ${status === "ok" ? "text-success" : status === "slow" ? "text-warning" : "text-destructive"}`}>{status === "error" ? (conn.transport === "bluetooth" ? "Bluetooth send failed" : direct ? "send failed" : "bridge not answering") : status === "slow" ? "slow response" : status === "ok" ? (conn.transport === "bluetooth" ? "sending via Bluetooth" : direct ? "sending directly" : "sending to bridge") : "disconnected"}</span>
-              <Button variant="ghost" onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">Disconnect</Button>
+              <span className={`text-[11px] ${status === "ok" ? "text-success" : status === "slow" ? "text-warning" : "text-destructive"}`}>{status === "error" ? (conn.transport === "bluetooth" ? tr("Bluetooth send failed") : direct ? tr("send failed") : tr("bridge not answering")) : status === "slow" ? tr("slow response") : status === "ok" ? (conn.transport === "bluetooth" ? tr("sending via Bluetooth") : direct ? tr("sending directly") : tr("sending to bridge")) : tr("disconnected")}</span>
+              <Button variant="ghost" onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">{tr("Disconnect")}</Button>
             </div>
           )}
 

@@ -3,6 +3,7 @@ import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clampSpeed, MAX_SPEED, MIN_SPEED, positionToSpeed, speedToPosition } from "@/lib/speed";
 
+import { t as tr } from "@/lib/i18n";
 export function SpeedControl({ label, value, unit, onChange }: { label: string; value: number; unit: string; onChange: (value: number) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
   const [fine, setFine] = useState(true);
@@ -35,6 +36,6 @@ export function SpeedControl({ label, value, unit, onChange }: { label: string; 
       </div>
       <Button variant="ghost" size="sm" className="ml-auto font-mono" onClick={() => onChange(1)}>1 {unit}</Button>
     </div>
-    <div className="flex flex-wrap justify-between gap-1 font-mono text-[10px] text-muted-foreground"><span>{MIN_SPEED}–{MAX_SPEED} {unit} · {+(value * 100).toFixed(2)}%</span>{unit === "Hz" && <span>{+(1 / value).toFixed(3)} s / cycle</span>}</div>
+    <div className="flex flex-wrap justify-between gap-1 font-mono text-[10px] text-muted-foreground"><span>{MIN_SPEED}–{MAX_SPEED} {unit} · {+(value * 100).toFixed(2)}%</span>{unit === "Hz" && <span>{+(1 / value).toFixed(3)}{tr("s / cycle")}</span>}</div>
   </div>;
 }

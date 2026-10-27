@@ -12,6 +12,7 @@ import { beats, splitClip, setLightKeyAt, type Ease, clipValue, newId, stretchTr
 import { editHistory } from "@/lib/edit-history";
 import { ColorWheel } from "@/components/console/AdvancedControls";
 
+import { t as trUI } from "@/lib/i18n";
 const ROW = 52, HEAD = 150;
 const KIND_STYLE: Record<ClipKind, string> = {
   fx: "bg-primary/70 border-primary", pixel: "bg-accent/80 border-accent-foreground/40", rec: "bg-success/70 border-success", level: "bg-warning/70 border-warning", adjust: "bg-muted/80 border-foreground/40",
@@ -58,14 +59,14 @@ function AddMenu({ label, sections, onPick, search }: { label: string; sections:
   return <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQ(""); }}>
     <PopoverTrigger asChild><Button variant="secondary" size="sm"><Plus />{label}<ChevronDown className="opacity-60" /></Button></PopoverTrigger>
     <PopoverContent align="start" className="w-80 p-0">
-      {search && <div className="border-b border-border p-2"><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="w-full rounded-md border border-input bg-surface-elevated px-2 py-1.5 text-sm outline-none focus:border-primary" /></div>}
+      {search && <div className="border-b border-border p-2"><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={trUI("Search…")} className="w-full rounded-md border border-input bg-surface-elevated px-2 py-1.5 text-sm outline-none focus:border-primary" /></div>}
       <div className="max-h-96 space-y-3 overflow-auto p-2">
         {sections.map((sec) => { const items = sec.items.filter((i) => !s || i.label.toLowerCase().includes(s)); return <div key={sec.title}>
           <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{sec.title}</div>
           {items.length ? <div className="grid grid-cols-2 gap-1">{items.map((i) => <button key={i.value} onClick={() => { onPick(i.value); setOpen(false); setQ(""); }}
             className="flex min-w-0 items-center gap-1 rounded-md border border-border bg-surface-elevated px-2 py-1.5 text-left text-xs font-medium hover:border-primary hover:bg-primary/15">
             <span className="min-w-0 flex-1 truncate">{i.label}</span>{i.hint && <span className="shrink-0 text-[10px] text-muted-foreground">{i.hint}</span>}
-          </button>)}</div> : <p className="px-1 text-xs text-muted-foreground">{s ? "No match" : sec.empty ?? "Nothing here"}</p>}
+          </button>)}</div> : <p className="px-1 text-xs text-muted-foreground">{s ? trUI("No match") : sec.empty ?? "Nothing here"}</p>}
         </div>; })}
       </div>
     </PopoverContent>
@@ -270,47 +271,47 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background" onPointerMove={move} onPointerUp={up}>
       <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
         <Button size="icon" variant={playing ? "default" : "secondary"} aria-label={playing ? "Pause" : "Play"} onClick={playing ? onPause : onPlay}>{playing ? <Pause /> : <Play />}</Button>
-        <Button size="icon" variant={waiting ? "default" : "secondary"} aria-label="GO — continue from marker" title="GO — continue from marker" disabled={!waiting} onClick={onGo} className={waiting ? "animate-pulse" : ""}><SkipForward /></Button>
-        <Button size="icon" variant="secondary" aria-label="Stop" title="Stop — return lights to how they were" onClick={onStop}><Square /></Button>
-        <Button size="icon" variant={repeat ? "default" : "secondary"} aria-label="Repeat" aria-pressed={repeat} title="Repeat" onClick={onRepeat}><Repeat /></Button>
+        <Button size="icon" variant={waiting ? "default" : "secondary"} aria-label={trUI("GO — continue from marker")} title={trUI("GO — continue from marker")} disabled={!waiting} onClick={onGo} className={waiting ? "animate-pulse" : ""}><SkipForward /></Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Stop")} title={trUI("Stop — return lights to how they were")} onClick={onStop}><Square /></Button>
+        <Button size="icon" variant={repeat ? "default" : "secondary"} aria-label={trUI("Repeat")} aria-pressed={repeat} title={trUI("Repeat")} onClick={onRepeat}><Repeat /></Button>
         <span className="w-20 font-mono text-sm tabular-nums">{fmt(time)}</span>
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-        <AddMenu label="Fixture" onPick={addClip} search sections={[{ title: "Lights", items: fixtures.map((f, i) => ({ value: `light:${f.uid}`, label: f.name, hint: `${i + 1}` })), empty: "Patch lights first" }]} />
-        <AddMenu label="Group" onPick={addClip} sections={[
+        <AddMenu label={trUI("Fixture")} onPick={addClip} search sections={[{ title: "Lights", items: fixtures.map((f, i) => ({ value: `light:${f.uid}`, label: f.name, hint: `${i + 1}` })), empty: "Patch lights first" }]} />
+        <AddMenu label={trUI("Group")} onPick={addClip} sections={[
           ...(selected.length > 1 ? [{ title: "Selection", items: [{ value: "on", label: "Selected lights", hint: `${selected.length}` }] }] : []),
           { title: "Groups", items: groups.map((g) => ({ value: `group:${g}`, label: g, hint: `${membersOf(fixtures, g).length}` })), empty: "No groups yet — make one in Groups" },
         ]} />
-        <AddMenu label="Effect" onPick={addClip} sections={[
+        <AddMenu label={trUI("Effect")} onPick={addClip} sections={[
           { title: "Light", items: SIMPLE_FX.map((x) => ({ value: `simple:${x.id}`, label: x.label })) },
           { title: "Pixel", items: SIMPLE_PX.flatMap((k) => { const l = PIXEL_LIBRARY.find((x) => x.key === k); return l ? [{ value: `spx:${k}`, label: l.label }] : []; }) },
           { title: "Brightness", items: [{ value: "fadein", label: "Fade in" }, { value: "fadeout", label: "Fade out" }, { value: "level", label: "Level / CCT ramp" }] },
         ]} />
-        <AddMenu label="REC" onPick={addClip} search sections={[
+        <AddMenu label={trUI("REC")} onPick={addClip} search sections={[
           { title: "REC sequences", items: recordings.map((r) => ({ value: `rec:${r.id}`, label: r.name })), empty: "Nothing recorded yet" },
           { title: "Saved light effects", items: [{ value: "fxsel", label: "From selected light" }, ...lib.lib.fx.map((x) => ({ value: `fx:${x.id}`, label: x.name }))] },
           { title: "Saved pixel effects", items: [...layers.map((l) => ({ value: `pxlayer:${l.id}`, label: l.name, hint: "PIXEL" })), ...lib.lib.pixel.map((x) => ({ value: `pixel:${x.id}`, label: x.name }))], empty: "None saved yet" },
         ]} />
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-        <Button variant={magnet ? "default" : "secondary"} size="sm" aria-pressed={magnet} title="Magnet — clips snap to the ends of other clips and the playhead" onClick={() => setMagnet((m) => !m)}><Magnet />Magnet</Button>
-        <Button variant="secondary" size="sm" title="Playback stops here until GO" onClick={addMarker}><Flag />Marker</Button>
+        <Button variant={magnet ? "default" : "secondary"} size="sm" aria-pressed={magnet} title={trUI("Magnet — clips snap to the ends of other clips and the playhead")} onClick={() => setMagnet((m) => !m)}><Magnet />{trUI("Magnet")}</Button>
+        <Button variant="secondary" size="sm" title={trUI("Playback stops here until GO")} onClick={addMarker}><Flag />{trUI("Marker")}</Button>
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-        <Button size="icon" variant="secondary" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!hist.current.canUndo} onClick={undo}><Undo2 /></Button>
-        <Button size="icon" variant="secondary" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!hist.current.canRedo} onClick={redo}><Redo2 /></Button>
-        <Button variant="secondary" size="sm" title="Split clips at the playhead (S)" onClick={split}><Scissors />Split</Button>
-        <Button variant="secondary" size="sm" title="Loop start at playhead (I)" onClick={() => setLoop({ a: time })}>In</Button>
-        <Button variant="secondary" size="sm" title="Loop end at playhead (O)" onClick={() => setLoop({ b: time, on: true })}>Out</Button>
-        <Button variant={timeline.loop?.on ? "default" : "secondary"} size="sm" aria-pressed={!!timeline.loop?.on} title="Loop the In–Out region (L)" onClick={() => setLoop({ on: !timeline.loop?.on })}><Repeat2 />Loop</Button>
-        <label className="flex items-center gap-1 text-xs">BPM<NumberField aria-label="Tempo" allowEmpty placeholder="—" min={20} max={300} value={timeline.bpm} onChange={(v) => setTimeline({ ...timeline, bpm: v })} className={field} /></label>
-        <Button variant="secondary" size="sm" title="Tap 3+ times to set the tempo" onClick={tap}>Tap</Button>
-        <Button variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />Layer</Button>
-        <Button variant="secondary" size="sm" title="Adjustment layer — changes brightness and colour of every layer below it" onClick={addAdjust}><SlidersHorizontal />Adjust</Button>
-        <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? "Replace audio" : "Add audio"}</Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Undo")} title={trUI("Undo (Ctrl+Z)")} disabled={!hist.current.canUndo} onClick={undo}><Undo2 /></Button>
+        <Button size="icon" variant="secondary" aria-label={trUI("Redo")} title={trUI("Redo (Ctrl+Shift+Z)")} disabled={!hist.current.canRedo} onClick={redo}><Redo2 /></Button>
+        <Button variant="secondary" size="sm" title={trUI("Split clips at the playhead (S)")} onClick={split}><Scissors />{trUI("Split")}</Button>
+        <Button variant="secondary" size="sm" title={trUI("Loop start at playhead (I)")} onClick={() => setLoop({ a: time })}>{trUI("In")}</Button>
+        <Button variant="secondary" size="sm" title={trUI("Loop end at playhead (O)")} onClick={() => setLoop({ b: time, on: true })}>{trUI("Out")}</Button>
+        <Button variant={timeline.loop?.on ? "default" : "secondary"} size="sm" aria-pressed={!!timeline.loop?.on} title={trUI("Loop the In–Out region (L)")} onClick={() => setLoop({ on: !timeline.loop?.on })}><Repeat2 />{trUI("Loop")}</Button>
+        <label className="flex items-center gap-1 text-xs">{trUI("BPM")}<NumberField aria-label={trUI("Tempo")} allowEmpty placeholder="—" min={20} max={300} value={timeline.bpm} onChange={(v) => setTimeline({ ...timeline, bpm: v })} className={field} /></label>
+        <Button variant="secondary" size="sm" title={trUI("Tap 3+ times to set the tempo")} onClick={tap}>{trUI("Tap")}</Button>
+        <Button variant="secondary" size="sm" onClick={() => setTimeline({ ...timeline, tracks: [{ id: newId(), name: `Layer ${timeline.tracks.length + 1}` }, ...timeline.tracks] })}><Plus />{trUI("Layer")}</Button>
+        <Button variant="secondary" size="sm" title={trUI("Adjustment layer — changes brightness and colour of every layer below it")} onClick={addAdjust}><SlidersHorizontal />{trUI("Adjust")}</Button>
+        <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? trUI("Replace audio") : trUI("Add audio")}</Button>
         <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
-        <Button variant={viz ? "default" : "secondary"} size="sm" title="Show or hide the light visualiser" onClick={() => setViz((v) => !v)}><MonitorPlay />Visualiser</Button>
-        <Button variant="secondary" size="sm" title="Select every clip" onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />Select all</Button>
-        <Button variant="secondary" size="sm" aria-label="Delete selected" title="Delete the selected clips" disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 />Delete</Button>
-        <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">Zoom<input type="range" min={5} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} className="w-28" /></label>
+        <Button variant={viz ? "default" : "secondary"} size="sm" title={trUI("Show or hide the light visualiser")} onClick={() => setViz((v) => !v)}><MonitorPlay />{trUI("Visualiser")}</Button>
+        <Button variant="secondary" size="sm" title={trUI("Select every clip")} onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />{trUI("Select all")}</Button>
+        <Button variant="secondary" size="sm" aria-label={trUI("Delete selected")} title={trUI("Delete the selected clips")} disabled={!sel.length} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); setKeySel(null); }}><Trash2 />{trUI("Delete")}</Button>
+        <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">{trUI("Zoom")}<input type="range" min={5} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} className="w-28" /></label>
       </div>
 
       <div className="flex min-h-0 flex-1">
@@ -333,14 +334,14 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
           {timeline.tracks.map((t, i) => (
             <div key={t.id} className={`flex border-b border-border ${t.muted ? "opacity-40" : ""}`} style={{ height: ROW }}>
               <div className="sticky left-0 z-40 flex shrink-0 items-center gap-1 border-r border-border bg-surface px-2" style={{ width: HEAD, backgroundImage: track === t.id ? "linear-gradient(color-mix(in oklab, var(--primary) 15%, transparent), color-mix(in oklab, var(--primary) 15%, transparent))" : undefined }} onClick={() => setTrack(t.id)}>
-                <input aria-label="Layer name" value={t.name} onChange={(e) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)) })} className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-foreground outline-none" />
+                <input aria-label={trUI("Layer name")} value={t.name} onChange={(e) => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)) })} className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-foreground outline-none" />
                 {t.color && <span aria-hidden="true" className="h-3 w-1.5 shrink-0 rounded-sm" style={{ background: t.color }} />}
-                <button aria-label="Solo layer" title="Solo — play only this layer" onClick={(e) => { e.stopPropagation(); setTrackP(t.id, { solo: !t.solo }); }} className={`text-[10px] font-bold ${t.solo ? "text-warning" : "text-muted-foreground"}`}>S</button>
+                <button aria-label={trUI("Solo layer")} title={trUI("Solo — play only this layer")} onClick={(e) => { e.stopPropagation(); setTrackP(t.id, { solo: !t.solo }); }} className={`text-[10px] font-bold ${t.solo ? "text-warning" : "text-muted-foreground"}`}>{trUI("S")}</button>
                 <button aria-label={t.locked ? "Unlock layer" : "Lock layer"} title={t.locked ? "Unlock layer" : "Lock layer — no accidental edits"} onClick={(e) => { e.stopPropagation(); setTrackP(t.id, { locked: !t.locked }); }} className={t.locked ? "text-primary" : "text-muted-foreground"}>{t.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}</button>
-                <button aria-label="Layer settings" title="Layer settings and every step" onClick={(e) => { e.stopPropagation(); setLayerOpen(layerOpen === t.id ? null : t.id); }} className={layerOpen === t.id ? "text-primary" : "text-muted-foreground hover:text-foreground"}><SlidersHorizontal className="h-3.5 w-3.5" /></button>
-                <button aria-label="Stretch layer" title="Stretch layer — change the speed of everything on it" onClick={() => { const v = prompt(`Speed of ${t.name} in % (50 = twice as slow, 200 = twice as fast)`, "100"); const pct = Number(v); if (v && pct > 0) setTimeline(stretchTrack(timeline, t.id, 100 / pct)); }} className="text-muted-foreground hover:text-foreground"><MoveHorizontal className="h-3.5 w-3.5" /></button>
+                <button aria-label={trUI("Layer settings")} title={trUI("Layer settings and every step")} onClick={(e) => { e.stopPropagation(); setLayerOpen(layerOpen === t.id ? null : t.id); }} className={layerOpen === t.id ? "text-primary" : "text-muted-foreground hover:text-foreground"}><SlidersHorizontal className="h-3.5 w-3.5" /></button>
+                <button aria-label={trUI("Stretch layer")} title={trUI("Stretch layer — change the speed of everything on it")} onClick={() => { const v = prompt(`Speed of ${t.name} in % (50 = twice as slow, 200 = twice as fast)`, "100"); const pct = Number(v); if (v && pct > 0) setTimeline(stretchTrack(timeline, t.id, 100 / pct)); }} className="text-muted-foreground hover:text-foreground"><MoveHorizontal className="h-3.5 w-3.5" /></button>
                 <button aria-label={t.muted ? "Show layer" : "Hide layer"} title={t.muted ? "Turn layer on" : "Turn layer off"} onClick={() => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, muted: !x.muted } : x)) })} className="text-muted-foreground">{t.muted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button>
-                {timeline.tracks.length > 1 && <button aria-label="Delete layer" onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) { setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); setSel([]); } }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
+                {timeline.tracks.length > 1 && <button aria-label={trUI("Delete layer")} onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) { setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); setSel([]); } }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
               </div>
               <div data-track={t.id} className={`relative flex-1 ${i % 2 ? "bg-muted/15" : ""} ${t.locked ? "[&>div]:cursor-not-allowed" : ""}`} style={t.opacity != null && t.opacity < 1 ? { opacity: 0.4 + 0.6 * t.opacity } : undefined} onPointerDown={(e) => laneDown(e, t.id)} onPointerMove={laneMove} onPointerUp={laneUp}>
                 {timeline.clips.filter((c) => c.track === t.id).map((c) => (
@@ -373,7 +374,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
             <div className="flex border-b border-border" style={{ height: ROW }}>
               <div className="sticky left-0 z-40 flex shrink-0 items-center gap-1 border-r border-border bg-surface px-2" style={{ width: HEAD }}>
                 <Music className="h-3.5 w-3.5 shrink-0 text-primary" /><span className="min-w-0 flex-1 truncate text-xs" title={timeline.audio.name}>{timeline.audio.name}</span>
-                <button aria-label="Remove audio" onClick={() => { if (confirm("Remove the audio track?")) onRemoveAudio(); }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
+                <button aria-label={trUI("Remove audio")} onClick={() => { if (confirm("Remove the audio track?")) onRemoveAudio(); }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
               </div>
               <div className="relative flex-1 cursor-pointer" onPointerDown={seekAt}>
                 <svg className="absolute inset-y-0 left-0 h-full text-primary" width={timeline.audio.duration * zoom} preserveAspectRatio="none" viewBox={`0 0 ${audioPeaks?.length ?? 1} 2`}>
@@ -390,92 +391,92 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
               onPointerMove={(e) => { const d = mdrag.current; if (d?.id !== m.id) return; const dx = e.clientX - d.x; if (Math.abs(dx) > 3) d.moved = true; if (!d.moved) return; setTimeline({ ...timeline, markers: (timeline.markers ?? []).map((x) => (x.id === m.id ? { ...x, t: Math.max(0, Math.round((d.t + dx / zoom) * 10) / 10) } : x)) }); }}
               onPointerUp={(e) => { const d = mdrag.current; mdrag.current = null; (e.target as HTMLElement).releasePointerCapture(e.pointerId); if (!d) return; if (!d.moved) onSeek(m.t); else setTimeline({ ...timeline, markers: [...(timeline.markers ?? [])].sort((a, b) => a.t - b.t) }); }}>
               <Flag className="h-3 w-3" />{m.name}
-              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).map((x) => (x.id === m.id ? { ...x, action: x.action === "pass" ? "pause" : "pass" } : x)) })} title={m.action === "pass" ? "Label only — playback keeps going. Click to make it wait for GO" : "Waits for GO. Click to make it a label only"} className="ml-0.5 rounded bg-primary-foreground/20 px-0.5">{m.action === "pass" ? "▶" : "⏸"}</button>
-              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).filter((x) => x.id !== m.id) })} aria-label={`Delete marker ${m.name}`} title="Delete marker" className="ml-0.5 text-primary-foreground/70 hover:text-primary-foreground"><X className="h-3 w-3" /></button>
+              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).map((x) => (x.id === m.id ? { ...x, action: x.action === "pass" ? "pause" : "pass" } : x)) })} title={m.action === "pass" ? "Label only — playback keeps going. Click to make it wait for GO" : "Waits for GO. Click to make it a label only"} className="ml-0.5 rounded bg-primary-foreground/20 px-0.5">{m.action === "pass" ? trUI("▶") : trUI("⏸")}</button>
+              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setTimeline({ ...timeline, markers: (timeline.markers ?? []).filter((x) => x.id !== m.id) })} aria-label={`Delete marker ${m.name}`} title={trUI("Delete marker")} className="ml-0.5 text-primary-foreground/70 hover:text-primary-foreground"><X className="h-3 w-3" /></button>
             </div>
           </div>)}
           {marq && <div className="pointer-events-none absolute z-30 border border-primary bg-primary/20" style={{ left: HEAD + marq.a * zoom, width: Math.max(2, (marq.b - marq.a) * zoom), top: 28 + marq.t0 * ROW, height: (marq.t1 - marq.t0 + 1) * ROW }} />}
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-destructive" style={{ left: HEAD + time * zoom }} />
-          <div aria-label="Playhead — drag along the time bar" title="Drag to move the playhead"
+          <div aria-label={trUI("Playhead — drag along the time bar")} title={trUI("Drag to move the playhead")}
             className="absolute z-[37] h-0 w-0 -translate-x-1/2 cursor-ew-resize touch-none border-x-[8px] border-t-[12px] border-x-transparent border-t-destructive drop-shadow-[0_0_4px_var(--destructive)]"
             style={{ left: HEAD + time * zoom, top: 16 }}
             onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); phDrag.current = { x: e.clientX, t: time }; }}
             onPointerMove={(e) => { const d = phDrag.current; if (!d) return; onSeek(snapT(Math.max(0, d.t + (e.clientX - d.x) / zoom), [])); }}
             onPointerUp={() => { phDrag.current = null; }} />
         </div>
-        {timeline.clips.length === 0 && <p className="sticky left-0 mx-auto max-w-2xl p-6 text-center text-sm text-muted-foreground">Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.</p>}
-        {timeline.clips.length > 0 && <p className="sticky left-0 mx-auto max-w-3xl px-6 py-2 text-center text-xs text-muted-foreground">Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.</p>}
+        {timeline.clips.length === 0 && <p className="sticky left-0 mx-auto max-w-2xl p-6 text-center text-sm text-muted-foreground">{trUI("Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.")}</p>}
+        {timeline.clips.length > 0 && <p className="sticky left-0 mx-auto max-w-3xl px-6 py-2 text-center text-xs text-muted-foreground">{trUI("Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.")}</p>}
       </div>
       </div>
 
-      {(sel.length > 0 || layerOpen) && <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3 text-xs [&>div]:flex-col [&>div]:items-stretch [&>div]:border-0 [&>div]:p-0" aria-label="Clip settings">
+      {(sel.length > 0 || layerOpen) && <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-surface p-3 text-xs [&>div]:flex-col [&>div]:items-stretch [&>div]:border-0 [&>div]:p-0" aria-label={trUI("Clip settings")}>
         {layerOpen && <LayerSettings key={layerOpen} timeline={timeline} trackId={layerOpen} onTrack={(p) => setTrackP(layerOpen, p)} onMove={(d) => moveTrack(layerOpen, d)} onClip={patch} onClose={() => setLayerOpen(null)} />}
       {sel.length > 1 && (
         <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs hw-bar" >
-          <span className="font-semibold">{sel.length} clips selected</span>
-          <label className="flex items-center gap-1">Fade in<NumberField aria-label="Fade in all" min={0} step={0.1} allowEmpty placeholder="—" value={shared((c) => c.fadeIn ?? 0)} onChange={(v) => set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, fadeIn: Math.max(0, v ?? 0) } : c)))} className={field} />s</label>
-          <label className="flex items-center gap-1">Fade out<NumberField aria-label="Fade out all" min={0} step={0.1} allowEmpty placeholder="—" value={shared((c) => c.fadeOut ?? 0)} onChange={(v) => set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, fadeOut: Math.max(0, v ?? 0) } : c)))} className={field} />s</label>
+          <span className="font-semibold">{sel.length}{trUI("clips selected")}</span>
+          <label className="flex items-center gap-1">{trUI("Fade in")}<NumberField aria-label={trUI("Fade in all")} min={0} step={0.1} allowEmpty placeholder="—" value={shared((c) => c.fadeIn ?? 0)} onChange={(v) => set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, fadeIn: Math.max(0, v ?? 0) } : c)))} className={field} />{trUI("s")}</label>
+          <label className="flex items-center gap-1">{trUI("Fade out")}<NumberField aria-label={trUI("Fade out all")} min={0} step={0.1} allowEmpty placeholder="—" value={shared((c) => c.fadeOut ?? 0)} onChange={(v) => set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, fadeOut: Math.max(0, v ?? 0) } : c)))} className={field} />{trUI("s")}</label>
           {selClips.length > 0 && selClips.every((c) => c.kind === "level") && <>
-            <label className="flex items-center gap-1">From<NumberField aria-label="From intensity all" min={0} max={100} value={Math.round((selClips[0]!.from?.intensity ?? 0) * 100)} onChange={(v) => v !== undefined && set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, from: { ...c.from!, intensity: v / 100 } } : c)))} className={field} />%</label>
-            <label className="flex items-center gap-1">To<NumberField aria-label="To intensity all" min={0} max={100} value={Math.round((selClips[0]!.to?.intensity ?? 0) * 100)} onChange={(v) => v !== undefined && set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, to: { ...c.to!, intensity: v / 100 } } : c)))} className={field} />%</label>
+            <label className="flex items-center gap-1">{trUI("From")}<NumberField aria-label={trUI("From intensity all")} min={0} max={100} value={Math.round((selClips[0]!.from?.intensity ?? 0) * 100)} onChange={(v) => v !== undefined && set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, from: { ...c.from!, intensity: v / 100 } } : c)))} className={field} />%</label>
+            <label className="flex items-center gap-1">{trUI("To")}<NumberField aria-label={trUI("To intensity all")} min={0} max={100} value={Math.round((selClips[0]!.to?.intensity ?? 0) * 100)} onChange={(v) => v !== undefined && set(timeline.clips.map((c) => (sel.includes(c.id) ? { ...c, to: { ...c.to!, intensity: v / 100 } } : c)))} className={field} />%</label>
           </>}
-          {selected.length > 0 && <Button size="sm" variant="secondary" onClick={() => set(timeline.clips.map((c) => (sel.includes(c.id) && c.kind !== "rec" ? { ...c, uids: [...selected] } : c)))}>Use selected lights</Button>}
-          <Button size="sm" variant="secondary" onClick={() => { const dups = timeline.clips.filter((c) => sel.includes(c.id)).map((c) => ({ ...structuredClone(c), id: newId(), start: c.start + c.length })); let tl = timeline; for (const c of dups) tl = placeClip(tl, c); setTimeline(tl); setSel(dups.map((c) => c.id)); }}><Copy />Duplicate</Button>
-          <Button size="sm" variant="ghost" onClick={() => setSel([])}>Clear</Button>
-          <div className="ml-auto"><Button size="icon" variant="ghost" aria-label="Delete selected clips" title="Delete selected clips" onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); }}><Trash2 /></Button></div>
+          {selected.length > 0 && <Button size="sm" variant="secondary" onClick={() => set(timeline.clips.map((c) => (sel.includes(c.id) && c.kind !== "rec" ? { ...c, uids: [...selected] } : c)))}>{trUI("Use selected lights")}</Button>}
+          <Button size="sm" variant="secondary" onClick={() => { const dups = timeline.clips.filter((c) => sel.includes(c.id)).map((c) => ({ ...structuredClone(c), id: newId(), start: c.start + c.length })); let tl = timeline; for (const c of dups) tl = placeClip(tl, c); setTimeline(tl); setSel(dups.map((c) => c.id)); }}><Copy />{trUI("Duplicate")}</Button>
+          <Button size="sm" variant="ghost" onClick={() => setSel([])}>{trUI("Clear")}</Button>
+          <div className="ml-auto"><Button size="icon" variant="ghost" aria-label={trUI("Delete selected clips")} title={trUI("Delete selected clips")} onClick={() => { set(timeline.clips.filter((c) => !sel.includes(c.id))); setSel([]); }}><Trash2 /></Button></div>
         </div>
       )}
 
       {clip && (
         <div className="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs hw-bar">
           <span className={`rounded px-1.5 py-0.5 font-bold ${KIND_STYLE[clip.kind]}`}>{KIND_LABEL[clip.kind]}</span>
-          <input aria-label="Clip name" value={clip.name} onChange={(e) => patch(clip.id, { name: e.target.value })} className="w-40 rounded border border-input bg-surface-elevated px-2 py-1 text-xs" />
-          <label className="flex items-center gap-1">Start<NumberField aria-label="Start" min={0} step={0.1} value={+clip.start.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { start: Math.max(0, v) })} className={field} />s</label>
-          <label className="flex items-center gap-1">Length<NumberField aria-label="Length" min={0.2} step={0.1} value={+clip.length.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { length: Math.max(0.2, v) })} className={field} />s</label>
-          <label className="flex items-center gap-1">Fade in<NumberField aria-label="Fade in" min={0} step={0.1} value={clip.fadeIn ?? 0} onChange={(v) => patch(clip.id, { fadeIn: Math.max(0, v ?? 0) })} className={field} />s</label>
-          <label className="flex items-center gap-1">Fade out<NumberField aria-label="Fade out" min={0} step={0.1} value={clip.fadeOut ?? 0} onChange={(v) => patch(clip.id, { fadeOut: Math.max(0, v ?? 0) })} className={field} />s</label>
+          <input aria-label={trUI("Clip name")} value={clip.name} onChange={(e) => patch(clip.id, { name: e.target.value })} className="w-40 rounded border border-input bg-surface-elevated px-2 py-1 text-xs" />
+          <label className="flex items-center gap-1">{trUI("Start")}<NumberField aria-label={trUI("Start")} min={0} step={0.1} value={+clip.start.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { start: Math.max(0, v) })} className={field} />{trUI("s")}</label>
+          <label className="flex items-center gap-1">{trUI("Length")}<NumberField aria-label={trUI("Length")} min={0.2} step={0.1} value={+clip.length.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { length: Math.max(0.2, v) })} className={field} />{trUI("s")}</label>
+          <label className="flex items-center gap-1">{trUI("Fade in")}<NumberField aria-label={trUI("Fade in")} min={0} step={0.1} value={clip.fadeIn ?? 0} onChange={(v) => patch(clip.id, { fadeIn: Math.max(0, v ?? 0) })} className={field} />{trUI("s")}</label>
+          <label className="flex items-center gap-1">{trUI("Fade out")}<NumberField aria-label={trUI("Fade out")} min={0} step={0.1} value={clip.fadeOut ?? 0} onChange={(v) => patch(clip.id, { fadeOut: Math.max(0, v ?? 0) })} className={field} />{trUI("s")}</label>
           {clip.kind === "level" && clip.from && clip.to && <>
-            <label className="flex items-center gap-1">From<NumberField aria-label="From intensity" min={0} max={100} value={Math.round(clip.from.intensity * 100)} onChange={(v) => v !== undefined && patch(clip.id, { from: { ...clip.from!, intensity: v / 100 } })} className={field} />%</label>
-            <label className="flex items-center gap-1">To<NumberField aria-label="To intensity" min={0} max={100} value={Math.round(clip.to.intensity * 100)} onChange={(v) => v !== undefined && patch(clip.id, { to: { ...clip.to!, intensity: v / 100 } })} className={field} />%</label>
-            <label className="flex items-center gap-1">CCT<NumberField aria-label="From CCT" allowEmpty placeholder="—" min={2000} max={10000} value={clip.from.cct != null ? c2k(clip.from.cct) : undefined} onChange={(v) => patch(clip.id, { from: { ...clip.from!, cct: v == null ? undefined : k2c(v) }, to: { ...clip.to!, cct: v == null ? undefined : clip.to!.cct ?? k2c(v) } })} className={field} />→
-              <NumberField aria-label="To CCT" allowEmpty placeholder="—" min={2000} max={10000} value={clip.to.cct != null ? c2k(clip.to.cct) : undefined} onChange={(v) => patch(clip.id, { to: { ...clip.to!, cct: v == null ? undefined : k2c(v) }, from: { ...clip.from!, cct: v == null ? undefined : clip.from!.cct ?? k2c(v) } })} className={field} />K</label>
+            <label className="flex items-center gap-1">{trUI("From")}<NumberField aria-label={trUI("From intensity")} min={0} max={100} value={Math.round(clip.from.intensity * 100)} onChange={(v) => v !== undefined && patch(clip.id, { from: { ...clip.from!, intensity: v / 100 } })} className={field} />%</label>
+            <label className="flex items-center gap-1">{trUI("To")}<NumberField aria-label={trUI("To intensity")} min={0} max={100} value={Math.round(clip.to.intensity * 100)} onChange={(v) => v !== undefined && patch(clip.id, { to: { ...clip.to!, intensity: v / 100 } })} className={field} />%</label>
+            <label className="flex items-center gap-1">{trUI("CCT")}<NumberField aria-label={trUI("From CCT")} allowEmpty placeholder="—" min={2000} max={10000} value={clip.from.cct != null ? c2k(clip.from.cct) : undefined} onChange={(v) => patch(clip.id, { from: { ...clip.from!, cct: v == null ? undefined : k2c(v) }, to: { ...clip.to!, cct: v == null ? undefined : clip.to!.cct ?? k2c(v) } })} className={field} />→
+              <NumberField aria-label={trUI("To CCT")} allowEmpty placeholder="—" min={2000} max={10000} value={clip.to.cct != null ? c2k(clip.to.cct) : undefined} onChange={(v) => patch(clip.id, { to: { ...clip.to!, cct: v == null ? undefined : k2c(v) }, from: { ...clip.from!, cct: v == null ? undefined : clip.from!.cct ?? k2c(v) } })} className={field} />{trUI("K")}</label>
           </>}
           {clip.kind === "fx" && clip.fx && <>
-            <label className="flex items-center gap-1">Effect<select aria-label="Change effect" value={SIMPLE_FX.find((x) => x.fx.kind === clip.fx!.kind && x.fx.rate === clip.fx!.rate)?.id ?? ""} onChange={(e) => { const s = SIMPLE_FX.find((x) => x.id === e.target.value); if (s) patch(clip.id, { fx: { ...defaultFx(), ...s.fx }, name: s.label }); }} className="rounded border border-input bg-surface-elevated px-2 py-1 text-xs">
+            <label className="flex items-center gap-1">{trUI("Effect")}<select aria-label={trUI("Change effect")} value={SIMPLE_FX.find((x) => x.fx.kind === clip.fx!.kind && x.fx.rate === clip.fx!.rate)?.id ?? ""} onChange={(e) => { const s = SIMPLE_FX.find((x) => x.id === e.target.value); if (s) patch(clip.id, { fx: { ...defaultFx(), ...s.fx }, name: s.label }); }} className="rounded border border-input bg-surface-elevated px-2 py-1 text-xs">
               <option value="" disabled>{clip.fx.kind}</option>{SIMPLE_FX.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</select></label>
-            <label className="flex items-center gap-1">Speed<NumberField aria-label="Effect speed" min={0.05} max={30} step={0.05} value={+clip.fx.rate.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { fx: { ...clip.fx!, rate: Math.max(0.05, v) } })} className={field} />Hz</label>
+            <label className="flex items-center gap-1">{trUI("Speed")}<NumberField aria-label={trUI("Effect speed")} min={0.05} max={30} step={0.05} value={+clip.fx.rate.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { fx: { ...clip.fx!, rate: Math.max(0.05, v) } })} className={field} />{trUI("Hz")}</label>
           </>}
           {clip.kind === "pixel" && clip.layer && <>
-            <label className="flex items-center gap-1">Effect<select aria-label="Change pixel effect" value={PIXEL_LIBRARY.find((x) => x.kind === clip.layer!.kind && (x.gen ?? undefined) === (clip.layer!.gen ?? undefined))?.key ?? ""} onChange={(e) => { const look = PIXEL_LIBRARY.find((x) => x.key === e.target.value); if (look) { const { gen: _g, ...rest } = clip.layer!; patch(clip.id, { layer: { ...rest, kind: look.kind, ...(look.gen ? { gen: look.gen } : {}) } as PixelLayer, name: `Pixel ${look.label}` }); } }} className="max-w-44 rounded border border-input bg-surface-elevated px-2 py-1 text-xs">
+            <label className="flex items-center gap-1">{trUI("Effect")}<select aria-label={trUI("Change pixel effect")} value={PIXEL_LIBRARY.find((x) => x.kind === clip.layer!.kind && (x.gen ?? undefined) === (clip.layer!.gen ?? undefined))?.key ?? ""} onChange={(e) => { const look = PIXEL_LIBRARY.find((x) => x.key === e.target.value); if (look) { const { gen: _g, ...rest } = clip.layer!; patch(clip.id, { layer: { ...rest, kind: look.kind, ...(look.gen ? { gen: look.gen } : {}) } as PixelLayer, name: `Pixel ${look.label}` }); } }} className="max-w-44 rounded border border-input bg-surface-elevated px-2 py-1 text-xs">
               <option value="" disabled>{clip.layer.kind}</option>{PIXEL_LIBRARY.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</select></label>
-            <label className="flex items-center gap-1">Speed<NumberField aria-label="Pixel speed" min={0.01} max={100} step={0.1} value={+clip.layer.speed.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { layer: { ...clip.layer!, speed: Math.max(0.01, v) } })} className={field} />×</label>
-            {clip.layer.colors[0] && <label className="flex items-center gap-1">Colour<input type="color" aria-label="Pixel colour" value={clip.layer.colors[0]} onChange={(e) => patch(clip.id, { layer: { ...clip.layer!, colors: [e.target.value, ...clip.layer!.colors.slice(1)] } })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>}
+            <label className="flex items-center gap-1">{trUI("Speed")}<NumberField aria-label={trUI("Pixel speed")} min={0.01} max={100} step={0.1} value={+clip.layer.speed.toFixed(2)} onChange={(v) => v !== undefined && patch(clip.id, { layer: { ...clip.layer!, speed: Math.max(0.01, v) } })} className={field} />×</label>
+            {clip.layer.colors[0] && <label className="flex items-center gap-1">{trUI("Colour")}<input type="color" aria-label={trUI("Pixel colour")} value={clip.layer.colors[0]} onChange={(e) => patch(clip.id, { layer: { ...clip.layer!, colors: [e.target.value, ...clip.layer!.colors.slice(1)] } })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>}
           </>}
-          <label className="flex items-center gap-1">Colour<input type="color" aria-label="Clip colour" value={clip.color ?? "#888888"} onChange={(e) => patch(clip.id, { color: e.target.value })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" />{clip.color && <button className="text-muted-foreground" onClick={() => patch(clip.id, { color: undefined })}>×</button>}</label>
-          {(clip.kind === "fx" || clip.kind === "level") && (clip.uids?.length ?? 0) > 1 && <label className="flex items-center gap-1" title="Delay between each light starting — makes a wave across them">Stagger<NumberField aria-label="Stagger" min={0} max={10} step={0.05} value={clip.stagger ?? 0} onChange={(v) => patch(clip.id, { stagger: Math.max(0, v ?? 0) })} className={field} />s</label>}
+          <label className="flex items-center gap-1">{trUI("Colour")}<input type="color" aria-label={trUI("Clip colour")} value={clip.color ?? "#888888"} onChange={(e) => patch(clip.id, { color: e.target.value })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" />{clip.color && <button className="text-muted-foreground" onClick={() => patch(clip.id, { color: undefined })}>×</button>}</label>
+          {(clip.kind === "fx" || clip.kind === "level") && (clip.uids?.length ?? 0) > 1 && <label className="flex items-center gap-1" title={trUI("Delay between each light starting — makes a wave across them")}>{trUI("Stagger")}<NumberField aria-label={trUI("Stagger")} min={0} max={10} step={0.05} value={clip.stagger ?? 0} onChange={(v) => patch(clip.id, { stagger: Math.max(0, v ?? 0) })} className={field} />{trUI("s")}</label>}
           {clip.kind === "adjust" && <AdjustControls value={clip.adj ?? {}} onChange={(adj) => patch(clip.id, { adj })} />}
           {hasKeys(clip) && <StepList clip={clip} onKeys={(keys) => patch(clip.id, { keys })} />}
           {hasKeys(clip) && (() => {
             const ks = keysOf(clip), k = clip.keys?.find((x) => x.id === keySel);
             const upd = (p: Partial<TimelineKey>) => k && setKeys(clip, ks.map((x) => (x.id === k.id ? { ...x, ...p } : x)));
-            if (!k) return <span className="text-muted-foreground">Double-click the clip to add a point · {clip.keys?.length ?? 0} points</span>;
+            if (!k) return <span className="text-muted-foreground">{trUI("Double-click the clip to add a point ·")}{clip.keys?.length ?? 0}{trUI("points")}</span>;
             return <span className="flex flex-wrap items-center gap-2 rounded border border-primary/50 px-2 py-1">
-              <b>Point</b>
-              <label className="flex items-center gap-1">At<NumberField aria-label="Point time" min={0} max={clip.length} step={0.1} value={+k.t.toFixed(2)} onChange={(v) => v !== undefined && upd({ t: Math.max(0, Math.min(clip.length, v)) })} className={field} />s</label>
-              <label className="flex items-center gap-1">{clip.kind === "adjust" ? "Level" : "Intensity"}<NumberField aria-label="Point intensity" min={0} max={clip.kind === "adjust" ? 200 : 100} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd({ intensity: v / 100 })} className={field} />%</label>
-              <label className="flex items-center gap-1">Curve<select aria-label="Point curve" value={k.ease ?? "linear"} onChange={(e) => upd({ ease: e.target.value as Ease })} className="rounded border border-input bg-surface-elevated px-1 py-0.5 text-xs"><option value="linear">Linear</option><option value="smooth">Smooth</option><option value="step">Step</option></select></label>
-              <label className="flex items-center gap-1">CCT<NumberField aria-label="Point CCT" allowEmpty placeholder="—" min={2000} max={10000} step={100} value={k.cct != null ? c2k(k.cct) : undefined} onChange={(v) => upd({ cct: v == null ? undefined : k2c(v), ...(v != null ? { hue: undefined, sat: undefined } : {}) })} className={field} />K</label>
-              <div className="flex flex-wrap items-center gap-1"><span className="text-muted-foreground">Colour</span>{GELS.map((g) => <button key={g} aria-label={`Point gel ${g}`} title={g} onClick={() => { const [hh, sa] = hexHs(g); upd({ hue: hh, sat: sa, cct: undefined }); }} className="h-4 w-4 rounded-full border border-border" style={{ background: g }} />)}<input type="color" aria-label="Point colour" value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd({ hue: h, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></div>
-              {(k.hue != null || k.cct != null) && <Button size="sm" variant="ghost" onClick={() => upd({ hue: undefined, sat: undefined, cct: undefined })}>No colour</Button>}
-              <Button size="sm" variant="ghost" onClick={() => { setKeys(clip, ks.filter((x) => x.id !== k.id)); setKeySel(null); }}><Trash2 />Point</Button>
+              <b>{trUI("Point")}</b>
+              <label className="flex items-center gap-1">{trUI("At")}<NumberField aria-label={trUI("Point time")} min={0} max={clip.length} step={0.1} value={+k.t.toFixed(2)} onChange={(v) => v !== undefined && upd({ t: Math.max(0, Math.min(clip.length, v)) })} className={field} />{trUI("s")}</label>
+              <label className="flex items-center gap-1">{clip.kind === "adjust" ? trUI("Level") : trUI("Intensity")}<NumberField aria-label={trUI("Point intensity")} min={0} max={clip.kind === "adjust" ? 200 : 100} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd({ intensity: v / 100 })} className={field} />%</label>
+              <label className="flex items-center gap-1">{trUI("Curve")}<select aria-label={trUI("Point curve")} value={k.ease ?? "linear"} onChange={(e) => upd({ ease: e.target.value as Ease })} className="rounded border border-input bg-surface-elevated px-1 py-0.5 text-xs"><option value="linear">{trUI("Linear")}</option><option value="smooth">{trUI("Smooth")}</option><option value="step">{trUI("Step")}</option></select></label>
+              <label className="flex items-center gap-1">{trUI("CCT")}<NumberField aria-label={trUI("Point CCT")} allowEmpty placeholder="—" min={2000} max={10000} step={100} value={k.cct != null ? c2k(k.cct) : undefined} onChange={(v) => upd({ cct: v == null ? undefined : k2c(v), ...(v != null ? { hue: undefined, sat: undefined } : {}) })} className={field} />{trUI("K")}</label>
+              <div className="flex flex-wrap items-center gap-1"><span className="text-muted-foreground">{trUI("Colour")}</span>{GELS.map((g) => <button key={g} aria-label={`Point gel ${g}`} title={g} onClick={() => { const [hh, sa] = hexHs(g); upd({ hue: hh, sat: sa, cct: undefined }); }} className="h-4 w-4 rounded-full border border-border" style={{ background: g }} />)}<input type="color" aria-label={trUI("Point colour")} value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd({ hue: h, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></div>
+              {(k.hue != null || k.cct != null) && <Button size="sm" variant="ghost" onClick={() => upd({ hue: undefined, sat: undefined, cct: undefined })}>{trUI("No colour")}</Button>}
+              <Button size="sm" variant="ghost" onClick={() => { setKeys(clip, ks.filter((x) => x.id !== k.id)); setKeySel(null); }}><Trash2 />{trUI("Point")}</Button>
             </span>;
           })()}
-          {clip.kind !== "rec" && clip.kind !== "adjust" && <span className="text-muted-foreground">{clip.uids?.length ? `${clip.uids.length} lights` : clip.kind === "pixel" ? "layer's own lights" : "no lights"}</span>}
-          {clip.kind === "adjust" && <span className="text-muted-foreground">{clip.uids?.length ? `${clip.uids.length} lights` : "all lights below"}</span>}
-          {clip.kind !== "rec" && <Button size="sm" variant="secondary" disabled={!selected.length} onClick={() => patch(clip.id, { uids: [...selected] })}>Use selected lights</Button>}
+          {clip.kind !== "rec" && clip.kind !== "adjust" && <span className="text-muted-foreground">{clip.uids?.length ? `${clip.uids.length} lights` : clip.kind === "pixel" ? trUI("layer's own lights") : trUI("no lights")}</span>}
+          {clip.kind === "adjust" && <span className="text-muted-foreground">{clip.uids?.length ? `${clip.uids.length} lights` : trUI("all lights below")}</span>}
+          {clip.kind !== "rec" && <Button size="sm" variant="secondary" disabled={!selected.length} onClick={() => patch(clip.id, { uids: [...selected] })}>{trUI("Use selected lights")}</Button>}
           <div className="ml-auto flex gap-1">
-            <Button size="icon" variant="ghost" aria-label="Duplicate clip" title="Duplicate after this clip" onClick={() => { const c = { ...structuredClone(clip), id: newId(), start: clip.start + clip.length }; setTimeline(placeClip(timeline, c)); setSel([c.id]); }}><Copy /></Button>
-            <Button size="icon" variant="ghost" aria-label="Delete clip" onClick={() => { set(timeline.clips.filter((c) => c.id !== clip.id)); setSel([]); }}><Trash2 /></Button>
+            <Button size="icon" variant="ghost" aria-label={trUI("Duplicate clip")} title={trUI("Duplicate after this clip")} onClick={() => { const c = { ...structuredClone(clip), id: newId(), start: clip.start + clip.length }; setTimeline(placeClip(timeline, c)); setSel([c.id]); }}><Copy /></Button>
+            <Button size="icon" variant="ghost" aria-label={trUI("Delete clip")} onClick={() => { set(timeline.clips.filter((c) => c.id !== clip.id)); setSel([]); }}><Trash2 /></Button>
           </div>
         </div>
       )}
@@ -531,19 +532,19 @@ function TimelineVisualiser({ fixtures, timeline, time, recordings, setTimeline,
     return c ? clipValue(c, time - c.start) : { intensity: ef.intensity, cct: ef.cctOnly === false ? undefined : ef.cct, hue: ef.cctOnly === false ? ef.hue : undefined, sat: ef.saturation }; })();
   const setVal = (p: Partial<TimelineKey>) => { if (!ef || !cur) return; const r = setLightKeyAt(timeline, ef.uid, ef.name, time, { ...cur, ...p }); setTimeline(r.timeline); if (r.clipId) onPicked(r.clipId); };
   return (
-    <div className="relative shrink-0 border-b border-border bg-background" style={{ height: h }} aria-label="Visualiser">
+    <div className="relative shrink-0 border-b border-border bg-background" style={{ height: h }} aria-label={trUI("Visualiser")}>
       <div className="absolute left-2 top-1 z-10 flex items-center gap-1 text-xs">
-        <span className="rounded bg-surface/80 px-1.5 py-0.5 font-semibold"><MonitorPlay className="mr-1 inline h-3.5 w-3.5" />Visualiser · {time.toFixed(1)}s</span>
-        <Button size="sm" variant="secondary" className="h-6" onClick={() => photo.current?.click()}><ImagePlus />{viz.image ? "Photo" : "Add photo"}</Button>
-        {viz.image && <Button size="sm" variant={viz.invert ? "default" : "secondary"} className="h-6" aria-label="Invert photo" aria-pressed={!!viz.invert} onClick={() => setViz({ invert: !viz.invert })}><Contrast />Invert</Button>}
-        {viz.image && <Button size="sm" variant={rot ? "default" : "secondary"} className="h-6" aria-label="Rotate photo" onClick={() => setViz({ rot: (rot + 90) % 360 })}><RotateCw />Rotate{rot ? ` ${rot}°` : ""}</Button>}
+        <span className="rounded bg-surface/80 px-1.5 py-0.5 font-semibold"><MonitorPlay className="mr-1 inline h-3.5 w-3.5" />{trUI("Visualiser ·")}{time.toFixed(1)}{trUI("s")}</span>
+        <Button size="sm" variant="secondary" className="h-6" onClick={() => photo.current?.click()}><ImagePlus />{viz.image ? trUI("Photo") : trUI("Add photo")}</Button>
+        {viz.image && <Button size="sm" variant={viz.invert ? "default" : "secondary"} className="h-6" aria-label={trUI("Invert photo")} aria-pressed={!!viz.invert} onClick={() => setViz({ invert: !viz.invert })}><Contrast />{trUI("Invert")}</Button>}
+        {viz.image && <Button size="sm" variant={rot ? "default" : "secondary"} className="h-6" aria-label={trUI("Rotate photo")} onClick={() => setViz({ rot: (rot + 90) % 360 })}><RotateCw />{trUI("Rotate")}{rot ? ` ${rot}°` : trUI("")}</Button>}
 
-        {viz.image && <label className="flex items-center gap-1 rounded bg-surface/80 px-1.5 py-0.5">Size<input type="range" aria-label="Photo size" min={20} max={300} step={5} value={viz.scale ?? 100} onChange={(e) => setViz({ scale: +e.target.value })} className="w-24" /><span className="w-9 font-mono">{viz.scale ?? 100}%</span></label>}
-        {viz.image && <Button size="sm" variant="ghost" className="h-6" aria-label="Remove photo" onClick={() => setViz({ image: undefined })}><X /></Button>}
+        {viz.image && <label className="flex items-center gap-1 rounded bg-surface/80 px-1.5 py-0.5">{trUI("Size")}<input type="range" aria-label={trUI("Photo size")} min={20} max={300} step={5} value={viz.scale ?? 100} onChange={(e) => setViz({ scale: +e.target.value })} className="w-24" /><span className="w-9 font-mono">{viz.scale ?? 100}%</span></label>}
+        {viz.image && <Button size="sm" variant="ghost" className="h-6" aria-label={trUI("Remove photo")} onClick={() => setViz({ image: undefined })}><X /></Button>}
         <input ref={photo} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) loadPhoto(f); e.target.value = ""; }} />
-        <span className="text-muted-foreground">drag lights to place · tap to set at the red line</span>
+        <span className="text-muted-foreground">{trUI("drag lights to place · tap to set at the red line")}</span>
       </div>
-      <button aria-label="Close visualiser" onClick={onClose} className="absolute right-2 top-1 z-10 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+      <button aria-label={trUI("Close visualiser")} onClick={onClose} className="absolute right-2 top-1 z-10 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
       <div ref={stage} className="absolute inset-0 overflow-hidden" onPointerDown={(e) => { if (e.target === e.currentTarget) setEdit(null); }}>
         {viz.image && <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 bg-center bg-no-repeat" style={{ ...(box ? (rot % 180 ? { width: box.h, height: box.w } : { width: box.w, height: box.h }) : { width: "100%", height: "100%" }), transform: `translate(-50%,-50%) rotate(${rot}deg)`, backgroundImage: `url(${viz.image})`, backgroundSize: viz.scale && viz.scale !== 100 ? `${viz.scale}% auto` : "cover", filter: viz.invert ? "invert(1)" : undefined }} />}
         {list.map((f, i) => { const c = colorOf?.(f) ?? [0, 0, 0], [x, y] = posOf(f, i); const rgb = `rgb(${c[0]},${c[1]},${c[2]})`; return (
@@ -554,18 +555,18 @@ function TimelineVisualiser({ fixtures, timeline, time, recordings, setTimeline,
             onPointerUp={() => { const d = drag.current; drag.current = null; if (!d) return; if (d.moved) { setViz({ pos: { ...viz.pos, [f.uid]: d.pos } }); setDragPos(null); } else setEdit(edit === f.uid ? null : f.uid); }}>
             <span className="max-w-full truncate px-0.5">{f.name}</span>
           </div>); })}
-        {!list.length && <p className="p-10 text-center text-muted-foreground">No lights in the timeline layers yet — add a clip that targets lights.</p>}
+        {!list.length && <p className="p-10 text-center text-muted-foreground">{trUI("No lights in the timeline layers yet — add a clip that targets lights.")}</p>}
       </div>
-      {ef && cur && <div className="absolute bottom-2 right-2 z-20 max-h-[calc(100%-16px)] w-64 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-surface p-2 text-xs shadow-2xl" aria-label="Light at playhead">
-        <div className="flex items-center gap-1"><b className="flex-1 truncate">{ef.name} @ {time.toFixed(1)}s</b><button aria-label="Close light editor" onClick={() => setEdit(null)}><X className="h-3.5 w-3.5" /></button></div>
-        <label className="flex items-center gap-2">Int<input type="range" min={0} max={100} value={Math.round(cur.intensity * 100)} onChange={(e) => setVal({ intensity: +e.target.value / 100 })} className="flex-1" /><span className="w-9 text-right font-mono">{Math.round(cur.intensity * 100)}%</span></label>
-        <label className="flex items-center gap-2">CCT<input type="range" min={2000} max={10000} step={100} value={c2k(cur.cct ?? k2c(5600))} onChange={(e) => setVal({ cct: k2c(+e.target.value), hue: undefined, sat: undefined })} className="flex-1" /><span className="w-12 text-right font-mono">{cur.hue != null ? "—" : `${c2k(cur.cct ?? k2c(5600))}K`}</span></label>
-        <div className="flex flex-wrap gap-1" aria-label="Gel colours">{GELS.map((g) => <button key={g} aria-label={`Light gel ${g}`} title={g} onClick={() => { const [hh, sa] = hexHs(g); setVal({ hue: hh, sat: sa, cct: undefined }); }} className={`h-5 w-5 rounded-full border ${cur.hue != null && hsvHex(cur.hue, cur.sat ?? 1).toLowerCase() === g ? "border-foreground" : "border-border"}`} style={{ background: g }} />)}</div>
+      {ef && cur && <div className="absolute bottom-2 right-2 z-20 max-h-[calc(100%-16px)] w-64 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-surface p-2 text-xs shadow-2xl" aria-label={trUI("Light at playhead")}>
+        <div className="flex items-center gap-1"><b className="flex-1 truncate">{ef.name} @ {time.toFixed(1)}{trUI("s")}</b><button aria-label={trUI("Close light editor")} onClick={() => setEdit(null)}><X className="h-3.5 w-3.5" /></button></div>
+        <label className="flex items-center gap-2">{trUI("Int")}<input type="range" min={0} max={100} value={Math.round(cur.intensity * 100)} onChange={(e) => setVal({ intensity: +e.target.value / 100 })} className="flex-1" /><span className="w-9 text-right font-mono">{Math.round(cur.intensity * 100)}%</span></label>
+        <label className="flex items-center gap-2">{trUI("CCT")}<input type="range" min={2000} max={10000} step={100} value={c2k(cur.cct ?? k2c(5600))} onChange={(e) => setVal({ cct: k2c(+e.target.value), hue: undefined, sat: undefined })} className="flex-1" /><span className="w-12 text-right font-mono">{cur.hue != null ? trUI("—") : `${c2k(cur.cct ?? k2c(5600))}K`}</span></label>
+        <div className="flex flex-wrap gap-1" aria-label={trUI("Gel colours")}>{GELS.map((g) => <button key={g} aria-label={`Light gel ${g}`} title={g} onClick={() => { const [hh, sa] = hexHs(g); setVal({ hue: hh, sat: sa, cct: undefined }); }} className={`h-5 w-5 rounded-full border ${cur.hue != null && hsvHex(cur.hue, cur.sat ?? 1).toLowerCase() === g ? "border-foreground" : "border-border"}`} style={{ background: g }} />)}</div>
         <ColorWheel hue={cur.hue ?? 0} sat={cur.sat ?? 1} crossfade={1} update={(p) => { if (p.hue != null) setVal({ hue: p.hue, sat: p.saturation ?? 1, cct: undefined }); }} />
-        <label className="flex items-center gap-2">Custom<input type="color" aria-label="Light colour at playhead" value={cur.hue != null ? hsvHex(cur.hue, cur.sat ?? 1) : "#ffffff"} onChange={(e) => { const [hh, sa] = hexHs(e.target.value); setVal({ hue: hh, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>
-        <p className="text-muted-foreground">Each change adds a point at the red line; move the line and change again to make the light fade between them.</p>
+        <label className="flex items-center gap-2">{trUI("Custom")}<input type="color" aria-label={trUI("Light colour at playhead")} value={cur.hue != null ? hsvHex(cur.hue, cur.sat ?? 1) : "#ffffff"} onChange={(e) => { const [hh, sa] = hexHs(e.target.value); setVal({ hue: hh, sat: sa, cct: undefined }); }} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" /></label>
+        <p className="text-muted-foreground">{trUI("Each change adds a point at the red line; move the line and change again to make the light fade between them.")}</p>
       </div>}
-      <div aria-label="Resize visualiser" onPointerDown={resize} className="absolute inset-x-0 bottom-0 z-10 h-1.5 cursor-ns-resize touch-none bg-border/60 hover:bg-primary" />
+      <div aria-label={trUI("Resize visualiser")} onPointerDown={resize} className="absolute inset-x-0 bottom-0 z-10 h-1.5 cursor-ns-resize touch-none bg-border/60 hover:bg-primary" />
     </div>
   );
 }
@@ -579,28 +580,27 @@ function LayerSettings({ timeline, trackId, onTrack, onMove, onClip, onClose }: 
   const t = timeline.tracks.find((x) => x.id === trackId);
   if (!t) return null;
   const clips = timeline.clips.filter((c) => c.track === t.id).sort((a, b) => a.start - b.start);
-  return <section className="space-y-2 rounded border border-primary/50 p-2" aria-label="Layer settings">
-    <div className="flex items-center gap-1"><b className="flex-1 truncate">{t.name}{t.adjust ? " · adjustment" : ""}</b>
-      <Button size="icon" variant="ghost" aria-label="Move layer up" onClick={() => onMove(-1)}><ArrowUp /></Button>
-      <Button size="icon" variant="ghost" aria-label="Move layer down" onClick={() => onMove(1)}><ArrowDown /></Button>
-      <Button size="icon" variant="ghost" aria-label="Close layer settings" onClick={onClose}><X /></Button></div>
-    <label className="flex items-center gap-2">Name<input aria-label="Layer name (settings)" value={t.name} onChange={(e) => onTrack({ name: e.target.value })} className={`${sel3} min-w-0 flex-1`} /></label>
-    <div className="flex flex-wrap items-center gap-1">Colour
-      {LAYER_COLOURS.map((c) => <button key={c} aria-label={`Layer colour ${c}`} onClick={() => onTrack({ color: t.color === c ? undefined : c })} className={`h-5 w-5 rounded-full border-2 ${t.color === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
-    <label className="flex items-center gap-2">Opacity<input type="range" min={0} max={100} value={Math.round((t.opacity ?? 1) * 100)} onChange={(e) => onTrack({ opacity: +e.target.value / 100 })} className="flex-1" /><span className="w-9 text-right font-mono">{Math.round((t.opacity ?? 1) * 100)}%</span></label>
-    {!t.adjust && <label className="flex items-center gap-2">Blend<select aria-label="Blend mode" value={t.blend ?? "replace"} onChange={(e) => onTrack({ blend: e.target.value as BlendMode })} className={sel3}>{BLENDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>}
+  return <section className="space-y-2 rounded border border-primary/50 p-2" aria-label={trUI("Layer settings")}>
+    <div className="flex items-center gap-1"><b className="flex-1 truncate">{t.name}{t.adjust ? trUI(" · adjustment") : trUI("")}</b>
+      <Button size="icon" variant="ghost" aria-label={trUI("Move layer up")} onClick={() => onMove(-1)}><ArrowUp /></Button>
+      <Button size="icon" variant="ghost" aria-label={trUI("Move layer down")} onClick={() => onMove(1)}><ArrowDown /></Button>
+      <Button size="icon" variant="ghost" aria-label={trUI("Close layer settings")} onClick={onClose}><X /></Button></div>
+    <label className="flex items-center gap-2">{trUI("Name")}<input aria-label={trUI("Layer name (settings)")} value={t.name} onChange={(e) => onTrack({ name: e.target.value })} className={`${sel3} min-w-0 flex-1`} /></label>
+    <div className="flex flex-wrap items-center gap-1">{trUI("Colour")}{LAYER_COLOURS.map((c) => <button key={c} aria-label={`Layer colour ${c}`} onClick={() => onTrack({ color: t.color === c ? undefined : c })} className={`h-5 w-5 rounded-full border-2 ${t.color === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
+    <label className="flex items-center gap-2">{trUI("Opacity")}<input type="range" min={0} max={100} value={Math.round((t.opacity ?? 1) * 100)} onChange={(e) => onTrack({ opacity: +e.target.value / 100 })} className="flex-1" /><span className="w-9 text-right font-mono">{Math.round((t.opacity ?? 1) * 100)}%</span></label>
+    {!t.adjust && <label className="flex items-center gap-2">{trUI("Blend")}<select aria-label={trUI("Blend mode")} value={t.blend ?? "replace"} onChange={(e) => onTrack({ blend: e.target.value as BlendMode })} className={sel3}>{BLENDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>}
     <div className="flex gap-1">
-      <Button size="sm" variant={t.solo ? "default" : "secondary"} onClick={() => onTrack({ solo: !t.solo })}>Solo</Button>
-      <Button size="sm" variant={t.locked ? "default" : "secondary"} onClick={() => onTrack({ locked: !t.locked })}>{t.locked ? "Locked" : "Lock"}</Button>
-      <Button size="sm" variant={t.muted ? "default" : "secondary"} onClick={() => onTrack({ muted: !t.muted })}>{t.muted ? "Off" : "On"}</Button>
+      <Button size="sm" variant={t.solo ? "default" : "secondary"} onClick={() => onTrack({ solo: !t.solo })}>{trUI("Solo")}</Button>
+      <Button size="sm" variant={t.locked ? "default" : "secondary"} onClick={() => onTrack({ locked: !t.locked })}>{t.locked ? trUI("Locked") : trUI("Lock")}</Button>
+      <Button size="sm" variant={t.muted ? "default" : "secondary"} onClick={() => onTrack({ muted: !t.muted })}>{t.muted ? trUI("Off") : trUI("On")}</Button>
     </div>
-    <h4 className="pt-1 text-[10px] font-semibold uppercase text-muted-foreground">Every step on this layer</h4>
-    {!clips.length && <p className="text-muted-foreground">No clips on this layer yet.</p>}
+    <h4 className="pt-1 text-[10px] font-semibold uppercase text-muted-foreground">{trUI("Every step on this layer")}</h4>
+    {!clips.length && <p className="text-muted-foreground">{trUI("No clips on this layer yet.")}</p>}
     {clips.map((c) => <div key={c.id} className="space-y-1 rounded bg-surface-elevated p-1.5">
-      <div className="flex items-center gap-2"><b className="flex-1 truncate">{c.name}</b><span className="font-mono text-muted-foreground">{c.start.toFixed(1)}–{(c.start + c.length).toFixed(1)}s</span></div>
+      <div className="flex items-center gap-2"><b className="flex-1 truncate">{c.name}</b><span className="font-mono text-muted-foreground">{c.start.toFixed(1)}–{(c.start + c.length).toFixed(1)}{trUI("s")}</span></div>
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1">Start<NumberField aria-label={`${c.name} start`} min={0} step={0.1} value={+c.start.toFixed(2)} onChange={(v) => v !== undefined && !t.locked && onClip(c.id, { start: Math.max(0, v) })} className={field} /></label>
-        <label className="flex items-center gap-1">Len<NumberField aria-label={`${c.name} length`} min={0.2} step={0.1} value={+c.length.toFixed(2)} onChange={(v) => v !== undefined && !t.locked && onClip(c.id, { length: Math.max(0.2, v) })} className={field} /></label>
+        <label className="flex items-center gap-1">{trUI("Start")}<NumberField aria-label={`${c.name} start`} min={0} step={0.1} value={+c.start.toFixed(2)} onChange={(v) => v !== undefined && !t.locked && onClip(c.id, { start: Math.max(0, v) })} className={field} /></label>
+        <label className="flex items-center gap-1">{trUI("Len")}<NumberField aria-label={`${c.name} length`} min={0.2} step={0.1} value={+c.length.toFixed(2)} onChange={(v) => v !== undefined && !t.locked && onClip(c.id, { length: Math.max(0.2, v) })} className={field} /></label>
       </div>
       {(c.kind === "level" || c.kind === "adjust") && <StepList clip={c} disabled={t.locked} onKeys={(keys) => onClip(c.id, { keys })} />}
       {c.kind === "adjust" && <AdjustControls value={c.adj ?? {}} disabled={t.locked} onChange={(adj) => onClip(c.id, { adj })} />}
@@ -615,15 +615,15 @@ function StepList({ clip, onKeys, disabled }: { clip: TimelineClip; onKeys: (k: 
   const max = clip.kind === "adjust" ? 200 : 100;
   const upd = (id: string, p: Partial<TimelineKey>) => !disabled && onKeys(ks.map((k) => (k.id === id ? { ...k, ...p } : k)));
   return <div className="space-y-1">
-    <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-1 text-[10px] uppercase text-muted-foreground"><span>Time s</span><span>{clip.kind === "adjust" ? "Level %" : "Int %"}</span><span>CCT K</span><span>Col</span><span /></div>
+    <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-1 text-[10px] uppercase text-muted-foreground"><span>{trUI("Time s")}</span><span>{clip.kind === "adjust" ? trUI("Level %") : trUI("Int %")}</span><span>{trUI("CCT K")}</span><span>{trUI("Col")}</span><span /></div>
     {ks.map((k) => <div key={k.id} className="grid grid-cols-[1fr_1fr_1fr_auto_auto] items-center gap-1">
-      <NumberField aria-label="Step time" min={0} max={clip.length} step={0.1} value={+k.t.toFixed(2)} onChange={(v) => v !== undefined && upd(k.id, { t: Math.max(0, Math.min(clip.length, v)) })} className={`${field} w-full`} />
-      <NumberField aria-label="Step intensity" min={0} max={max} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd(k.id, { intensity: v / 100 })} className={`${field} w-full`} />
-      <NumberField aria-label="Step CCT" allowEmpty placeholder="—" min={2000} max={10000} step={100} value={k.cct != null ? c2k(k.cct) : undefined} onChange={(v) => upd(k.id, { cct: v == null ? undefined : k2c(v), ...(v != null ? { hue: undefined, sat: undefined } : {}) })} className={`${field} w-full`} />
-      <input type="color" aria-label="Step colour" value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd(k.id, { hue: h, sat: sa, cct: undefined }); }} className="h-6 w-7 cursor-pointer rounded border border-input bg-transparent" />
-      <button aria-label="Delete step" disabled={disabled || ks.length <= 1} onClick={() => onKeys(ks.filter((x) => x.id !== k.id))} className="text-muted-foreground hover:text-destructive disabled:opacity-30"><X className="h-3.5 w-3.5" /></button>
+      <NumberField aria-label={trUI("Step time")} min={0} max={clip.length} step={0.1} value={+k.t.toFixed(2)} onChange={(v) => v !== undefined && upd(k.id, { t: Math.max(0, Math.min(clip.length, v)) })} className={`${field} w-full`} />
+      <NumberField aria-label={trUI("Step intensity")} min={0} max={max} value={Math.round(k.intensity * 100)} onChange={(v) => v !== undefined && upd(k.id, { intensity: v / 100 })} className={`${field} w-full`} />
+      <NumberField aria-label={trUI("Step CCT")} allowEmpty placeholder="—" min={2000} max={10000} step={100} value={k.cct != null ? c2k(k.cct) : undefined} onChange={(v) => upd(k.id, { cct: v == null ? undefined : k2c(v), ...(v != null ? { hue: undefined, sat: undefined } : {}) })} className={`${field} w-full`} />
+      <input type="color" aria-label={trUI("Step colour")} value={k.hue != null ? hsvHex(k.hue, k.sat ?? 1) : "#ffffff"} onChange={(e) => { const [h, sa] = hexHs(e.target.value); upd(k.id, { hue: h, sat: sa, cct: undefined }); }} className="h-6 w-7 cursor-pointer rounded border border-input bg-transparent" />
+      <button aria-label={trUI("Delete step")} disabled={disabled || ks.length <= 1} onClick={() => onKeys(ks.filter((x) => x.id !== k.id))} className="text-muted-foreground hover:text-destructive disabled:opacity-30"><X className="h-3.5 w-3.5" /></button>
     </div>)}
-    <Button size="sm" variant="secondary" disabled={disabled} onClick={() => { const last = ks[ks.length - 1]; onKeys([...ks, { id: newId(), t: Math.min(clip.length, (last?.t ?? 0) + 1), intensity: last?.intensity ?? 1 }]); }}><Plus />Step</Button>
+    <Button size="sm" variant="secondary" disabled={disabled} onClick={() => { const last = ks[ks.length - 1]; onKeys([...ks, { id: newId(), t: Math.min(clip.length, (last?.t ?? 0) + 1), intensity: last?.intensity ?? 1 }]); }}><Plus />{trUI("Step")}</Button>
   </div>;
 }
 
@@ -633,14 +633,14 @@ function AdjustControls({ value: a, onChange, disabled }: { value: AdjustFilter;
   const row = (label: string, v: number, min: number, max: number, step: number, unit: string, on: (n: number) => void) =>
     <label className="flex items-center gap-2"><span className="w-20">{label}</span><input type="range" min={min} max={max} step={step} value={v} onChange={(e) => on(+e.target.value)} className="flex-1" /><span className="w-14 text-right font-mono">{v}{unit}</span></label>;
   return <div className="space-y-1 rounded border border-border p-2">
-    <div className="flex items-center"><b className="flex-1">Filter</b><Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange({})}>Reset</Button></div>
+    <div className="flex items-center"><b className="flex-1">{trUI("Filter")}</b><Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange({})}>{trUI("Reset")}</Button></div>
     {row("Contrast", Math.round((a.contrast ?? 1) * 100), 0, 200, 5, "%", (n) => set({ contrast: n / 100 }))}
     {row("CCT shift", a.cctShift ?? 0, -3000, 3000, 100, "K", (n) => set({ cctShift: n }))}
     {row("Green/Mag", Math.round((a.gmShift ?? 0) * 100), -100, 100, 5, "", (n) => set({ gmShift: n / 100 }))}
     {row("Hue shift", a.hueShift ?? 0, -180, 180, 5, "°", (n) => set({ hueShift: n }))}
     {row("Saturation", Math.round((a.satMul ?? 1) * 100), 0, 200, 5, "%", (n) => set({ satMul: n / 100 }))}
-    <label className="flex items-center gap-2"><span className="w-20">Tint / gel</span><input type="color" aria-label="Tint colour" value={a.tint ?? "#ff8800"} onChange={(e) => set({ tint: e.target.value, tintAmt: a.tintAmt || 0.5 })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" />
-      <input type="range" aria-label="Tint amount" min={0} max={100} value={Math.round((a.tintAmt ?? 0) * 100)} onChange={(e) => set({ tintAmt: +e.target.value / 100, tint: a.tint ?? "#ff8800" })} className="flex-1" /><span className="w-14 text-right font-mono">{Math.round((a.tintAmt ?? 0) * 100)}%</span></label>
+    <label className="flex items-center gap-2"><span className="w-20">{trUI("Tint / gel")}</span><input type="color" aria-label={trUI("Tint colour")} value={a.tint ?? "#ff8800"} onChange={(e) => set({ tint: e.target.value, tintAmt: a.tintAmt || 0.5 })} className="h-6 w-8 cursor-pointer rounded border border-input bg-transparent" />
+      <input type="range" aria-label={trUI("Tint amount")} min={0} max={100} value={Math.round((a.tintAmt ?? 0) * 100)} onChange={(e) => set({ tintAmt: +e.target.value / 100, tint: a.tint ?? "#ff8800" })} className="flex-1" /><span className="w-14 text-right font-mono">{Math.round((a.tintAmt ?? 0) * 100)}%</span></label>
   </div>;
 }
 
@@ -650,7 +650,7 @@ function Minimap({ timeline, len, time, zoom, scroller }: { timeline: Timeline; 
   useEffect(() => { const el = scroller.current; if (!el) return; const f = () => setView({ l: el.scrollLeft, w: el.clientWidth }); f(); el.addEventListener("scroll", f); const ro = new ResizeObserver(f); ro.observe(el); return () => { el.removeEventListener("scroll", f); ro.disconnect(); }; }, [scroller]);
   const total = HEAD + len * zoom, n = Math.max(1, timeline.tracks.length);
   const jump = (e: RPE<HTMLDivElement>) => { const el = scroller.current; if (!el) return; const r = e.currentTarget.getBoundingClientRect(); el.scrollLeft = ((e.clientX - r.left) / r.width) * total - el.clientWidth / 2; };
-  return <div aria-label="Timeline overview" className="relative h-5 shrink-0 cursor-pointer touch-none border-b border-border bg-muted/30" onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); jump(e); }} onPointerMove={(e) => { if (e.buttons) jump(e); }}>
+  return <div aria-label={trUI("Timeline overview")} className="relative h-5 shrink-0 cursor-pointer touch-none border-b border-border bg-muted/30" onPointerDown={(e) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); jump(e); }} onPointerMove={(e) => { if (e.buttons) jump(e); }}>
     {timeline.clips.map((c) => { const ti = timeline.tracks.findIndex((t) => t.id === c.track); return <span key={c.id} className={`pointer-events-none absolute ${c.color ? "" : KIND_STYLE[c.kind]}`} style={{ left: `${((HEAD + c.start * zoom) / total) * 100}%`, width: `${Math.max(0.3, (c.length * zoom / total) * 100)}%`, top: `${(ti / n) * 100}%`, height: `${100 / n}%`, ...(c.color ? { background: c.color } : {}) }} />; })}
     <span className="pointer-events-none absolute inset-y-0 w-px bg-destructive" style={{ left: `${((HEAD + time * zoom) / total) * 100}%` }} />
     <span className="pointer-events-none absolute inset-y-0 rounded-sm border border-primary bg-primary/10" style={{ left: `${(view.l / total) * 100}%`, width: `${Math.min(100, (view.w / total) * 100)}%` }} />
