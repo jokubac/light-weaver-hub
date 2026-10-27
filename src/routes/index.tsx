@@ -711,11 +711,24 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
 
   const exit = () => { save(); onExit(); };
 
-  const updateSelected = (patch: Partial<PatchedFixture>) =>
+  const OUT_KEYS = new Set(["intensity", "cct", "gm", "hue", "saturation", "crossfade", "cctOnly", "fx", "on", "fxPlaying", "fan", "gel", "beam"]);
+  const hintMaster = () => {
+    if (masterHintOff || master > 0 || Date.now() - masterHintTs.current < 8000) return;
+    masterHintTs.current = Date.now();
+    setMasterHint(true);
+  };
+  const updateSelected = (patch: Partial<PatchedFixture>) => {
+    if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
     setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch } : f)));
-  const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) =>
+  };
+  const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => {
+    hintMaster();
     setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...fn(f) } : f)));
-  const updateOne = (id: string, patch: Partial<PatchedFixture>) => setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
+  };
+  const updateOne = (id: string, patch: Partial<PatchedFixture>) => {
+    if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
+    setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch } : f)));
+  };
 
   const fire = (kind: TriggerKind) => {
     const targets = selected.length ? selected : fixtures.map((f) => f.uid);
