@@ -10,7 +10,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
 import { NoxLogo } from "@/components/NoxLogo";
 import { APP_VERSION } from "@/lib/app-version";
-import { useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type SetStateAction } from "react";
 import {
   ArrowLeft,
   Plus,
