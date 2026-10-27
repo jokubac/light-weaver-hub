@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEffect, useState } from "react";
-import { Music, Trash2, FolderOpen, Keyboard, Plus, ChevronDown } from "lucide-react";
+import { Music, Trash2, FolderOpen, Keyboard, Plus, ChevronDown, Languages } from "lucide-react";
 import { MACRO_ACTIONS, type Macro, type MacroAction } from "@/lib/macros";
 import { TRIGGERS } from "@/lib/dmx";
 import { Button } from "@/components/ui/button";
@@ -38,8 +38,14 @@ export function SettingsDialog({ open, onOpenChange, onSetups, midi, setMidi, ta
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader><DialogTitle>{tr("Settings")}</DialogTitle><p className="font-mono text-xs text-muted-foreground">{tr("NOX v")}{APP_VERSION}</p></DialogHeader>
+        <DialogHeader><DialogTitle>{tr("Settings")}</DialogTitle><p className="font-mono text-xs text-muted-foreground">NOX v{APP_VERSION}</p></DialogHeader>
         <div className="space-y-5 text-xs">
+          <label className="flex items-center justify-between gap-2 rounded-md bg-surface-elevated px-3 py-2 font-semibold">
+            <span className="flex items-center gap-1.5"><Languages className="h-4 w-4" />{tr("Language")}</span>
+            <select value={lang} dir="ltr" onChange={(e) => { const v = e.target.value; setLang(v); setLangLocal(v); }} className="max-w-[60%] rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none focus:border-primary">
+              {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+            </select>
+          </label>
           <Button variant="secondary" className="w-full" onClick={() => { onOpenChange(false); onSetups(); }}><FolderOpen />{tr("Project setups")}</Button>
 
           <Collapsible className="space-y-2">
