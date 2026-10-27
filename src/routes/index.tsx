@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { pickPattern } from "@/lib/select-pattern";
 import { subscribeLang, langVersion, loadSavedLang, getLang, isRtl } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
