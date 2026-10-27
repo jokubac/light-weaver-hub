@@ -56,10 +56,9 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     const t = fixtures.findIndex((f) => f.uid === drag.target);
     if (t < 0) return null;
     const block = dragBlock(drag.uid);
-    const next = movePatchBlock(fixtures, block, blockLanding(fixtures, block, t).insertAt);
-    const set = new Set(block);
-    // rows (by uid in the current list) whose position the block will take
-    return new Set(blockLanding(fixtures, block, t).rows.map((i) => next[i]).filter((f) => f && !set.has(f.uid)).map((f) => f!.uid).concat(fixtures.filter((_, i) => blockLanding(fixtures, block, t).rows.includes(i)).map((f) => f.uid)));
+    // highlight the slots (current rows) the block will occupy after the drop
+    const slots = blockLanding(fixtures, block, t).rows;
+    return new Set(slots.map((i) => fixtures[i]?.uid).filter((u): u is string => !!u));
   })();
   const lastPick = useRef<string | null>(null);
   const rowClick = (e: React.MouseEvent, uid: string) => {
