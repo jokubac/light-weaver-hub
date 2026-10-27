@@ -1583,7 +1583,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       )}
       {seqOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
-        <TimelinePanel timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}
+        <TimelinePanel onSaveAs={(n) => onTimelines([{ id: uid(), name: n.trim() || `Timeline ${(project.timelines ?? []).length + 1}`, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])])} timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}
           onPlay={() => playSeq()} onPause={pauseSeq} onStop={stopSeq} onGo={goSeq} waiting={seqWait != null} repeat={seqRepeat} onRepeat={() => setSeqRepeat((r) => !r)} groups={groups} onSeek={seekSeq} fixtures={fixtures} selected={selected} recordings={recordings}
           layers={seqHold.current?.layers ?? layers} activeClips={seqActive} audioPeaks={audioPeaks}
           colorOf={(f) => { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const px = frame.get(f.uid); if (px?.length) { const n = px.length; const pv = of.on === false ? 0 : of.intensity * outLevel; return [0, 1, 2].map((k) => Math.round((px.reduce((a, c) => a + c[k]!, 0) / n) * pv)) as RGB; } const st = fixtureState(of, t, outLevel); return st.rgb.map((c) => Math.round(c * st.v)) as RGB; }}

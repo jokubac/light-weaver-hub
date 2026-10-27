@@ -79,7 +79,8 @@ const fits = (t: { adjust?: boolean | undefined } | undefined, c: TimelineClip) 
 const hasKeys = (c: TimelineClip) => c.kind === "level" || c.kind === "adjust";
 const field = "w-16 rounded border border-input bg-surface-elevated px-1 py-1 text-right font-mono text-xs";
 
-export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, playing, onPlay, onPause, onStop, onGo, waiting, repeat, onRepeat, groups, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio, colorOf }: {
+export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, playing, onPlay, onPause, onStop, onGo, waiting, repeat, onRepeat, groups, onSeek, fixtures, selected, recordings, layers, activeClips, audioPeaks, onAudio, onRemoveAudio, colorOf, onSaveAs }: {
+  onSaveAs?: (name: string) => void;
   timeline: Timeline; setTimeline: (t: Timeline) => void; time: number; playing: boolean;
   onPlay: () => void; onPause: () => void; onStop: () => void; onGo: () => void; waiting: boolean; repeat: boolean; onRepeat: () => void; groups: string[]; onSeek: (t: number) => void;
   fixtures: PatchedFixture[]; selected: string[]; recordings: Recording[]; layers: PixelLayer[]; activeClips: string[];
@@ -117,6 +118,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
   const snapT = (t: number, skip: string[]) => magnet ? snapTime(t, [time, ...beats(timeline.bpm, len), ...timeline.clips.filter((c) => !skip.includes(c.id)).flatMap((c) => [c.start, c.start + c.length])], 10 / zoom) : t;
   const marqRef = useRef<{ idx: number; x: number; top: number; left: number; moved: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const fxRef = useRef<HTMLInputElement>(null);
   const len = Math.max(30, timelineLength(timeline) + 10, time + 5);
   const clip = sel.length === 1 ? timeline.clips.find((c) => c.id === sel[0]) : undefined;
   const selClips = timeline.clips.filter((c) => sel.includes(c.id));
@@ -307,6 +309,10 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
         <Button variant="secondary" size="sm" title={trUI("Adjustment layer — changes brightness and colour of every layer below it")} onClick={addAdjust}><SlidersHorizontal />{trUI("Adjust")}</Button>
         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}><Music />{timeline.audio ? trUI("Replace audio") : trUI("Add audio")}</Button>
         <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAudio(f); e.target.value = ""; }} />
+        <Button variant="secondary" size="sm" title={trUI("Save this timeline for later")} onClick={() => { const n = prompt(trUI("Timeline name"), ""); if (n !== null) onSaveAs?.(n); }}>{trUI("Save")}</Button>
+        <Button variant="secondary" size="sm" title={trUI("Export this timeline as an effect file")} onClick={() => { const b = new Blob([JSON.stringify({ nox: "timeline-effect", v: 1, timeline }, null, 1)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "timeline-effect.noxfx.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }}>{trUI("Export effect")}</Button>
+        <Button variant="secondary" size="sm" title={trUI("Import a timeline effect file")} onClick={() => fxRef.current?.click()}>{trUI("Import effect")}</Button>
+        <input ref={fxRef} type="file" accept=".json,application/json" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; try { const d = JSON.parse(await f.text()); const tl = d?.timeline ?? d; if (!Array.isArray(tl?.tracks) || !Array.isArray(tl?.clips)) throw 0; setTimeline(tl); } catch { alert(trUI("This file is not a timeline effect.")); } }} />
         <span aria-hidden className="mx-1 h-6 w-px bg-border" />
         <Button variant={viz ? "default" : "secondary"} size="sm" title={trUI("Show or hide the light visualiser")} onClick={() => setViz((v) => !v)}><MonitorPlay />{trUI("Visualiser")}</Button>
         <Button variant="secondary" size="sm" title={trUI("Select every clip")} onClick={() => setSel(timeline.clips.map((c) => c.id))}><MousePointerSquareDashed />{trUI("Select all")}</Button>
@@ -318,7 +324,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {viz && <TimelineVisualiser fixtures={fixtures} timeline={timeline} time={time} recordings={recordings} setTimeline={setTimeline} colorOf={colorOf} onClose={() => setViz(false)} onPicked={(id) => { setSel([id]); setKeySel(null); }} />}
       <Minimap timeline={timeline} len={len} time={time} zoom={zoom} scroller={scroller} />
-      <div ref={scroller} className="min-h-0 flex-1 overflow-auto">
+      <div ref={scroller} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="relative" style={{ width: HEAD + len * zoom }}>
           {/* ruler */}
           <div className="sticky top-0 z-[35] flex h-7 border-b border-border bg-surface hw-ruler">
@@ -343,7 +349,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
                 <button aria-label={t.muted ? "Show layer" : "Hide layer"} title={t.muted ? "Turn layer on" : "Turn layer off"} onClick={() => setTimeline({ ...timeline, tracks: timeline.tracks.map((x) => (x.id === t.id ? { ...x, muted: !x.muted } : x)) })} className="text-muted-foreground">{t.muted ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button>
                 {timeline.tracks.length > 1 && <button aria-label={trUI("Delete layer")} onClick={() => { if (!timeline.clips.some((c) => c.track === t.id) || confirm(`Delete ${t.name} and its clips?`)) { setTimeline({ ...timeline, tracks: timeline.tracks.filter((x) => x.id !== t.id), clips: timeline.clips.filter((c) => c.track !== t.id) }); setSel([]); } }} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
               </div>
-              <div data-track={t.id} className={`relative flex-1 ${i % 2 ? "bg-muted/15" : ""} ${t.locked ? "[&>div]:cursor-not-allowed" : ""}`} style={t.opacity != null && t.opacity < 1 ? { opacity: 0.4 + 0.6 * t.opacity } : undefined} onPointerDown={(e) => laneDown(e, t.id)} onPointerMove={laneMove} onPointerUp={laneUp}>
+              <div data-track={t.id} className={`relative flex-1 touch-none ${i % 2 ? "bg-muted/15" : ""} ${t.locked ? "[&>div]:cursor-not-allowed" : ""}`} style={t.opacity != null && t.opacity < 1 ? { opacity: 0.4 + 0.6 * t.opacity } : undefined} onPointerDown={(e) => laneDown(e, t.id)} onPointerMove={laneMove} onPointerUp={laneUp}>
                 {timeline.clips.filter((c) => c.track === t.id).map((c) => (
                   <div key={c.id} onPointerDown={(e) => { if (t.locked) { e.stopPropagation(); setSel([c.id]); return; } down(e, c, "move"); }} onDoubleClick={(e) => { if (!t.locked) addKey(e, c); }}
                     className={`absolute top-1 bottom-1 cursor-grab touch-none select-none overflow-hidden rounded-md border px-2 text-xs text-foreground ${KIND_STYLE[c.kind]} ${sel.includes(c.id) ? "ring-2 ring-foreground" : ""} ${activeClips.includes(c.id) ? "brightness-125" : ""}`}
@@ -404,7 +410,7 @@ export function TimelinePanel({ timeline, setTimeline: setTimelineRaw, time, pla
             onPointerMove={(e) => { const d = phDrag.current; if (!d) return; onSeek(snapT(Math.max(0, d.t + (e.clientX - d.x) / zoom), [])); }}
             onPointerUp={() => { phDrag.current = null; }} />
         </div>
-        {timeline.clips.length === 0 && <p className="sticky left-0 mx-auto max-w-2xl p-6 text-center text-sm text-muted-foreground">{trUI("Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, drag their edges to trim. The top layer wins where clips overlap.")}</p>}
+        {timeline.clips.length === 0 && <p className="sticky left-0 mx-auto max-w-2xl p-6 text-center text-sm text-muted-foreground">{trUI("Select lights, move the red playhead and add effects, pixel effects, REC sequences or fades. Drag clips to move them, use the minimap to move along the timeline, drag their edges to trim. The top layer wins where clips overlap.")}</p>}
         {timeline.clips.length > 0 && <p className="sticky left-0 mx-auto max-w-3xl px-6 py-2 text-center text-xs text-muted-foreground">{trUI("Click a clip to pick it. Shift-click adds clips to the selection, drag a box across empty space (over several layers) to select several; double-click a brightness clip to add a point, then drag any one of them to move the whole group. Ctrl/Cmd+A picks everything, Esc clears.")}</p>}
       </div>
       </div>
