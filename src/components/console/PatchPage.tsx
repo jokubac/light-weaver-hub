@@ -2,7 +2,8 @@ import { MAX_UNIVERSE } from "@/lib/dmx";
 import { cctRangeOverride } from "@/lib/gdtf-curation";
 import type { CallSheetData } from "@/lib/store";
 import { groupNamesOf, groupText, groupsPatch } from "@/lib/fixture-groups";
-import { Fragment as Frag, useRef, useState } from "react";
+import { Fragment as Frag, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, Tag, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,7 +16,7 @@ import { CallSheet } from "./CallSheet";
 import { LabelPrinter } from "./LabelPrinter";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick, patchClashes } from "@/lib/patch-order";
 
 import { t as tr } from "@/lib/i18n";
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
@@ -65,6 +66,8 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     const slots = blockLanding(fixtures, block, t).rows;
     return new Set(slots.map((i) => fixtures[i]?.uid).filter((u): u is string => !!u));
   })();
+  /** the rows a drag carries with it, resolved once instead of once per row */
+  const dragging = useMemo(() => (drag ? new Set(picked.includes(drag.uid) && picked.length > 1 ? picked : [drag.uid]) : null), [drag, picked]);
   const lastPick = useRef<string | null>(null);
   const rowClick = (e: React.MouseEvent, uid: string) => {
     if ((e.target as HTMLElement).closest("input,button,select,a,[role=checkbox]")) return;
@@ -93,9 +96,43 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     const names = fixtures.filter((f) => picked.includes(f.uid)).map((f) => f.name);
     if (confirm(`Unpatch ${names.length === 1 ? `"${names[0]}"` : `${names.length} fixtures`}? This cannot be undone.`)) { onRemove(picked); setPicked([]); }
   };
-  const groupNames = groupNamesOf(fixtures);
+  const groupNames = useMemo(() => groupNamesOf(fixtures), [fixtures]);
   const fileRef = useRef<HTMLInputElement>(null);
-  const rows = patchRows(fixtures, null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const rows = useMemo(() => patchRows(fixtures, null), [fixtures]);
+  const pickedSet = useMemo(() => new Set(picked), [picked]);
+  /** One pass over the patch instead of an overlap scan for every row. */
+  const clashes = useMemo(() => patchClashes(fixtures), [fixtures]);
+  /** A 3 000-light sheet must not put 3 000 rows in the page — only the visible band is rendered. */
+  const ROW_H = 34;
+  const [full, setFull] = useState(false); // printing wants every row on the page
+  const virtual = !full && rows.length > 160;
+  const [win, setWin] = useState({ first: 0, last: 90 });
+  useEffect(() => {
+    // flushSync so the browser prints the whole sheet, not just the band that was on screen
+    const before = () => flushSync(() => setFull(true));
+    const after = () => flushSync(() => setFull(false));
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => { window.removeEventListener("beforeprint", before); window.removeEventListener("afterprint", after); };
+  }, []);
+  useEffect(() => {
+    const sc = mainRef.current;
+    if (!sc || !virtual) return;
+    const update = () => {
+      const base = (tableRef.current?.getBoundingClientRect().top ?? 0) - sc.getBoundingClientRect().top + sc.scrollTop;
+      const at = sc.scrollTop - base;
+      const first = Math.max(0, Math.floor(at / ROW_H) - 12);
+      const last = Math.min(rows.length, Math.ceil((at + sc.clientHeight) / ROW_H) + 12);
+      setWin((w) => (w.first === first && w.last === last ? w : { first, last }));
+    };
+    update();
+    sc.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => { sc.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
+  }, [virtual, rows.length]);
+  const first = virtual ? win.first : 0;
+  const last = virtual ? Math.max(win.last, first + 20) : rows.length;
   const exportPatch = async () => {
     const data = JSON.stringify({ kind: "nox-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
     try { await saveFile(new Blob([data], { type: "application/json" }), `${safeFileName(title, "patch")}.nox-patch.json`); }
