@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ClipboardPaste, Copy, Delete, GripVertical, Undo2, Redo2, X } from "lucide-react";
-import { parseCommand } from "@/lib/command-line";
+import { parseCommand, type CommandResult } from "@/lib/command-line";
 import { Button } from "@/components/ui/button";
 
 import { t as tr } from "@/lib/i18n";
@@ -9,6 +9,8 @@ interface Props {
   selectedNums?: number[];
   onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number, pattern?: { step: number; offset: number }) => void;
   onStep: (dir: 1 | -1) => void;
+  /** REC from the command line; returns a confirmation or an error message */
+  onRec?: (rec: NonNullable<CommandResult["rec"]>) => string;
   onFlash: () => void;
   onPreview?: (select: number[]) => void;
   onCopy?: () => void;
@@ -24,7 +26,7 @@ interface Props {
 
 const KEYS = ["7", "8", "9", "THRU", "4", "5", "6", "+", "1", "2", "3", "-", "OUT", "0", ".", "@", "FULL"];
 
-export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPreview, onCopy, onPaste, canPaste, onClose, onDeselect, onUndo, onRedo, canUndo, canRedo }: Props) {
+export function Keypad({ count, selectedNums = [], onRun, onStep, onRec, onFlash, onPreview, onCopy, onPaste, canPaste, onClose, onDeselect, onUndo, onRedo, canUndo, canRedo }: Props) {
   const [cmd, setCmd] = useState("");
   const [ext, setExt] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
     const r = parseCommand(cmd, count);
     if (r.error) { setMsg(r.error); return; }
     onRun(r.select, r.level, r.cct, r.levelDelta, r.cctDelta, r.pattern);
+    if (r.rec) { const m = onRec?.(r.rec) ?? "REC is not available here"; if (!m.startsWith("✓")) { setMsg(m); return; } }
     setMsg(`✓ ${cmd.trim()}`);
     setCmd("");
   };
@@ -75,6 +78,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onFlash, onPre
       </div>
       <div className="flex gap-1.5">
         {ext && <div className="grid w-24 shrink-0 grid-cols-1 gap-1.5" aria-label={tr("Extended keys")}>
+          {["REC", "MERGE", "OVERWRITE"].map((x) => <button key={x} title={x === "REC" ? tr("REC = cue · REC 5 · REC LOOK · REC FX · REC TIMELINE") : tr("Use after REC N")} onClick={() => press(x)} className={`${k} ${x === "REC" ? "text-destructive" : "text-primary"} text-[11px]`}>{x}</button>)}
           {["ODD", "EVEN", "NTH", "."].map((x) => <button key={x} title={x === "ODD" ? tr("Every other light — of the typed range, or of the selection (also expanded pixels)") : x === "EVEN" ? tr("Every other light, starting from the 2nd") : x === "NTH" ? tr("Every Nth light — e.g. 1 THRU 16 NTH 3") : undefined} onClick={() => (x === "." ? setCmd((c) => c + ".") : press(x))} className={`${k} text-primary`}>{x}</button>)}
           {["@ 10", "@ 25", "@ 50", "@ 75"].map((x) => <button key={x} onClick={() => setCmd((c) => `${c.split("@")[0]!.trimEnd()} ${x}`.trimStart())} className={k}>{x}</button>)}
           <button onClick={() => setCmd((c) => `${c.split("@")[0]!.trimEnd()} @ +10`.trimStart())} className={k}>+10%</button>

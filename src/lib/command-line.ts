@@ -12,7 +12,24 @@ export interface CommandResult {
   cctDelta?: number;
   /** ODD / EVEN / NTH with no numbers: thin the current selection (every `step`th, starting at `offset`) */
   pattern?: { step: number; offset: number };
+  /** "REC …": store the typed selection (or the current one). kind defaults to a cue. */
+  rec?: { kind: "cue" | "look" | "fx" | "timeline"; n?: number; mode?: "merge" | "overwrite" };
   error?: string;
+}
+
+/** Split "1 THRU 4 REC 5 MERGE" into the selection part and the REC target. */
+export function parseRec(tokens: string[]): CommandResult["rec"] | { error: string } {
+  const r = tokens.slice(tokens.indexOf("REC") + 1);
+  let kind: "cue" | "look" | "fx" | "timeline" = "cue";
+  if (r[0] && ["CUE", "LOOK", "FX", "TIMELINE"].includes(r[0])) kind = r.shift()!.toLowerCase() as typeof kind;
+  let n: number | undefined;
+  if (r[0] && /^\d+(\.\d+)?$/.test(r[0])) n = Number(r.shift());
+  let mode: "merge" | "overwrite" | undefined;
+  if (r[0] === "MERGE" || r[0] === "OVERWRITE") mode = r.shift()!.toLowerCase() as typeof mode;
+  if (r.length) return { error: `Unknown "${r[0]}" after REC` };
+  if (mode && kind !== "cue") return { error: "MERGE / OVERWRITE only apply to cues" };
+  if (mode && n == null) return { error: "MERGE / OVERWRITE need a cue number, e.g. REC 5 MERGE" };
+  return { kind, ...(n != null ? { n } : {}), ...(mode ? { mode } : {}) };
 }
 
 export function tokenize(cmd: string): string[] {
@@ -20,7 +37,16 @@ export function tokenize(cmd: string): string[] {
 }
 
 export function parseCommand(cmd: string, count: number): CommandResult {
-  const all = tokenize(cmd);
+  const toks = tokenize(cmd);
+  const ri = toks.indexOf("REC");
+  if (ri >= 0) {
+    const rec = parseRec(toks);
+    if (rec && "error" in rec) return { error: rec.error };
+    if (ri === 0) return { rec: rec! };
+    const head = parseCommand(toks.slice(0, ri).join(" "), count);
+    return head.error ? head : { ...head, rec: rec! };
+  }
+  const all = toks;
   const ci = all.indexOf("CCT");
   const t = ci < 0 ? all : all.slice(0, ci);
   let cct: number | undefined;

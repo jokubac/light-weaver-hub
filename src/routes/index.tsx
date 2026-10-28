@@ -1147,6 +1147,25 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     const command = { ...(level != null ? { level } : {}), ...(cct != null ? { cct } : {}), ...(levelDelta != null ? { levelDelta } : {}), ...(cctDelta != null ? { cctDelta } : {}) };
     setFixtures((fs) => fs.map((f) => ids.includes(f.uid) ? { ...f, ...commandPatch(f, command) } : f));
   };
+  /** Command-line REC: stores the selection (just set by runCommand) as a cue, look, REC step or saved timeline. */
+  const recFromCommand = (rec: NonNullable<CommandResult["rec"]>): string => {
+    const src = selectedRef.current.length ? fixtures.filter((f) => selectedRef.current.includes(f.uid)) : fixtures;
+    const states = src.map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) }));
+    if (rec.kind === "look") { onLooks([{ id: uid(), name: `Look ${(project.looks ?? []).length + 1}`, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); return "✓"; }
+    if (rec.kind === "timeline") { onTimelines([{ id: uid(), name: `Timeline ${(project.timelines ?? []).length + 1}`, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])]); return "✓"; }
+    if (rec.kind === "fx") { onRecordings([{ id: uid(), name: `FX ${(project.recordings ?? []).length + 1}`, createdAt: Date.now(), loop: true, steps: [{ states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })), fade: 1, hold: 1 } as never] }, ...(project.recordings ?? [])]); return "✓"; }
+    const existing = rec.n != null ? cues.find((c) => c.number === rec.n) : undefined;
+    if (existing && !rec.mode) return `Cue ${rec.n} exists — add MERGE or OVERWRITE`;
+    if (existing) {
+      const merged = rec.mode === "merge" ? [...existing.states.filter((s) => !states.some((n) => n.uid === s.uid)), ...states] : states;
+      onCues(cues.map((c) => (c.id === existing.id ? { ...c, states: merged } : c)));
+      return "✓";
+    }
+    const number = rec.n ?? nextCueNumber(cues);
+    const cue: Cue = { id: uid(), number, name: `Cue ${number}`, fade: 3, states };
+    onCues([...cues, cue]); setActiveCue(cue.id);
+    return "✓";
+  };
   const stepLight = (dir: 1 | -1, add = false) => {
     const ids = fixtures.map((f) => f.uid);
     // after Select was pressed, Next/Previous only move the cursor so you can walk to any light and Select it too
@@ -1730,7 +1749,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         {groupsOpen && groupsAside()}
       </div>
       )}
-      {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
+      {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onRec={recFromCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
       {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
       {masterHint && outputBlocker() && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
