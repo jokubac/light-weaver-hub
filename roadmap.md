@@ -325,3 +325,5 @@
 
 - [x] FADERS: timeline/REC faders, more params, MIDI learn, fades & curves
 - [x] FADERS: lowest/highest limits per fader
+
+- [x] Remove the "Faders" row from the top ••• menu and its duplicate bottom fader bar; the full-screen FADERS tab stays; 440 tests, typecheck clean, browser verified menu now Blind/Monitor/Red Shift/Settings.
