@@ -327,3 +327,13 @@
 - [x] FADERS: lowest/highest limits per fader
 
 - [x] Remove the "Faders" row from the top ••• menu and its duplicate bottom fader bar; the full-screen FADERS tab stays; 440 tests, typecheck clean, browser verified menu now Blind/Monitor/Red Shift/Settings.
+
+## Competitor pack (Oct 2026)
+- [x] Niimbot patch labels (BLE print D11/D110/B1/B21 + PNG/PDF)
+- [x] Day mode (high-contrast light theme)
+- [x] Command line REC / REC N MERGE|OVERWRITE / REC LOOK / REC FX / REC TIMELINE
+- [x] Stream Deck (WebHID): look keys in look colour + Blackout key
+- [ ] Moving head position grid from plot + movement FX
+- [ ] CRMX Link button — needs verified pairing protocol per node
+- [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console
+- [x] Resilience: logs/undo capped, Hold Last State on by default, relaunch reopens last console

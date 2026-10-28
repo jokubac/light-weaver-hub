@@ -5,6 +5,8 @@ import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
 import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
 import { outputChanged } from "@/lib/output-hint";
 import { Button } from "@/components/ui/button";
+import type { CommandResult } from "@/lib/command-line";
+import { connectDeck, disconnectDeck, paintDeck } from "@/lib/stream-deck";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
@@ -64,7 +66,7 @@ import { SavePopover } from "@/components/console/SavePopover";
 import { FanPopover } from "@/components/console/FanPopover";
 import { ScreenLock } from "@/components/console/ScreenLock";
 import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
-import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2, Moon, Gauge, ParkingSquare, MoreHorizontal } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2, Moon, Sun, Gauge, ParkingSquare, MoreHorizontal } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
 import { applyLook } from "@/components/console/LooksPanel";
@@ -136,8 +138,11 @@ type View =
 
 function App() {
   useSyncExternalStore(subscribeLang, langVersion, langVersion);
+  useEffect(() => { document.documentElement.classList.toggle("day", localStorage.getItem("nox-day") === "1"); }, []);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const projectsRef = useRef<Project[]>([]);
+  projectsRef.current = projects;
   const [view, setView] = useState<View>({ name: "projects" });
 
   const { user } = useUser();
@@ -153,9 +158,20 @@ function App() {
   }, [langVersion()]);
 
   useEffect(() => {
-    setProjects(loadProjects());
+    const ps = loadProjects();
+    setProjects(ps);
+    // Instant Recovery: reopen the console the app was on when it closed or the battery died.
+    try {
+      const v = JSON.parse(localStorage.getItem("nox-last-view") ?? "null") as View | null;
+      if (v?.name === "console" && ps.some((p) => p.id === v.projectId && p.scenes.some((sc) => sc.id === v.sceneId))) setView(v);
+    } catch { /* ignore */ }
     setLoaded(true);
   }, []);
+  useEffect(() => {
+    if (!loaded) return;
+    if (view.name === "console") localStorage.setItem("nox-last-view", JSON.stringify(view));
+    else localStorage.removeItem("nox-last-view");
+  }, [view, loaded]);
 
   // Immediate save on structural changes
   useEffect(() => {
@@ -184,8 +200,13 @@ function App() {
     return () => { clearTimeout(id); window.removeEventListener("crmx-favorites", push); window.removeEventListener("crmx-effects", push); };
   }, [user]);
 
-  const updateProject = (id: string, fn: (p: Project) => Project) =>
-    setProjects((ps) => ps.map((p) => (p.id === id ? fn(p) : p)));
+  // Written to local storage synchronously so a crash or flat battery right after an action loses nothing.
+  const updateProject = (id: string, fn: (p: Project) => Project) => {
+    const next = projectsRef.current.map((p) => (p.id === id ? fn(p) : p));
+    projectsRef.current = next;
+    try { saveProjects(next); } catch { /* storage full: the effect retries */ }
+    setProjects(next);
+  };
 
   if (!loaded) return <div className="min-h-screen bg-background" />;
 
@@ -614,6 +635,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [screenLocked, setScreenLocked] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);
   const [redShift, setRedShift] = useState(false);
+  const [dayMode, setDayMode] = useState(false);
+  useEffect(() => { setDayMode(localStorage.getItem("nox-day") === "1"); }, []);
+  useEffect(() => { document.documentElement.classList.toggle("day", dayMode); localStorage.setItem("nox-day", dayMode ? "1" : "0"); }, [dayMode]);
   useEffect(() => { setRedShift(localStorage.getItem("nox-red-shift") === "1"); }, []);
   useEffect(() => { document.documentElement.classList.toggle("red-shift", redShift); localStorage.setItem("nox-red-shift", redShift ? "1" : "0"); }, [redShift]);
   useEffect(() => {
@@ -710,6 +734,16 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [midi.enabled]);
 
+  // Flush right away when the app is hidden or killed, so nothing in the 400 ms debounce is lost.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    const flush = () => { try { saveRef.current(); } catch { /* ignore */ } };
+    const onVis = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVis);
+    return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
   useEffect(() => {
     const id = setTimeout(() => {
       save();
@@ -822,6 +856,28 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     setFixtures((fs) => applyLook(l, fs));
     setLastLook(l.id);
   };
+  // Stream Deck: one key per saved look (in the look's colour), last key = Blackout.
+  const [deck, setDeck] = useState<{ name: string; keys: number } | null>(null);
+  const deckPress = useRef<(i: number) => void>(() => {});
+  deckPress.current = (i) => {
+    if (!deck) return;
+    if (i === deck.keys - 1) return toggleBlackout();
+    const l = (project.looks ?? [])[i]; if (l) recallLook(l);
+  };
+  const connectStreamDeck = async () => {
+    if (deck) { await disconnectDeck(); setDeck(null); return; }
+    try { setDeck(await connectDeck((i) => deckPress.current(i))); }
+    catch (e) { alert((e as Error).message); }
+  };
+  useEffect(() => {
+    if (!deck) return;
+    const looks = project.looks ?? [];
+    const keys = Array.from({ length: deck.keys }, (_, i) => i === deck.keys - 1
+      ? { label: "Black out", color: bo.target === 1 ? "#ff3b30" : "#3a1010", active: bo.target === 1 }
+      : looks[i] ? { label: looks[i]!.name, color: looks[i]!.color ?? "#ffb000", active: looks[i]!.id === lastLook } : null);
+    void paintDeck(keys);
+  }, [deck, project.looks, lastLook, bo.target]);
+  useEffect(() => () => { void disconnectDeck(); }, []);
 
   const sel = fixtures.filter((f) => selected.includes(f.uid));
   // REC sequences
@@ -1143,6 +1199,26 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     if (select) { setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }
     const command = { ...(level != null ? { level } : {}), ...(cct != null ? { cct } : {}), ...(levelDelta != null ? { levelDelta } : {}), ...(cctDelta != null ? { cctDelta } : {}) };
     setFixtures((fs) => fs.map((f) => ids.includes(f.uid) ? { ...f, ...commandPatch(f, command) } : f));
+  };
+  /** Command-line REC: stores the selection (just set by runCommand) as a cue, look, REC step or saved timeline. */
+  const recFromCommand = (rec: NonNullable<CommandResult["rec"]>, select?: number[]): string => {
+    const ids = select ? select.map((n) => fixtures[n - 1]?.uid) : selected;
+    const src = ids.length ? fixtures.filter((f) => ids.includes(f.uid)) : fixtures;
+    const states = src.map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) }));
+    if (rec.kind === "look") { onLooks([{ id: uid(), name: `Look ${(project.looks ?? []).length + 1}`, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); return "✓"; }
+    if (rec.kind === "timeline") { onTimelines([{ id: uid(), name: `Timeline ${(project.timelines ?? []).length + 1}`, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])]); return "✓"; }
+    if (rec.kind === "fx") { onRecordings([{ id: uid(), name: `FX ${(project.recordings ?? []).length + 1}`, createdAt: Date.now(), loop: true, steps: [{ id: uid(), name: "Step 1", states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })), fadeIn: 1, hold: 1, fadeOut: 1 }] }, ...(project.recordings ?? [])]); return "✓"; }
+    const existing = rec.n != null ? cues.find((c) => c.number === rec.n) : undefined;
+    if (existing && !rec.mode) return `Cue ${rec.n} exists — add MERGE or OVERWRITE`;
+    if (existing) {
+      const merged = rec.mode === "merge" ? [...existing.states.filter((s) => !states.some((n) => n.uid === s.uid)), ...states] : states;
+      onCues(cues.map((c) => (c.id === existing.id ? { ...c, states: merged } : c)));
+      return "✓";
+    }
+    const number = rec.n ?? nextCueNumber(cues);
+    const cue: Cue = { id: uid(), number, name: `Cue ${number}`, fade: 3, states };
+    onCues([...cues, cue]); setActiveCue(cue.id);
+    return "✓";
   };
   const stepLight = (dir: 1 | -1, add = false) => {
     const ids = fixtures.map((f) => f.uid);
@@ -1580,6 +1656,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setMonitorOpen(true)}><Gauge />{tr("Monitor")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setRedShift((v) => !v)}><Moon />{tr("Red Shift")}{redShift ? tr("· ON") : tr("")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void connectStreamDeck()}><Keyboard />{deck ? `${tr("Stream Deck")} · ${deck.name}` : tr("Connect Stream Deck")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setDayMode((v) => !v)}><Sun />{tr("Day mode")}{dayMode ? tr("· ON") : tr("")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setSettingsOpen(true)}><SettingsIcon />{tr("Settings")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -1726,7 +1804,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         {groupsOpen && groupsAside()}
       </div>
       )}
-      {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
+      {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onRec={recFromCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
       {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
       {masterHint && outputBlocker() && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
