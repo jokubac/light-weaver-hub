@@ -6,6 +6,7 @@ import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, 
 import { outputChanged } from "@/lib/output-hint";
 import { Button } from "@/components/ui/button";
 import type { CommandResult } from "@/lib/command-line";
+import { connectDeck, disconnectDeck, paintDeck } from "@/lib/stream-deck";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
@@ -65,7 +66,7 @@ import { SavePopover } from "@/components/console/SavePopover";
 import { FanPopover } from "@/components/console/FanPopover";
 import { ScreenLock } from "@/components/console/ScreenLock";
 import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
-import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2, Moon, Sun, Gauge, ParkingSquare, MoreHorizontal } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2, Moon, Sun, Keyboard, Gauge, ParkingSquare, MoreHorizontal } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
 import { applyLook } from "@/components/console/LooksPanel";
@@ -826,6 +827,28 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     setFixtures((fs) => applyLook(l, fs));
     setLastLook(l.id);
   };
+  // Stream Deck: one key per saved look (in the look's colour), last key = Blackout.
+  const [deck, setDeck] = useState<{ name: string; keys: number } | null>(null);
+  const deckPress = useRef<(i: number) => void>(() => {});
+  deckPress.current = (i) => {
+    if (!deck) return;
+    if (i === deck.keys - 1) return toggleBlackout();
+    const l = (project.looks ?? [])[i]; if (l) recallLook(l);
+  };
+  const connectStreamDeck = async () => {
+    if (deck) { await disconnectDeck(); setDeck(null); return; }
+    try { setDeck(await connectDeck((i) => deckPress.current(i))); }
+    catch (e) { alert((e as Error).message); }
+  };
+  useEffect(() => {
+    if (!deck) return;
+    const looks = project.looks ?? [];
+    const keys = Array.from({ length: deck.keys }, (_, i) => i === deck.keys - 1
+      ? { label: "Black out", color: bo.target === 1 ? "#ff3b30" : "#3a1010", active: bo.target === 1 }
+      : looks[i] ? { label: looks[i]!.name, color: looks[i]!.color ?? "#ffb000", active: looks[i]!.id === lastLook } : null);
+    void paintDeck(keys);
+  }, [deck, project.looks, lastLook, bo.target]);
+  useEffect(() => () => { void disconnectDeck(); }, []);
 
   const sel = fixtures.filter((f) => selected.includes(f.uid));
   // REC sequences
@@ -1604,6 +1627,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setMonitorOpen(true)}><Gauge />{tr("Monitor")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setRedShift((v) => !v)}><Moon />{tr("Red Shift")}{redShift ? tr("· ON") : tr("")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void connectStreamDeck()}><Keyboard />{deck ? `${tr("Stream Deck")} · ${deck.name}` : tr("Connect Stream Deck")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setDayMode((v) => !v)}><Sun />{tr("Day mode")}{dayMode ? tr("· ON") : tr("")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setSettingsOpen(true)}><SettingsIcon />{tr("Settings")}</DropdownMenuItem>
           </DropdownMenuContent>
