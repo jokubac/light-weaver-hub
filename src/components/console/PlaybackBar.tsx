@@ -20,6 +20,8 @@ export interface PlaybackProps {
   onRecordCue: (name: string, after?: number) => void; onUpdateCueStates: (id: string) => void;
   progCount?: number; onProgClear?: () => void; onProgUpdate?: () => void;
   tcOn?: boolean; onTc?: () => void; tcNow?: number | null;
+  /** full-page FADERS window: tall faders filling the screen */
+  full?: boolean;
 }
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -45,7 +47,8 @@ export function PlaybackBar(p: PlaybackProps) {
   const setLevel = (i: number, level: number) => { const fd = p.bank[i]; if (fd) p.setBank(p.bank.map((x, k) => (k === i ? { ...x, level } : x))); };
 
   return (
-    <div aria-label={tr("Faders")} className="flex shrink-0 items-stretch gap-2 overflow-x-auto border-t border-border bg-surface px-3 py-2">
+    <div aria-label={tr("Faders")} className={p.full ? "flex min-h-0 flex-1 flex-col gap-3 overflow-hidden bg-background p-4" : "flex shrink-0 items-stretch gap-2 overflow-x-auto border-t border-border bg-surface px-3 py-2"}>
+      <div className={p.full ? "flex shrink-0 flex-wrap items-stretch gap-2 rounded-xl bg-surface p-2" : "contents"}>
       <div className="flex shrink-0 items-center gap-1.5">
         <Button variant="secondary" size="icon" aria-label={tr("Back one cue")} title={tr("Back (B)")} onClick={p.onBack} disabled={!sorted.length}><ChevronLeft /></Button>
         <button onClick={p.onGo} disabled={!sorted.length} aria-label={tr("GO")} title={tr("GO (Space)")}
@@ -82,21 +85,24 @@ export function PlaybackBar(p: PlaybackProps) {
           );
         })}
       </div>
+      </div>
+      <div className={p.full ? "grid min-h-0 flex-1 grid-cols-3 gap-3 overflow-auto lg:grid-cols-6" : "contents"}>
       {slots.map((fd, j) => {
         const i = base + j;
         const empty = !fd || (!fd.name && fd.kind === "fixtures" && !fd.uids?.length);
         return (
-          <div key={i} className="flex w-32 shrink-0 flex-col gap-1 rounded-lg bg-surface-elevated px-2 py-1">
-            <div className="flex items-center gap-1 text-[10px]">
+          <div key={i} className={p.full ? "flex min-h-[260px] flex-col gap-2 rounded-xl bg-surface-elevated p-3" : "flex w-32 shrink-0 flex-col gap-1 rounded-lg bg-surface-elevated px-2 py-1"}>
+            <div className={`flex items-center gap-1 ${p.full ? "text-sm" : "text-[10px]"}`}>
               <span className="font-mono text-muted-foreground">{i + 1}</span>
               <span className="min-w-0 flex-1 truncate font-semibold">{empty ? tr("Empty") : fd!.name}</span>
               <button onClick={() => setEdit(i)} aria-label={`Set up fader ${i + 1}`}><Settings2 className="h-3.5 w-3.5" /></button>
             </div>
             {empty ? (
-              <button onClick={() => setEdit(i)} className="rounded-md border border-dashed border-border py-1 text-[10px] text-muted-foreground">{tr("Assign")}</button>
+              <button onClick={() => setEdit(i)} className={`rounded-md border border-dashed border-border text-muted-foreground ${p.full ? "flex-1 text-sm" : "py-1 text-[10px]"}`}>{tr("Assign")}</button>
             ) : (
               <>
-                <input aria-label={`Fader ${i + 1} ${fd!.name}`} type="range" min={0} max={1} step={0.01} value={p.flash === fd!.id ? 1 : fd!.level} onChange={(e) => setLevel(i, +e.target.value)} />
+                <input aria-label={`Fader ${i + 1} ${fd!.name}`} type="range" min={0} max={1} step={0.01} value={p.flash === fd!.id ? 1 : fd!.level} onChange={(e) => setLevel(i, +e.target.value)}
+                  className={p.full ? "mx-auto min-h-0 w-10 flex-1 accent-primary" : undefined} style={p.full ? { writingMode: "vertical-lr", direction: "rtl" } : undefined} />
                 <div className="flex gap-1">
                   <button onPointerDown={() => p.setFlash(fd!.id)} onPointerUp={() => p.setFlash(null)} onPointerLeave={() => p.flash === fd!.id && p.setFlash(null)} onContextMenu={(e) => e.preventDefault()}
                     className={`flex-1 rounded px-1 py-0.5 text-[9px] font-bold select-none ${p.flash === fd!.id ? "bg-amber-glow text-primary-foreground" : "bg-background"}`}>{tr("FLASH")}</button>
@@ -109,6 +115,7 @@ export function PlaybackBar(p: PlaybackProps) {
           </div>
         );
       })}
+      </div>
       {edit != null && <FaderSetup i={edit} fd={p.bank[edit]} {...p} onClose={() => setEdit(null)} onSave={(fd) => { setSlot(edit, fd); setEdit(null); }} />}
       <CueDialog open={cuesOpen} onOpenChange={setCuesOpen} {...p} />
     </div>
