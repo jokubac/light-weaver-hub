@@ -334,7 +334,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                         <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
                       </td>
                     </tr>
-                    {editing === f.uid && <tr className="print:hidden"><td colSpan={11} className="bg-surface p-3">
+                    {editing === f.uid && <tr className="print:hidden"><td ref={setEditor} colSpan={11} className="bg-surface p-3">
                       <div className="grid gap-3 md:grid-cols-2">
                         <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                         <div className="space-y-2">
@@ -356,13 +356,13 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                           {clash && <p role="alert" className="text-[11px] text-destructive">{tr("Overlaps")}{overlaps(fixtures, f.universe, f.address, ch, f.uid).map((fixture) => fixture.name).join(", ")}</p>}
                           <div className="text-[10px] font-semibold uppercase text-muted-foreground">{tr("Colour")}</div>
                           <div className="flex flex-wrap gap-1.5">{LABEL_COLORS.map((c) => <button key={c} onClick={() => onUpdate(f.uid, { label: c })} aria-label={`Colour ${c}`} className={`h-7 w-7 rounded-full border-2 ${f.label === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
-                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">{tr("Groups")}<input list="patch-groups" value={groupText(f)} onChange={(e) => onUpdate(f.uid, groupsPatch(e.target.value.split(",")))} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
+                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">{tr("Groups")}<input list="patch-groups" enterKeyHint="done" value={groupText(f)} onChange={(e) => onUpdate(f.uid, groupsPatch(e.target.value.split(",")))} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
                         </div>
                       </div>
                     </td></tr>}</Frag>
                   );
                 })}
-                {last < rows.length && <tr aria-hidden="true" style={{ height: (rows.length - last) * ROW_H }}><td colSpan={11} className="p-0" /></tr>}
+                {last < rows.length && <tr aria-hidden="true" style={{ height: Math.max(0, rows.length * ROW_H + (expanded?.extra ?? 0) - patchOffset(last, ROW_H, expanded)) }}><td colSpan={11} className="p-0" /></tr>}
               </tbody>
             </table>
           )}
