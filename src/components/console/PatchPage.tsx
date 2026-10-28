@@ -31,6 +31,36 @@ export function describeDef(d: FixtureDef): { type: string; cct: string } {
   return { type, cct };
 }
 
+/**
+ * The name field holds its own draft while typing and writes the light once, on blur or Enter.
+ * A keystroke must not re-render a 3 000-light sheet — that is what throws a tablet's keyboard out.
+ * Enter walks to the next light, so a run of names can be typed without the keyboard closing.
+ */
+function RowName({ f, onUpdate, onNext }: {
+  f: PatchedFixture; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void; onNext: (uid: string, dir: 1 | -1) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const live = useRef({ draft, name: f.name, uid: f.uid, onUpdate });
+  live.current = { draft, name: f.name, uid: f.uid, onUpdate };
+  const commit = () => {
+    const s = live.current;
+    if (s.draft !== null && s.draft !== s.name && s.draft.trim() !== "") s.onUpdate(s.uid, { name: s.draft });
+    setDraft(null);
+  };
+  /** a light that scrolls out of the sheet, or a PATCH view that closes, must not lose a name being typed */
+  useEffect(() => () => commit(), []);
+  return (
+    <input data-patch-name={f.uid} enterKeyHint="next" value={draft ?? f.name} aria-label={tr("Fixture name")}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { e.preventDefault(); commit(); onNext(f.uid, e.shiftKey ? -1 : 1); }
+        if (e.key === "Escape") setDraft(null);
+      }}
+      className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" />
+  );
+}
+
 /** Full-screen patch sheet with the fixture library and map stacked below it. */
 export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, onAdd, onRemove, onUpdate, onReplace, onReorder }: {
   title: string; callSheet?: CallSheetData | undefined; onCallSheet?: (c: CallSheetData) => void; fixtures: PatchedFixture[]; onClose: () => void;
