@@ -72,7 +72,7 @@ const WORD: Record<string, string[]> = {
 };
 /** Reads an Astera GDTF mode name such as "193: D16 CCT GM C CRO XY S" into an exact per-pixel layout. */
 export function asteraSpecFromName(name: string, channels: number): AsteraSpec | undefined {
-  const m = /^\s*(\d+):\s*([A-Z0-9 ]+)/.exec(name);
+  const m = /^\s*(\d+):?\s*([A-Z0-9 ]+)/.exec(name); // colon optional: Astera's own charts write "89 D CCT GM CRO RGB"
   if (!m) return undefined;
   const words = m[2]!.trim().split(/\s+/);
   const strobe = words[words.length - 1] === "S";
