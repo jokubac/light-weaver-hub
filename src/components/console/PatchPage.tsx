@@ -13,7 +13,7 @@ import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixtur
 import { CallSheet } from "./CallSheet";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick } from "@/lib/patch-order";
 
 import { t as tr } from "@/lib/i18n";
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
