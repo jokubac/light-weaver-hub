@@ -31,7 +31,17 @@ describe("new fader parameters", () => {
 describe("REC / timeline faders", () => {
   it("scale their lights while up and leave them alone at zero", () => {
     const extra = { "rec:r1": ["a"] };
-    expect(applyBank([fx("a")], [fader({ kind: "rec", ref: "r1", level: 0.4, uids: undefined })], [], null, null, extra)[0]!.intensity).toBeCloseTo(0.4);
-    expect(applyBank([fx("a")], [fader({ kind: "rec", ref: "r1", level: 0, uids: undefined })], [], null, null, extra)[0]!.intensity).toBe(1);
+    expect(applyBank([fx("a")], [{ id: "f", name: "F", kind: "rec", ref: "r1", level: 0.4 }], [], null, null, extra)[0]!.intensity).toBeCloseTo(0.4);
+    expect(applyBank([fx("a")], [{ id: "f", name: "F", kind: "rec", ref: "r1", level: 0 }], [], null, null, extra)[0]!.intensity).toBe(1);
+  });
+});
+
+describe("fader limiter", () => {
+  it("lowest 20% / highest 80%: bottom gives 20%, top gives 80%, half gives 50%", () => {
+    const f = (level: number) => applyBank([fx("a")], [fader({ level, min: 0.2, max: 0.8 })], [])[0]!.intensity;
+    expect(f(0)).toBeCloseTo(0.2); expect(f(1)).toBeCloseTo(0.8); expect(f(0.5)).toBeCloseTo(0.5);
+  });
+  it("FLASH respects the highest point", () => {
+    expect(applyBank([fx("a")], [fader({ level: 0, max: 0.6 })], [], "f")[0]!.intensity).toBeCloseTo(0.6);
   });
 });

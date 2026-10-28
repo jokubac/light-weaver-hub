@@ -324,3 +324,4 @@
 - [x] Fader bar: explained the PROG (programmer changes since the stored cue) and TC (follow MIDI timecode) buttons to the user.
 
 - [ ] FADERS: more control options (user request, scope TBD)
+- [ ] FADERS: lowest/highest limits per fader

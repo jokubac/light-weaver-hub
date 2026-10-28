@@ -32,6 +32,11 @@ export function faderCurve(curve: BankFader["curve"], x: number): number {
     default: return v;
   }
 }
+/** Fader travel → output level: curve, then squeezed into the limiter range [min, max]. */
+export function faderOutput(fd: BankFader, x: number): number {
+  const lo = Math.min(1, Math.max(0, fd.min ?? 0)), hi = Math.min(1, Math.max(lo, fd.max ?? 1));
+  return lo + faderCurve(fd.curve, x) * (hi - lo);
+}
 /** Lights driven by timeline/REC faders, keyed "timeline" and "rec:<id>". */
 export type ExtraMembers = Record<string, string[]>;
 
@@ -79,7 +84,7 @@ export function applyBank(fixtures: PatchedFixture[], bank: BankFader[] | undefi
     for (const { fd, m } of order) {
       if (!m.has(f.uid)) continue;
       const flashing = flash === fd.id;
-      const level = flashing ? 1 : fd.off ? 0 : faderCurve(fd.curve, fd.level);
+      const level = fd.off ? 0 : flashing ? faderOutput(fd, 1) : fd.level <= 0 && (fd.kind === "timeline" || fd.kind === "rec") ? 0 : faderOutput(fd, fd.level);
       const param = fd.param ?? "intensity";
       if (fd.kind === "look") {
         if (level <= 0) continue;

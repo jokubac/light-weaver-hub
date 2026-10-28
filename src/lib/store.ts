@@ -84,6 +84,9 @@ export interface BankFader {
   fadeOut?: number | undefined;
   /** response curve from fader travel to output */
   curve?: "linear" | "s" | "log" | "exp" | undefined;
+  /** limiter: fader bottom/top map to these output levels (0..1) */
+  min?: number | undefined;
+  max?: number | undefined;
   /** up to two buttons under the fader */
   buttons?: ("flash" | "solo" | "onoff" | "full" | "zero")[];
   color?: "primary" | "success" | "warning" | "destructive" | "accent" | "muted";

@@ -308,13 +308,14 @@ function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave,
   const [fadeIn, setFadeIn] = useState(fd?.fadeIn ?? 0);
   const [fadeOut, setFadeOut] = useState(fd?.fadeOut ?? 0);
   const [curve, setCurve] = useState<NonNullable<BankFader["curve"]>>(fd?.curve ?? "linear");
+  const [lim, setLim] = useState<[number, number]>([Math.round((fd?.min ?? 0) * 100), Math.round((fd?.max ?? 1) * 100)]);
   const recs = recordings ?? [];
   const uids = fd?.kind === "fixtures" && fd.uids?.length && !selected.length ? fd.uids : selected;
   const opt = (a: boolean) => `flex-1 rounded-md py-2 text-xs font-semibold ${a ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`;
   const save = () => {
     const auto = kind === "group" ? ref : kind === "look" ? looks.find((l) => l.id === ref)?.name ?? "Look" : kind === "master" ? "Master" : kind === "timeline" ? "Timeline" : kind === "rec" ? recs.find((r) => r.id === ref)?.name ?? "REC" : `${uids.length} lights`;
     const keep = fd?.kind === kind && (fd.param ?? "intensity") === param;
-    onSave({ id: fd?.id && !fd.id.startsWith("empty") ? fd.id : newId(), name: name.trim() || auto, kind, ...(kind === "fixtures" ? { uids } : kind === "master" || kind === "timeline" ? {} : { ref }), fadeIn, fadeOut, curve,
+    onSave({ id: fd?.id && !fd.id.startsWith("empty") ? fd.id : newId(), name: name.trim() || auto, kind, ...(kind === "fixtures" ? { uids } : kind === "master" || kind === "timeline" ? {} : { ref }), fadeIn, fadeOut, curve, min: lim[0] / 100, max: lim[1] / 100,
       ...(kind === "group" || kind === "fixtures" ? { param } : {}), buttons: btns, color,
       level: keep ? fd!.level : kind === "look" || kind === "timeline" || kind === "rec" || (param !== "intensity" && kind !== "master") ? 0 : 1, ...(keep && fd?.touched ? { touched: fd.touched } : {}) });
   };
@@ -364,6 +365,12 @@ function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave,
               <select value={curve} onChange={(e) => setCurve(e.target.value as typeof curve)} className={sel}>{CURVES.map(([k, l]) => <option key={k} value={k}>{tr(l)}</option>)}</select>
             </label>
           </div>
+          {kind !== "master" && (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1"><span className="font-semibold">{tr("Lowest point")} (%)</span><NumberField value={lim[0]} min={0} max={100} step={1} onChange={(v) => setLim([Math.min(v ?? 0, lim[1]), lim[1]])} className={sel} /></label>
+              <label className="space-y-1"><span className="font-semibold">{tr("Highest point")} (%)</span><NumberField value={lim[1]} min={0} max={100} step={1} onChange={(v) => setLim([lim[0], Math.max(v ?? 100, lim[0])])} className={sel} /></label>
+            </div>
+          )}
           {onLearn && (
             <div className="flex items-center gap-2"><span className="font-semibold">{tr("MIDI")}</span>
               <span className="flex-1 font-mono text-muted-foreground">{learning === i ? tr("Move a fader on your MIDI controller…") : midiKeyOf?.(i) ?? tr("Not linked")}</span>
