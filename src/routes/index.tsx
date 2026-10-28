@@ -1484,7 +1484,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           <span className="text-xs font-semibold text-amber-glow">{tr("MASTER")}</span>
           <input aria-label={tr("Master")} type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
           <NumberField aria-label={tr("Master percent")} min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
-          <Button variant="secondary" size="icon" aria-label={tr("Blackout")} aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
+          <Button variant="secondary" size="icon" aria-label={tr("Blackout")} aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={() => { toggleBlackout(); hintMaster(); }} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
             {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
             {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
           </Button>
