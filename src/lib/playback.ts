@@ -86,7 +86,9 @@ export function applyBank(fixtures: PatchedFixture[], bank: BankFader[] | undefi
         const l = looks.find((x) => x.id === fd.ref);
         const st = l?.states.find((s) => s.uid === f.uid) ?? l?.states.find((s) => s.name === f.name);
         if (st) out = { ...out, ...blend(lookStateOf(out), st.state, level) };
-      } else if (param === "intensity" || fd.kind === "timeline" || fd.kind === "rec") {
+      } else if (fd.kind === "timeline" || fd.kind === "rec") {
+        if (level > 0) out = { ...out, intensity: out.intensity * level }; // at zero the playback is stopped and lights return to the console
+      } else if (param === "intensity") {
         out = { ...out, intensity: out.intensity * level };
       } else if ((fd.touched || flashing) && !fd.off) {
         out = { ...out, ...paramValue(param, out, level) };
