@@ -139,6 +139,27 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const [full, setFull] = useState(false); // printing wants every row on the page
   const virtual = !full && rows.length > 160;
   const [win, setWin] = useState({ first: 0, last: 90 });
+  /** The open editor is much taller than a row: the band has to count the real height, or scrolling
+   *  throws the row being edited — and with it the on-screen keyboard — out of the page. */
+  const [extra, setExtra] = useState(0);
+  const editorRo = useRef<ResizeObserver | null>(null);
+  const setEditor = useCallback((td: HTMLTableCellElement | null) => {
+    editorRo.current?.disconnect();
+    editorRo.current = null;
+    if (!td) { setExtra(0); return; }
+    const measure = () => setExtra(Math.max(0, Math.round(td.getBoundingClientRect().height) - ROW_H));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(td);
+    editorRo.current = ro;
+    // an editor opened at the bottom of the screen would otherwise sit under the keyboard
+    requestAnimationFrame(() => td.scrollIntoView({ block: "nearest" }));
+  }, []);
+  const rowIndex = useMemo(() => new Map(rows.map((r, i) => [r.fixture.uid, i])), [rows]);
+  const expanded: ExpandedRow = useMemo(
+    () => (editing && extra > 0 && rowIndex.has(editing) ? { index: rowIndex.get(editing)!, extra } : null),
+    [editing, extra, rowIndex],
+  );
   useEffect(() => {
     // flushSync so the browser prints the whole sheet, not just the band that was on screen
     const before = () => flushSync(() => setFull(true));
@@ -152,16 +173,48 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     if (!sc || !virtual) return;
     const update = () => {
       const base = (tableRef.current?.getBoundingClientRect().top ?? 0) - sc.getBoundingClientRect().top + sc.scrollTop;
-      const at = sc.scrollTop - base;
-      const first = Math.max(0, Math.floor(at / ROW_H) - 12);
-      const last = Math.min(rows.length, Math.ceil((at + sc.clientHeight) / ROW_H) + 12);
-      setWin((w) => (w.first === first && w.last === last ? w : { first, last }));
+      const w = patchWindow(rows.length, sc.scrollTop - base, sc.clientHeight, ROW_H, 24, expanded);
+      setWin((p) => (p.first === w.first && p.last === w.last ? p : w));
     };
     update();
     sc.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
-    return () => { sc.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
-  }, [virtual, rows.length]);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      sc.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, [virtual, rows.length, expanded]);
+  /** The on-screen keyboard covers the lower half of a tablet: lift the field being typed into above it. */
+  useEffect(() => {
+    const sc = mainRef.current;
+    const vv = window.visualViewport;
+    if (!sc || !vv) return;
+    let height = vv.height;
+    const onResize = () => {
+      const h = vv.height;
+      if (h < height - 40) {
+        const el = document.activeElement as HTMLElement | null;
+        if (el && sc.contains(el)) {
+          const d = keyboardScroll(el.getBoundingClientRect(), visibleBand(vv, window.innerHeight));
+          if (d) sc.scrollTop += d;
+        }
+      }
+      height = h;
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+  /** Enter in a name moves to the next light, so the keyboard stays up while a run of lights is named. */
+  const focusNextName = (uid: string, dir: 1 | -1) => {
+    const at = rowIndex.get(uid);
+    const next = at === undefined ? undefined : rows[at + dir];
+    if (!next) return;
+    const el = document.querySelector<HTMLInputElement>(`[data-patch-name="${next.fixture.uid}"]`);
+    el?.focus();
+    el?.select();
+  };
   const first = virtual ? win.first : 0;
   const last = virtual ? Math.max(win.last, first + 20) : rows.length;
   const exportPatch = async () => {
