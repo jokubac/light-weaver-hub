@@ -2,7 +2,7 @@ import { MAX_UNIVERSE } from "@/lib/dmx";
 import { cctRangeOverride } from "@/lib/gdtf-curation";
 import type { CallSheetData } from "@/lib/store";
 import { groupNamesOf, groupText, groupsPatch } from "@/lib/fixture-groups";
-import { Fragment as Frag, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment as Frag, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, Tag, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ import { CallSheet } from "./CallSheet";
 import { LabelPrinter } from "./LabelPrinter";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick, patchClashes } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick, patchClashes, patchOffset, patchWindow, type ExpandedRow } from "@/lib/patch-order";
+import { keyboardScroll, visibleBand } from "@/lib/keyboard-view";
 
 import { t as tr } from "@/lib/i18n";
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
