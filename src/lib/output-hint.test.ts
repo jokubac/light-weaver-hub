@@ -38,7 +38,7 @@ describe("outputChanged", () => {
   it("ignores moves that do not change the light's output", () => {
     expect(outputChanged([light()], [light()])).toBe(false);
     expect(outputChanged([light()], [light({ name: "Renamed", universe: 4, address: 20 })])).toBe(false);
-    expect(outputChanged([light()], [light({ power: { watts: 80, usedWh: 12 } })])).toBe(false);
+    expect(outputChanged([light()], [light({ power: { kind: "vmount", kwh: 0.098, charge: 1, watts: 80, usedWh: 12 } })])).toBe(false);
   });
 
   it("ignores patching a new light in or taking one out", () => {
