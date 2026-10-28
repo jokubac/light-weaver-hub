@@ -110,7 +110,7 @@ export function PlaybackBar(p: PlaybackProps) {
   const setPer = (n: number) => { setPerPageFull(n); setPage(0); localStorage.setItem("nox-fader-per-page", String(n)); };
 
   const button = (i: number, fd: BankFader, b: Btn) => {
-    const cls = (on: boolean, onCls = "bg-primary text-primary-foreground") => `flex-1 rounded font-bold select-none ${p.full ? "py-1.5 text-xs" : "px-1 py-0.5 text-[9px]"} ${on ? onCls : "bg-background"}`;
+    const cls = (on: boolean, onCls = "bg-primary text-primary-foreground") => `flex-1 rounded font-bold select-none ${p.full ? (dense ? "py-1 text-[10px]" : "py-1.5 text-xs") : "px-1 py-0.5 text-[9px]"} ${on ? onCls : "bg-background"}`;
     const label = tr(BTNS.find(([k]) => k === b)![1]);
     if (b === "flash") return <button key={b} onPointerDown={() => p.setFlash(fd.id)} onPointerUp={() => p.setFlash(null)} onPointerLeave={() => p.flash === fd.id && p.setFlash(null)} onContextMenu={(e) => e.preventDefault()} className={cls(p.flash === fd.id, "bg-amber-glow text-primary-foreground")}>{label}</button>;
     if (b === "solo") return <button key={b} onClick={() => p.setSolo(p.solo === fd.id ? null : fd.id)} aria-pressed={p.solo === fd.id} className={cls(p.solo === fd.id)}>{label}</button>;
@@ -255,20 +255,24 @@ export function PlaybackBar(p: PlaybackProps) {
 }
 
 /** Tall touch fader: drag anywhere on the track; arrow keys nudge. */
-function VFader({ label, value, onChange, fill }: { label: string; value: number; onChange: (v: number) => void; fill: string }) {
+function VFader({ label, value, onChange, fill, dense }: { label: string; value: number; onChange: (v: number) => void; fill: string; dense?: boolean }) {
   const at = (e: React.PointerEvent<HTMLDivElement>) => { const r = e.currentTarget.getBoundingClientRect(); onChange(Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height))); };
+  const pad = dense ? 3 : 8;                       // track inset top/bottom
+  const hh = dense ? 10 : 16;                      // handle height
+  const span = `calc(100% - ${pad * 2}px)`;
   return (
     <div role="slider" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value * 100)} tabIndex={0}
       onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); at(e); }}
       onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) at(e); }}
       onKeyDown={(e) => { const d = e.key === "ArrowUp" ? 0.01 : e.key === "ArrowDown" ? -0.01 : e.key === "PageUp" ? 0.1 : e.key === "PageDown" ? -0.1 : 0; if (d) { e.preventDefault(); onChange(Math.min(1, Math.max(0, value + d))); } }}
       className="relative w-12 cursor-ns-resize touch-none rounded-lg bg-background outline-none focus-visible:ring-2 focus-visible:ring-primary">
-      <div className={`absolute inset-x-[18px] bottom-2 top-2 rounded-full bg-border`} />
-      <div className={`absolute inset-x-[18px] bottom-2 rounded-full ${fill}`} style={{ height: `calc((100% - 16px) * ${value})` }} />
-      <div className="absolute inset-x-1 h-4 -translate-y-1/2 rounded-md border border-border bg-surface-elevated shadow-md" style={{ top: `calc(8px + (100% - 16px) * ${1 - value})` }} />
+      <div className="absolute rounded-full bg-border" style={{ left: 18, right: 18, top: pad, bottom: pad }} />
+      <div className={`absolute rounded-full ${fill}`} style={{ left: 18, right: 18, bottom: pad, height: `calc(${span} * ${value})` }} />
+      <div className="absolute inset-x-1 -translate-y-1/2 rounded-md border border-border bg-surface-elevated shadow-md" style={{ height: hh, top: `calc(${pad}px + ${span} * ${1 - value})` }} />
     </div>
   );
 }
+
 
 function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave }: PlaybackProps & { i: number; fd?: BankFader | undefined; onClose: () => void; onSave: (fd: BankFader | null) => void }) {
   const [kind, setKind] = useState<BankFader["kind"]>(fd?.kind ?? (groups.length ? "group" : "fixtures"));
