@@ -556,9 +556,16 @@ export function mergeStates(a: { v: number; rgb: [number, number, number] }, b: 
 export type FanMode = "auto" | "silent" | "low" | "medium" | "high" | "max" | "off";
 export const FAN_MODES: FanMode[] = ["auto", "silent", "low", "medium", "high", "max", "off"];
 
-export const kelvin = (cct: number) => Math.round(2000 + cct * 8000);
-export const cctFromKelvin = (k: number) => (k - 2000) / 8000;
+/** Fallback span for lights with no declared range. */
+export const DEFAULT_CCT_RANGE: [number, number] = [2000, 10000];
+/** Kelvin of a stored CCT. The 0..1 value is always a fraction of the light's own span. */
+export const kelvin = (cct: number, range: [number, number] = DEFAULT_CCT_RANGE) =>
+  Math.round(range[0] + Math.max(0, Math.min(1, cct)) * (range[1] - range[0]));
+export const cctFromKelvin = (k: number, range: [number, number] = DEFAULT_CCT_RANGE) =>
+  Math.max(0, Math.min(1, (k - range[0]) / (range[1] - range[0])));
 export const DEFAULT_CCT = cctFromKelvin(5600);
+/** The kelvin span this patched light can actually show. */
+export const cctRangeOf = (f: PatchedFixture): [number, number] => getDef(f.defId).cctRange ?? DEFAULT_CCT_RANGE;
 
 export function createFixture(def: FixtureDef, modeIdx: number, universe: number, address: number, name: string): PatchedFixture {
   const kind = def.modes[modeIdx]?.kind ?? "dim";
