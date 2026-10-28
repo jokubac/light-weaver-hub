@@ -36,7 +36,7 @@ export function faderCurve(curve: BankFader["curve"], x: number): number {
 export type ExtraMembers = Record<string, string[]>;
 
 export function faderMembers(fd: BankFader, fixtures: PatchedFixture[], looks: Look[], extra?: ExtraMembers): Set<string> {
-  if (fd.kind === "timeline") return new Set(extra?.timeline ?? []);
+  if (fd.kind === "timeline") return new Set(extra?.["timeline"] ?? []);
   if (fd.kind === "rec") return new Set(extra?.[`rec:${fd.ref}`] ?? []);
   if (fd.kind === "group") return new Set(membersOf(fixtures, fd.ref ?? "").map((f) => f.uid));
   if (fd.kind === "fixtures") return new Set(fd.uids ?? []);
