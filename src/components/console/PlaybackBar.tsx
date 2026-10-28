@@ -32,7 +32,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 type Btn = NonNullable<BankFader["buttons"]>[number];
 type Param = NonNullable<BankFader["param"]>;
 const TOTAL = BANK_SIZE * BANK_PAGES;
-const PARAMS: [Param, string][] = [["intensity", "Intensity"], ["cct", "CCT"], ["hue", "Hue"], ["saturation", "Saturation"], ["fxSpeed", "Effect speed"], ["fxSize", "Effect size"]];
+const PARAMS: [Param, string][] = [["intensity", "Intensity"], ["cct", "CCT"], ["hue", "Hue"], ["saturation", "Saturation"], ["fxSpeed", "Effect speed"], ["fxSize", "Effect depth"]];
 const BTNS: [Btn, string][] = [["flash", "FLASH"], ["solo", "SOLO"], ["onoff", "ON/OFF"], ["full", "FULL"], ["zero", "ZERO"]];
 const COLORS: NonNullable<BankFader["color"]>[] = ["primary", "success", "warning", "destructive", "accent", "muted"];
 const swatch: Record<NonNullable<BankFader["color"]>, string> = { primary: "bg-primary", success: "bg-success", warning: "bg-warning", destructive: "bg-destructive", accent: "bg-accent", muted: "bg-muted-foreground" };

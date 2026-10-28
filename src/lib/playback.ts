@@ -27,8 +27,8 @@ export function paramValue(param: NonNullable<BankFader["param"]>, f: PatchedFix
     case "cct": return { cct: level, cctOnly: true, crossfade: 0 };
     case "hue": return { hue: level * 360, crossfade: 1, cctOnly: false, saturation: f.saturation || 1 };
     case "saturation": return { saturation: level };
-    case "fxSpeed": return { fx: { ...f.fx, speed: level } };
-    case "fxSize": return { fx: { ...f.fx, size: level } };
+    case "fxSpeed": return { fx: { ...f.fx, rate: +(0.05 * Math.pow(400, level)).toFixed(3) } }; // 0.05–20 Hz, log
+    case "fxSize": return { fx: { ...f.fx, max: Math.max(f.fx.min, level) } };
     default: return {};
   }
 }
