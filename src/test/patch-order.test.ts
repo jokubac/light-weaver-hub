@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movePatchFixture, patchRows } from "@/lib/patch-order";
+import { movePatchFixture, patchRows, togglePick } from "@/lib/patch-order";
 import { normalizeFixture } from "@/lib/dmx";
 
 const fixtures = [
