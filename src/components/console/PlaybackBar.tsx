@@ -206,7 +206,9 @@ export function PlaybackBar(p: PlaybackProps) {
                 <button onClick={() => setLinked((x) => { const n = new Set(x); if (n.has(fd!.id)) n.delete(fd!.id); else n.add(fd!.id); return n; })} aria-pressed={linked.has(fd!.id)}
                   className={`min-w-0 flex-1 truncate rounded px-1 text-left font-semibold ${linked.has(fd!.id) ? "bg-primary text-primary-foreground" : "bg-background"}`}>{fd!.name}</button>
               ) : <span className="min-w-0 flex-1 truncate font-semibold">{empty ? tr("Empty") : fd!.name}{!empty && linked.has(fd!.id) && <span className="ml-1 text-[9px] text-primary">🔗</span>}</span>}
+              {dense && !empty && <span className="shrink-0 font-mono font-bold">{readout(fd!, lv)}</span>}
               <button onClick={() => setEdit(i)} aria-label={`Set up fader ${i + 1}`}><Settings2 className="h-3.5 w-3.5" /></button>
+
             </div>
             {empty ? (
               <button onClick={() => setEdit(i)} className={`rounded-md border border-dashed border-border text-muted-foreground ${p.full ? "flex-1 text-sm" : "py-1 text-[10px]"}`}>{tr("Assign")}</button>
@@ -218,7 +220,7 @@ export function PlaybackBar(p: PlaybackProps) {
                 </div>}
                 {p.full ? (
                   <div className="flex min-h-0 flex-1 items-stretch justify-center gap-2">
-                    <VFader label={`Fader ${i + 1} ${fd!.name}`} value={lv} onChange={(v) => setLevel(i, v)} fill={swatch[color]} />
+                    <VFader label={`Fader ${i + 1} ${fd!.name}`} value={lv} onChange={(v) => setLevel(i, v)} fill={swatch[color]} dense={dense} />
                     <div aria-hidden className="relative w-2 overflow-hidden rounded-full bg-background">
                       <div className={`absolute inset-x-0 bottom-0 ${swatch[color]} transition-[height] duration-75`} style={{ height: `${(fd!.off ? 0 : lv) * 100}%` }} />
                     </div>
@@ -226,7 +228,7 @@ export function PlaybackBar(p: PlaybackProps) {
                 ) : (
                   <input aria-label={`Fader ${i + 1} ${fd!.name}`} type="range" min={0} max={1} step={0.01} value={lv} onChange={(e) => setLevel(i, +e.target.value)} />
                 )}
-                {p.full && <div className={`text-center font-mono font-bold leading-none ${dense ? "text-sm" : "text-lg"}`}>{readout(fd!, lv)}</div>}
+                {p.full && !dense && <div className="text-center font-mono text-lg font-bold leading-none">{readout(fd!, lv)}</div>}
                 {p.full && !dense && fd!.kind !== "master" && (
 
                   <div title={members.map((m) => m.name).join(", ")} className="space-y-1">
