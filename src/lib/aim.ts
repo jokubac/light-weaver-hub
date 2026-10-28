@@ -84,7 +84,7 @@ export function moveOffset(m: AimMove, t: number, uid: string): [number, number]
   switch (m.shape) {
     case "off": return [0, 0];
     case "circle": return [0.5 * s * Math.cos(w), 0.5 * s * Math.sin(w)];
-    case "eight": return [0.5 * s * Math.cos(w), 0.5 * s * Math.sin(2 * w) / 2];
+    case "figure8": return [0.5 * s * Math.cos(w), 0.5 * s * Math.sin(2 * w) / 2];
     case "sweep": return [0.5 * s * Math.sin(w), 0];
     case "random": {
       const h1 = Math.floor(w), h2 = h1 + 1, f = w - h1;
