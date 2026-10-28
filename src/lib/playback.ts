@@ -110,7 +110,7 @@ export function snapBank(bank: BankFader[], snap: FaderSnap, from: Record<string
 
 /** Releases every fader: intensity back to 100 %, colour/effect/look faders back to untouched zero. */
 export const releaseBank = (bank: BankFader[]): BankFader[] =>
-  bank.map((fd) => ({ ...fd, level: fd.kind === "master" ? fd.level : fd.kind !== "look" && (fd.param ?? "intensity") === "intensity" ? 1 : 0, touched: undefined, off: false }));
+  bank.map(({ touched: _t, ...fd }) => ({ ...fd, level: fd.kind === "master" ? fd.level : fd.kind !== "look" && (fd.param ?? "intensity") === "intensity" ? 1 : 0, off: false }));
 
 /** Moves linked faders by the same amount as the dragged one (clamped). */
 export function moveLinked(bank: BankFader[], i: number, level: number, linked: Set<string>, now = Date.now()): BankFader[] {

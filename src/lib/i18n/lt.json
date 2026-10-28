@@ -1114,5 +1114,15 @@
   "Fader controls": "Faderis valdo",
   "Button": "Mygtukas",
   "Works like the MASTER slider at the top.": "Veikia kaip MASTER slankiklis viršuje.",
-  "Once moved, the fader sets this value on its lights. If two faders control the same thing, the last one moved wins.": "Pajudintas faderis nustato šią reikšmę savo lempoms. Jei du faderiai valdo tą patį, laimi paskutinis judintas."
+  "Once moved, the fader sets this value on its lights. If two faders control the same thing, the last one moved wins.": "Pajudintas faderis nustato šią reikšmę savo lempoms. Jei du faderiai valdo tą patį, laimi paskutinis judintas.",
+  "LINK": "SUSIETI",
+  "Unlink": "Atsieti",
+  "RELEASE ALL": "ATLEISTI VISKĄ",
+  "Snapshots": "Momentinės kopijos",
+  "Save positions": "Išsaugoti padėtis",
+  "Fade": "Perėjimas",
+  "Fader snapshots": "Faderių kopijos",
+  "Tap fader names to link them; linked faders move together": "Bakstelėkite faderių pavadinimus, kad susietumėte; susieti juda kartu",
+  "Intensity faders back to full, colour and look faders released": "Intensyvumo faderiai į pilną, spalvų ir look faderiai atleidžiami",
+  "Fade all faders to these positions": "Perkelti visus faderius į šias padėtis"
 }
