@@ -1073,7 +1073,7 @@
   "PIXEL": "PIXEL",
   "PATCH": "PATCH",
   "Master is off — perhaps you forgot to turn the master up?": "الـ Master متوقف — هل نسيت رفع الـ Master؟",
-  Blackout is on — lights stay dark until you release it.: "البلاك أوت مفعّل — تبقى الأضواء معتمة حتى تلغيه.",
+  "Blackout is on — lights stay dark until you release it.": "البلاك أوت مفعّل — تبقى الأضواء معتمة حتى تلغيه.",
   "Change failed.": "فشل التغيير.",
   "Check your email to confirm the account, then sign in.": "تحقق من بريدك الإلكتروني لتأكيد الحساب، ثم سجّل الدخول.",
   "Continue with Google": "المتابعة باستخدام Google",
