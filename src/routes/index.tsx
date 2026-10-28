@@ -483,9 +483,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [selected, setSelected] = useState<string[]>([]);
   // Gentle reminder when lights are programmed while the master fader sits at 0%.
   const [masterHint, setMasterHint] = useState(false);
-  const [masterHintOff, setMasterHintOff] = useState(false);
   const masterHintTs = useRef(0);
-  useEffect(() => { try { if (localStorage.getItem("nox-master-hint") === "off") setMasterHintOff(true); } catch { /* private mode */ } }, []);
   useEffect(() => { if (!masterHint) return; const id = setTimeout(() => setMasterHint(false), 6000); return () => clearTimeout(id); }, [masterHint]);
   const [copied, setCopied] = useState<{ name: string; settings: FixtureSettings } | null>(null);
   const lastPick = useRef<string | null>(null);
@@ -722,7 +720,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
 
   const OUT_KEYS = new Set(["intensity", "cct", "gm", "hue", "saturation", "crossfade", "cctOnly", "fx", "on", "fxPlaying", "fan", "gel", "beam"]);
   const hintMaster = () => {
-    if (masterHintOff || master > 0 || Date.now() - masterHintTs.current < 8000) return;
+    if (master > 0 || Date.now() - masterHintTs.current < 8000) return;
     masterHintTs.current = Date.now();
     setMasterHint(true);
   };
@@ -1653,12 +1651,10 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
         progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
       {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
-      {masterHint && !masterHintOff && master <= 0 && (
+      {masterHint && master <= 0 && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
           <AlertTriangle className="h-4 w-4 shrink-0 text-amber-glow" />
           <span className="min-w-0 flex-1">{tr("Master is off — perhaps you forgot to turn the master up?")}</span>
-          <button onClick={() => { try { localStorage.setItem("nox-master-hint", "off"); } catch { /* private mode */ } setMasterHintOff(true); }}
-            className="shrink-0 rounded-md border border-border bg-surface-elevated px-2 py-1 text-xs">{tr("Don't show again")}</button>
         </div>
       )}
     </div>
