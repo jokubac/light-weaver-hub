@@ -73,10 +73,19 @@ export interface Recording {
 export interface BankFader {
   id: string;
   name: string;
-  kind: "group" | "look" | "fixtures";
+  kind: "group" | "look" | "fixtures" | "master";
   ref?: string; // group name or look id
   uids?: string[]; // for kind "fixtures"
   level: number;
+  /** what a group/selection fader drives; intensity scales, the rest set the value (last moved wins) */
+  param?: "intensity" | "cct" | "hue" | "saturation" | "fxSpeed" | "fxSize";
+  /** up to two buttons under the fader */
+  buttons?: ("flash" | "solo" | "onoff" | "full" | "zero")[];
+  color?: "primary" | "success" | "warning" | "destructive" | "accent" | "muted";
+  /** last time the fader moved — later wins (LTP) */
+  touched?: number;
+  /** switched off with the On/Off button */
+  off?: boolean;
 }
 
 /** A theatre-style cue: full fixture states plus fade time, fired with GO. */

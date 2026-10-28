@@ -1,3 +1,4 @@
+import type React from "react";
 import { useState } from "react";
 import { ChevronLeft, ListOrdered, Plus, Settings2, Trash2, Play, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NumberField } from "@/components/console/NumberField";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { BankFader, Cue, Look } from "@/lib/store";
-import { BANK_SIZE, BANK_PAGES, sortCues } from "@/lib/playback";
+import { BANK_SIZE, BANK_PAGES, sortCues, faderMembers } from "@/lib/playback";
 import { fmtTc, parseTc } from "@/lib/show-control";
 
 import { t as tr } from "@/lib/i18n";
@@ -22,29 +23,65 @@ export interface PlaybackProps {
   tcOn?: boolean; onTc?: () => void; tcNow?: number | null;
   /** full-page FADERS window: tall faders filling the screen */
   full?: boolean;
+  /** live output (after bank/park) for the light dots */
+  output?: PatchedFixture[];
+  master?: number; onMaster?: (v: number) => void;
 }
 
 const newId = () => Math.random().toString(36).slice(2, 10);
+
+type Btn = NonNullable<BankFader["buttons"]>[number];
+type Param = NonNullable<BankFader["param"]>;
+const TOTAL = BANK_SIZE * BANK_PAGES;
+const PARAMS: [Param, string][] = [["intensity", "Intensity"], ["cct", "CCT"], ["hue", "Hue"], ["saturation", "Saturation"], ["fxSpeed", "Effect speed"], ["fxSize", "Effect depth"]];
+const BTNS: [Btn, string][] = [["flash", "FLASH"], ["solo", "SOLO"], ["onoff", "ON/OFF"], ["full", "FULL"], ["zero", "ZERO"]];
+const COLORS: NonNullable<BankFader["color"]>[] = ["primary", "success", "warning", "destructive", "accent", "muted"];
+const swatch: Record<NonNullable<BankFader["color"]>, string> = { primary: "bg-primary", success: "bg-success", warning: "bg-warning", destructive: "bg-destructive", accent: "bg-accent", muted: "bg-muted-foreground" };
+const ring: Record<NonNullable<BankFader["color"]>, string> = { primary: "border-primary", success: "border-success", warning: "border-warning", destructive: "border-destructive", accent: "border-accent", muted: "border-muted-foreground" };
+const defaultBtns = (fd: BankFader): Btn[] => fd.buttons ?? (fd.kind === "master" ? ["full", "zero"] : ["flash", "solo"]);
+const paramLabel = (fd: BankFader) => fd.kind === "master" ? tr("Master") : fd.kind === "look" ? tr("Look") : tr(PARAMS.find(([k]) => k === (fd.param ?? "intensity"))![1]);
+const readout = (fd: BankFader, v: number) => fd.param === "hue" ? `${Math.round(v * 360)}°` : `${Math.round(v * 100)}`;
 
 export function PlaybackBar(p: PlaybackProps) {
   const [edit, setEdit] = useState<number | null>(null);
   const [cuesOpen, setCuesOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const base = page * BANK_SIZE;
+  const [perPageFull, setPerPageFull] = useState<number>(() => (typeof window !== "undefined" ? Number(localStorage.getItem("nox-fader-per-page")) || 6 : 6));
+  const perPage = p.full ? perPageFull : BANK_SIZE;
+  const pages = TOTAL / perPage;
+  const pg = Math.min(page, pages - 1);
+  const base = pg * perPage;
   const sorted = sortCues(p.cues);
   const idx = sorted.findIndex((c) => c.id === p.activeCue);
   const cur = sorted[idx];
   const next = sorted[idx + 1];
-  const slots = Array.from({ length: BANK_SIZE }, (_, i) => p.bank[base + i]);
+  const slots = Array.from({ length: perPage }, (_, i) => p.bank[base + i]);
+  const out = p.output ?? p.fixtures;
+  const lastId = p.bank.reduce<BankFader | null>((m, x) => (x?.touched && (!m || (x.touched ?? 0) > (m.touched ?? 0)) ? x : m), null)?.id;
 
   const setSlot = (i: number, fd: BankFader | null) => {
-    const arr = Array.from({ length: BANK_SIZE * BANK_PAGES }, (_, k) => p.bank[k]);
+    const arr = Array.from({ length: TOTAL }, (_, k) => p.bank[k]);
     arr[i] = fd ?? undefined;
-    // keep the array dense up to the last used slot
     let last = arr.length - 1; while (last >= 0 && !arr[last]) last--;
     p.setBank(arr.slice(0, last + 1).map((x, k) => x ?? { id: `empty-${k}`, name: "", kind: "fixtures", uids: [], level: 1 }));
   };
-  const setLevel = (i: number, level: number) => { const fd = p.bank[i]; if (fd) p.setBank(p.bank.map((x, k) => (k === i ? { ...x, level } : x))); };
+  const patchFd = (i: number, patch: Partial<BankFader>) => { const fd = p.bank[i]; if (fd) p.setBank(p.bank.map((x, k) => (k === i ? { ...x, ...patch } : x))); };
+  const setLevel = (i: number, level: number) => {
+    const fd = p.bank[i]; if (!fd) return;
+    if (fd.kind === "master") p.onMaster?.(level);
+    patchFd(i, { level, touched: Date.now() });
+  };
+  const levelOf = (fd: BankFader) => (fd.kind === "master" && p.master != null ? p.master : p.flash === fd.id ? 1 : fd.level);
+  const setPer = (n: number) => { setPerPageFull(n); setPage(0); localStorage.setItem("nox-fader-per-page", String(n)); };
+
+  const button = (i: number, fd: BankFader, b: Btn) => {
+    const cls = (on: boolean, onCls = "bg-primary text-primary-foreground") => `flex-1 rounded font-bold select-none ${p.full ? "py-1.5 text-xs" : "px-1 py-0.5 text-[9px]"} ${on ? onCls : "bg-background"}`;
+    const label = tr(BTNS.find(([k]) => k === b)![1]);
+    if (b === "flash") return <button key={b} onPointerDown={() => p.setFlash(fd.id)} onPointerUp={() => p.setFlash(null)} onPointerLeave={() => p.flash === fd.id && p.setFlash(null)} onContextMenu={(e) => e.preventDefault()} className={cls(p.flash === fd.id, "bg-amber-glow text-primary-foreground")}>{label}</button>;
+    if (b === "solo") return <button key={b} onClick={() => p.setSolo(p.solo === fd.id ? null : fd.id)} aria-pressed={p.solo === fd.id} className={cls(p.solo === fd.id)}>{label}</button>;
+    if (b === "onoff") return <button key={b} onClick={() => patchFd(i, { off: !fd.off, touched: Date.now() })} aria-pressed={!fd.off} className={cls(!fd.off, "bg-success text-primary-foreground")}>{fd.off ? tr("OFF") : tr("ON")}</button>;
+    return <button key={b} onClick={() => setLevel(i, b === "full" ? 1 : 0)} className={cls(false)}>{label}</button>;
+  };
 
   return (
     <div aria-label={tr("Faders")} className={p.full ? "flex min-h-0 flex-1 flex-col gap-3 overflow-hidden bg-background p-4" : "flex shrink-0 items-stretch gap-2 overflow-x-auto border-t border-border bg-surface px-3 py-2"}>
@@ -76,22 +113,35 @@ export function PlaybackBar(p: PlaybackProps) {
         </div>
       </div>
       <div className="w-px shrink-0 bg-border" />
-      <div aria-label={tr("Fader banks")} className="grid shrink-0 grid-cols-2 gap-1">
-        {Array.from({ length: BANK_PAGES }, (_, b) => {
-          const used = p.bank.slice(b * BANK_SIZE, (b + 1) * BANK_SIZE).some((x) => x && x.name);
+      <div aria-label={tr("Fader banks")} className={`grid shrink-0 gap-1 ${pages > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+        {Array.from({ length: pages }, (_, b) => {
+          const used = p.bank.slice(b * perPage, (b + 1) * perPage).some((x) => x && x.name);
           return (
-            <button key={b} onClick={() => setPage(b)} aria-pressed={page === b} title={`Bank ${b + 1}: faders ${b * BANK_SIZE + 1}–${(b + 1) * BANK_SIZE}`}
-              className={`w-9 rounded-md text-[10px] font-bold ${page === b ? "bg-primary text-primary-foreground" : used ? "bg-primary/25" : "bg-surface-elevated text-muted-foreground"}`}>{tr("B")}{b + 1}</button>
+            <button key={b} onClick={() => setPage(b)} aria-pressed={pg === b} title={`Bank ${b + 1}: faders ${b * perPage + 1}–${(b + 1) * perPage}`}
+              className={`w-9 rounded-md text-[10px] font-bold ${pg === b ? "bg-primary text-primary-foreground" : used ? "bg-primary/25" : "bg-surface-elevated text-muted-foreground"}`}>{tr("B")}{b + 1}</button>
           );
         })}
       </div>
+      {p.full && <>
+        <div className="w-px shrink-0 bg-border" />
+        <div className="flex items-center gap-1 text-[10px] font-bold" aria-label={tr("Faders per page")}>
+          <span className="mr-1 text-muted-foreground">{tr("Per page")}</span>
+          {[6, 12, 24].map((n) => <button key={n} onClick={() => setPer(n)} aria-pressed={perPage === n} className={`rounded-md px-2 py-1.5 ${perPage === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{n}</button>)}
+        </div>
+        <div className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground">{tr("Last moved wins")}</div>
+      </>}
       </div>
-      <div className={p.full ? "grid min-h-0 flex-1 grid-cols-3 gap-3 overflow-auto lg:grid-cols-6" : "contents"}>
+      <div className={p.full ? `grid min-h-0 flex-1 gap-3 overflow-auto ${perPage === 24 ? "grid-cols-4 lg:grid-cols-8" : "grid-cols-3 lg:grid-cols-6"}` : "contents"}>
       {slots.map((fd, j) => {
         const i = base + j;
         const empty = !fd || (!fd.name && fd.kind === "fixtures" && !fd.uids?.length);
+        const members = fd && !empty ? p.fixtures.filter((f) => faderMembers(fd, p.fixtures, p.looks).has(f.uid)) : [];
+        const lv = fd ? levelOf(fd) : 0;
+        const live = !empty && fd!.id === lastId;
+        const color = fd?.color ?? "primary";
         return (
-          <div key={i} className={p.full ? "flex min-h-[260px] flex-col gap-2 rounded-xl bg-surface-elevated p-3" : "flex w-32 shrink-0 flex-col gap-1 rounded-lg bg-surface-elevated px-2 py-1"}>
+          <div key={i} className={`relative flex flex-col overflow-hidden border-2 ${live ? ring[color] : "border-transparent"} bg-surface-elevated ${p.full ? `${perPage === 6 ? "min-h-[260px]" : "min-h-[170px]"} gap-2 rounded-xl p-2.5` : "w-32 shrink-0 gap-1 rounded-lg px-2 py-1"} ${fd?.off ? "opacity-60" : ""}`}>
+            {!empty && <span className={`absolute inset-x-0 top-0 h-1 ${swatch[color]}`} />}
             <div className={`flex items-center gap-1 ${p.full ? "text-sm" : "text-[10px]"}`}>
               <span className="font-mono text-muted-foreground">{i + 1}</span>
               <span className="min-w-0 flex-1 truncate font-semibold">{empty ? tr("Empty") : fd!.name}</span>
@@ -101,14 +151,32 @@ export function PlaybackBar(p: PlaybackProps) {
               <button onClick={() => setEdit(i)} className={`rounded-md border border-dashed border-border text-muted-foreground ${p.full ? "flex-1 text-sm" : "py-1 text-[10px]"}`}>{tr("Assign")}</button>
             ) : (
               <>
-                <input aria-label={`Fader ${i + 1} ${fd!.name}`} type="range" min={0} max={1} step={0.01} value={p.flash === fd!.id ? 1 : fd!.level} onChange={(e) => setLevel(i, +e.target.value)}
-                  className={p.full ? "mx-auto min-h-0 w-10 flex-1 accent-primary" : undefined} style={p.full ? { writingMode: "vertical-lr", direction: "rtl" } : undefined} />
+                {p.full && <div className="flex items-center justify-between text-[10px]">
+                  <span className="rounded bg-background px-1.5 py-0.5 font-bold uppercase tracking-wide text-muted-foreground">{paramLabel(fd!)}</span>
+                  {live && <span className="font-bold text-primary">{tr("LIVE")}</span>}
+                </div>}
+                {p.full ? (
+                  <div className="flex min-h-0 flex-1 items-stretch justify-center gap-2">
+                    <VFader label={`Fader ${i + 1} ${fd!.name}`} value={lv} onChange={(v) => setLevel(i, v)} fill={swatch[color]} />
+                    <div aria-hidden className="relative w-2 overflow-hidden rounded-full bg-background">
+                      <div className={`absolute inset-x-0 bottom-0 ${swatch[color]} transition-[height] duration-75`} style={{ height: `${(fd!.off ? 0 : lv) * 100}%` }} />
+                    </div>
+                  </div>
+                ) : (
+                  <input aria-label={`Fader ${i + 1} ${fd!.name}`} type="range" min={0} max={1} step={0.01} value={lv} onChange={(e) => setLevel(i, +e.target.value)} />
+                )}
+                {p.full && <div className="text-center font-mono text-lg font-bold leading-none">{readout(fd!, lv)}</div>}
+                {p.full && fd!.kind !== "master" && (
+                  <div title={members.map((m) => m.name).join(", ")} className="space-y-1">
+                    <div className="flex flex-wrap gap-0.5">
+                      {members.slice(0, 16).map((m) => { const o = out.find((x) => x.uid === m.uid); const v = o && o.on !== false ? o.intensity : 0; return <span key={m.uid} className="h-2 w-2 rounded-full bg-primary" style={{ opacity: 0.15 + v * 0.85 }} />; })}
+                    </div>
+                    <div className="truncate text-[10px] text-muted-foreground">{members.length} {tr("lights")}{members.length ? ` · ${members.slice(0, 3).map((m) => m.name).join(", ")}` : ""}</div>
+                  </div>
+                )}
                 <div className="flex gap-1">
-                  <button onPointerDown={() => p.setFlash(fd!.id)} onPointerUp={() => p.setFlash(null)} onPointerLeave={() => p.flash === fd!.id && p.setFlash(null)} onContextMenu={(e) => e.preventDefault()}
-                    className={`flex-1 rounded px-1 py-0.5 text-[9px] font-bold select-none ${p.flash === fd!.id ? "bg-amber-glow text-primary-foreground" : "bg-background"}`}>{tr("FLASH")}</button>
-                  <button onClick={() => p.setSolo(p.solo === fd!.id ? null : fd!.id)} aria-pressed={p.solo === fd!.id}
-                    className={`flex-1 rounded px-1 py-0.5 text-[9px] font-bold ${p.solo === fd!.id ? "bg-primary text-primary-foreground" : "bg-background"}`}>{tr("SOLO")}</button>
-                  <span className="w-7 text-right font-mono text-[9px] leading-5">{Math.round(fd!.level * 100)}</span>
+                  {defaultBtns(fd!).slice(0, 2).map((b) => button(i, fd!, b))}
+                  {!p.full && <span className="w-7 text-right font-mono text-[9px] leading-5">{readout(fd!, lv)}</span>}
                 </div>
               </>
             )}
@@ -122,38 +190,79 @@ export function PlaybackBar(p: PlaybackProps) {
   );
 }
 
+/** Tall touch fader: drag anywhere on the track; arrow keys nudge. */
+function VFader({ label, value, onChange, fill }: { label: string; value: number; onChange: (v: number) => void; fill: string }) {
+  const at = (e: React.PointerEvent<HTMLDivElement>) => { const r = e.currentTarget.getBoundingClientRect(); onChange(Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height))); };
+  return (
+    <div role="slider" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value * 100)} tabIndex={0}
+      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); at(e); }}
+      onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) at(e); }}
+      onKeyDown={(e) => { const d = e.key === "ArrowUp" ? 0.01 : e.key === "ArrowDown" ? -0.01 : e.key === "PageUp" ? 0.1 : e.key === "PageDown" ? -0.1 : 0; if (d) { e.preventDefault(); onChange(Math.min(1, Math.max(0, value + d))); } }}
+      className="relative w-12 cursor-ns-resize touch-none rounded-lg bg-background outline-none focus-visible:ring-2 focus-visible:ring-primary">
+      <div className={`absolute inset-x-[18px] bottom-2 top-2 rounded-full bg-border`} />
+      <div className={`absolute inset-x-[18px] bottom-2 rounded-full ${fill}`} style={{ height: `calc((100% - 16px) * ${value})` }} />
+      <div className="absolute inset-x-1 h-4 -translate-y-1/2 rounded-md border border-border bg-surface-elevated shadow-md" style={{ top: `calc(8px + (100% - 16px) * ${1 - value})` }} />
+    </div>
+  );
+}
+
 function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave }: PlaybackProps & { i: number; fd?: BankFader | undefined; onClose: () => void; onSave: (fd: BankFader | null) => void }) {
   const [kind, setKind] = useState<BankFader["kind"]>(fd?.kind ?? (groups.length ? "group" : "fixtures"));
   const [ref, setRef] = useState(fd?.ref ?? (kind === "group" ? groups[0] ?? "" : looks[0]?.id ?? ""));
   const [name, setName] = useState(fd?.name ?? "");
+  const [param, setParam] = useState<Param>(fd?.param ?? "intensity");
+  const [btns, setBtns] = useState<Btn[]>(fd ? defaultBtns(fd).slice(0, 2) : ["flash", "solo"]);
+  const [color, setColor] = useState<NonNullable<BankFader["color"]>>(fd?.color ?? "primary");
   const uids = fd?.kind === "fixtures" && fd.uids?.length && !selected.length ? fd.uids : selected;
   const opt = (a: boolean) => `flex-1 rounded-md py-2 text-xs font-semibold ${a ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`;
   const save = () => {
-    const auto = kind === "group" ? ref : kind === "look" ? looks.find((l) => l.id === ref)?.name ?? "Look" : `${uids.length} lights`;
-    onSave({ id: fd?.id && !fd.id.startsWith("empty") ? fd.id : newId(), name: name.trim() || auto, kind, ...(kind === "fixtures" ? { uids } : { ref }), level: fd?.kind === kind ? fd.level : kind === "look" ? 0 : 1 });
+    const auto = kind === "group" ? ref : kind === "look" ? looks.find((l) => l.id === ref)?.name ?? "Look" : kind === "master" ? "Master" : `${uids.length} lights`;
+    const keep = fd?.kind === kind && (fd.param ?? "intensity") === param;
+    onSave({ id: fd?.id && !fd.id.startsWith("empty") ? fd.id : newId(), name: name.trim() || auto, kind, ...(kind === "fixtures" ? { uids } : kind === "master" ? {} : { ref }),
+      ...(kind === "group" || kind === "fixtures" ? { param } : {}), buttons: btns, color,
+      level: keep ? fd!.level : kind === "look" || (param !== "intensity" && kind !== "master") ? 0 : 1, ...(keep && fd?.touched ? { touched: fd.touched } : {}) });
   };
+  const sel = "w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm";
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>{tr("Fader")}{i + 1}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tr("Fader")} {i + 1}</DialogTitle></DialogHeader>
         <div className="space-y-3 text-xs">
-          <div className="flex gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             <button className={opt(kind === "group")} onClick={() => { setKind("group"); setRef(groups[0] ?? ""); }}>{tr("Group")}</button>
             <button className={opt(kind === "look")} onClick={() => { setKind("look"); setRef(looks[0]?.id ?? ""); }}>{tr("Look")}</button>
             <button className={opt(kind === "fixtures")} onClick={() => setKind("fixtures")}>{tr("Selected")}</button>
+            <button className={opt(kind === "master")} onClick={() => { setKind("master"); if (btns.join() === "flash,solo") setBtns(["full", "zero"]); }}>{tr("Master")}</button>
           </div>
           {kind === "group" && (groups.length ? (
-            <select value={ref} onChange={(e) => setRef(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm">{groups.map((g) => <option key={g}>{g}</option>)}</select>
+            <select value={ref} onChange={(e) => setRef(e.target.value)} className={sel}>{groups.map((g) => <option key={g}>{g}</option>)}</select>
           ) : <p className="text-muted-foreground">{tr("No groups yet — create one in the Groups rail.")}</p>)}
           {kind === "look" && (looks.length ? (
-            <select value={ref} onChange={(e) => setRef(e.target.value)} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm">{looks.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+            <select value={ref} onChange={(e) => setRef(e.target.value)} className={sel}>{looks.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
           ) : <p className="text-muted-foreground">{tr("No looks saved yet.")}</p>)}
           {kind === "fixtures" && <p className="text-muted-foreground">{uids.length ? `${uids.length} lights: ${fixtures.filter((f) => uids.includes(f.uid)).map((f) => f.name).slice(0, 6).join(", ")}` : tr("Select lights on the console first.")}</p>}
-          <p className="text-muted-foreground">{kind === "look" ? tr("Pushing the fader fades the look in over what's on stage.") : tr("The fader scales these lights' intensity (100% = as set on the console).")}</p>
+          {(kind === "group" || kind === "fixtures") && (
+            <label className="block space-y-1"><span className="font-semibold">{tr("Fader controls")}</span>
+              <select value={param} onChange={(e) => setParam(e.target.value as Param)} className={sel}>{PARAMS.map(([k, l]) => <option key={k} value={k}>{tr(l)}</option>)}</select>
+            </label>
+          )}
+          <p className="text-muted-foreground">{kind === "look" ? tr("Pushing the fader fades the look in over what's on stage.") : kind === "master" ? tr("Works like the MASTER slider at the top.") : param === "intensity" ? tr("The fader scales these lights' intensity (100% = as set on the console).") : tr("Once moved, the fader sets this value on its lights. If two faders control the same thing, the last one moved wins.")}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[0, 1].map((n) => (
+              <label key={n} className="space-y-1"><span className="font-semibold">{tr("Button")} {n + 1}</span>
+                <select value={btns[n] ?? ""} onChange={(e) => { const v = [...btns]; v[n] = e.target.value as Btn; setBtns(v.filter(Boolean)); }} className={sel}>
+                  {BTNS.map(([k, l]) => <option key={k} value={k}>{tr(l)}</option>)}
+                </select>
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center gap-2"><span className="font-semibold">{tr("Colour")}</span>
+            {COLORS.map((c) => <button key={c} onClick={() => setColor(c)} aria-label={c} aria-pressed={color === c} className={`h-6 w-6 rounded-full ${swatch[c]} ${color === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`} />)}
+          </div>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Name, e.g. Key, Fill, Police")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <div className="flex gap-2">
             {fd && <Button variant="destructive" onClick={() => onSave(null)}><Trash2 />{tr("Clear")}</Button>}
-            <Button className="flex-1" onClick={save} disabled={(kind !== "fixtures" && !ref) || (kind === "fixtures" && !uids.length)}>{tr("Save")}</Button>
+            <Button className="flex-1" onClick={save} disabled={(kind === "group" || kind === "look") ? !ref : kind === "fixtures" ? !uids.length : false}>{tr("Save")}</Button>
           </div>
         </div>
       </DialogContent>
