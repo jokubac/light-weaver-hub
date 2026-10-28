@@ -86,3 +86,16 @@ export function specWatts(brand: string, model: string): number | undefined {
   };
   return exact[key(brand) + key(model)];
 }
+
+/** Manufacturer-published CCT ranges that override wrong or incomplete GDTF physical descriptions.
+ *  Brand-level keys apply to the maker's whole catalogue when one engine spec covers every model. */
+export const CCT_RANGE_OVERRIDES: Record<string, [number, number]> = {
+  // astera-led.com Titan LED engine spec: "1,750 – 20,000K"; the Astera GDTF files understate the top end as 9910 K.
+  astera: [1750, 20000],
+};
+
+export function cctRangeOverride(brand: string, model: string): [number, number] | undefined {
+  const b = canonicalBrand(brand);
+  if (!b) return undefined;
+  return CCT_RANGE_OVERRIDES[key(b) + modelKey(b, model)] ?? CCT_RANGE_OVERRIDES[key(b)];
+}
