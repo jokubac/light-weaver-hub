@@ -69,17 +69,17 @@ function wrap(g: CanvasRenderingContext2D, text: string, maxW: number, px: numbe
   return lines.filter(Boolean);
 }
 
-/** Name block: one line if it can stay big, otherwise two lines that let the type grow back. */
-function nameBlock(g: CanvasRenderingContext2D, name: string, maxW: number, maxPx: number, weight: number, maxLines: number) {
-  let best = { lines: [name], px: fitPx(g, name, maxW, maxPx, 8, weight) };
-  if (maxLines > 1 && best.px < maxPx * 0.68) {
-    const lines = wrap(g, name, maxW, Math.max(9, Math.round(maxPx * 0.6)), weight, maxLines);
+/** Name block: one line while it stays big, two lines once it would shrink past `wrapAt`. */
+function nameBlock(g: CanvasRenderingContext2D, name: string, maxW: number, maxPx: number, weight: number, maxLines: number, wrapAt: number, minPx: number) {
+  let best = { lines: [name], px: fitPx(g, name, maxW, maxPx, minPx, weight) };
+  if (maxLines > 1 && best.px < maxPx * wrapAt) {
+    const lines = wrap(g, name, maxW, Math.max(minPx, Math.round(maxPx * 0.55)), weight, maxLines);
     if (lines.length > 1) {
-      const px = Math.min(...lines.map((l) => fitPx(g, l, maxW, maxPx, 8, weight)));
+      const px = Math.min(...lines.map((l) => fitPx(g, l, maxW, maxPx, minPx, weight)));
       if (px > best.px) best = { lines, px };
     }
   }
-  if (!best.px) best = { lines: best.lines, px: 8 };
+  if (!best.px) best = { lines: best.lines, px: minPx };
   return best;
 }
 
@@ -149,7 +149,8 @@ export function drawLabel(f: PatchedFixture, num: number, wMm: number, hMm: numb
   const sub = tall ? Math.round(ih * 0.17) : 0; // "ARRI SkyPanel S60 Pro · RGBW 8ch"
   const nameH = Math.max(10, ih - band - sub - gap * (tall ? 2 : 1));
 
-  const nb = nameBlock(g, L.name, iw, Math.round(nameH * (tall ? 0.6 : 0.92)), 800, tall ? 2 : 1);
+  const nameMax = Math.round(nameH * (tall ? 0.6 : 0.92));
+  const nb = nameBlock(g, L.name, iw, nameMax, 800, 2, tall ? 0.68 : 0.5, Math.max(10, Math.round(nameMax * 0.34)));
   const lh = nameH / nb.lines.length;
   nb.lines.forEach((line, i) => drawLine(g, line, ix, iy + i * lh, iw, lh, 800));
 
