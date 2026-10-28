@@ -305,6 +305,8 @@
 - [ ] PLOT editor Delete button (PlotPanel toolbar): in source with aria-label "Remove selected from plot", not yet clicked in a browser.
 
 ## Astera verify (2026-10-28)
-- [ ] Patikrinti visas 19 Astera GDTF bibliotekos lempas pagal oficialias astera-led.com specifikacijas (CCT diapazonas; jei randama — režimų kanalai).
-- [ ] Pataisyti [1750, 9910] -> gamintojo diapazoną (GDTF failuose klaida): gdtf-curation override + regeneruoti biblioteką.
+- [x] Patikrinti visas 19 Astera GDTF bibliotekos lempas pagal oficialias astera-led.com specifikacijas (CCT diapazonas; jei randama — režimų kanalai).
+- [x] Pataisyti [1750, 9910] -> gamintojo diapazoną (GDTF failuose klaida): gdtf-curation override + regeneruoti biblioteką.
+- [x] Visos 19 GDTF Astera įrašų pakeisti į verified režimus iš oficialių DMX profilių PDF (Titan/AX1/AX3/HydraPanel V1, bendras galvų V5: AX5/AX9/AX10-NYX/LunaBulb/PixelBrick/QuikSpot/SolaBulb). QuikPunch FAN režimai (144–159) lieka hidden-legacy. AX10 pervadintas į AX10 SpotMax. Watts pagal oficialias specifikacijas. 5 nauji testai; 409 testai ir build praėjo.
+- [ ] DMX CCT viršutinis limitas: oficialiuose chartuose 8 bitų CCT kanalas 1750+32×DMX = max 9910K (16 bitų profiliuose tas pats 8 bitų CCT kanalas). 20000K pasiekiama tik per Asteros app. Sprendimas vartotojui: ar UI riba turi būti 9910K (kas DMX siunčia), ar 20000K (fizinė spec)?
 - [ ] Po Asteros: patikrinti populiariausias filmavimo lempas blokais (Aputure/amaran, ARRI, Creamsource, Nanlite/Nanlux, Kino Flo, Litepanels, Godox...).
