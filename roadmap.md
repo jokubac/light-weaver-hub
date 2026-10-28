@@ -339,3 +339,4 @@
 - [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console
 - [x] Resilience: logs/undo capped, Hold Last State on by default, relaunch reopens last console
 - [ ] PATCH sąrašas turi būti greitesnis (virtualizuotas filtruotas rodymas, be perpiešimų kiekvienam raidės paspaudimui); orientyras — Blackout konsolės patch išdėstymas
+- [ ] Stream Deck mygtukų redaktoriuje — gražesnės piktogramos pasirinkimams
