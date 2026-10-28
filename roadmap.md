@@ -290,7 +290,7 @@
 - [ ] REC → timeline, timeline presets, record timeline to effect
 - [ ] Timeline multi-select drag doesn't pan; manual control during playback
 - [ ] Pixel effects disappearing bug
-- [ ] Astera: verify unverified models; Kelvin ranges per model
+- [x] Astera: all 19 models verified from official astera-led.com DMX profiles; Kelvin ranges per model — browser verified on a patched FP1 Titan Tube: field accepts 1750 and 20000, slider spans 1,75K–20K with a 20K preset.
 - [x] Multi-language UI (i18n): 24 languages, picker in Settings, Arabic RTL, tab/macro labels translated — done
 
 - [x] Park: show marker on the parked lights themselves
