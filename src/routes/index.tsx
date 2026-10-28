@@ -525,9 +525,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [groupsOpen, setGroupsOpen] = useState(() => typeof window === "undefined" || localStorage.getItem("nox-groups-open") !== "0");
   useEffect(() => { localStorage.setItem("nox-groups-open", groupsOpen ? "1" : "0"); }, [groupsOpen]);
   const [tlName, setTlName] = useState("");
-  // Persisted so a re-render, scene switch or reload never slams the fader bar shut.
-  const [fadersOpen, setFadersOpen] = useState(() => typeof window !== "undefined" && localStorage.getItem("nox-faders-open") === "1");
-  useEffect(() => { localStorage.setItem("nox-faders-open", fadersOpen ? "1" : "0"); }, [fadersOpen]);
   const [keypadOpen, setKeypadOpen] = useState(false);
   const [pulses, setPulses] = useState<Record<string, { at: number; base: number; target: number }>>({});
   const [activePixelId, setActivePixelId] = useState(scene.pixelLayers?.[0]?.id ?? "");
@@ -1579,7 +1576,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             <Button variant="secondary" size="icon" aria-label={tr("More")} title={tr("More")} className={redShift ? "text-primary" : ""}><MoreHorizontal /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setFadersOpen((o) => !o)}><Gauge />{tr("Faders")}{fadersOpen ? tr("· ON") : tr("")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={toggleBlind}><Moon />{blind ? tr("Apply (end Blind)") : tr("Blind")}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setMonitorOpen(true)}><Gauge />{tr("Monitor")}</DropdownMenuItem>
@@ -1731,10 +1727,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       </div>
       )}
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
-      {fadersOpen && !fadersPage && <PlaybackBar master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank} recordings={recordings} onLearn={(i) => { if (learning === `bank:${i}`) { setLearning(null); return; } setMidi({ ...midi, enabled: true }); setLearning(`bank:${i}`); }} learning={learning?.startsWith("bank:") ? Number(learning.slice(5)) : null} midiKeyOf={(i) => midi.maps.find((m) => m.target === `bank:${i}`)?.key}
-        flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
-        onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
-        progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} tcCfg={tcCfg} setTcCfg={setTcCfg} tcStart={seq.tcStart} setTcStart={(v) => { const tl = { ...latest.current.seq, tcStart: v }; setSeq(tl); latest.current.seq = tl; save(); }} />}
       {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
       {masterHint && outputBlocker() && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
