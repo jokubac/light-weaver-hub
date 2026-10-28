@@ -301,3 +301,4 @@
 ## Batch 2026-10-28
 - [ ] PATCH sheet: clicking a light toggles its selection (click a second light keeps the first selected), no multi-select mode needed
 - [ ] PLOT edit toolbar: Delete button next to Select/Multiselect (code done, on-screen check pending)
+- [ ] CCT: each selected light's own range drives the slider (Vortex 2200 min, Titan 1750 min) — no global 2000-10000 clamp
