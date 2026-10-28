@@ -311,3 +311,4 @@
 - [x] DMX CCT viršutinis limitas: oficialiuose chartuose 8 bitų CCT kanalas 1750+32×DMX = max 9910K. Vartotojo sprendimas: NOX Kelvin skalė lieka iki 20,000 K pagal lempos specifikaciją; virš 9,910 K DMX kanalas siunčia maksimumą (lempos 20,000 K tik per Asteros app).
 - [ ] Po Asteros: patikrinti populiariausias filmavimo lempas blokais (Aputure/amaran, ARRI, Creamsource, Nanlite/Nanlux, Kino Flo, Litepanels, Godox...).
 - [x] Master-off reminder: the "Don't show again" button removed (phrase dropped from all 23 dictionaries); pressing Blackout with the master at 0 also raises the reminder — browser check pending.
+- [x] Fixture tile: the amber group-name line under the universe/percent row removed (Jokubas: "šitas nereikalingas"); light names stay.

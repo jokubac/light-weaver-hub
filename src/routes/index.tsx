@@ -53,7 +53,7 @@ import { PatchPanel } from "@/components/console/PatchPanel";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
 import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { GEL_BY_ID, hexToHs } from "@/lib/gels";
-import { addToGroup, groupNamesOf, groupText, groupsOf, inGroup, membersOf, removeFromGroup, renameGroupsOn } from "@/lib/fixture-groups";
+import { addToGroup, groupNamesOf, inGroup, membersOf, removeFromGroup, renameGroupsOn } from "@/lib/fixture-groups";
 import { SettingsDialog } from "@/components/console/SettingsDialog";
 import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
@@ -1434,7 +1434,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                         <span className="truncate">{tr("U")}{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
-                      {groupsOf(f).length > 0 && <div className="shrink-0 truncate text-[9px] text-primary">{groupText(f)}</div>}
                       {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
                         <div title={`${fmtHours(b.hours)} left`} className={`flex shrink-0 items-center gap-1 text-[9px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
                           <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)}
