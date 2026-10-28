@@ -307,3 +307,4 @@
 ## Astera verify (2026-10-28)
 - [ ] Patikrinti visas 19 Astera GDTF bibliotekos lempas pagal oficialias astera-led.com specifikacijas (CCT diapazonas; jei randama — režimų kanalai).
 - [ ] Pataisyti [1750, 9910] -> gamintojo diapazoną (GDTF failuose klaida): gdtf-curation override + regeneruoti biblioteką.
+- [ ] Po Asteros: patikrinti populiariausias filmavimo lempas blokais (Aputure/amaran, ARRI, Creamsource, Nanlite/Nanlux, Kino Flo, Litepanels, Godox...).
