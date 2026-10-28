@@ -1056,6 +1056,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         </div>
         <Button variant="secondary" aria-label={tool === "pan" ? "Pan" : "Select / move"} title={tr("Toggle Select / Pan")} onClick={() => setTool(tool === "move" ? "pan" : "move")}>{tool === "pan" ? <Hand /> : <MousePointer2 />}{tool === "pan" ? tr("Pan") : tr("Select")}</Button>
         <Button variant={multiSelect ? "default" : "secondary"} size="icon" aria-label={tr("Multiselect")} aria-pressed={multiSelect} title={tr("Multiselect")} onClick={() => { setMultiSelect(!multiSelect); setTool("move"); }}><ListChecks /></Button>
+        <Button variant="destructive" size="sm" aria-label={tr("Remove selected from plot")} title={tr("Remove selected item")} disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />{tr("Delete")}</Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant={["draw", "rect", "door", "window"].includes(tool) ? "default" : "secondary"}><Pencil />{tr("Build")}<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
           <DropdownMenuItem onSelect={() => setTool("draw")}><Pencil />{tr("Wall")}</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setTool("rect")}><SquareIcon />{tr("Box")}</DropdownMenuItem>
