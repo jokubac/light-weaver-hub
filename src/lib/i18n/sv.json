@@ -1096,5 +1096,9 @@
   "or": "eller",
   "Parked": "Parkerad",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "Var N:e armatur — t.ex. 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Varannan armatur — i det angivna intervallet eller i markeringen (även expanderade pixlar)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Varannan armatur — i det angivna intervallet eller i markeringen (även expanderade pixlar)",
+  "First light": "Första ljuset",
+  "Last light": "Sista ljuset",
+  "Centre": "Mitten",
+  "Edges": "Kanter"
 }

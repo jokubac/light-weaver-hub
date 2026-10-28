@@ -1096,5 +1096,9 @@
   "or": "oder",
   "Parked": "Geparkt",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "Jede n-te Leuchte — z. B. 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Jede zweite Leuchte — im eingegebenen Bereich oder in der Auswahl (auch aufgeklappte Pixel)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Jede zweite Leuchte — im eingegebenen Bereich oder in der Auswahl (auch aufgeklappte Pixel)",
+  "First light": "Erstes Licht",
+  "Last light": "Letztes Licht",
+  "Centre": "Mitte",
+  "Edges": "Ränder"
 }

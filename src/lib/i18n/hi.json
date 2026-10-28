@@ -1096,5 +1096,9 @@
   "Parked": "पार्क किया गया",
   "Email": "ईमेल",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "हर Nवीं लाइट — जैसे 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "एक छोड़कर हर अगली लाइट — दर्ज की गई रेंज में से, या चयन में से (विस्तारित पिक्सेल भी)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "एक छोड़कर हर अगली लाइट — दर्ज की गई रेंज में से, या चयन में से (विस्तारित पिक्सेल भी)",
+  "First light": "पहला लाइट",
+  "Last light": "आख़िरी लाइट",
+  "Centre": "केंद्र",
+  "Edges": "किनारे"
 }

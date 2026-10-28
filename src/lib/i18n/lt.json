@@ -1096,5 +1096,9 @@
   "or": "arba",
   "Parked": "Užparkuota",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "Kas N-tasis šviestuvas — pvz., 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Kas antras šviestuvas — iš įvesto intervalo arba pasirinkimo (įskaitant išskleistus pikselius)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Kas antras šviestuvas — iš įvesto intervalo arba pasirinkimo (įskaitant išskleistus pikselius)",
+  "First light": "Pirmas šviestuvas",
+  "Last light": "Paskutinis šviestuvas",
+  "Centre": "Centras",
+  "Edges": "Kraštai"
 }

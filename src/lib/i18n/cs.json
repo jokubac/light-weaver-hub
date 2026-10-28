@@ -1096,5 +1096,9 @@
   "or": "nebo",
   "Parked": "Zaparkováno",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "Každé n-té svítidlo — např. 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Každé druhé svítidlo — ze zadaného rozsahu nebo z výběru (včetně rozbalených pixelů)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Každé druhé svítidlo — ze zadaného rozsahu nebo z výběru (včetně rozbalených pixelů)",
+  "First light": "První světlo",
+  "Last light": "Poslední světlo",
+  "Centre": "Střed",
+  "Edges": "Okraje"
 }

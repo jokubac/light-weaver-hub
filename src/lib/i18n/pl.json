@@ -1096,5 +1096,9 @@
   "Parked": "Zaparkowane",
   "Email": "E-mail",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "Co N-ta oprawa — np. 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Co druga oprawa — z wpisanego zakresu lub zaznaczenia (także rozwinięte piksele)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Co druga oprawa — z wpisanego zakresu lub zaznaczenia (także rozwinięte piksele)",
+  "First light": "Pierwsza lampa",
+  "Last light": "Ostatnia lampa",
+  "Centre": "Środek",
+  "Edges": "Krawędzie"
 }

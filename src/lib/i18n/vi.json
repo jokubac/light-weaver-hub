@@ -1096,5 +1096,9 @@
   "Parked": "Đã khóa (Park)",
   "Email": "Email",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "Chọn đèn theo bước N — ví dụ: 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Chọn đèn xen kẽ — trong dải đã nhập hoặc nhóm đang chọn (bao gồm cả các pixel đã mở rộng)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Chọn đèn xen kẽ — trong dải đã nhập hoặc nhóm đang chọn (bao gồm cả các pixel đã mở rộng)",
+  "First light": "Đèn đầu tiên",
+  "Last light": "Đèn cuối cùng",
+  "Centre": "Giữa",
+  "Edges": "Hai mép"
 }

@@ -1096,5 +1096,9 @@
   "or": "или",
   "Parked": "Запаркован",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "Каждый N-й прибор — например, 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Каждый второй прибор — из введённого диапазона или текущего выделения (включая развёрнутые пиксели)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Каждый второй прибор — из введённого диапазона или текущего выделения (включая развёрнутые пиксели)",
+  "First light": "Первый светильник",
+  "Last light": "Последний светильник",
+  "Centre": "Центр",
+  "Edges": "Края"
 }
