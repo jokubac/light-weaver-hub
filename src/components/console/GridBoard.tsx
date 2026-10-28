@@ -869,7 +869,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         </div>
       </div>
       {(!live || panelOpen) && <aside aria-label={live ? "Fixture controls" : "Grid editor"} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
-        {live ? controls : editPanel}
+        {live ? <>{controls}<AimPanel grid={grid} setGrid={setGrid} fixtures={fixtures} selected={selected} onAim={onAim ?? (() => {})} onMove={onMove ?? (() => {})} /></> : editPanel}
       </aside>}
 
       <Dialog open={!!pick} onOpenChange={(o) => !o && setPicker(null)}>
