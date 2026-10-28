@@ -156,9 +156,20 @@ function App() {
   }, [langVersion()]);
 
   useEffect(() => {
-    setProjects(loadProjects());
+    const ps = loadProjects();
+    setProjects(ps);
+    // Instant Recovery: reopen the console the app was on when it closed or the battery died.
+    try {
+      const v = JSON.parse(localStorage.getItem("nox-last-view") ?? "null") as View | null;
+      if (v?.name === "console" && ps.some((p) => p.id === v.projectId && p.scenes.some((sc) => sc.id === v.sceneId))) setView(v);
+    } catch { /* ignore */ }
     setLoaded(true);
   }, []);
+  useEffect(() => {
+    if (!loaded) return;
+    if (view.name === "console") localStorage.setItem("nox-last-view", JSON.stringify(view));
+    else localStorage.removeItem("nox-last-view");
+  }, [view, loaded]);
 
   // Immediate save on structural changes
   useEffect(() => {
@@ -716,6 +727,16 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [midi.enabled]);
 
+  // Flush right away when the app is hidden or killed, so nothing in the 400 ms debounce is lost.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    const flush = () => { try { saveRef.current(); } catch { /* ignore */ } };
+    const onVis = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVis);
+    return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
   useEffect(() => {
     const id = setTimeout(() => {
       save();
