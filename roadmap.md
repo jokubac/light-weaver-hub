@@ -338,3 +338,6 @@
 - [ ] CRMX Link button — LumenRadio pairing is physical, not networked: pressing the transmitter's Link button lets CRMX receivers search and link, and Linking Keys are only set through LumenRadio's own CRMX Toolbox app over Bluetooth ([1](https://lumenradio.com/support-materials/user-manual-2/), [5](https://rc4wireless.com/wp-content/uploads/2023/05/RC4-LumenDimIO-100-Quick-Start-Guide.pdf), [7](https://help.aputure.com/en/general-help/crmx-overview)). No published API lets a console pair lights, so a NOX Link button can only walk the user through the button press and remember which light belongs to which transmitter — automated pairing would be invented behaviour.
 - [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console
 - [x] Resilience: logs/undo capped, Hold Last State on by default, relaunch reopens last console
+- [x] PATCH sąrašas virtualizuotas (rodomos tik matomos eilutės), konfliktų skenavimas ir Undo žingsnis — O(n) vietoj O(n²)
+- [ ] FIXTURES plokštės tinklelis taip pat virtualizuotas (3000 lempų: atidarant PATCH vis dar tenka nuimti ~3000 langelių) — orientyras: Blackout patch
+- [x] Stream Deck mygtukų redaktoriuje — piktogramos kiekvienam veiksmui, paieška, mygtukai vietoj sąrašo

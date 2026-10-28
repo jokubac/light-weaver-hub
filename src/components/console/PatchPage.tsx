@@ -2,7 +2,8 @@ import { MAX_UNIVERSE } from "@/lib/dmx";
 import { cctRangeOverride } from "@/lib/gdtf-curation";
 import type { CallSheetData } from "@/lib/store";
 import { groupNamesOf, groupText, groupsPatch } from "@/lib/fixture-groups";
-import { Fragment as Frag, useRef, useState } from "react";
+import { Fragment as Frag, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, Tag, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,7 +16,7 @@ import { CallSheet } from "./CallSheet";
 import { LabelPrinter } from "./LabelPrinter";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick, patchClashes } from "@/lib/patch-order";
 
 import { t as tr } from "@/lib/i18n";
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
@@ -65,6 +66,8 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     const slots = blockLanding(fixtures, block, t).rows;
     return new Set(slots.map((i) => fixtures[i]?.uid).filter((u): u is string => !!u));
   })();
+  /** the rows a drag carries with it, resolved once instead of once per row */
+  const dragging = useMemo(() => (drag ? new Set(picked.includes(drag.uid) && picked.length > 1 ? picked : [drag.uid]) : null), [drag, picked]);
   const lastPick = useRef<string | null>(null);
   const rowClick = (e: React.MouseEvent, uid: string) => {
     if ((e.target as HTMLElement).closest("input,button,select,a,[role=checkbox]")) return;
@@ -93,9 +96,43 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     const names = fixtures.filter((f) => picked.includes(f.uid)).map((f) => f.name);
     if (confirm(`Unpatch ${names.length === 1 ? `"${names[0]}"` : `${names.length} fixtures`}? This cannot be undone.`)) { onRemove(picked); setPicked([]); }
   };
-  const groupNames = groupNamesOf(fixtures);
+  const groupNames = useMemo(() => groupNamesOf(fixtures), [fixtures]);
   const fileRef = useRef<HTMLInputElement>(null);
-  const rows = patchRows(fixtures, null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const rows = useMemo(() => patchRows(fixtures, null), [fixtures]);
+  const pickedSet = useMemo(() => new Set(picked), [picked]);
+  /** One pass over the patch instead of an overlap scan for every row. */
+  const clashes = useMemo(() => patchClashes(fixtures), [fixtures]);
+  /** A 3 000-light sheet must not put 3 000 rows in the page — only the visible band is rendered. */
+  const ROW_H = 34;
+  const [full, setFull] = useState(false); // printing wants every row on the page
+  const virtual = !full && rows.length > 160;
+  const [win, setWin] = useState({ first: 0, last: 90 });
+  useEffect(() => {
+    // flushSync so the browser prints the whole sheet, not just the band that was on screen
+    const before = () => flushSync(() => setFull(true));
+    const after = () => flushSync(() => setFull(false));
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => { window.removeEventListener("beforeprint", before); window.removeEventListener("afterprint", after); };
+  }, []);
+  useEffect(() => {
+    const sc = mainRef.current;
+    if (!sc || !virtual) return;
+    const update = () => {
+      const base = (tableRef.current?.getBoundingClientRect().top ?? 0) - sc.getBoundingClientRect().top + sc.scrollTop;
+      const at = sc.scrollTop - base;
+      const first = Math.max(0, Math.floor(at / ROW_H) - 12);
+      const last = Math.min(rows.length, Math.ceil((at + sc.clientHeight) / ROW_H) + 12);
+      setWin((w) => (w.first === first && w.last === last ? w : { first, last }));
+    };
+    update();
+    sc.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => { sc.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
+  }, [virtual, rows.length]);
+  const first = virtual ? win.first : 0;
+  const last = virtual ? Math.max(win.last, first + 20) : rows.length;
   const exportPatch = async () => {
     const data = JSON.stringify({ kind: "nox-patch", version: 1, title, exportedAt: new Date().toISOString(), fixtures }, null, 2);
     try { await saveFile(new Blob([data], { type: "application/json" }), `${safeFileName(title, "patch")}.nox-patch.json`); }
@@ -151,7 +188,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             </div>
           )}
           {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">{tr("No lights patched yet.")}</p> : (
-            <table className="w-full border-collapse text-xs print:text-[9px]">
+            <table ref={tableRef} className="w-full border-collapse text-xs print:text-[9px]">
               <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2 print:hidden"></th>
                 {([["name", "Name"], ["fixture", "Fixture"], ["mode", "Mode"], ["univ", "Univ"], ["dmx", "DMX"], ["ch", "Ch"], ["group", "Group"]] as const).map(([k, l]) => (
@@ -162,13 +199,14 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                 <th className="print:hidden"></th>
               </tr></thead>
               <tbody>
-                {rows.map(({ fixture: f, number }) => {
+                {first > 0 && <tr aria-hidden="true" style={{ height: first * ROW_H }}><td colSpan={11} className="p-0" /></tr>}
+                {rows.slice(first, last).map(({ fixture: f, number }) => {
                   const i = number - 1;
                   const d = getDef(f.defId); const m = d.modes[f.modeIdx]; const ch = m?.channels ?? 1;
-                  const clash = overlaps(fixtures, f.universe, f.address, ch, f.uid).length > 0;
+                  const clash = clashes.has(f.uid);
                   return (
-                    <Frag key={f.uid}><tr data-patch-uid={f.uid} className={`border-b border-border/60 break-inside-avoid ${picked.includes(f.uid) ? "bg-muted/60" : ""} ${drag && dragBlock(drag.uid).includes(f.uid) ? "opacity-50" : ""} ${landing?.has(f.uid) ? "outline outline-2 outline-primary bg-primary/10" : ""} cursor-pointer`} onClick={(e) => rowClick(e, f.uid)}>
-                      <td className="pr-2 print:hidden"><Checkbox checked={picked.includes(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6" /></td>
+                    <Frag key={f.uid}><tr data-patch-uid={f.uid} className={`border-b border-border/60 break-inside-avoid ${pickedSet.has(f.uid) ? "bg-muted/60" : ""} ${dragging?.has(f.uid) ? "opacity-50" : ""} ${landing?.has(f.uid) ? "outline outline-2 outline-primary bg-primary/10" : ""} cursor-pointer`} onClick={(e) => rowClick(e, f.uid)}>
+                      <td className="pr-2 print:hidden"><Checkbox checked={pickedSet.has(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6" /></td>
                       <td className="py-1.5 pr-2 font-mono text-muted-foreground print:py-0.5">{number}</td>
                       <td className="pr-2 print:hidden"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
@@ -240,6 +278,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                     </td></tr>}</Frag>
                   );
                 })}
+                {last < rows.length && <tr aria-hidden="true" style={{ height: (rows.length - last) * ROW_H }}><td colSpan={11} className="p-0" /></tr>}
               </tbody>
             </table>
           )}

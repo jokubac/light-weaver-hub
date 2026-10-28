@@ -72,3 +72,27 @@ export function renamePattern(pattern: string, count: number, start = 1, step = 
     return pattern.includes("{n}") ? pattern.split("{n}").join(n) : `${pattern} ${n}`.trim();
   });
 }
+
+/**
+ * Uids whose channels overlap another light's. Ranges are sorted per universe, so one pass
+ * finds every clash instead of scanning the whole patch once per rendered row.
+ */
+export function patchClashes(fixtures: PatchedFixture[]): Set<string> {
+  const out = new Set<string>();
+  const byUniverse = new Map<number, { uid: string; a: number; b: number }[]>();
+  for (const f of fixtures) {
+    const ch = Math.max(1, getDef(f.defId).modes[f.modeIdx]?.channels ?? 1);
+    const list = byUniverse.get(f.universe) ?? [];
+    list.push({ uid: f.uid, a: f.address, b: f.address + ch - 1 });
+    byUniverse.set(f.universe, list);
+  }
+  for (const list of byUniverse.values()) {
+    list.sort((x, y) => x.a - y.a || x.b - y.b);
+    let prev: { uid: string; a: number; b: number } | null = null;
+    for (const item of list) {
+      if (prev && item.a <= prev.b) { out.add(item.uid); out.add(prev.uid); }
+      if (!prev || item.b > prev.b) prev = item;
+    }
+  }
+  return out;
+}

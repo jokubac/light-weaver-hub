@@ -3,47 +3,27 @@ import { jsPDF } from "jspdf";
 import { Printer, Download, FileText, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getDef, type PatchedFixture } from "@/lib/dmx";
+import type { PatchedFixture } from "@/lib/dmx";
 import { NIIMBOT_MODELS, printLabels, type NiimbotModel } from "@/lib/niimbot";
+import { drawLabel } from "@/lib/patch-label";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { t as tr } from "@/lib/i18n";
-
-const DPMM = 8; // 203 dpi
-
-/** Draw one patch label (black on white) at printer resolution. */
-export function drawLabel(f: PatchedFixture, num: number, wMm: number, hMm: number): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = Math.round(wMm * DPMM); c.height = Math.round(hMm * DPMM);
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
-  g.fillStyle = "#000"; g.textBaseline = "top";
-  const d = getDef(f.defId); const m = d.modes[f.modeIdx];
-  const pad = Math.round(c.height * 0.06);
-  const big = Math.round(c.height * (hMm < 20 ? 0.62 : 0.38));
-  g.font = `900 ${big}px Manrope, system-ui, sans-serif`;
-  const numTxt = `#${num}`; g.fillText(numTxt, pad, pad);
-  const left = pad * 2 + g.measureText(numTxt).width;
-  const lines = hMm < 20
-    ? [f.name, `U${f.universe} · ${f.address}`]
-    : [f.name, `${d.brand} ${d.model}`, `U${f.universe} · DMX ${f.address}–${f.address + (m?.channels ?? 1) - 1}`, m?.name ?? ""];
-  const lh = (c.height - pad * 2) / lines.length;
-  lines.forEach((t, i) => {
-    g.font = `${i === 0 ? 800 : 600} ${Math.round(lh * 0.78)}px Manrope, system-ui, sans-serif`;
-    let s = t; const max = c.width - left - pad;
-    while (s.length > 1 && g.measureText(s).width > max) s = s.slice(0, -1);
-    g.fillText(s === t ? s : `${s.slice(0, -1)}…`, left, pad + i * lh);
-  });
-  return c;
-}
 
 export function LabelPrinter({ open, onOpenChange, fixtures, title }: { open: boolean; onOpenChange: (o: boolean) => void; fixtures: { f: PatchedFixture; num: number }[]; title: string }) {
   const [model, setModel] = useState<NiimbotModel>(() => (typeof localStorage !== "undefined" && (localStorage.getItem("nox-niimbot") as NiimbotModel)) || "D110");
   const [size, setSize] = useState<[number, number]>(NIIMBOT_MODELS[model].label);
   const [density, setDensity] = useState(3);
   const [busy, setBusy] = useState("");
+  const [fontsReady, setFontsReady] = useState(false);
   const preview = useRef<HTMLDivElement>(null);
   useEffect(() => { localStorage.setItem("nox-niimbot", model); setSize(NIIMBOT_MODELS[model].label); }, [model]);
-  const canvases = useMemo(() => (open ? fixtures.map(({ f, num }) => drawLabel(f, num, size[0], size[1])) : []), [open, fixtures, size]);
+  // labels are drawn in the app font; redraw once it has actually loaded
+  useEffect(() => {
+    let on = true;
+    document.fonts?.ready.then(() => { if (on) setFontsReady(true); }).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const canvases = useMemo(() => (open ? fixtures.map(({ f, num }) => drawLabel(f, num, size[0], size[1])) : []), [open, fixtures, size, fontsReady]);
   useEffect(() => {
     const el = preview.current; if (!el) return;
     el.replaceChildren(...canvases.slice(0, 12).map((c) => { const i = new Image(); i.src = c.toDataURL(); i.className = "w-full rounded border border-border"; return i; }));
