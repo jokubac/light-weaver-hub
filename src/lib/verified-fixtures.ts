@@ -1,4 +1,5 @@
 import { SPEC_PAGE_CHECKED } from "./spec-checked";
+import { SPEC_PAGE_CHECKED_2 } from "./spec-checked-2";
 import FIILEX_K_V2 from "./fiilex-k-color-v2.json";
 import { GODOX_FIXTURES } from "./godox";
 import { GEMINI_FIXTURES } from "./litepanels-gemini";
@@ -785,6 +786,7 @@ export const CHART_CHECKED_GDTF: { brand: string; model: string; chart: string; 
   // (1-ch modes are dropped library-wide). Robe models whose pixel/extended modes disagree stay unverified.
   ...ROBE_CHECKED.map((model) => ({ brand: "Robe", model, chart: "Robe official product specification (robe.cz)" })),
   ...Object.entries(SPEC_PAGE_CHECKED).flatMap(([brand, { chart, models }]) => models.map((model) => ({ brand, model, chart }))),
+  ...Object.entries(SPEC_PAGE_CHECKED_2).flatMap(([brand, models]) => models.map((model) => ({ brand, model, chart: `${brand} official product page / datasheet` }))),
   // Nanlux Evoke 900C DMX Reference Guide (Reduced Channels OFF): all 18 standard modes match, except xy 16-bit where
   // the guide reserves ch 9–12 (12 ch) and the community file stops at 10 — padded with reserved channels.
   { brand: "Nanlux", model: "Evoke 900C", chart: "Nanlux Evoke 900C DMX Reference Guide", padTo: { "XY 16bit (16-bit)": 12 } },
