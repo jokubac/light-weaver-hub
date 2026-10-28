@@ -33,7 +33,12 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 
 type Btn = NonNullable<BankFader["buttons"]>[number];
 type Param = NonNullable<BankFader["param"]>;
-const TOTAL = BANK_SIZE * BANK_PAGES;
+const TOTAL = BANK_TOTAL;
+/** grid columns for the full window at each faders-per-page */
+const GRID: Record<number, string> = { 4: "grid-cols-2 lg:grid-cols-4", 8: "grid-cols-4 lg:grid-cols-8", 16: "grid-cols-4 lg:grid-cols-8", 24: "grid-cols-6 lg:grid-cols-8", 32: "grid-cols-4 lg:grid-cols-8" };
+/** smallest fader height at each faders-per-page */
+const MIN_H: Record<number, string> = { 4: "min-h-[320px]", 8: "min-h-[300px]", 16: "min-h-[200px]", 24: "min-h-[160px]", 32: "min-h-[140px]" };
+
 const PARAMS: [Param, string][] = [["intensity", "Intensity"], ["cct", "CCT"], ["hue", "Hue"], ["saturation", "Saturation"], ["fxSpeed", "Effect speed"], ["fxSize", "Effect depth"]];
 const BTNS: [Btn, string][] = [["flash", "FLASH"], ["solo", "SOLO"], ["onoff", "ON/OFF"], ["full", "FULL"], ["zero", "ZERO"]];
 const COLORS: NonNullable<BankFader["color"]>[] = ["primary", "success", "warning", "destructive", "accent", "muted"];
@@ -47,9 +52,11 @@ export function PlaybackBar(p: PlaybackProps) {
   const [edit, setEdit] = useState<number | null>(null);
   const [cuesOpen, setCuesOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const [perPageFull, setPerPageFull] = useState<number>(() => (typeof window !== "undefined" ? Number(localStorage.getItem("nox-fader-per-page")) || 6 : 6));
+  const [perPageFull, setPerPageFull] = useState<number>(() => (typeof window !== "undefined" ? perPageOf(Number(localStorage.getItem("nox-fader-per-page"))) : 8));
   const perPage = p.full ? perPageFull : BANK_SIZE;
-  const pages = TOTAL / perPage;
+  const allPages = bankPages(perPage);
+  const pages = p.full ? (allPages <= 8 ? allPages : Math.min(allPages, Math.ceil(Math.max(p.bank.length, 1) / perPage) + 1)) : BANK_PAGES;
+
   const pg = Math.min(page, pages - 1);
   const base = pg * perPage;
   const sorted = sortCues(p.cues);
@@ -139,7 +146,7 @@ export function PlaybackBar(p: PlaybackProps) {
         </div>
       </div>
       <div className="w-px shrink-0 bg-border" />
-      <div aria-label={tr("Fader banks")} className={`grid shrink-0 gap-1 ${pages > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+      <div aria-label={tr("Fader banks")} className={`grid shrink-0 content-start gap-1 overflow-y-auto ${pages > 8 ? "max-h-16 grid-cols-4" : pages > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
         {Array.from({ length: pages }, (_, b) => {
           const used = p.bank.slice(b * perPage, (b + 1) * perPage).some((x) => x && x.name);
           return (
@@ -152,7 +159,7 @@ export function PlaybackBar(p: PlaybackProps) {
         <div className="w-px shrink-0 bg-border" />
         <div className="flex items-center gap-1 text-[10px] font-bold" aria-label={tr("Faders per page")}>
           <span className="mr-1 text-muted-foreground">{tr("Per page")}</span>
-          {[6, 12, 24].map((n) => <button key={n} onClick={() => setPer(n)} aria-pressed={perPage === n} className={`rounded-md px-2 py-1.5 ${perPage === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{n}</button>)}
+          {FADER_PAGE_SIZES.map((n) => <button key={n} onClick={() => setPer(n)} aria-pressed={perPage === n} className={`rounded-md px-2 py-1.5 ${perPage === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{n}</button>)}
         </div>
         <div className="w-px shrink-0 bg-border" />
         <button onClick={() => { setLinkMode((v) => !v); }} aria-pressed={linkMode} title={tr("Tap fader names to link them; linked faders move together")}
@@ -178,7 +185,7 @@ export function PlaybackBar(p: PlaybackProps) {
           </label>
         </div>
       )}
-      <div className={p.full ? `grid min-h-0 flex-1 gap-3 overflow-auto ${perPage === 24 ? "grid-cols-4 lg:grid-cols-8" : "grid-cols-3 lg:grid-cols-6"}` : "contents"}>
+      <div className={p.full ? `grid min-h-0 flex-1 gap-3 overflow-auto ${GRID[perPage] ?? "grid-cols-3 lg:grid-cols-6"}` : "contents"}>
       {slots.map((fd, j) => {
         const i = base + j;
         const empty = !fd || (!fd.name && fd.kind === "fixtures" && !fd.uids?.length);
@@ -187,7 +194,7 @@ export function PlaybackBar(p: PlaybackProps) {
         const live = !empty && fd!.id === lastId;
         const color = fd?.color ?? "primary";
         return (
-          <div key={i} className={`relative flex flex-col overflow-hidden border-2 ${live ? ring[color] : "border-transparent"} bg-surface-elevated ${p.full ? `${perPage === 6 ? "min-h-[260px]" : "min-h-[170px]"} gap-2 rounded-xl p-2.5` : "w-32 shrink-0 gap-1 rounded-lg px-2 py-1"} ${fd?.off ? "opacity-60" : ""}`}>
+          <div key={i} className={`relative flex flex-col overflow-hidden border-2 ${live ? ring[color] : "border-transparent"} bg-surface-elevated ${p.full ? `${MIN_H[perPage] ?? "min-h-[170px]"} gap-2 rounded-xl p-2.5` : "w-32 shrink-0 gap-1 rounded-lg px-2 py-1"} ${fd?.off ? "opacity-60" : ""}`}>
             {!empty && <span className={`absolute inset-x-0 top-0 h-1 ${swatch[color]}`} />}
             <div className={`flex items-center gap-1 ${p.full ? "text-sm" : "text-[10px]"}`}>
               <span className="font-mono text-muted-foreground">{i + 1}</span>
