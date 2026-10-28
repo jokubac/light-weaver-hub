@@ -314,3 +314,7 @@
 - [x] Fixture tile: the amber group-name line under the universe/percent row removed (Jokubas: "šitas nereikalingas"); light names stay.
 - [x] Restore the group name line on the FIXTURES tile (it showed group membership, not a duplicate name); group label browser checked.
 - [x] Remove the "All lights" strip under the PIXEL canvas; the light list stays on the canvas itself.
+- [x] Spread popover: keep it open while adjusting its sliders — a drag that ends outside currently dismisses it.
+- [x] Spread CCT: use the selected lamps' own Kelvin range (e.g. Astera 1750-20000) instead of the hardcoded 2000-10000.
+- [x] Spread preview: intensity bars must read normally and CCT swatches must show true Kelvin colours (no green cast).
+  Verified in the browser with three Astera Titan tubes: CCT sliders read 1750-20000, swatches go warm→cool with no green step, intensity gauges show 20/60/100%, the panel survives a drag ending outside it, a real outside click still closes it, and the same holds in Lithuanian. 412 tests pass.

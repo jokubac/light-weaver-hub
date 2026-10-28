@@ -1096,5 +1096,9 @@
   "Parked": "パーク中",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "N台ごとの灯体 — 例：1 THRU 16 NTH 3",
   "Every other light — of the typed range, or of the selection (also expanded pixels)": "1台おきの灯体 — 入力した範囲、または選択範囲が対象（展開されたピクセルも含む）",
-  "or": "または"
+  "or": "または",
+  "First light": "1台目",
+  "Last light": "最後台",
+  "Centre": "中央",
+  "Edges": "両端"
 }

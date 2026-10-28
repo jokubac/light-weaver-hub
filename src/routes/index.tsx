@@ -30,6 +30,7 @@ import { GridBoard, emptyGrid, type GridLayout } from "@/components/console/Grid
 import {
   cctFromKelvin,
   cctRangeOf,
+  DEFAULT_CCT_RANGE,
   fixtureColor,
   fixtureState,
   getDef,
@@ -1353,7 +1354,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                 <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
                  <button aria-label={tr("Keypad")} aria-pressed={keypadOpen} title={tr("Keypad — type e.g. 1 + 3 + 5 @ 80")}
                    onClick={() => setKeypadOpen((o) => !o)} className={chip(keypadOpen)}><Keyboard /></button>
-                 <FanPopover count={selected.length} className={chip(false)} onApply={(attr, vals) => {
+                 <FanPopover count={selected.length} className={chip(false)} cctRange={sel[0] ? cctRangeOf(sel[0]) : DEFAULT_CCT_RANGE} onApply={(attr, vals) => {
                    // on-screen order (tile order), not the order lights were tapped
                    setFixtures((fs) => {
                      const sel = new Set(selected);

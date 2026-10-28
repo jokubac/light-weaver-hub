@@ -1096,5 +1096,9 @@
   "or": "vai",
   "Parked": "Novietots",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "Katrs N-tais gaismeklis — piem., 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Katrs otrais gaismeklis — ievadītajā diapazonā vai atlasē (arī izvērstie pikseļi)"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "Katrs otrais gaismeklis — ievadītajā diapazonā vai atlasē (arī izvērstie pikseļi)",
+  "First light": "Pirmā gaisma",
+  "Last light": "Pēdējā gaisma",
+  "Centre": "Centrs",
+  "Edges": "Malas"
 }

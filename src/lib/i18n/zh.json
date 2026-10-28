@@ -1096,5 +1096,9 @@
   "or": "或",
   "Parked": "已停驻",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "每隔 N 个选取一盏灯 — 例如 1 THRU 16 NTH 3",
-  "Every other light — of the typed range, or of the selection (also expanded pixels)": "在输入的范围或当前选区中隔一盏选一盏（也适用于展开的像素）"
+  "Every other light — of the typed range, or of the selection (also expanded pixels)": "在输入的范围或当前选区中隔一盏选一盏（也适用于展开的像素）",
+  "First light": "第一盏灯",
+  "Last light": "最后一盏灯",
+  "Centre": "中心",
+  "Edges": "两端"
 }

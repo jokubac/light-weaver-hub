@@ -1096,5 +1096,9 @@
   "Email": "이메일",
   "Every Nth light — e.g. 1 THRU 16 NTH 3": "N번째마다 조명 선택 — 예: 1 THRU 16 NTH 3",
   "Every other light — of the typed range, or of the selection (also expanded pixels)": "입력한 범위 또는 선택 항목에서 조명을 하나씩 건너뛰어 선택 (확장된 픽셀도 포함)",
-  "or": "또는"
+  "or": "또는",
+  "First light": "첫 번째 라이트",
+  "Last light": "마지막 라이트",
+  "Centre": "가운데",
+  "Edges": "양쪽 끝"
 }
