@@ -151,11 +151,8 @@ export function drawLabel(f: PatchedFixture, num: number, wMm: number, hMm: numb
 
   const nb = nameBlock(g, L.name, iw, Math.round(nameH * (tall ? 0.6 : 0.92)), 800, tall ? 2 : 1);
   const lh = nameH / nb.lines.length;
-  nb.lines.forEach((line, i) => drawLine(g, line, ix, y(i), iw, lh, 800));
+  nb.lines.forEach((line, i) => drawLine(g, line, ix, iy + i * lh, iw, lh, 800));
 
-  let y = (i = 0) => iy + i * lh;
-  y = (i = 0) => iy + i * lh;
-  nb.lines.forEach((line, i) => drawLine(g, line, ix, y(i), iw, lh, 800));
 
   let bottom = iy + nameH + gap;
   if (tall) {
