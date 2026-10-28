@@ -3,6 +3,7 @@ import { subscribeLang, langVersion, loadSavedLang, getLang, isRtl } from "@/lib
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
 import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
+import { outputChanged } from "@/lib/output-hint";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -580,7 +581,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     const goingDark = bo.target === 0;
     setBo({ target: goingDark ? 1 : 0, at: clock.current, from: boLevel });
     // Going dark is where people forget the master is down, or forget to release blackout again.
-    if (goingDark && Date.now() - masterHintTs.current >= 8000) { masterHintTs.current = Date.now(); setMasterHint(true); }
+    if (goingDark && Date.now() - masterHintTs.current >= 6100) { masterHintTs.current = Date.now(); setMasterHint(true); }
   };
   const outLevel = master * (1 - boLevel);
 
@@ -724,30 +725,34 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
 
   const exit = () => { save(); onExit(); };
 
-  const OUT_KEYS = new Set(["intensity", "cct", "gm", "hue", "saturation", "crossfade", "cctOnly", "fx", "on", "fxPlaying", "fan", "gel", "beam"]);
   // Which output blocker the reminder talks about: master at 0% first, then blackout.
   const outputBlocker = (): "master" | "blackout" | null => (master <= 0 ? "master" : bo.target === 1 ? "blackout" : null);
   const hintMaster = () => {
-    if (!outputBlocker() || Date.now() - masterHintTs.current < 8000) return;
+    // The reminder sits on screen for 6 s; once it has faded, the next control move raises it again.
+    if (!outputBlocker() || Date.now() - masterHintTs.current < 6100) return;
     masterHintTs.current = Date.now();
     setMasterHint(true);
   };
+  // Any screen that moves a light's output — control panel, plot, macros, keypad, MIDI — raises the reminder.
+  const prevOut = useRef(fixtures);
+  useEffect(() => {
+    const before = prevOut.current;
+    prevOut.current = fixtures;
+    if (before !== fixtures && outputChanged(before, fixtures)) hintMaster();
+  }, [fixtures]);
   // Turning the master up while blackout is still on: the lamps stay dark, so remind again.
   const setMasterLevel = (v: number) => {
     setMaster(v);
     if (v > 0 && bo.target === 1) hintMaster();
   };
   const updateSelected = (patch: Partial<PatchedFixture>) => {
-    if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
     const drop = clearsPixelHold(patch) ? { pixelHold: undefined, pixelCells: undefined } : {};
     setFixtures((fs) => fs.map((f) => (selected.includes(f.uid) ? { ...f, ...patch, ...drop } : f)));
   };
   const updateEach = (fn: (f: PatchedFixture) => Partial<PatchedFixture>) => {
-    hintMaster();
     setFixtures((fs) => fs.map((f) => { if (!selected.includes(f.uid)) return f; const p = fn(f); return { ...f, ...p, ...(clearsPixelHold(p) ? { pixelHold: undefined, pixelCells: undefined } : {}) }; }));
   };
   const updateOne = (id: string, patch: Partial<PatchedFixture>) => {
-    if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
     const drop = clearsPixelHold(patch) ? { pixelHold: undefined, pixelCells: undefined } : {};
     setFixtures((fs) => fs.map((f) => (f.uid === id ? { ...f, ...patch, ...drop } : f)));
   };
