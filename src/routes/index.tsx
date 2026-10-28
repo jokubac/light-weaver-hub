@@ -27,7 +27,16 @@ import {
 } from "lucide-react";
 import { emptyPlot, type Plot } from "@/components/console/PlotPanel";
 import { GridBoard, emptyGrid, type GridLayout } from "@/components/console/GridBoard";
-import { cctFromKelvin, fixtureColor, fixtureState, getDef, getMode, type PatchedFixture, type TriggerKind } from "@/lib/dmx";
+import {
+  cctFromKelvin,
+  cctRangeOf,
+  fixtureColor,
+  fixtureState,
+  getDef,
+  getMode,
+  type PatchedFixture,
+  type TriggerKind,
+} from "@/lib/dmx";
 import { ItemMenu, ColorSwatches } from "@/components/console/ItemMenu";
 import { FixtureControls } from "@/components/console/FixtureControls";
 import { FixtureGlyph } from "@/components/console/FixtureGlyph";
@@ -1037,8 +1046,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     if (locate) {
       const now = performance.now();
       const k = locate.off != null ? 1 - Math.min(1, (now - locate.off) / 250) : Math.min(1, (now - locate.on) / 250);
-      const loc = cctFromKelvin(5600);
-      if (k > 0) out = out.map((f) => locate.ids.includes(f.uid) ? { ...f, intensity: f.intensity + (1 - f.intensity) * k, cct: f.cct + (loc - f.cct) * k, on: true } : f);
+      if (k > 0) out = out.map((f) => { if (!locate.ids.includes(f.uid)) return f; const loc = cctFromKelvin(5600, cctRangeOf(f)); return { ...f, intensity: f.intensity + (1 - f.intensity) * k, cct: f.cct + (loc - f.cct) * k, on: true }; });
     }
     const ids = Object.keys(pulses);
     if (!ids.length) return out;
@@ -1110,7 +1118,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     if (m.action === "filter") {
       const g = m.param ? GEL_BY_ID[m.param] : undefined;
       if (!g) return updateSelected({ gel: "" });
-      if (g.kelvin) return updateSelected({ cct: Math.max(0, Math.min(1, cctFromKelvin(g.kelvin))), crossfade: 0, gel: g.id });
+      if (g.kelvin) { const k = g.kelvin; return updateEach((f) => ({ cct: cctFromKelvin(k, cctRangeOf(f)), crossfade: 0, gel: g.id })); }
       if (g.gm !== undefined) return updateSelected({ gm: g.gm, gel: g.id });
       const { h, s: sat } = hexToHs(g.hex); return updateSelected({ hue: h, saturation: sat, crossfade: 1, cctOnly: false, gel: g.id });
     }
@@ -1355,7 +1363,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                      return fs.map((f) => {
                        const i = order.get(f.uid); if (i == null) return f; const v = vals[i]!;
                        return attr === "intensity" ? { ...f, intensity: Math.max(0, Math.min(1, v / 100)), on: true } : attr === "hue" ? { ...f, hue: ((v % 360) + 360) % 360, saturation: f.saturation > 0.05 ? f.saturation : 1, crossfade: 1, cctOnly: false, gel: "" }
-                         : { ...f, cct: Math.max(0, Math.min(1, cctFromKelvin(v))), crossfade: 0, gel: "" };
+                         : { ...f, cct: cctFromKelvin(v, cctRangeOf(f)), crossfade: 0, gel: "" };
                      });
                    });
                  }} />

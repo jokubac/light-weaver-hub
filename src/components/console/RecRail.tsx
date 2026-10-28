@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { snapshot } from "./LooksPanel";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { PixelLayer } from "@/lib/pixels";
-import { kelvin } from "@/lib/dmx";
+import { cctRangeOf, kelvin } from "@/lib/dmx";
 import { recLength, stepLength, stepStarts } from "@/lib/recordings";
 import { uid, type RecStep, type Recording, type StepTweak } from "@/lib/store";
 
@@ -193,12 +193,13 @@ export function RecRail({ recordings, setRecordings, selectedFixtures, playing, 
                     <button onClick={() => setStepOpen(stepOpen === s.id ? null : s.id)} className="mt-1 text-[10px] font-semibold text-primary">{stepOpen === s.id ? tr("Hide") : tr("Edit")}{tr("lights (")}{s.states.length})</button>
                     {stepOpen === s.id && s.states.map((x) => {
                       const set = (p: Partial<typeof x.state>) => updStep(r.id, s.id, { states: s.states.map((y) => (y.uid === x.uid ? { ...y, state: { ...y.state, ...p } } : y)) });
+                      const src = selectedFixtures.find((y) => y.uid === x.uid);
                       return (
                         <div key={x.uid} className="mt-1 space-y-1 rounded bg-surface-elevated p-1.5 text-[10px]">
                           <div className="flex items-center justify-between font-semibold"><span className="truncate">{x.name}</span>
                             <button onClick={() => updStep(r.id, s.id, { states: s.states.filter((y) => y.uid !== x.uid) })} className="text-muted-foreground" aria-label={`Remove ${x.name} from cue`}><Trash2 className="h-3 w-3" /></button></div>
                           <label className="flex items-center gap-1">{tr("Int")}<input type="range" min={0} max={1} step={0.01} value={x.state.intensity} onChange={(e) => set({ intensity: +e.target.value })} className="flex-1" /><span className="w-8 text-right">{Math.round(x.state.intensity * 100)}%</span></label>
-                          <label className="flex items-center gap-1">{tr("CCT")}<input type="range" min={0} max={1} step={0.005} value={x.state.cct} onChange={(e) => set({ cct: +e.target.value })} className="flex-1" /><span className="w-10 text-right">{kelvin(x.state.cct)}{tr("K")}</span></label>
+                          <label className="flex items-center gap-1">{tr("CCT")}<input type="range" min={0} max={1} step={0.005} value={x.state.cct} onChange={(e) => set({ cct: +e.target.value })} className="flex-1" /><span className="w-10 text-right">{kelvin(x.state.cct, src ? cctRangeOf(src) : undefined)}{tr("K")}</span></label>
                           <label className="flex items-center gap-1">{tr("Hue")}<input type="range" min={0} max={360} step={1} value={x.state.hue} onChange={(e) => set({ hue: +e.target.value })} className="flex-1" /><span className="h-3 w-8 rounded-sm" style={{ background: `hsl(${x.state.hue} ${x.state.saturation * 100}% 50%)` }} /></label>
                           <label className="flex items-center gap-1">{tr("Sat")}<input type="range" min={0} max={1} step={0.01} value={x.state.saturation} onChange={(e) => set({ saturation: +e.target.value })} className="flex-1" /><span className="w-8 text-right">{Math.round(x.state.saturation * 100)}%</span></label>
                           <label className="flex items-center gap-1">{tr("CCT↔HSI")}<input type="range" min={0} max={1} step={0.01} value={x.state.crossfade ?? 0} onChange={(e) => set({ crossfade: +e.target.value })} className="flex-1" /></label>

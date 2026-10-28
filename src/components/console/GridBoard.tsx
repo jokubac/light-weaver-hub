@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ViewTabs } from "./ViewTabs";
 import { MACRO_ACTIONS, FADER_RANGE, faderLimits, type Macro, type MacroAction } from "@/lib/macros";
 let lastPlotView: { x: number; y: number; z: number } | null = null;
-import { kelvin, type PatchedFixture } from "@/lib/dmx";
+import { cctRangeOf, kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
 import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, Link2, Unlink, PanelRightClose, PanelRightOpen, Lock, LockOpen, RotateCw } from "lucide-react";
@@ -812,12 +812,12 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                     // Fader: drives the selected lights; shows the first selected light's value.
                     const f0 = fixtures.find((f) => selected.includes(f.uid));
                     const [val, show] = a.id === "int_fader" ? [Math.round((f0?.intensity ?? 0) * 100), (v: number) => `${v}%`] as const
-                      : a.id === "cct_fader" ? [Math.round(kelvin(f0?.cct ?? 0.45)), (v: number) => `${v}K`] as const
+                      : a.id === "cct_fader" ? [Math.round(kelvin(f0?.cct ?? 0.45, f0 ? cctRangeOf(f0) : undefined)), (v: number) => `${v}K`] as const
                       : a.id === "hue_fader" ? [Math.round(f0?.hue ?? 0), (v: number) => `${v}°`] as const
                       : a.id === "sat_fader" ? [Math.round((f0?.saturation ?? 0) * 100), (v: number) => `${v}%`] as const
                       : [Math.round((f0?.gm ?? 0) * 100), (v: number) => (v > 0 ? `G${v}` : v < 0 ? `M${-v}` : "0")] as const;
                     // User limits (e.g. 5%..70%) become the slider's ends, so the fader can never leave them.
-                    const [min, max] = faderLimits(a.id, it.macro!.lo, it.macro!.hi), step = FADER_RANGE[a.id]?.[2] ?? 1;
+                    const [min, max] = faderLimits(a.id, it.macro!.lo, it.macro!.hi, a.id === "cct_fader" && f0 ? cctRangeOf(f0) : undefined), step = FADER_RANGE[a.id]?.[2] ?? 1;
                     const limited = it.macro!.lo != null || it.macro!.hi != null;
                     // The box itself detects the double tap (tapFader); the slider only drags.
                     return <div className="flex flex-1 flex-col justify-center gap-0.5 px-1">
