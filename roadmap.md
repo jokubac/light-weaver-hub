@@ -336,4 +336,4 @@
 - [ ] Moving head position grid from plot + movement FX
 - [ ] CRMX Link button — needs verified pairing protocol per node
 - [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console
-- [ ] Resilience: no cache build-up, lights hold on crash (Hold Last State), relaunch identical
+- [x] Resilience: logs/undo capped, Hold Last State on by default, relaunch reopens last console
