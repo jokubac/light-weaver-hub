@@ -1517,10 +1517,10 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       </div>
       <div aria-label={tr("Console views")} className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
         <ViewTabs fill tabs={([["fixtures", tr("FIXTURES"), fixturesOpen || !(gridOpen || seqOpen || pixOpen || patchOpen)], ["grid", tr("PLOT"), gridOpen], ["timeline", tr("TIMELINE"), seqOpen], ["pixels", tr("PIXEL"), pixOpen], ["patch", tr("PATCH"), patchOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => (on && k === "patch" ? undefined : openWin(k as "fixtures" | "grid" | "timeline" | "pixels" | "patch")) }))} />
-        <button onClick={() => setGroupsOpen((o) => !o)} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}
+        {!patchOpen && <button onClick={() => setGroupsOpen((o) => !o)} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}
           className={`inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-md shadow-sm transition active:scale-95 [&_svg]:size-4 ${groupsOpen ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
           {groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}
-        </button>
+        </button>}
       </div>
 
       <SetupLibrary open={setupsOpen} onOpenChange={setSetupsOpen} setups={project.setups ?? []}
