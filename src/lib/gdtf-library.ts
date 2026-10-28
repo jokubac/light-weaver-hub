@@ -10,8 +10,15 @@ let cache: Promise<LibraryDef[]> | null = null;
 export function loadGdtfLibrary(): Promise<LibraryDef[]> {
   const get = async <T,>(url: string): Promise<T> => { const r = await fetch(url); if (!r.ok) throw new Error("Library unavailable"); return r.json() as Promise<T>; };
   // library.json is an index; fixtures are sharded to stay under repository file limits
+  // watts.json overlays researched maker power figures by id so regenerating the library keeps them
   cache ??= get<{ parts: number }>("/gdtf-library/library.json")
-    .then(async ({ parts }) => (await Promise.all(Array.from({ length: parts }, (_, i) => get<LibraryDef[]>(`/gdtf-library/library-${i + 1}.json`)))).flat())
+    .then(async ({ parts }) => {
+      const [lists, watts] = await Promise.all([
+        Promise.all(Array.from({ length: parts }, (_, i) => get<LibraryDef[]>(`/gdtf-library/library-${i + 1}.json`))),
+        get<Record<string, number>>("/gdtf-library/watts.json").catch(() => ({} as Record<string, number>)),
+      ]);
+      return lists.flat().map((d) => (!d.watts && watts[d.id] ? { ...d, watts: watts[d.id] } : d));
+    })
     .catch((e) => { cache = null; throw e; });
   return cache;
 }
