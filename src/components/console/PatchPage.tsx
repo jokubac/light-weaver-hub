@@ -149,11 +149,13 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     if (!td) { setExtra(0); return; }
     const measure = () => setExtra(Math.max(0, Math.round(td.getBoundingClientRect().height) - ROW_H));
     measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(td);
-    editorRo.current = ro;
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(measure);
+      ro.observe(td);
+      editorRo.current = ro;
+    }
     // an editor opened at the bottom of the screen would otherwise sit under the keyboard
-    requestAnimationFrame(() => td.scrollIntoView({ block: "nearest" }));
+    requestAnimationFrame(() => td.scrollIntoView?.({ block: "nearest" }));
   }, []);
   const rowIndex = useMemo(() => new Map(rows.map((r, i) => [r.fixture.uid, i])), [rows]);
   const expanded: ExpandedRow = useMemo(
