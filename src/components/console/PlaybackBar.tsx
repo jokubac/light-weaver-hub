@@ -1,12 +1,12 @@
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ListOrdered, Plus, Settings2, Trash2, Play, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NumberField } from "@/components/console/NumberField";
 import type { PatchedFixture } from "@/lib/dmx";
-import type { BankFader, Cue, Look } from "@/lib/store";
-import { BANK_SIZE, BANK_PAGES, sortCues, faderMembers } from "@/lib/playback";
+import type { BankFader, Cue, FaderSnap, Look } from "@/lib/store";
+import { BANK_SIZE, BANK_PAGES, sortCues, faderMembers, snapBank, releaseBank, moveLinked } from "@/lib/playback";
 import { fmtTc, parseTc } from "@/lib/show-control";
 
 import { t as tr } from "@/lib/i18n";
@@ -26,6 +26,7 @@ export interface PlaybackProps {
   /** live output (after bank/park) for the light dots */
   output?: PatchedFixture[];
   master?: number; onMaster?: (v: number) => void;
+  snaps?: FaderSnap[]; setSnaps?: (s: FaderSnap[]) => void;
 }
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -66,10 +67,35 @@ export function PlaybackBar(p: PlaybackProps) {
     p.setBank(arr.slice(0, last + 1).map((x, k) => x ?? { id: `empty-${k}`, name: "", kind: "fixtures", uids: [], level: 1 }));
   };
   const patchFd = (i: number, patch: Partial<BankFader>) => { const fd = p.bank[i]; if (fd) p.setBank(p.bank.map((x, k) => (k === i ? { ...x, ...patch } : x))); };
+  const [linkMode, setLinkMode] = useState(false);
+  const [linked, setLinked] = useState<Set<string>>(new Set());
+  const [snapFade, setSnapFade] = useState(2);
+  const [fading, setFading] = useState<string | null>(null);
+  const pRef = useRef(p); pRef.current = p;
+  const raf = useRef<number | null>(null);
+  useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current); }, []);
   const setLevel = (i: number, level: number) => {
     const fd = p.bank[i]; if (!fd) return;
     if (fd.kind === "master") p.onMaster?.(level);
-    patchFd(i, { level, touched: Date.now() });
+    p.setBank(moveLinked(p.bank, i, level, linked));
+  };
+  const saveSnap = () => {
+    const levels: Record<string, number> = {};
+    p.bank.forEach((fd) => { if (fd?.name && fd.kind !== "master") levels[fd.id] = fd.level; });
+    const list = p.snaps ?? [];
+    p.setSnaps?.([...list, { id: newId(), name: `Snap ${list.length + 1}`, levels }]);
+  };
+  const recallSnap = (snap: FaderSnap) => {
+    if (raf.current) cancelAnimationFrame(raf.current);
+    const from: Record<string, number> = {}; p.bank.forEach((fd) => { if (fd) from[fd.id] = fd.level; });
+    const t0 = performance.now(); const dur = snapFade * 1000;
+    setFading(snap.id);
+    const step = () => {
+      const k = dur <= 0 ? 1 : (performance.now() - t0) / dur;
+      pRef.current.setBank(snapBank(pRef.current.bank, snap, from, k));
+      if (k < 1) raf.current = requestAnimationFrame(step); else { raf.current = null; setFading(null); }
+    };
+    step();
   };
   const levelOf = (fd: BankFader) => (fd.kind === "master" && p.master != null ? p.master : p.flash === fd.id ? 1 : fd.level);
   const setPer = (n: number) => { setPerPageFull(n); setPage(0); localStorage.setItem("nox-fader-per-page", String(n)); };
@@ -128,9 +154,30 @@ export function PlaybackBar(p: PlaybackProps) {
           <span className="mr-1 text-muted-foreground">{tr("Per page")}</span>
           {[6, 12, 24].map((n) => <button key={n} onClick={() => setPer(n)} aria-pressed={perPage === n} className={`rounded-md px-2 py-1.5 ${perPage === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{n}</button>)}
         </div>
+        <div className="w-px shrink-0 bg-border" />
+        <button onClick={() => { setLinkMode((v) => !v); }} aria-pressed={linkMode} title={tr("Tap fader names to link them; linked faders move together")}
+          className={`rounded-md px-2.5 text-[10px] font-bold ${linkMode ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{tr("LINK")}{linked.size ? ` ${linked.size}` : ""}</button>
+        {linked.size > 0 && <button onClick={() => setLinked(new Set())} className="rounded-md bg-surface-elevated px-2 text-[10px] font-bold text-muted-foreground">{tr("Unlink")}</button>}
+        <button onClick={() => { p.setBank(releaseBank(p.bank)); p.setFlash(null); p.setSolo(null); }} title={tr("Intensity faders back to full, colour and look faders released")}
+          className="rounded-md bg-surface-elevated px-2.5 text-[10px] font-bold text-destructive">{tr("RELEASE ALL")}</button>
         <div className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground">{tr("Last moved wins")}</div>
       </>}
       </div>
+      {p.full && (
+        <div aria-label={tr("Fader snapshots")} className="flex shrink-0 flex-wrap items-center gap-1.5 text-[10px]">
+          <span className="font-bold uppercase tracking-wide text-muted-foreground">{tr("Snapshots")}</span>
+          {(p.snaps ?? []).map((sn) => (
+            <span key={sn.id} className={`flex items-center overflow-hidden rounded-md ${fading === sn.id ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>
+              <button onClick={() => recallSnap(sn)} className="px-2.5 py-1.5 font-bold" title={tr("Fade all faders to these positions")}>{sn.name}</button>
+              <button onClick={() => p.setSnaps?.((p.snaps ?? []).filter((x) => x.id !== sn.id))} aria-label={`Delete ${sn.name}`} className="px-1.5 py-1.5 opacity-60 hover:opacity-100">×</button>
+            </span>
+          ))}
+          <button onClick={saveSnap} className="flex items-center gap-1 rounded-md border border-dashed border-border px-2.5 py-1.5 font-bold text-muted-foreground"><Plus className="h-3 w-3" />{tr("Save positions")}</button>
+          <label className="ml-2 flex items-center gap-1 text-muted-foreground">{tr("Fade")}
+            <input type="number" min={0} max={30} step={0.5} value={snapFade} onChange={(e) => setSnapFade(Math.max(0, +e.target.value || 0))} className="w-14 rounded-md border border-input bg-surface-elevated px-1.5 py-1 text-foreground" />{tr("s")}
+          </label>
+        </div>
+      )}
       <div className={p.full ? `grid min-h-0 flex-1 gap-3 overflow-auto ${perPage === 24 ? "grid-cols-4 lg:grid-cols-8" : "grid-cols-3 lg:grid-cols-6"}` : "contents"}>
       {slots.map((fd, j) => {
         const i = base + j;
@@ -144,7 +191,10 @@ export function PlaybackBar(p: PlaybackProps) {
             {!empty && <span className={`absolute inset-x-0 top-0 h-1 ${swatch[color]}`} />}
             <div className={`flex items-center gap-1 ${p.full ? "text-sm" : "text-[10px]"}`}>
               <span className="font-mono text-muted-foreground">{i + 1}</span>
-              <span className="min-w-0 flex-1 truncate font-semibold">{empty ? tr("Empty") : fd!.name}</span>
+              {linkMode && !empty && fd!.kind !== "master" ? (
+                <button onClick={() => setLinked((x) => { const n = new Set(x); if (n.has(fd!.id)) n.delete(fd!.id); else n.add(fd!.id); return n; })} aria-pressed={linked.has(fd!.id)}
+                  className={`min-w-0 flex-1 truncate rounded px-1 text-left font-semibold ${linked.has(fd!.id) ? "bg-primary text-primary-foreground" : "bg-background"}`}>{fd!.name}</button>
+              ) : <span className="min-w-0 flex-1 truncate font-semibold">{empty ? tr("Empty") : fd!.name}{!empty && linked.has(fd!.id) && <span className="ml-1 text-[9px] text-primary">🔗</span>}</span>}
               <button onClick={() => setEdit(i)} aria-label={`Set up fader ${i + 1}`}><Settings2 className="h-3.5 w-3.5" /></button>
             </div>
             {empty ? (

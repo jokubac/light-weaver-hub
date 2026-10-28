@@ -74,7 +74,7 @@ import { CollapsibleSection } from "@/components/console/CollapsibleSection";
 import { PatchPage } from "@/components/console/PatchPage";
 import { mixFrames, statesAt, stepStarts, tweakPixels } from "@/lib/recordings";
 import { snapshot } from "@/components/console/LooksPanel";
-import type { Recording, LookState, Cue, BankFader, CallSheetData, TimelineSave } from "@/lib/store";
+import type { Recording, LookState, Cue, BankFader, FaderSnap, CallSheetData, TimelineSave } from "@/lib/store";
 import { applyBank, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@/lib/playback";
 import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { ShowMonitor } from "@/components/console/ShowMonitor";
@@ -262,6 +262,7 @@ function App() {
       onRecordings={(recordings) => updateProject(project.id, (p) => ({ ...p, recordings }))}
       onTimelines={(timelines) => updateProject(project.id, (p) => ({ ...p, timelines }))}
       onBank={(bank) => updateProject(project.id, (p) => ({ ...p, bank }))}
+      onFaderSnaps={(faderSnaps) => updateProject(project.id, (p) => ({ ...p, faderSnaps }))}
       onCues={(cues) => updateProject(project.id, (p) => ({ ...p, cues }))}
       onCallSheet={(callSheet) => updateProject(project.id, (p) => ({ ...p, callSheet }))}
       onParked={(parked) => updateProject(project.id, (p) => ({ ...p, parked }))}
@@ -466,8 +467,8 @@ type Panel = "control" | "pixels" | "fx";
 type RGB = [number, number, number];
 const FADE = 2; // blackout fade time in seconds
 
-function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onTimelines, onBank, onCues, onCallSheet, onParked }: {
-  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onTimelines: (t: TimelineSave[]) => void; onBank: (b: BankFader[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void; onParked: (p: Record<string, LookState>) => void;
+function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onLooks, onSetups, onRecordings, onTimelines, onBank, onFaderSnaps, onCues, onCallSheet, onParked }: {
+  project: Project; scene: Scene; projects: Project[]; onSwitch: (p: string, s: string) => void; onSave: (s: Scene) => void; onExit: () => void; onLooks: (l: Look[]) => void; onSetups: (setups: Scene[]) => void; onRecordings: (r: Recording[]) => void; onTimelines: (t: TimelineSave[]) => void; onBank: (b: BankFader[]) => void; onFaderSnaps: (s: FaderSnap[]) => void; onCues: (c: Cue[]) => void; onCallSheet: (c: CallSheetData) => void; onParked: (p: Record<string, LookState>) => void;
 }) {
   const { fixtures, setFixtures: setFixturesRaw, setUntrackedFixtures: setUntrackedFixturesRaw, begin: beginFixtureEdit, end: endFixtureEdit, undo, redo, canUndo, canRedo } = useFixtureHistory(scene.fixtures);
   // Parked lights are untouchable: every fixture write puts them back exactly as parked, so
@@ -1626,7 +1627,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       )}
       {fadersPage && (
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
-          <PlaybackBar full output={parkedOut} master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
+          <PlaybackBar full snaps={project.faderSnaps ?? []} setSnaps={onFaderSnaps} output={parkedOut} master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
             flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
             onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
             progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />
