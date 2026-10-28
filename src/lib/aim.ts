@@ -60,10 +60,6 @@ export const AIM_SHAPES: { id: AimShape; label: string }[] = [
   { id: "random", label: "Random" },
 ];
 
-/**
- * Live Pan/Tilt offsets (±0.5 of the head's whole travel) for a wander shape at time `t`.
- * Deterministic from `seed`, so two lights with the same shape drift apart instead of marching.
- */
 /** Integer hash of a light's id: two heads on the same shape must not drift in lockstep. */
 const uidSeed = (uid: string): number => {
   let h = 0;
