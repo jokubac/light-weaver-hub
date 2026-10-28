@@ -54,7 +54,7 @@ export function modelKey(brand: string, model: string): string {
   m = m.replace(/(centerinsertion|centreinsertion|90tocam|rev\d+)$/g, "");
   if (brand === "Astera") {
     const aliases: Record<string, string> = {
-      ax3: "ax3lightdrop", ax5: "ax5triplepar", ax2100: "ax2100pixelbar", ax250: "ax250pixelbar", ax10: "ax10spotmax",
+      ax3: "ax3lightdrop", ax5: "ax5triplepar", ax2100: "ax2100pixelbar", ax250: "ax250pixelbar", ax10: "ax10spotmax", ax10: "ax10spotmax",
       ax1: "ax1pixeltube", pluto: "af80plutofresnel", quickspot: "astqukspquikspot",
       titantube: "fp1titantube", heliostube: "fp2heliostube", hyperiontube: "fp3hyperiontube",
     };
