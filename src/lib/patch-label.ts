@@ -13,7 +13,7 @@ export interface LabelText {
   make: string;
   /** Universe as `U`, DMX address as `@`: "U3 @12", or "U3 @12–27" when the mode spans channels. */
   pos: string;
-  /** Mode name, e.g. "RGBW 8ch". */
+  /** Mode name, e.g. "RGBW 8-bit". */
   mode: string;
 }
 
@@ -50,33 +50,23 @@ function ellipsize(g: CanvasRenderingContext2D, text: string, maxW: number) {
   return `${s.trimEnd()}…`;
 }
 
-/** Break `text` into at most maxLines lines at word edges (the tail is kept whole and shrinks). */
-function wrap(g: CanvasRenderingContext2D, text: string, maxW: number, px: number, weight: number, maxLines: number) {
-  g.font = font(px, weight);
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let cur = "";
-  for (let i = 0; i < words.length; i++) {
-    const t = cur ? `${cur} ${words[i]}` : words[i]!;
-    if (!cur || g.measureText(t).width <= maxW) cur = t;
-    else {
-      lines.push(cur);
-      cur = lines.length === maxLines - 1 ? words.slice(i).join(" ") : words[i]!;
-      if (lines.length === maxLines - 1) break;
-    }
-  }
-  lines.push(cur);
-  return lines.filter(Boolean);
-}
-
-/** Name block: one line while it stays big, two lines once it would shrink past `wrapAt`. */
-function nameBlock(g: CanvasRenderingContext2D, name: string, maxW: number, maxPx: number, weight: number, maxLines: number, wrapAt: number, minPx: number) {
-  let best = { lines: [name], px: fitPx(g, name, maxW, maxPx, minPx, weight) };
-  if (maxLines > 1 && best.px < maxPx * wrapAt) {
-    const lines = wrap(g, name, maxW, Math.max(minPx, Math.round(maxPx * 0.55)), weight, maxLines);
-    if (lines.length > 1) {
-      const px = Math.min(...lines.map((l) => fitPx(g, l, maxW, maxPx, minPx, weight)));
-      if (px > best.px) best = { lines, px };
+/**
+ * The light's name, sized as big as the label allows: one line while it stays readable,
+ * otherwise two lines split where they balance, because two shorter words print far larger
+ * than one long squeezed line. Nothing is ever cut off unless it truly cannot fit.
+ */
+function nameBlock(g: CanvasRenderingContext2D, name: string, maxW: number, bandH: number, weight: number) {
+  const minPx = Math.max(9, Math.round(bandH * 0.2));
+  const cap = (lines: number) => (bandH / lines) * 0.92;
+  let best = { lines: [name], px: fitPx(g, name, maxW, cap(1), minPx, weight) };
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length > 1) {
+    const mid = words.length / 2;
+    for (let i = Math.max(1, Math.floor(mid) - 2); i <= Math.min(words.length - 1, Math.ceil(mid) + 2); i++) {
+      const a = words.slice(0, i).join(" ");
+      const b = words.slice(i).join(" ");
+      const px = Math.min(fitPx(g, a, maxW, cap(2), minPx, weight), fitPx(g, b, maxW, cap(2), minPx, weight));
+      if (px > best.px) best = { lines: [a, b], px };
     }
   }
   if (!best.px) best = { lines: best.lines, px: minPx };
@@ -146,14 +136,17 @@ export function drawLabel(f: PatchedFixture, num: number, wMm: number, hMm: numb
   const ih = c.height - iy * 2;
   const gap = Math.max(2, Math.round(lw * 1.1));
   const band = Math.round(Math.max(12, ih * (tall ? 0.26 : 0.33))); // chip + "U3 @12"
-  const sub = tall ? Math.round(ih * 0.17) : 0; // "ARRI SkyPanel S60 Pro · RGBW 8ch"
+  const sub = tall ? Math.round(ih * 0.17) : 0; // "ARRI SkyPanel S60 Pro · RGBW 8-bit"
   const nameH = Math.max(10, ih - band - sub - gap * (tall ? 2 : 1));
 
-  const nameMax = Math.round(nameH * (tall ? 0.6 : 0.92));
-  const nb = nameBlock(g, L.name, iw, nameMax, 800, 2, tall ? 0.68 : 0.5, Math.max(10, Math.round(nameMax * 0.34)));
+  const nb = nameBlock(g, L.name, iw, nameH, 800);
   const lh = nameH / nb.lines.length;
-  nb.lines.forEach((line, i) => drawLine(g, line, ix, iy + i * lh, iw, lh, 800));
-
+  nb.lines.forEach((line, i) => {
+    g.font = font(nb.px, 800);
+    const s = g.measureText(line).width > iw ? ellipsize(g, line, iw) : line;
+    g.textBaseline = "middle";
+    g.fillText(s, ix, iy + i * lh + lh / 2);
+  });
 
   let bottom = iy + nameH + gap;
   if (tall) {
@@ -161,8 +154,7 @@ export function drawLabel(f: PatchedFixture, num: number, wMm: number, hMm: numb
     bottom += sub + gap;
   }
   g.fillRect(ix, bottom - gap, iw, Math.max(1, Math.round(lw * 0.5))); // hairline above the address row
-  const bs = band;
-  drawBadge(g, ix, bottom, bs, num);
-  drawLine(g, L.pos, ix + bs + gap, bottom, iw - bs - gap, band, 700);
+  drawBadge(g, ix, bottom, band, num);
+  drawLine(g, L.pos, ix + band + gap, bottom, iw - band - gap, band, 700);
   return c;
 }
