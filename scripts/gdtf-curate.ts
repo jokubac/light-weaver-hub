@@ -32,6 +32,13 @@ for (const x of VERIFIED_EXTRA_MODES) {
   const d = best.get(`${x.brand}|${modelKey(x.brand, x.model)}`);
   if (d) d.modes = [...d.modes, ...x.modes.filter((m) => !d.modes.some((o: any) => o.name === m.name))];
 }
+// QuikPunch's fan profiles (144–159) exist only in its own chart, which could not be verified:
+// keep them from the previous GDTF entry as hidden modes so saved mode indices still resolve.
+{
+  const qp = best.get(`Astera|${modelKey("Astera", "QuikPunch")}`);
+  const prev = all.find((d) => canonicalBrand(d.brand) === "Astera" && modelKey("Astera", d.model) === modelKey("Astera", "QuikPunch"));
+  if (qp && prev) qp.modes = [...qp.modes, ...prev.modes.filter((m: any) => /^\s*1[45]\d\b/.test(m.name)).map((m: any) => ({ ...m, legacy: true }))];
+}
 for (const c of CHART_CHECKED_GDTF) {
   const d = best.get(`${c.brand}|${modelKey(c.brand, c.model)}`);
   const src = c.modesFrom ? best.get(`${c.brand}|${modelKey(c.brand, c.modesFrom)}`) : null;
