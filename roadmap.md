@@ -303,3 +303,8 @@
 - [ ] PLOT edit toolbar: Delete button next to Select/Multiselect (code done, on-screen check pending)
 - [x] CCT: each selected light's own range drives the slider (Vortex 2200 min, Titan 1750 min) — no global 2000-10000 clamp; browser verified typing 1700 -> 1750 on a Titan. Note: the GDTF copy of FP1 Titan Tube declares its own top end (9910 K) from the GDTF file, while the Astera library entry declares 20000 K.
 - [ ] PLOT editor Delete button (PlotPanel toolbar): in source with aria-label "Remove selected from plot", not yet clicked in a browser.
+
+## Astera verify (2026-10-28)
+- [ ] Patikrinti visas 19 Astera GDTF bibliotekos lempas pagal oficialias astera-led.com specifikacijas (CCT diapazonas; jei randama — režimų kanalai).
+- [ ] Pataisyti [1750, 9910] -> gamintojo diapazoną (GDTF failuose klaida): gdtf-curation override + regeneruoti biblioteką.
+- [ ] Po Asteros: patikrinti populiariausias filmavimo lempas blokais (Aputure/amaran, ARRI, Creamsource, Nanlite/Nanlux, Kino Flo, Litepanels, Godox...).

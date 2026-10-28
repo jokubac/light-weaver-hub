@@ -3,7 +3,7 @@
 // Usage: bun scripts/gdtf-curate.ts
 import { readFileSync, writeFileSync, readdirSync, rmSync, existsSync } from "node:fs";
 import { CHART_CHECKED_GDTF, VERIFIED_EXTRA_MODES, VERIFIED_FIXTURES } from "../src/lib/verified-fixtures";
-import { BRAND_ALIASES, canonicalBrand, modelKey, profileScore, specWatts } from "../src/lib/gdtf-curation";
+import { BRAND_ALIASES, canonicalBrand, cctRangeOverride, modelKey, profileScore, specWatts } from "../src/lib/gdtf-curation";
 
 const out = "public/gdtf-library";
 const index = JSON.parse(readFileSync(`${out}/library.json`, "utf8"));
@@ -20,6 +20,8 @@ for (const d of all) {
   if (!d.modes.length) continue;
   // Only an exact model-specific lookup may supply missing power.
   if (!d.watts) { const w = specWatts(brand, d.model); if (w) d.watts = w; }
+  const range = cctRangeOverride(brand, d.model);
+  if (range) d.cctRange = range;
   const k = `${brand}|${modelKey(brand, d.model)}`;
   const cur = best.get(k);
   if (!cur || profileScore(d) > profileScore(cur)) best.set(k, d);

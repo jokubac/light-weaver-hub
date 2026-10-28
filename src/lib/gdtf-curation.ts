@@ -54,7 +54,7 @@ export function modelKey(brand: string, model: string): string {
   m = m.replace(/(centerinsertion|centreinsertion|90tocam|rev\d+)$/g, "");
   if (brand === "Astera") {
     const aliases: Record<string, string> = {
-      ax3: "ax3lightdrop", ax5: "ax5triplepar", ax2100: "ax2100pixelbar", ax250: "ax250pixelbar",
+      ax3: "ax3lightdrop", ax5: "ax5triplepar", ax2100: "ax2100pixelbar", ax250: "ax250pixelbar", ax10: "ax10spotmax", ax10: "ax10spotmax",
       ax1: "ax1pixeltube", pluto: "af80plutofresnel", quickspot: "astqukspquikspot",
       titantube: "fp1titantube", heliostube: "fp2heliostube", hyperiontube: "fp3hyperiontube",
     };
@@ -85,4 +85,17 @@ export function specWatts(brand: string, model: string): number | undefined {
     nanluxevoke1200: 1200, nanluxevoke1200b: 1200, nanluxevoke2400b: 2400, nanluxevoke900c: 900, nanluxdyno650c: 650, nanluxdyno1200c: 1200,
   };
   return exact[key(brand) + key(model)];
+}
+
+/** Manufacturer-published CCT ranges that override wrong or incomplete GDTF physical descriptions.
+ *  Brand-level keys apply to the maker's whole catalogue when one engine spec covers every model. */
+export const CCT_RANGE_OVERRIDES: Record<string, [number, number]> = {
+  // astera-led.com Titan LED engine spec: "1,750 – 20,000K"; the Astera GDTF files understate the top end as 9910 K.
+  astera: [1750, 20000],
+};
+
+export function cctRangeOverride(brand: string, model: string): [number, number] | undefined {
+  const b = canonicalBrand(brand);
+  if (!b) return undefined;
+  return CCT_RANGE_OVERRIDES[key(b) + modelKey(b, model)] ?? CCT_RANGE_OVERRIDES[key(b)];
 }

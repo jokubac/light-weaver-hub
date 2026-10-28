@@ -3,6 +3,7 @@
 // GDTF spec: https://gdtf-share.com — we only read what the console needs to drive DMX.
 import { unzipSync, strFromU8 } from "fflate";
 import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode, ModeKind } from "./dmx";
+import { cctRangeOverride } from "./gdtf-curation";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -200,7 +201,11 @@ export function parseDescriptionXml(xml: string): FixtureDef | null {
   const modeEls = Array.from(doc.querySelectorAll("DMXModes > DMXMode"));
   const modes = modeEls.map((el) => parseMode(el, doc)).filter((x): x is FixtureMode => !!x);
   if (modes.length === 0) return null;
-  return { id: `gdtf-${slug(`${manufacturer} ${model}`)}`, brand: manufacturer, model, modes, ...readPhysical(doc, modes) };
+  const physical = readPhysical(doc, modes);
+  // Manufacturer specs beat GDTF physical descriptions (Astera GDTF understates its CCT top end).
+  const range = cctRangeOverride(manufacturer, model);
+  if (range) physical.cctRange = range;
+  return { id: `gdtf-${slug(`${manufacturer} ${model}`)}`, brand: manufacturer, model, modes, ...physical };
 }
 
 /** Power draw, CCT range and light-source type from the GDTF physical description + channel functions. */

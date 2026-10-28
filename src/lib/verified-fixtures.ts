@@ -4,10 +4,22 @@ import { GODOX_FIXTURES } from "./godox";
 import { GEMINI_FIXTURES } from "./litepanels-gemini";
 import { DMG_FIXTURES } from "./dmg";
 import { KINOFLO_FIXTURES } from "./kinoflo";
+import { asteraModes, asteraMode, ASTERA_HEAD_XY, hydraPixelModes, HYDRA_SOURCE } from "./astera";
 // Manufacturer-verified fixture profiles built from official DMX charts.
 // The curation script replaces same-id library entries with these, so they win over community GDTF files.
 import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode } from "./dmx";
 import { ORBITER_TABLE } from "./arri-orbiter-table";
+
+const TITAN_CHART = "https://astera-led.com/wp-content/uploads/FP1_Titan_Tube_DMX_Profiles_V1.pdf";
+const AX1_CHART = "https://astera-led.com/wp-content/uploads/AX1_PixelTube_DMX_Profiles_V1.pdf";
+const AX3_CHART = "https://astera-led.com/wp-content/uploads/AX3_LightDrop_DMX_Profiles_V1.pdf";
+// Shared V5 single-head chart: AX5, AX7, AX9, AX10 SpotMax, NYX, LunaBulb, PixelBrick, QuikSpot, SolaBulb.
+const V5_CHART = "https://astera-led.com/wp-content/uploads/AX10_AX10_SpotMax_DMX_Profiles_V5.pdf";
+const withChartSource = (modes: FixtureMode[], source: string): FixtureMode[] => modes.map((m) => ({ ...m, source }));
+const HEAD_XY = ASTERA_HEAD_XY.map((s) => asteraMode(s));
+/** 1-pixel profile chart: profiles 1–14, 89–97, 137–143 + head XY profiles 168–171. */
+const ASTERA_HEAD_MODES = withChartSource([...asteraModes([1]), ...HEAD_XY], V5_CHART);
+const ASTERA_AX1_MODES = withChartSource([...asteraModes([1, 4, 8]), ...asteraModes([16]), ...HEAD_XY], AX1_CHART);
 
 type Slot = ChannelAttr | [ChannelAttr, number]; // [attr, home 0-1]
 
@@ -739,6 +751,26 @@ export const VERIFIED_FIXTURES: FixtureDef[] = [
   { id: "gdtf-astera-led-technology-af250-leofresnel", brand: "Astera", model: "AF250 LeoFresnel", watts: 250, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_FRESNEL_MODES },
   { id: "gdtf-quasar-science-double-rainbow-2ft", brand: "Quasar Science", model: "Double Rainbow 2ft", watts: 25, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(8) },
   { id: "gdtf-quasar-science-double-rainbow-4ft", brand: "Quasar Science", model: "Double Rainbow 4ft", watts: 50, cctRange: [1750, 10000], lightType: "LED colour", modes: quasarModes(16) },
+  // Astera — all 19 GDTF entries replaced with modes built from the official profile charts on astera-led.com.
+  // Pixel tiers per datasheets: Titan 16, Helios 8, Hyperion 32, AX1 16, AX2-50 8, AX2-100 16, HydraPanel 6,
+  // single-head lights (AX5/AX9/AX10/NYX/LunaBulb/PixelBrick/QuikSpot/SolaBulb) 1. Wattage = max consumption.
+  { id: "gdtf-astera-led-technology-fp1-titan-tube", brand: "Astera", model: "FP1 Titan Tube", watts: 48, cctRange: [1750, 20000], lightType: "LED colour", modes: withChartSource([...asteraModes([1, 4, 8, 16]), ...HEAD_XY], TITAN_CHART) },
+  { id: "gdtf-astera-led-technology-fp2-helios-tube", brand: "Astera", model: "FP2 Helios Tube", watts: 36, cctRange: [1750, 20000], lightType: "LED colour", modes: withChartSource([...asteraModes([1, 4, 8], [], 0.5), ...asteraModes([16], [], 0.5), ...HEAD_XY], TITAN_CHART) },
+  { id: "gdtf-astera-led-technology-fp3-hyperion-tube", brand: "Astera", model: "FP3 Hyperion Tube", watts: 96, cctRange: [1750, 20000], lightType: "LED colour", modes: withChartSource([...asteraModes([1, 4, 8, 16], [], 2), ...HEAD_XY], TITAN_CHART) },
+  { id: "gdtf-astera-led-technology-ax1-pixeltube", brand: "Astera", model: "AX1 PixelTube", watts: 28, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_AX1_MODES },
+  { id: "gdtf-astera-led-technology-ax2-50-pixelbar", brand: "Astera", model: "AX2-50 PixelBar", watts: 49, cctRange: [1750, 20000], lightType: "LED colour", modes: withChartSource([...asteraModes([1, 4, 8], [], 0.5), ...asteraModes([16], [], 0.5), ...HEAD_XY], TITAN_CHART) },
+  { id: "gdtf-astera-led-technology-ax2-100-pixelbar", brand: "Astera", model: "AX2-100 PixelBar", watts: 104, cctRange: [1750, 20000], lightType: "LED colour", modes: withChartSource([...asteraModes([1, 4, 8, 16]), ...HEAD_XY], TITAN_CHART) },
+  { id: "gdtf-astera-led-technology-fp6-hydrapanel", brand: "Astera", model: "FP6 HydraPanel", watts: 17, cctRange: [1750, 20000], lightType: "LED colour", modes: withChartSource([...asteraModes([1]), ...hydraPixelModes(), ...HEAD_XY], HYDRA_SOURCE) },
+  { id: "gdtf-astera-led-technology-fp5-nyx-bulb", brand: "Astera", model: "FP5 NYX Bulb", watts: 11, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
+  { id: "gdtf-astera-led-technology-fp7-lunabulb", brand: "Astera", model: "FP7 LunaBulb", watts: 4.25, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
+  { id: "gdtf-astera-led-technology-pb15-pixelbrick", brand: "Astera", model: "PB15 PixelBrick", watts: 20, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
+  { id: "gdtf-astera-led-technology-ax3-lightdrop", brand: "Astera", model: "AX3 LightDrop", watts: 15, cctRange: [1750, 20000], lightType: "LED colour", modes: withChartSource(ASTERA_HEAD_MODES, AX3_CHART) },
+  { id: "gdtf-astera-led-technology-ax5-triplepar", brand: "Astera", model: "AX5 TriplePAR", watts: 45, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
+  { id: "gdtf-astera-led-technology-ax9-powerpar", brand: "Astera", model: "AX9 PowerPAR", watts: 110, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
+  { id: "gdtf-astera-led-technology-astera-ax10", brand: "Astera", model: "AX10 SpotMax", watts: 135, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
+  { id: "gdtf-astera-led-technology-ast-quksp-quikspot", brand: "Astera", model: "QuikSpot", watts: 50, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
+  { id: "gdtf-astera-led-technology-ast-blbsl-solabulb", brand: "Astera", model: "SolaBulb", watts: 16.5, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
+  { id: "gdtf-astera-led-technology-ast-qukpn-quikpunch", brand: "Astera", model: "QuikPunch", watts: 100, cctRange: [1750, 20000], lightType: "LED colour", modes: ASTERA_HEAD_MODES },
 ];
 
 /** Library GDTF profiles whose footprints were checked mode-by-mode against the manufacturer's own chart;
