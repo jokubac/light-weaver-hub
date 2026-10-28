@@ -4,10 +4,6 @@ import { isVerifiedDef } from "@/lib/dmx";
 import { asteraChannels, asteraSpec } from "@/lib/astera";
 
 const idx = JSON.parse(readFileSync("public/gdtf-library/library.json", "utf8"));
-const library: any[] = [];
-for (let i = 1; i <= idx.parts; i++) library.push(...JSON.parse(readFileSync(`public/gdtf-library/library-${i + 1 === i + 1 ? i + 1 : 1}.json`, "utf8")).slice(0, 0));
-
-// simpler, correct loader
 const load = () => {
   const all: any[] = [];
   for (let i = 1; i <= idx.parts; i++) all.push(...JSON.parse(readFileSync(`public/gdtf-library/library-${i}.json`, "utf8")));
