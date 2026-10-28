@@ -569,7 +569,7 @@ export const DEFAULT_CCT = cctFromKelvin(5600);
 export const cctRangeOf = (f: PatchedFixture): [number, number] => {
   const d = getDef(f.defId);
   // Manufacturer overrides win so lamps installed before a spec fix (cached in custom fixtures) use the current range.
-  return cctRangeOverride(d.brand ?? "", d.model ?? d.name ?? "") ?? d.cctRange ?? DEFAULT_CCT_RANGE;
+  return cctRangeOverride(d.brand, d.model) ?? d.cctRange ?? DEFAULT_CCT_RANGE;
 };
 
 export function createFixture(def: FixtureDef, modeIdx: number, universe: number, address: number, name: string): PatchedFixture {
