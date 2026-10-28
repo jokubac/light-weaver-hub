@@ -1073,6 +1073,7 @@
   "PIXEL": "PIXEL",
   "PATCH": "PATCH",
   "Master is off — perhaps you forgot to turn the master up?": "Master je vypnutý — nezapomněli jste vytáhnout master?",
+  "Blackout is on — lights stay dark until you release it.": "Blackout je zapnutý — světla zůstanou zhasnutá, dokud ho neuvolníte.",
   "Change failed.": "Změna se nezdařila.",
   "Check your email to confirm the account, then sign in.": "Zkontrolujte svůj e-mail pro potvrzení účtu a poté se přihlaste.",
   "Continue with Google": "Pokračovat přes Google",
