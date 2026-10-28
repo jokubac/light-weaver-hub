@@ -73,10 +73,6 @@ export function renamePattern(pattern: string, count: number, start = 1, step = 
   });
 }
 
-/**
- * Uids whose channels overlap another light's. Ranges are sorted per universe, so one pass
- * finds every clash instead of scanning the whole patch once per rendered row.
- */
 /** One row that is open as a taller editor: `extra` is the height it adds beyond a plain row. */
 export type ExpandedRow = { index: number; extra: number } | null;
 
