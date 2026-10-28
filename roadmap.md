@@ -334,7 +334,7 @@
 - [x] Command line REC / REC N MERGE|OVERWRITE / REC LOOK / REC FX / REC TIMELINE
 - [x] Stream Deck (WebHID): look keys in look colour + Blackout key
 - [x] Stream Deck custom key layout (looks or macro actions per key, colour, label)
-- [ ] Moving head position grid from plot + movement FX
+- [x] Moving head position grid from plot + movement FX: the PLOT side panel aims selected heads at a named plot spot (or a spread grid of spots) using each head's own Pan/Tilt travel, and Circle/Figure 8/Sweep/Random wander is applied when DMX is written, so nothing is saved per frame. 20 new tests, typecheck clean, browser verified: aiming "Actor" wrote Pan 0.45 / Tilt 0.43 and Circle saved the movement.
 - [ ] CRMX Link button — needs verified pairing protocol per node
 - [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console
 - [x] Resilience: logs/undo capped, Hold Last State on by default, relaunch reopens last console
