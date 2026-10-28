@@ -49,6 +49,9 @@ function rgbToXy(r: number, g: number, b: number): [number, number] {
   return s ? [X / s, Y / s] : [0.3127, 0.329];
 }
 
+/** The light's true kelvin: the stored 0..1 sits on its own CCT span. */
+const fixtureKelvin = (f: PatchedFixture) => kelvin(f.cct, getDef(f.defId).cctRange);
+
 function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, pixels: RGB[] | undefined, order: ColorOrder) {
   // white-light overlaps output a real blended colour temperature on CCT channels
   const f = resolveCctMix(f0, t) ?? f0;
@@ -79,7 +82,7 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
         case "D": val = lv; break;
         case "D16": raw = Math.round(lv * 65535) >> 8; break;
         case "D16b": raw = Math.round(lv * 65535) & 255; break;
-        case "CCT": val = cctToFixture(kelvin(f.cct), getDef(f.defId).cctRange ?? [1750, 20000]); break;
+        case "CCT": val = cctToFixture(fixtureKelvin(f), getDef(f.defId).cctRange ?? [1750, 20000]); break;
         case "GM": raw = f.gm === 0 ? 0 : Math.max(5, Math.min(255, Math.round(128 * (f.gm + 1)))); break;
         case "CRO": val = c || paletteActive ? 1 : f.cctOnly ? 0 : f.crossfade; break;
         case "HUE": val = ph; break;
@@ -109,12 +112,12 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
     };
     put(1, v);
     if (mode.profile === "nanlux-evoke-cct") {
-      put(2, 0); put(3, (kelvin(f.cct) - 2700) / 3800);
+      put(2, 0); put(3, cctToFixture(fixtureKelvin(f), [2700, 6500]));
       put(11, (f.fan === "off" ? 224 : f.fan === "low" ? 160 : f.fan === "high" ? 96 : 0) / 255);
     } else if (mode.profile.startsWith("nanlux-dyno")) {
       put(7, (f.fan === "off" ? 213 : f.fan === "low" ? 128 : 0) / 255);
       if (mode.profile === "nanlux-dyno-cct") {
-        put(2, 0); put(3, (kelvin(f.cct) - 2700) / 17300);
+        put(2, 0); put(3, cctToFixture(fixtureKelvin(f), [2700, 20000]));
         put(4, (f.gm < 0 ? 120 + f.gm * 100 : f.gm > 0 ? 145 + f.gm * 100 : 128) / 255);
         put(5, 128 / 255);
       } else if (mode.profile === "nanlux-dyno-hsi") {
@@ -124,7 +127,7 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
         put(2, 80 / 255); put(3, r - white); put(4, g - white); put(5, b - white); put(6, white);
       }
     } else {
-      put(2, (kelvin(f.cct) - 1750) / 8160); put(3, f.gm === 0 ? 0 : Math.max(5, Math.min(255, 128 * (f.gm + 1))) / 255);
+      put(2, cctToFixture(fixtureKelvin(f), [1750, 9910])); put(3, f.gm === 0 ? 0 : Math.max(5, Math.min(255, 128 * (f.gm + 1))) / 255);
       put(4, hue); put(5, paletteActive ? saturation : f.cctOnly ? 0 : f.saturation * f.crossfade);
       if (mode.profile === "astera-hsi-strobe") put(6, 0);
     }
@@ -138,7 +141,7 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
     return;
   }
   /** fraction of the light's own CCT range: the console's 2000–10000 K value is re-encoded onto the fixture's real span */
-  const cctFrac = cctToFixture(kelvin(f.cct), getDef(f.defId).cctRange);
+  const cctFrac = cctToFixture(fixtureKelvin(f), getDef(f.defId).cctRange);
   if (mode.channelMap) {
     // imported (GDTF / Fixture builder) layouts: one entry per DMX slot, "fine" = low byte of a 16-bit pair
     const valueFor = (attr: string): number => {
@@ -192,7 +195,7 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
       const beamValue = (BEAM_SET as Set<string>).has(e.attr) ? f.beam?.[e.attr as BeamAttr] : undefined;
       // slots the console doesn't drive keep the manufacturer default (shutter open, pan centre…)
       if (e.attr === "Spare" || e.attr === "Amber" || ((BEAM_SET as Set<string>).has(e.attr) && beamValue === undefined)) { buf[idx] = to8(e.home ?? 0); return; }
-      const raw = pxv !== undefined ? pxv : e.attr === "CCT" && e.physicalRange ? (kelvin(f.cct) - e.physicalRange[0]) / (e.physicalRange[1] - e.physicalRange[0]) : beamValue ?? valueFor(e.attr);
+      const raw = pxv !== undefined ? pxv : e.attr === "CCT" && e.physicalRange ? cctToFixture(fixtureKelvin(f), e.physicalRange) : beamValue ?? valueFor(e.attr);
       const val = Math.max(0, Math.min(1, raw));
       if (has16.has(e.attr)) { const n = Math.round(val * 65535); buf[idx] = e.fine ? n & 255 : n >> 8; }
       else buf[idx] = to8(val);

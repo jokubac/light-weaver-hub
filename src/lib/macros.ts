@@ -14,9 +14,10 @@ export const FADER_RANGE: Partial<Record<MacroAction, [number, number, number]>>
   int_fader: [0, 100, 1], cct_fader: [2000, 10000, 50], gm_fader: [-100, 100, 1], hue_fader: [0, 360, 1], sat_fader: [0, 100, 1],
 };
 /** Fader limits (e.g. 5%..70%) clamped to the full range and kept in order. */
-export function faderLimits(action: MacroAction, lo?: number, hi?: number): [number, number] {
+export function faderLimits(action: MacroAction, lo?: number, hi?: number, span?: [number, number]): [number, number] {
   const r = FADER_RANGE[action]; if (!r) return [0, 0];
-  const a = Math.max(r[0], Math.min(r[1], lo ?? r[0])), b = Math.max(r[0], Math.min(r[1], hi ?? r[1]));
+  const [r0, r1] = span ?? [r[0], r[1]];
+  const a = Math.max(r0, Math.min(r1, lo ?? r0)), b = Math.max(r0, Math.min(r1, hi ?? r1));
   return a <= b ? [a, b] : [b, a];
 }
 
