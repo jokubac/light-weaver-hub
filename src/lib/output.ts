@@ -2,7 +2,8 @@
 // local CRMX bridge, which sends Art-Net / sACN to the transmitter.
 // Channel layouts are generic per mode type — check against each fixture's DMX chart.
 
-import { fixtureState, resolveCctMix, getMode, getDef, kelvin, BEAM_ATTRS, type BeamAttr, type PatchedFixture } from "./dmx";
+import { fixtureState, resolveCctMix, getMode, getDef, kelvin, BEAM_ATTRS, seedOf, type BeamAttr, type PatchedFixture } from "./dmx";
+import { moveOffset } from "./aim";
 const BEAM_SET = new Set<string>(BEAM_ATTRS);
 import type { Connection } from "./store";
 import { asteraTokens, CELL_TOKENS } from "./astera";
@@ -185,6 +186,8 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
         default: return undefined;
       }
     };
+    // a wandering head drifts around the aim it was given; the aim itself stays stored
+    const mv = f.move ? moveOffset(f.move, t, seedOf(f.uid)) : null;
     mode.channelMap.forEach((e, i) => {
       const occ = seen.get(e.attr) ?? 0;
       if (!e.fine) seen.set(e.attr, occ + 1);
@@ -192,11 +195,12 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
       const pxv = px >= 0 ? pixelValue(e.attr, px) : undefined;
       const idx = f.address - 1 + i;
       if (idx < 0 || idx >= 512) return;
-      const beamValue = (BEAM_SET as Set<string>).has(e.attr) ? f.beam?.[e.attr as BeamAttr] : undefined;
+      const wander = mv && (e.attr === "Pan" || e.attr === "Tilt");
+      const beamValue = (BEAM_SET as Set<string>).has(e.attr) ? f.beam?.[e.attr as BeamAttr] ?? (wander ? e.home ?? 0.5 : undefined) : undefined;
       // slots the console doesn't drive keep the manufacturer default (shutter open, pan centre…)
       if (e.attr === "Spare" || e.attr === "Amber" || ((BEAM_SET as Set<string>).has(e.attr) && beamValue === undefined)) { buf[idx] = to8(e.home ?? 0); return; }
       const raw = pxv !== undefined ? pxv : e.attr === "CCT" && e.physicalRange ? cctToFixture(fixtureKelvin(f), e.physicalRange) : beamValue ?? valueFor(e.attr);
-      const val = Math.max(0, Math.min(1, raw));
+      const val = Math.max(0, Math.min(1, wander ? raw + (e.attr === "Pan" ? mv![0] : mv![1]) : raw));
       if (has16.has(e.attr)) { const n = Math.round(val * 65535); buf[idx] = e.fine ? n & 255 : n >> 8; }
       else buf[idx] = to8(val);
     });
