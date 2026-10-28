@@ -88,6 +88,9 @@ export interface BankFader {
   off?: boolean;
 }
 
+/** Stored fader positions keyed by fader id. */
+export interface FaderSnap { id: string; name: string; levels: Record<string, number> }
+
 /** A theatre-style cue: full fixture states plus fade time, fired with GO. */
 export interface Cue {
   id: string;
@@ -121,6 +124,8 @@ export interface Project {
   recordings?: Recording[];
   timelines?: TimelineSave[]; // named timeline saves, shared within this project
   bank?: BankFader[];
+  /** saved fader positions, recalled with a fade */
+  faderSnaps?: FaderSnap[];
   cues?: Cue[];
   /** parked lights held at a fixed output state, keyed by fixture uid */
   parked?: Record<string, LookState>;

@@ -1,6 +1,6 @@
 // Playback bank (submasters) and cue stack helpers — pure, browser-safe.
 import type { PatchedFixture } from "./dmx";
-import type { BankFader, Cue, Look, LookState } from "./store";
+import type { FaderSnap, BankFader, Cue, Look, LookState } from "./store";
 import { blend } from "./recordings";
 import { membersOf } from "./fixture-groups";
 
@@ -97,3 +97,24 @@ export const NANOKONTROL2 = {
   faders: [0, 1, 2, 3, 4, 5], master: 7,
   go: 41, back: 43, blackout: 42,
 };
+
+/** Bank levels part-way (k 0..1) from `from` levels to a snapshot; faders missing from it stay put. */
+export function snapBank(bank: BankFader[], snap: FaderSnap, from: Record<string, number>, k: number, now = Date.now()): BankFader[] {
+  return bank.map((fd) => {
+    const to = snap.levels[fd.id];
+    if (to == null) return fd;
+    const a = from[fd.id] ?? fd.level;
+    return { ...fd, level: a + (to - a) * Math.min(1, Math.max(0, k)), touched: now };
+  });
+}
+
+/** Releases every fader: intensity back to 100 %, colour/effect/look faders back to untouched zero. */
+export const releaseBank = (bank: BankFader[]): BankFader[] =>
+  bank.map((fd) => ({ ...fd, level: fd.kind === "master" ? fd.level : fd.kind !== "look" && (fd.param ?? "intensity") === "intensity" ? 1 : 0, touched: undefined, off: false }));
+
+/** Moves linked faders by the same amount as the dragged one (clamped). */
+export function moveLinked(bank: BankFader[], i: number, level: number, linked: Set<string>, now = Date.now()): BankFader[] {
+  const src = bank[i]; if (!src) return bank;
+  const d = level - src.level;
+  return bank.map((fd, k) => k === i ? { ...fd, level, touched: now } : linked.has(src.id) && linked.has(fd.id) && fd.kind !== "master" ? { ...fd, level: Math.min(1, Math.max(0, fd.level + d)), touched: now } : fd);
+}
