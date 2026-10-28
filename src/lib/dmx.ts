@@ -82,7 +82,7 @@ export function caps(kind: ModeKind) {
 const m = (name: string, channels: number, kind: ModeKind, pixels?: number, grid?: [number, number]): FixtureMode => ({ name, channels, kind, ...(pixels ? { pixels } : {}), ...(grid ? { grid } : {}) });
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const fam = (brand: string, models: string[], modes: FixtureMode[]): FixtureDef[] =>
-  models.map((model) => ({ id: slug(`${brand} ${model}`), brand, model, modes }));
+  models.map((model) => ({ id: slug(`${brand} ${model}`), brand, model, modes, ...(brand === "Astera" ? { cctRange: [1750, 20000] as [number, number] } : {}) }));
 
 const DIM = [m("Dimmer 8-bit", 1, "dim"), m("Dimmer 16-bit", 2, "dim")];
 const DIM_STROBE = [...DIM, m("Dimmer + Strobe 8-bit", 2, "dim"), m("Dimmer + Effects 8-bit", 3, "dim")];

@@ -79,7 +79,7 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
         case "D": val = lv; break;
         case "D16": raw = Math.round(lv * 65535) >> 8; break;
         case "D16b": raw = Math.round(lv * 65535) & 255; break;
-        case "CCT": val = (kelvin(f.cct) - 1750) / 8160; break;
+        case "CCT": val = cctToFixture(kelvin(f.cct), getDef(f.defId).cctRange ?? [1750, 20000]); break;
         case "GM": raw = f.gm === 0 ? 0 : Math.max(5, Math.min(255, Math.round(128 * (f.gm + 1)))); break;
         case "CRO": val = c || paletteActive ? 1 : f.cctOnly ? 0 : f.crossfade; break;
         case "HUE": val = ph; break;
