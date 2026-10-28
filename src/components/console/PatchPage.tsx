@@ -283,7 +283,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                 <th className="print:hidden"></th>
               </tr></thead>
               <tbody>
-                {first > 0 && <tr aria-hidden="true" style={{ height: first * ROW_H }}><td colSpan={11} className="p-0" /></tr>}
+                {first > 0 && <tr aria-hidden="true" style={{ height: patchOffset(first, ROW_H, expanded) }}><td colSpan={11} className="p-0" /></tr>}
                 {rows.slice(first, last).map(({ fixture: f, number }) => {
                   const i = number - 1;
                   const d = getDef(f.defId); const m = d.modes[f.modeIdx]; const ch = m?.channels ?? 1;
@@ -294,7 +294,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <td className="py-1.5 pr-2 font-mono text-muted-foreground print:py-0.5">{number}</td>
                       <td className="pr-2 print:hidden"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
-                        <input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} aria-label={tr("Fixture name")} className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" /></td>
+                        <RowName f={f} onUpdate={onUpdate} onNext={focusNextName} /></td>
                       <td className="pr-2">{d.brand} {d.model}</td>
                       <td className="pr-2 text-muted-foreground">{m?.name}</td>
                       <td className="pr-2 font-mono">{f.universe}</td>
