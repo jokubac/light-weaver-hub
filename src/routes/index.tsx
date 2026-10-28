@@ -79,7 +79,7 @@ import { applyBank, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@
 import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { ShowMonitor } from "@/components/console/ShowMonitor";
 import { applyPark, blendTarget, cueAtTimecode, cueTarget, MtcDecoder, programmerDiff } from "@/lib/show-control";
-import { chaseTimeline, LtcDecoder, ltcSeconds, nominalFps } from "@/lib/ltc";
+import { chaseTimeline, LtcDecoder, ltcSeconds, nominalFps, realScale } from "@/lib/ltc";
 import type { TcConfig } from "@/components/console/TimecodeSettings";
 import { EffectsRail } from "@/components/console/EffectsRail";
 import { NumberField } from "@/components/console/NumberField";
@@ -1014,14 +1014,16 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   chaseRef.current = { seq, seqPlay, playSeq, seekSeq, pauseSeq, chase: tcCfg.chase };
   useEffect(() => {
     if (!tcOn) { setTcNow(null); return; }
-    let alive = true; let last = -1; let shown = 0; let lastAt = 0;
+    let alive = true; let last = -1; let shown = 0; let lastAt = 0; let prevTc = -1; let good = 0;
     const playingAt = () => { const c = chaseRef.current; return c.seqPlay ? c.seqPlay.from + (performance.now() - c.seqPlay.start) / 1000 : null; };
     const onTc = (sec: number) => {
       const hit = last >= 0 ? cueAtTimecode(sortCues(cuesRef.current), last, sec) : null;
       last = sec; lastAt = performance.now(); if (hit) gotoRef.current(hit.id);
       const c = chaseRef.current;
-      if (c.chase && c.seq.clips.length) {
-        const a = chaseTimeline(sec, c.seq.tcStart ?? 0, timelineLength(c.seq), playingAt());
+      // need 3 consecutive frames before starting, so a crackle or a single garbled frame can't kick the timeline
+      good = prevTc >= 0 && Math.abs(sec - prevTc - 1 / nominalFps(tcCfg.rate)) < 0.6 / nominalFps(tcCfg.rate) ? good + 1 : 0; prevTc = sec;
+      if (c.chase && c.seq.clips.length && (good >= 2 || c.seqPlay)) {
+        const a = chaseTimeline(sec, c.seq.tcStart ?? 0, timelineLength(c.seq), playingAt(), 0.1, realScale(tcCfg.rate));
         if (a?.do === "play") c.playSeq(a.t); else if (a?.do === "seek") c.seekSeq(a.t); else if (a?.do === "pause") c.pauseSeq();
       }
       if (lastAt - shown > 100) { shown = lastAt; setTcNow(sec); }
@@ -1041,8 +1043,13 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         if (!alive) { stream.getTracks().forEach((t) => t.stop()); return; }
         const ctx = new AudioContext(); const src = ctx.createMediaStreamSource(stream);
         const node = ctx.createScriptProcessor(2048, 1, 1); const dec = new LtcDecoder(ctx.sampleRate, tcCfg.rate);
-        const latency = 1 / nominalFps(tcCfg.rate); // a frame is complete one frame after it started
-        node.onaudioprocess = (e) => dec.feed(e.inputBuffer.getChannelData(0), (fr) => onTc(ltcSeconds(fr, tcCfg.rate) + latency));
+        void ctx.resume().catch(() => {});
+        // a frame's label is the time its first bit started; it is decoded one frame later, then waits in the buffer
+        const frameDur = 1 / nominalFps(tcCfg.rate);
+        node.onaudioprocess = (e) => {
+          const data = e.inputBuffer.getChannelData(0); const lat = (ctx.baseLatency || 0) + ((ctx as AudioContext & { outputLatency?: number }).outputLatency ? 0 : 0);
+          dec.feed(data, (fr, at) => onTc(ltcSeconds(fr, tcCfg.rate) + frameDur + (data.length - at) / ctx.sampleRate + lat));
+        };
         src.connect(node); node.connect(ctx.destination);
         cleanups.push(() => { node.onaudioprocess = null; src.disconnect(); node.disconnect(); stream.getTracks().forEach((t) => t.stop()); void ctx.close(); });
       }).catch(() => { alert("Audio input was refused — allow the microphone / line input to read LTC timecode."); setTcOn(false); });
