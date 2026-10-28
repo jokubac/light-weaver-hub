@@ -1047,7 +1047,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         // a frame's label is the time its first bit started; it is decoded one frame later, then waits in the buffer
         const frameDur = 1 / nominalFps(tcCfg.rate);
         node.onaudioprocess = (e) => {
-          const data = e.inputBuffer.getChannelData(0); const lat = (ctx.baseLatency || 0) + ((ctx as AudioContext & { outputLatency?: number }).outputLatency ? 0 : 0);
+          const data = e.inputBuffer.getChannelData(0); const lat = (ctx.baseLatency || 0);
           dec.feed(data, (fr, at) => onTc(ltcSeconds(fr, tcCfg.rate) + frameDur + (data.length - at) / ctx.sampleRate + lat));
         };
         src.connect(node); node.connect(ctx.destination);
