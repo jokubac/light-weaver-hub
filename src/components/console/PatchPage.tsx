@@ -1,4 +1,5 @@
 import { MAX_UNIVERSE } from "@/lib/dmx";
+import { cctRangeOverride } from "@/lib/gdtf-curation";
 import type { CallSheetData } from "@/lib/store";
 import { groupNamesOf, groupText, groupsPatch } from "@/lib/fixture-groups";
 import { Fragment as Frag, useRef, useState } from "react";
@@ -22,7 +23,8 @@ export function describeDef(d: FixtureDef): { type: string; cct: string } {
   const colour = ["rgb", "rgbw", "hsi", "full"].some((k) => kinds.has(k as never));
   const dimOnly = [...kinds].every((k) => k === "dim");
   const type = d.lightType ?? (dimOnly ? (/hmi|arrisun|m18|m40|m90|arrimax|compact/i.test(d.model) ? "HMI" : /kino|flo|fluor|lithlight/i.test(`${d.brand} ${d.model}`) ? "Fluorescent" : /led|ribbon|ansso/i.test(`${d.brand} ${d.model}`) ? "LED (dimmer)" : "Tungsten / dimmer") : colour ? "LED colour" : "Bi-colour LED");
-  const cct = d.cctRange ? `${d.cctRange[0]}–${d.cctRange[1]} K` : type === "Tungsten / dimmer" ? "3200 K" : type === "HMI" ? "5600 K" : colour || type === "Bi-colour LED" ? "2700–6500 K" : "";
+  const r = cctRangeOverride(d.brand, d.model) ?? d.cctRange;
+  const cct = r ? `${r[0]}–${r[1]} K` : type === "Tungsten / dimmer" ? "3200 K" : type === "HMI" ? "5600 K" : colour || type === "Bi-colour LED" ? "2700–6500 K" : "";
   return { type, cct };
 }
 

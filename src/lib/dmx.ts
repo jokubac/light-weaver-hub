@@ -6,6 +6,7 @@ import { KINOFLO_TM5_MODES } from "./kinoflo";
 import { NO_DMX, RENTAL_ALIASES, RENTAL_FIXTURES, RENTAL_SUPERSEDED } from "./rental-fixtures";
 import { isFixtureIcon, type FixtureIcon } from "./fixture-icons";
 import { loadCustomFixtures } from "./custom-fixtures";
+import { cctRangeOverride } from "./gdtf-curation";
 
 export type ModeKind = "dim" | "cct" | "cctgm" | "hsi" | "rgb" | "rgbw" | "full";
 
@@ -565,7 +566,11 @@ export const cctFromKelvin = (k: number, range: [number, number] = DEFAULT_CCT_R
   Math.max(0, Math.min(1, (k - range[0]) / (range[1] - range[0])));
 export const DEFAULT_CCT = cctFromKelvin(5600);
 /** The kelvin span this patched light can actually show. */
-export const cctRangeOf = (f: PatchedFixture): [number, number] => getDef(f.defId).cctRange ?? DEFAULT_CCT_RANGE;
+export const cctRangeOf = (f: PatchedFixture): [number, number] => {
+  const d = getDef(f.defId);
+  // Manufacturer overrides win so lamps installed before a spec fix (cached in custom fixtures) use the current range.
+  return cctRangeOverride(d.brand, d.model) ?? d.cctRange ?? DEFAULT_CCT_RANGE;
+};
 
 export function createFixture(def: FixtureDef, modeIdx: number, universe: number, address: number, name: string): PatchedFixture {
   const kind = def.modes[modeIdx]?.kind ?? "dim";
