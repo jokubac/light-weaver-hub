@@ -335,4 +335,5 @@
 - [x] Stream Deck (WebHID): look keys in look colour + Blackout key
 - [ ] Moving head position grid from plot + movement FX
 - [ ] CRMX Link button — needs verified pairing protocol per node
-- [ ] Instant Recovery: auto-save after every action, restore output + reconnect < 1 s on relaunch
+- [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console
+- [ ] Resilience: no cache build-up, lights hold on crash (Hold Last State), relaunch identical
