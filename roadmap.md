@@ -318,3 +318,4 @@
 - [x] Spread CCT: use the selected lamps' own Kelvin range (e.g. Astera 1750-20000) instead of the hardcoded 2000-10000.
 - [x] Spread preview: intensity bars must read normally and CCT swatches must show true Kelvin colours (no green cast).
   Verified in the browser with three Astera Titan tubes: CCT sliders read 1750-20000, swatches go warm→cool with no green step, intensity gauges show 20/60/100%, the panel survives a drag ending outside it, a real outside click still closes it, and the same holds in Lithuanian. 412 tests pass.
+- [x] Blackout reminder: with the master up, engaging blackout (button, key or MIDI) shows a friendly banner; raising the master while blacked out reminds again; master at 0 keeps the master wording; releasing blackout stays silent. 412 tests passed, browser verified.
