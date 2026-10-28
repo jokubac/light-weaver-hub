@@ -577,7 +577,7 @@ export function createFixture(def: FixtureDef, modeIdx: number, universe: number
     universe,
     address,
     intensity: 0,
-    cct: DEFAULT_CCT,
+    cct: cctFromKelvin(5600, def.cctRange ?? DEFAULT_CCT_RANGE),
     gm: 0,
     hue: 0,
     saturation: 0,
