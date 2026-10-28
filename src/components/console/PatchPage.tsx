@@ -2,7 +2,7 @@ import { MAX_UNIVERSE } from "@/lib/dmx";
 import { cctRangeOverride } from "@/lib/gdtf-curation";
 import type { CallSheetData } from "@/lib/store";
 import { groupNamesOf, groupText, groupsPatch } from "@/lib/fixture-groups";
-import { Fragment as Frag, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment as Frag, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, Tag, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ import { CallSheet } from "./CallSheet";
 import { LabelPrinter } from "./LabelPrinter";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick, patchClashes } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick, patchClashes, patchOffset, patchWindow, type ExpandedRow } from "@/lib/patch-order";
+import { keyboardScroll, visibleBand } from "@/lib/keyboard-view";
 
 import { t as tr } from "@/lib/i18n";
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
@@ -28,6 +29,36 @@ export function describeDef(d: FixtureDef): { type: string; cct: string } {
   const r = cctRangeOverride(d.brand, d.model) ?? d.cctRange;
   const cct = r ? `${r[0]}–${r[1]} K` : type === "Tungsten / dimmer" ? "3200 K" : type === "HMI" ? "5600 K" : colour || type === "Bi-colour LED" ? "2700–6500 K" : "";
   return { type, cct };
+}
+
+/**
+ * The name field holds its own draft while typing and writes the light once, on blur or Enter.
+ * A keystroke must not re-render a 3 000-light sheet — that is what throws a tablet's keyboard out.
+ * Enter walks to the next light, so a run of names can be typed without the keyboard closing.
+ */
+function RowName({ f, onUpdate, onNext }: {
+  f: PatchedFixture; onUpdate: (uid: string, p: Partial<PatchedFixture>) => void; onNext: (uid: string, dir: 1 | -1) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const live = useRef({ draft, name: f.name, uid: f.uid, onUpdate });
+  live.current = { draft, name: f.name, uid: f.uid, onUpdate };
+  const commit = () => {
+    const s = live.current;
+    if (s.draft !== null && s.draft !== s.name && s.draft.trim() !== "") s.onUpdate(s.uid, { name: s.draft });
+    setDraft(null);
+  };
+  /** a light that scrolls out of the sheet, or a PATCH view that closes, must not lose a name being typed */
+  useEffect(() => () => commit(), []);
+  return (
+    <input data-patch-name={f.uid} enterKeyHint="next" value={draft ?? f.name} aria-label={tr("Fixture name")}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { e.preventDefault(); commit(); onNext(f.uid, e.shiftKey ? -1 : 1); }
+        if (e.key === "Escape") setDraft(null);
+      }}
+      className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" />
+  );
 }
 
 /** Full-screen patch sheet with the fixture library and map stacked below it. */
@@ -108,6 +139,29 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const [full, setFull] = useState(false); // printing wants every row on the page
   const virtual = !full && rows.length > 160;
   const [win, setWin] = useState({ first: 0, last: 90 });
+  /** The open editor is much taller than a row: the band has to count the real height, or scrolling
+   *  throws the row being edited — and with it the on-screen keyboard — out of the page. */
+  const [extra, setExtra] = useState(0);
+  const editorRo = useRef<ResizeObserver | null>(null);
+  const setEditor = useCallback((td: HTMLTableCellElement | null) => {
+    editorRo.current?.disconnect();
+    editorRo.current = null;
+    if (!td) { setExtra(0); return; }
+    const measure = () => setExtra(Math.max(0, Math.round(td.getBoundingClientRect().height) - ROW_H));
+    measure();
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(measure);
+      ro.observe(td);
+      editorRo.current = ro;
+    }
+    // an editor opened at the bottom of the screen would otherwise sit under the keyboard
+    requestAnimationFrame(() => td.scrollIntoView?.({ block: "nearest" }));
+  }, []);
+  const rowIndex = useMemo(() => new Map(rows.map((r, i) => [r.fixture.uid, i])), [rows]);
+  const expanded: ExpandedRow = useMemo(
+    () => (editing && extra > 0 && rowIndex.has(editing) ? { index: rowIndex.get(editing)!, extra } : null),
+    [editing, extra, rowIndex],
+  );
   useEffect(() => {
     // flushSync so the browser prints the whole sheet, not just the band that was on screen
     const before = () => flushSync(() => setFull(true));
@@ -121,16 +175,48 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     if (!sc || !virtual) return;
     const update = () => {
       const base = (tableRef.current?.getBoundingClientRect().top ?? 0) - sc.getBoundingClientRect().top + sc.scrollTop;
-      const at = sc.scrollTop - base;
-      const first = Math.max(0, Math.floor(at / ROW_H) - 12);
-      const last = Math.min(rows.length, Math.ceil((at + sc.clientHeight) / ROW_H) + 12);
-      setWin((w) => (w.first === first && w.last === last ? w : { first, last }));
+      const w = patchWindow(rows.length, sc.scrollTop - base, sc.clientHeight, ROW_H, 24, expanded);
+      setWin((p) => (p.first === w.first && p.last === w.last ? p : w));
     };
     update();
     sc.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
-    return () => { sc.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
-  }, [virtual, rows.length]);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      sc.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, [virtual, rows.length, expanded]);
+  /** The on-screen keyboard covers the lower half of a tablet: lift the field being typed into above it. */
+  useEffect(() => {
+    const sc = mainRef.current;
+    const vv = window.visualViewport;
+    if (!sc || !vv) return;
+    let height = vv.height;
+    const onResize = () => {
+      const h = vv.height;
+      if (h < height - 40) {
+        const el = document.activeElement as HTMLElement | null;
+        if (el && sc.contains(el)) {
+          const d = keyboardScroll(el.getBoundingClientRect(), visibleBand(vv, window.innerHeight));
+          if (d) sc.scrollTop += d;
+        }
+      }
+      height = h;
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+  /** Enter in a name moves to the next light, so the keyboard stays up while a run of lights is named. */
+  const focusNextName = (uid: string, dir: 1 | -1) => {
+    const at = rowIndex.get(uid);
+    const next = at === undefined ? undefined : rows[at + dir];
+    if (!next) return;
+    const el = document.querySelector<HTMLInputElement>(`[data-patch-name="${next.fixture.uid}"]`);
+    el?.focus();
+    el?.select();
+  };
   const first = virtual ? win.first : 0;
   const last = virtual ? Math.max(win.last, first + 20) : rows.length;
   const exportPatch = async () => {
@@ -199,7 +285,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                 <th className="print:hidden"></th>
               </tr></thead>
               <tbody>
-                {first > 0 && <tr aria-hidden="true" style={{ height: first * ROW_H }}><td colSpan={11} className="p-0" /></tr>}
+                {first > 0 && <tr aria-hidden="true" style={{ height: patchOffset(first, ROW_H, expanded) }}><td colSpan={11} className="p-0" /></tr>}
                 {rows.slice(first, last).map(({ fixture: f, number }) => {
                   const i = number - 1;
                   const d = getDef(f.defId); const m = d.modes[f.modeIdx]; const ch = m?.channels ?? 1;
@@ -210,7 +296,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                       <td className="py-1.5 pr-2 font-mono text-muted-foreground print:py-0.5">{number}</td>
                       <td className="pr-2 print:hidden"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
-                        <input value={f.name} onChange={(e) => onUpdate(f.uid, { name: e.target.value })} aria-label={tr("Fixture name")} className="w-32 bg-transparent font-semibold outline-none focus:border-b focus:border-primary print:w-auto" /></td>
+                        <RowName f={f} onUpdate={onUpdate} onNext={focusNextName} /></td>
                       <td className="pr-2">{d.brand} {d.model}</td>
                       <td className="pr-2 text-muted-foreground">{m?.name}</td>
                       <td className="pr-2 font-mono">{f.universe}</td>
@@ -250,7 +336,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                         <button onClick={() => setEditing(editing === f.uid ? null : f.uid)} className={`p-1 ${editing === f.uid ? "text-primary" : "text-muted-foreground"}`} aria-label={`Edit ${f.name}`}><Pencil className="h-3.5 w-3.5" /></button>
                       </td>
                     </tr>
-                    {editing === f.uid && <tr className="print:hidden"><td colSpan={11} className="bg-surface p-3">
+                    {editing === f.uid && <tr className="print:hidden"><td ref={setEditor} colSpan={11} className="bg-surface p-3">
                       <div className="grid gap-3 md:grid-cols-2">
                         <FixtureIconPicker model={d.model} value={f.icon} onChange={(icon) => onUpdate(f.uid, { icon })} />
                         <div className="space-y-2">
@@ -272,13 +358,13 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                           {clash && <p role="alert" className="text-[11px] text-destructive">{tr("Overlaps")}{overlaps(fixtures, f.universe, f.address, ch, f.uid).map((fixture) => fixture.name).join(", ")}</p>}
                           <div className="text-[10px] font-semibold uppercase text-muted-foreground">{tr("Colour")}</div>
                           <div className="flex flex-wrap gap-1.5">{LABEL_COLORS.map((c) => <button key={c} onClick={() => onUpdate(f.uid, { label: c })} aria-label={`Colour ${c}`} className={`h-7 w-7 rounded-full border-2 ${f.label === c ? "border-foreground" : "border-transparent"}`} style={{ background: c }} />)}</div>
-                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">{tr("Groups")}<input list="patch-groups" value={groupText(f)} onChange={(e) => onUpdate(f.uid, groupsPatch(e.target.value.split(",")))} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
+                          <label className="block text-[10px] font-semibold uppercase text-muted-foreground">{tr("Groups")}<input list="patch-groups" enterKeyHint="done" value={groupText(f)} onChange={(e) => onUpdate(f.uid, groupsPatch(e.target.value.split(",")))} className="w-full normal-case rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" /></label>
                         </div>
                       </div>
                     </td></tr>}</Frag>
                   );
                 })}
-                {last < rows.length && <tr aria-hidden="true" style={{ height: (rows.length - last) * ROW_H }}><td colSpan={11} className="p-0" /></tr>}
+                {last < rows.length && <tr aria-hidden="true" style={{ height: Math.max(0, rows.length * ROW_H + (expanded?.extra ?? 0) - patchOffset(last, ROW_H, expanded)) }}><td colSpan={11} className="p-0" /></tr>}
               </tbody>
             </table>
           )}

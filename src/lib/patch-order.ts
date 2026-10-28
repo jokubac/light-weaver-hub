@@ -73,6 +73,35 @@ export function renamePattern(pattern: string, count: number, start = 1, step = 
   });
 }
 
+/** One row that is open as a taller editor: `extra` is the height it adds beyond a plain row. */
+export type ExpandedRow = { index: number; extra: number } | null;
+
+/** Real pixel offset of a row: every row is rowH, except the one open as an editor. */
+export function patchOffset(index: number, rowH: number, expanded: ExpandedRow = null): number {
+  return index * rowH + (expanded && expanded.extra > 0 && index > expanded.index ? expanded.extra : 0);
+}
+
+/**
+ * Rows inside the visible band of a virtualised sheet. The open editor is measured, not guessed —
+ * otherwise the band is computed from the wrong offsets and scrolling throws the row being
+ * edited (and with it the on-screen keyboard) out of the page.
+ */
+export function patchWindow(rows: number, at: number, height: number, rowH: number, overscan = 24, expanded: ExpandedRow = null) {
+  const indexAt = (px: number) => {
+    if (expanded && expanded.extra > 0) {
+      const start = expanded.index * rowH;
+      if (px > start && px < start + rowH + expanded.extra) return expanded.index;
+      if (px >= start + rowH + expanded.extra) return expanded.index + 1 + Math.floor((px - start - rowH - expanded.extra) / rowH);
+    }
+    return Math.min(rows, Math.max(0, Math.floor(px / rowH)));
+  };
+  const top = Math.max(0, at);
+  return {
+    first: Math.max(0, indexAt(top) - overscan),
+    last: Math.min(rows, indexAt(top + Math.max(0, height)) + 1 + overscan),
+  };
+}
+
 /**
  * Uids whose channels overlap another light's. Ranges are sorted per universe, so one pass
  * finds every clash instead of scanning the whole patch once per rendered row.

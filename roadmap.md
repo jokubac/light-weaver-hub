@@ -339,5 +339,6 @@
 - [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console
 - [x] Resilience: logs/undo capped, Hold Last State on by default, relaunch reopens last console
 - [x] PATCH sąrašas virtualizuotas (rodomos tik matomos eilutės), konfliktų skenavimas ir Undo žingsnis — O(n) vietoj O(n²)
+- [x] PATCH redagavimas nebeišmeta klaviatūros: atidaryta eilutė matuojama, o ne spėjama; Enter eina į kitą lempą, klaviatūra lieka
 - [ ] FIXTURES plokštės tinklelis taip pat virtualizuotas (3000 lempų: atidarant PATCH vis dar tenka nuimti ~3000 langelių) — orientyras: Blackout patch
 - [x] Stream Deck mygtukų redaktoriuje — piktogramos kiekvienam veiksmui, paieška, mygtukai vietoj sąrašo
