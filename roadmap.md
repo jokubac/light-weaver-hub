@@ -323,5 +323,5 @@
 - [x] Full FADERS window: faders per page 4, 8, 16, 24, 32; the grid, bank buttons and fader size follow the choice, the setting persists, and every layout fits the screen without clipping; browser verified, 425 tests.
 - [x] Fader bar: explained the PROG (programmer changes since the stored cue) and TC (follow MIDI timecode) buttons to the user.
 
-- [ ] FADERS: more control options (user request, scope TBD)
-- [ ] FADERS: lowest/highest limits per fader
+- [x] FADERS: timeline/REC faders, more params, MIDI learn, fades & curves
+- [x] FADERS: lowest/highest limits per fader

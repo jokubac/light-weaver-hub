@@ -42,3 +42,4 @@
 - Product-page footprint checks (src/lib/spec-checked.ts) only mark a GDTF model official when every channel count the maker lists exists in it; mismatches stay unverified rather than being edited to fit.
 - UI strings are translated through src/lib/i18n.ts: wrap display text as tr("English text") (t exported as tr); keys are the English strings themselves; dictionaries are src/lib/i18n/<code>.json keyed by the English string, lazy-loaded, missing keys fall back to English; Arabic flips documentElement dir.
 - Audio LTC decoding and the timeline chase rule live in pure src/lib/ltc.ts; Timeline.tcStart stores the timecode offset per timeline so saved timelines keep their sync point.
+- Fader output = curve then limiter (faderOutput in playback.ts); timeline/REC faders start/stop playback from index.tsx and only scale intensity while up, so a parked-at-zero fader never darkens lights.
