@@ -3,7 +3,7 @@ import { cctRangeOverride } from "@/lib/gdtf-curation";
 import type { CallSheetData } from "@/lib/store";
 import { groupNamesOf, groupText, groupsPatch } from "@/lib/fixture-groups";
 import { Fragment as Frag, useRef, useState } from "react";
-import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { ArrowLeft, Printer, Download, Upload, Menu, Pencil, Unplug, ClipboardList, Tag, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NumberField } from "./NumberField";
@@ -12,6 +12,7 @@ import { FixtureIconPicker } from "./FixtureIconPicker";
 import { FixtureGlyph } from "./FixtureGlyph";
 import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixture } from "@/lib/dmx";
 import { CallSheet } from "./CallSheet";
+import { LabelPrinter } from "./LabelPrinter";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
 import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick } from "@/lib/patch-order";
@@ -38,6 +39,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
   const [picked, setPicked] = useState<string[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [showCallSheet, setShowCallSheet] = useState(false);
+  const [labelsOpen, setLabelsOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [drag, setDrag] = useState<{ uid: string; target: string } | null>(null);
   const dragRef = useRef<{ uid: string; target: string; y: number; moved: boolean } | null>(null);
@@ -121,6 +123,8 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <button onClick={onClose} className="mr-auto rounded-lg bg-surface-elevated p-3 text-primary active:scale-95" aria-label={tr("Back to console")}><ArrowLeft className="h-5 w-5" /></button>
         <Button size="sm" variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Close the fixture list" : "Open the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? tr("Close fixtures") : tr("Add fixtures")}</Button>
         <Button size="sm" variant="secondary" onClick={savePdf} title={tr("Save the patch sheet as a PDF")}><Printer />{tr("Save PDF")}</Button>
+        <Button size="sm" variant="secondary" onClick={() => setLabelsOpen(true)} title={tr("Print patch labels on a Niimbot printer")}><Tag />{tr("Labels")}</Button>
+        <LabelPrinter open={labelsOpen} onOpenChange={setLabelsOpen} title={title} fixtures={fixtures.map((f, i) => ({ f, num: i + 1 })).filter(({ f }) => !picked.length || picked.includes(f.uid))} />
         <Button size="sm" variant="secondary" onClick={exportPatch}><Download />{tr("Export")}</Button>
         <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Upload />{tr("Import")}</Button>
         {rows.length === 0 && <span className="ml-auto whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fixtures.length}{tr("fixtures ·")}{new Date().toLocaleDateString("sv-SE")}</span>}
