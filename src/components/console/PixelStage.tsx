@@ -436,16 +436,6 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             </div>
           )}
         </div>
-        <section aria-label={tr("All pixel lights")} className="shrink-0 border-t border-border bg-surface p-2 hw-bar">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("All lights (")}{px.length})</div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {px.map((f) => { const [c, r] = pixelGrid(f); const tall = r > c; return (
-              <button key={f.uid} onClick={() => onToggle(f.uid)} className={`flex shrink-0 flex-col items-center gap-1 rounded-md p-1.5 ${layer?.order.includes(f.uid) ? "bg-primary/20 ring-1 ring-primary" : "bg-surface-elevated"}`}>
-                <div style={{ width: tall ? 24 : Math.min(140, c * 8), height: tall ? Math.min(60, r * 8) : Math.max(8, r * 8) }}>{pixels(f, 8, 0)}</div>
-                <span className="max-w-24 truncate text-[10px]">{f.name}</span>
-              </button>); })}
-          </div>
-        </section>
       </div>
       <aside aria-label={tr("Pixel effect controls")} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">{controls}</aside>
       {addFixtures && (
