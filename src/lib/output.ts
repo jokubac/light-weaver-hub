@@ -2,7 +2,7 @@
 // local CRMX bridge, which sends Art-Net / sACN to the transmitter.
 // Channel layouts are generic per mode type — check against each fixture's DMX chart.
 
-import { fixtureState, resolveCctMix, getMode, getDef, kelvin, BEAM_ATTRS, seedOf, type BeamAttr, type PatchedFixture } from "./dmx";
+import { fixtureState, resolveCctMix, getMode, getDef, kelvin, BEAM_ATTRS, type BeamAttr, type PatchedFixture } from "./dmx";
 import { moveOffset } from "./aim";
 const BEAM_SET = new Set<string>(BEAM_ATTRS);
 import type { Connection } from "./store";
