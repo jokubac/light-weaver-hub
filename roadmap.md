@@ -172,7 +172,7 @@
 - [x] FX tab removed from the top console bar (effects stay in the Groups · Looks · Effects · REC panel).
 - [x] FADERS tab no longer shows the ▾/▸ arrows (same as the other top tabs); its pressed state still shows whether the bank is open.
 - [ ] Makro lentelė resize iš kampo neleidžia sumažinti — rasti ir pataisyti ribojimą (Jokubas)
-- [ ] Tušti langeliai po faderiais — pataisyta (overlap check); patikrinti naršyklėje
+- [x] Tušti langeliai po faderiais — pataisyta (overlap check); naršyklėje patikrinta: FADERS rodo 8 faderius be tuščių langelių, bankai B1/B2, GO, Per page 4/8/16/24/32, LINK, RELEASE ALL, SNAPSHOTS.
 - [x] Playwright: „+ Group" assign dialoge patikrintas — dialogas atsidaro dvigubu pukštelsčiu Edit režime, Group mygtukai ir 1/8–4 dydžių stopai matomi, klaidų nėra
 - [x] Prie makro pasirinkimų (assign dialog) pridėti lempos dydžio mygtuką su stopais 1/8 1/4 1/2 1 2 3 4 (Jokubas)
 - [x] Macro table: plotis susitraukia iki 1 langelio (per daug), aukštis iš apačios nesitraukia — pataisyti (Jokubas)
@@ -191,7 +191,7 @@
 
 ## PIXEL — corner rotate/resize (in progress)
 - [x] Verified on screen: corner drag rotates (angle 20°), double-tap switches to resize (box 122x72 -> 119x70 and back), hint text and "Pixel canvas" label removed.
-- [ ] (Jokubas) "Remove button prie pixel" — check a Remove button in PIXEL window and address it.
+- [x] (Jokubas) "Remove button prie pixel" — PIXEL lange yra „Remove selected lights" mygtukas (patikrinta naršyklėje).
 - [x] (Jokubas) "clear" — removed the long hint text and the "Pixel canvas" label above the PIXEL canvas.
 - [x] (Jokubas) adding lights no longer applies the effect — lights stay muted until PLAY (verified: muted colours before, effect colours after PLAY).
 - [x] PIXEL: several effects per layer, delete effects
@@ -300,9 +300,9 @@
 
 ## Batch 2026-10-28
 - [ ] PATCH sheet: clicking a light toggles its selection (click a second light keeps the first selected), no multi-select mode needed
-- [ ] PLOT edit toolbar: Delete button next to Select/Multiselect (code done, on-screen check pending)
+- [x] PLOT edit toolbar: Delete button next to Select/Multiselect — patikrinta naršyklėje: pažymėjus langelį Edit režime „Delete item" pašalina jį iš plano (3 → 2 langeliai).
 - [x] CCT: each selected light's own range drives the slider (Vortex 2200 min, Titan 1750 min) — no global 2000-10000 clamp; browser verified typing 1700 -> 1750 on a Titan. Note: the GDTF copy of FP1 Titan Tube declares its own top end (9910 K) from the GDTF file, while the Astera library entry declares 20000 K.
-- [ ] PLOT editor Delete button (PlotPanel toolbar): in source with aria-label "Remove selected from plot", not yet clicked in a browser.
+- [x] PLOT editor Delete button: the live editor is GridBoard (not the unused PlotPanel); its Delete control was clicked in a browser and removed the selected box.
 
 ## Astera verify (2026-10-28)
 - [x] Patikrinti visas 19 Astera GDTF bibliotekos lempas pagal oficialias astera-led.com specifikacijas (CCT diapazonas; jei randama — režimų kanalai).
