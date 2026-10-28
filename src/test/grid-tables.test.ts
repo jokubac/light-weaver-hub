@@ -11,7 +11,7 @@ describe("macro table resizing", () => {
     const laid = layoutTables([table(), macro()], SZ);
     const before = laid.find((i) => i.id === "m1")!;
     const t = laid.find((i) => i.id === "t1")!;
-    const nb = resizeTable(box(t), "br", t.x + 10 * MACRO_CELL, t.y + 8 * MACRO_CELL, [box(before)]);
+    const nb = resizeTable(box(t), "br", t.x + 10 * MACRO_CELL, t.y + 8 * MACRO_CELL);
     const after = layoutTables(laid.map((i) => (i.id === "t1" ? { ...i, ...nb } : i)), SZ).find((i) => i.id === "m1")!;
     expect(after.w).toBeCloseTo(before.w!, 5);
     expect(after.h).toBeCloseTo(before.h!, 5);
@@ -20,23 +20,23 @@ describe("macro table resizing", () => {
   it("an empty table shrinks from every side down to one cell", () => {
     const t = box(table());
     for (const c of ["tl", "tr", "bl", "br"] as const) {
-      const nb = resizeTable(t, c, c[1] === "l" ? 99 : -99, c[0] === "t" ? 99 : -99, []);
+      const nb = resizeTable(t, c, c[1] === "l" ? 99 : -99, c[0] === "t" ? 99 : -99);
       expect(nb.w).toBeCloseTo(MACRO_CELL, 5);
       expect(nb.h).toBeCloseTo(MACRO_CELL + TABLE_HEADER, 5);
     }
   });
-  it("shrinks from the bottom and right until it reaches the macros", () => {
+  it("shrinks from the bottom and right past its macros down to one cell", () => {
     const laid = layoutTables([table(), macro()], SZ);
     const t = laid.find((i) => i.id === "t1")!, m = laid.find((i) => i.id === "m1")!;
-    const nb = resizeTable(box(t), "br", -99, -99, [box(m)]);
+    const nb = resizeTable(box(t), "br", -99, -99);
     expect(nb.w).toBeCloseTo(MACRO_CELL, 5);
     expect(nb.h).toBeCloseTo(MACRO_CELL + TABLE_HEADER, 5);
   });
-  it("shrinks from the top and left until it reaches the macros", () => {
+  it("shrinks from the top and left past its macros down to one cell", () => {
     const t0 = table();
     const laid = layoutTables([t0, macro({ x: 3 * MACRO_CELL + 0.1, y: 2 * MACRO_CELL + 0.5 })], SZ);
     const t = laid.find((i) => i.id === "t1")!, m = laid.find((i) => i.id === "m1")!;
-    const nb = resizeTable(box(t), "tl", 99, 99, [box(m)]);
+    const nb = resizeTable(box(t), "tl", 99, 99);
     expect(nb.x).toBeCloseTo(3 * MACRO_CELL, 5);
     expect(nb.y).toBeCloseTo(2 * MACRO_CELL, 5);
     expect(nb.w).toBeCloseTo(MACRO_CELL, 5);
@@ -44,8 +44,19 @@ describe("macro table resizing", () => {
     expect(after.x).toBeCloseTo(m.x, 5);
     expect(after.y).toBeCloseTo(m.y, 5);
   });
+  it("a table whose macros fill every cell still shrinks from the top-left corner", () => {
+    const laid = layoutTables([table(), macro({ x: 0.1, y: 0.5 }), macro({ id: "m2", x: 3 * MACRO_CELL + 0.1, y: 2 * MACRO_CELL + 0.5 })], SZ);
+    const t = laid.find((i) => i.id === "t1")!;
+    const nb = resizeTable(box(t), "tl", 2 * MACRO_CELL, 2 * MACRO_CELL + TABLE_HEADER);
+    expect(nb.x).toBeCloseTo(2 * MACRO_CELL, 5);
+    expect(Math.round(nb.w / MACRO_CELL)).toBe(2);
+    const after = layoutTables(laid.map((i) => (i.id === "t1" ? { ...i, ...nb } : i)), SZ).filter((i) => i.tbl === "t1");
+    expect(after).toHaveLength(2);
+    for (const m of after) expect(m.x).toBeGreaterThanOrEqual(nb.x - 1e-6);
+  });
+
   it("grows without limit", () => {
-    const nb = resizeTable(box(table()), "br", 500 * MACRO_CELL, 300 * MACRO_CELL, []);
+    const nb = resizeTable(box(table()), "br", 500 * MACRO_CELL, 300 * MACRO_CELL);
     expect(Math.round(nb.w / MACRO_CELL)).toBe(500);
   });
 });

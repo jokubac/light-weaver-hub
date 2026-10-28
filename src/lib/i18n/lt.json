@@ -1148,5 +1148,18 @@
   "Not linked": "Nepriskirta",
   "Learn": "Mokytis",
   "Lowest point": "Žemiausias taškas",
-  "Highest point": "Aukščiausias taškas"
+  "Highest point": "Aukščiausias taškas",
+  "Aim": "Nukreipti",
+  "Aim & move": "Nukreipti ir judinti",
+  "Name a spot on the plot with the Text tool, then tap it here.": "Pažymėkite vietą plane teksto įrankiu, tada spustelėkite čia.",
+  "Cols": "Stulpeliai",
+  "Spread m": "Sklaida m",
+  "Lamp m": "Lempos m",
+  "Target m": "Taško m",
+  "Facing °": "Kryptis °",
+  "Plot m": "Plano m",
+  "Move": "Judėjimas",
+  "Circle": "Apskritimas",
+  "Figure 8": "Aštuoneta",
+  "Random": "Atsitiktinis"
 }

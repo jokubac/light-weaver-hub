@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { ViewTabs } from "./ViewTabs";
 import { MACRO_ACTIONS, FADER_RANGE, faderLimits, type Macro, type MacroAction } from "@/lib/macros";
 let lastPlotView: { x: number; y: number; z: number } | null = null;
-import { cctRangeOf, kelvin, type PatchedFixture } from "@/lib/dmx";
+import { cctRangeOf, kelvin, type BeamAttr, type PatchedFixture } from "@/lib/dmx";
+import { AimPanel } from "./AimPanel";
+import type { AimMove } from "@/lib/aim";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
 import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, Link2, Unlink, PanelRightClose, PanelRightOpen, Lock, LockOpen, RotateCw } from "lucide-react";
@@ -13,7 +15,7 @@ import { FixtureFilterBar, matchFilter, useFixtureFilter } from "@/components/co
 import { t as tr } from "@/lib/i18n";
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
 export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined; lo?: number | undefined; hi?: number | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined; lk?: string | undefined; locked?: boolean | undefined }
-export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined }
+export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined; /** board units → metres, used when pointing moving heads at a spot */ metres?: number | undefined }
 /** A brand-new scene's GRID starts with two default macro tables — MACROS (intensity/CCT) and TOOLS (edit tools) — laid out like the user's own setup. */
 export function emptyGrid(): GridLayout {
   const C = MACRO_CELL, X = 15.6, Y = 0.5;
@@ -199,23 +201,18 @@ export function spanOf(w: number, h: number, table: GridItem, sz = SIZE) {
 export const TABLE_HEADER = 0.4;
 /**
  * Edge/corner resize of one macro table. Cells keep a fixed size (MACRO_CELL), so buttons never change size —
- * every edge moves in whole cells, grows without limit and shrinks until it reaches the macros inside
- * (an empty table shrinks to a single cell). Macros keep their place on the grid.
+ * every edge moves in whole cells, grows without limit and shrinks down to a single cell, even when macros
+ * currently fill it: the squares that no longer fit are re-packed by layoutTables (which grows rows to fit).
  */
-export function resizeTable(t: Box, corner: Corner, px: number, py: number, members: Box[]): Box {
-  const C = MACRO_CELL, e = 0.02;
+export function resizeTable(t: Box, corner: Corner, px: number, py: number): Box {
+  const C = MACRO_CELL;
   const cols0 = Math.max(1, Math.round(t.w / C)), rows0 = Math.max(1, Math.round((t.h - TABLE_HEADER) / C));
   const oy = t.y + TABLE_HEADER;
-  const has = members.length > 0;
-  const cMin = has ? Math.min(...members.map((m) => Math.floor((m.x + e - t.x) / C))) : 0;
-  const cMax = has ? Math.max(...members.map((m) => Math.ceil((m.x + m.w - e - t.x) / C))) : 0;
-  const rMin = has ? Math.min(...members.map((m) => Math.floor((m.y + e - oy) / C))) : 0;
-  const rMax = has ? Math.max(...members.map((m) => Math.ceil((m.y + m.h - e - oy) / C))) : 0;
   let L = 0, R = cols0, T = 0, B = rows0;
-  if (corner === "tl" || corner === "bl") L = Math.min(Math.round((px - t.x) / C), has ? cMin : R - 1);
-  else R = Math.max(Math.round((px - t.x) / C), has ? cMax : L + 1);
-  if (corner === "tl" || corner === "tr") T = Math.min(Math.round((py - t.y) / C), has ? rMin : B - 1);
-  else B = Math.max(Math.round((py - oy) / C), has ? rMax : T + 1);
+  if (corner === "tl" || corner === "bl") L = Math.min(Math.round((px - t.x) / C), R - 1);
+  else R = Math.max(Math.round((px - t.x) / C), L + 1);
+  if (corner === "tl" || corner === "tr") T = Math.min(Math.round((py - t.y) / C), B - 1);
+  else B = Math.max(Math.round((py - oy) / C), T + 1);
   return { id: t.id, x: t.x + L * C, y: t.y + T * C, w: (R - L) * C, h: (B - T) * C + TABLE_HEADER };
 }
 const isMacroBox = (i: GridItem) => i.kind === "macro" || i.kind === "empty";
@@ -292,7 +289,7 @@ export function resizeBoxes(boxes: Box[], corner: Corner, px: number, py: number
 
 const COLORS = ["", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#f5f5f4", "#57534e"];
 
-export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf, groups = [], onCreateGroup, parked = {} }: {
+export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf, groups = [], onCreateGroup, parked = {}, onAim, onMove }: {
   parked?: Record<string, unknown>;
   /** Creates a group from the currently selected lights. */
   onCreateGroup?: (name: string) => void;
@@ -302,6 +299,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   pixelsOf?: (f: PatchedFixture) => { cells?: string[] | undefined; cols: number; rows: number; aspect: number };
   /** Group names the user has made, so the light picker can drop a whole group at once. */
   groups?: string[];
+  /** Points the selected moving heads at a spot on the plot; one Pan/Tilt pair per light. */
+  onAim?: (aims: { uid: string; beam: Partial<Record<BeamAttr, number>> }[]) => void;
+  /** Sets or clears a head's wander around the place it was aimed at. */
+  onMove?: (uids: string[], move: AimMove | null) => void;
 }) {
   const [live, setLive] = useState(true);
   // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
@@ -665,7 +666,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
             const p = pt(e);
             if (rs) { const lone = rs.orig.length === 1 ? grid.items.find((i) => i.id === rs.orig[0]!.id && i.kind === "table") : undefined;
-              setRs({ ...rs, out: lone ? [resizeTable(rs.orig[0]!, rs.corner, p.x, p.y, grid.items.filter((m) => isMacroBox(m) && m.tbl === lone.id).map((m) => ({ id: m.id, x: m.x, y: m.y, w: W(m), h: H(m) })))] : resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) }); }
+              setRs({ ...rs, out: lone ? [resizeTable(rs.orig[0]!, rs.corner, p.x, p.y)] : resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) }); }
             else if (wEnd) { const w0 = grid.walls[wEnd.i]!; const o = wEnd.e === 1 ? { x: w0.x2, y: w0.y2 } : { x: w0.x1, y: w0.y1 }; const sn = snapToEnds(grid.walls, p.x, p.y, wEnd); const q = sn.x !== p.x || sn.y !== p.y ? sn : (() => { const k = snapWall(o.x, o.y, p.x, p.y); return { x: k.x2, y: k.y2 }; })(); setGrid({ ...grid, walls: grid.walls.map((w, k) => (k !== wEnd.i ? w : wEnd.e === 1 ? { ...w, x1: q.x, y1: q.y } : { ...w, x2: q.x, y2: q.y })) }); }
             else if (wall) setWall(wallRect ? { ...wall, x2: Math.round(p.x * 4) / 4, y2: Math.round(p.y * 4) / 4 } : (() => { const sn = snapToEnds(grid.walls, p.x, p.y); return sn.x !== p.x || sn.y !== p.y ? { ...wall, x2: sn.x, y2: sn.y } : { ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) }; })());
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
@@ -863,7 +864,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         </div>
       </div>
       {(!live || panelOpen) && <aside aria-label={live ? "Fixture controls" : "Grid editor"} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
-        {live ? controls : editPanel}
+        {live ? <>{controls}<AimPanel grid={grid} setGrid={setGrid} fixtures={fixtures} selected={selected} onAim={onAim ?? (() => {})} onMove={onMove ?? (() => {})} /></> : editPanel}
       </aside>}
 
       <Dialog open={!!pick} onOpenChange={(o) => !o && setPicker(null)}>

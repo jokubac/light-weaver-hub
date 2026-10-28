@@ -506,6 +506,8 @@ export interface PatchedFixture {
   mix?: FixtureMix | undefined;
   /** moving-head / spot values (pan, tilt, gobo, zoom, framing blades…), 0-1; unset = fixture default */
   beam?: Partial<Record<BeamAttr, number>>;
+  /** wander the beam around its aimed position while it holds the aim */
+  move?: import("./aim").AimMove | undefined;
 }
 
 export type MixSource = Pick<PatchedFixture, "intensity" | "cct" | "gm" | "hue" | "saturation" | "crossfade" | "cctOnly" | "fx" | "on" | "fxPlaying">;
@@ -631,6 +633,7 @@ export function normalizeFixture(raw: Record<string, unknown>): PatchedFixture {
     ...(r.pixelPos ? { pixelPos: r.pixelPos } : {}),
     ...(r.power ? { power: r.power } : {}),
     ...(r.beam && typeof r.beam === "object" ? { beam: r.beam } : {}),
+    ...(r.move && typeof r.move === "object" ? { move: r.move } : {}),
   };
 }
 

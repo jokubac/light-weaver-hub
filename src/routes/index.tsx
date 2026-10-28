@@ -1712,7 +1712,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
               const tube = f.icon && f.icon !== "auto" ? f.icon.startsWith("tube-") : /tube|titan|helios|hyperion|ax1|quasar|pavotube|infinibar|pixel strip|batten|\bbar\b|dotline|pixel ?line|rr50|rr100|rainbow/.test(m);
               const n = cols * rows; let gc = cols, gr = rows; if (!getMode(f).grid && !tube && n > 2) { gc = Math.ceil(Math.sqrt(n)); gr = Math.ceil(n / gc); }
               const aspect = !tube ? 1 : cols > 1 || rows > 1 ? (tube && cols === 1 && rows > cols ? rows / cols : cols / Math.max(1, rows)) : tube ? 4 : 1;
-              return { cells: pix?.map((c) => `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})`), cols: tube && cols === 1 && rows > cols ? rows : gc, rows: tube && cols === 1 && rows > cols ? cols : gr, aspect }; }} />
+              return { cells: pix?.map((c) => `rgb(${c[0] * pv},${c[1] * pv},${c[2] * pv})`), cols: tube && cols === 1 && rows > cols ? rows : gc, rows: tube && cols === 1 && rows > cols ? cols : gr, aspect }; }}
+            onAim={(aims) => { const m = new Map(aims.map((a) => [a.uid, a.beam])); setFixtures((fs) => fs.map((f) => (m.has(f.uid) ? { ...f, beam: { ...f.beam, ...m.get(f.uid) } } : f))); }}
+            onMove={(uids, move) => setFixtures((fs) => fs.map((f) => (uids.includes(f.uid) ? { ...f, move: move ?? undefined } : f)))} />
           {groupsOpen && groupsAside()}
         </div>
       )}
