@@ -15,3 +15,13 @@ describe("niimbot packets", () => {
     expect(job).toHaveLength(5 + 3 + 1);
   });
 });
+
+import { defaultDeckLayout } from "./stream-deck";
+describe("stream deck default layout", () => {
+  it("puts looks first and Blackout on the last key", () => {
+    const l = defaultDeckLayout(["a", "b"], 6);
+    expect(l[0]).toEqual({ kind: "look", lookId: "a" });
+    expect(l[2]).toBeNull();
+    expect(l[5]).toEqual({ kind: "action", action: "blackout", amount: 0 });
+  });
+});
