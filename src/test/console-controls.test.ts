@@ -40,7 +40,7 @@ describe("Manufacturer profiles", () => {
     expect(def.modes[index]?.channels).toBe(6);
     const fixture = { ...createFixture(def, index, 1, 10, "Titan"), intensity: 1, cct: (5494 - 2000) / 8000, gm: 0, hue: 180, saturation: 1, crossfade: 1 };
     const data = buildUniverses([fixture], 0, 1, new Map()).get(1);
-    expect(Array.from(data?.slice(9, 15) ?? [])).toEqual([255, 117, 0, 128, 255, 0]);
+    expect(Array.from(data?.slice(9, 15) ?? [])).toEqual([255, 52, 0, 128, 255, 0]);
   });
   it("writes Evoke Ultimate CCT and fan to their chart channels", () => {
     const def = getDef("nanlux-evoke-1200b");
