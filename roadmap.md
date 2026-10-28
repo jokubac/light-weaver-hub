@@ -297,3 +297,7 @@
 - [x] Blind: yellow glowing ring around the whole app edge (like REC red border)
 - [x] Review translations for all languages
 - [x] Keypad: decimal point (taškas) key for numeric entry
+
+## Batch 2026-10-28
+- [ ] PATCH sheet: clicking a light toggles its selection (click a second light keeps the first selected), no multi-select mode needed
+- [ ] PLOT edit toolbar: Delete button next to Select/Multiselect (code done, on-screen check pending)
