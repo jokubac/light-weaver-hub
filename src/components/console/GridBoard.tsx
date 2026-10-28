@@ -292,7 +292,7 @@ export function resizeBoxes(boxes: Box[], corner: Corner, px: number, py: number
 
 const COLORS = ["", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ec4899", "#f5f5f4", "#57534e"];
 
-export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf, groups = [], onCreateGroup, parked = {} }: {
+export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelect, onRun, colorOf, controls, pixelsOf, groups = [], onCreateGroup, parked = {}, onAim, onMove }: {
   parked?: Record<string, unknown>;
   /** Creates a group from the currently selected lights. */
   onCreateGroup?: (name: string) => void;
