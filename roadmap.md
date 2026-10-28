@@ -308,5 +308,5 @@
 - [x] Patikrinti visas 19 Astera GDTF bibliotekos lempas pagal oficialias astera-led.com specifikacijas (CCT diapazonas; jei randama — režimų kanalai).
 - [x] Pataisyti [1750, 9910] -> gamintojo diapazoną (GDTF failuose klaida): gdtf-curation override + regeneruoti biblioteką.
 - [x] Visos 19 GDTF Astera įrašų pakeisti į verified režimus iš oficialių DMX profilių PDF (Titan/AX1/AX3/HydraPanel V1, bendras galvų V5: AX5/AX9/AX10-NYX/LunaBulb/PixelBrick/QuikSpot/SolaBulb). QuikPunch FAN režimai (144–159) lieka hidden-legacy. AX10 pervadintas į AX10 SpotMax. Watts pagal oficialias specifikacijas. 5 nauji testai; 409 testai ir build praėjo.
-- [ ] DMX CCT viršutinis limitas: oficialiuose chartuose 8 bitų CCT kanalas 1750+32×DMX = max 9910K (16 bitų profiliuose tas pats 8 bitų CCT kanalas). 20000K pasiekiama tik per Asteros app. Sprendimas vartotojui: ar UI riba turi būti 9910K (kas DMX siunčia), ar 20000K (fizinė spec)?
+- [x] DMX CCT viršutinis limitas: oficialiuose chartuose 8 bitų CCT kanalas 1750+32×DMX = max 9910K. Vartotojo sprendimas: NOX Kelvin skalė lieka iki 20,000 K pagal lempos specifikaciją; virš 9,910 K DMX kanalas siunčia maksimumą (lempos 20,000 K tik per Asteros app).
 - [ ] Po Asteros: patikrinti populiariausias filmavimo lempas blokais (Aputure/amaran, ARRI, Creamsource, Nanlite/Nanlux, Kino Flo, Litepanels, Godox...).
