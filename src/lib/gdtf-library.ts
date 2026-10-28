@@ -17,7 +17,7 @@ export function loadGdtfLibrary(): Promise<LibraryDef[]> {
         Promise.all(Array.from({ length: parts }, (_, i) => get<LibraryDef[]>(`/gdtf-library/library-${i + 1}.json`))),
         get<Record<string, number>>("/gdtf-library/watts.json").catch(() => ({} as Record<string, number>)),
       ]);
-      return lists.flat().map((d) => (!d.watts && watts[d.id] ? { ...d, watts: watts[d.id] } : d));
+      return lists.flat().map((d): LibraryDef => { const w = watts[d.id]; return !d.watts && w ? { ...d, watts: w } : d; });
     })
     .catch((e) => { cache = null; throw e; });
   return cache;
