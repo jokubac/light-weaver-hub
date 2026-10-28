@@ -56,6 +56,11 @@ export function blockLanding(fixtures: PatchedFixture[], uids: string[], dropInd
   return { insertAt, rows: Array.from({ length: n }, (_, i) => insertAt + i) };
 }
 
+/** Patch sheet clicks: tapping a light adds it to the pick, tapping it again drops only it. */
+export function togglePick(picked: string[], uid: string): string[] {
+  return picked.includes(uid) ? picked.filter((x) => x !== uid) : [...picked, uid];
+}
+
 /** Bulk names: "{n}" is replaced with start + i*step; without it the number is appended. A comma list is used as-is. */
 export function renamePattern(pattern: string, count: number, start = 1, step = 1): string[] {
   if (pattern.includes(",")) {
