@@ -1,3 +1,4 @@
+import type React from "react";
 import { useState } from "react";
 import { ChevronLeft, ListOrdered, Plus, Settings2, Trash2, Play, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -156,8 +157,7 @@ export function PlaybackBar(p: PlaybackProps) {
                 </div>}
                 {p.full ? (
                   <div className="flex min-h-0 flex-1 items-stretch justify-center gap-2">
-                    <input aria-label={`Fader ${i + 1} ${fd!.name}`} type="range" min={0} max={1} step={0.005} value={lv} onChange={(e) => setLevel(i, +e.target.value)}
-                      className="m-0 h-full min-h-0 w-10 self-stretch accent-primary" style={{ writingMode: "vertical-lr", direction: "rtl", height: "100%" }} />
+                    <VFader label={`Fader ${i + 1} ${fd!.name}`} value={lv} onChange={(v) => setLevel(i, v)} fill={swatch[color]} />
                     <div aria-hidden className="relative w-2 overflow-hidden rounded-full bg-background">
                       <div className={`absolute inset-x-0 bottom-0 ${swatch[color]} transition-[height] duration-75`} style={{ height: `${(fd!.off ? 0 : lv) * 100}%` }} />
                     </div>
@@ -186,6 +186,22 @@ export function PlaybackBar(p: PlaybackProps) {
       </div>
       {edit != null && <FaderSetup i={edit} fd={p.bank[edit]} {...p} onClose={() => setEdit(null)} onSave={(fd) => { setSlot(edit, fd); setEdit(null); }} />}
       <CueDialog open={cuesOpen} onOpenChange={setCuesOpen} {...p} />
+    </div>
+  );
+}
+
+/** Tall touch fader: drag anywhere on the track; arrow keys nudge. */
+function VFader({ label, value, onChange, fill }: { label: string; value: number; onChange: (v: number) => void; fill: string }) {
+  const at = (e: React.PointerEvent<HTMLDivElement>) => { const r = e.currentTarget.getBoundingClientRect(); onChange(Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height))); };
+  return (
+    <div role="slider" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value * 100)} tabIndex={0}
+      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); at(e); }}
+      onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) at(e); }}
+      onKeyDown={(e) => { const d = e.key === "ArrowUp" ? 0.01 : e.key === "ArrowDown" ? -0.01 : e.key === "PageUp" ? 0.1 : e.key === "PageDown" ? -0.1 : 0; if (d) { e.preventDefault(); onChange(Math.min(1, Math.max(0, value + d))); } }}
+      className="relative w-12 cursor-ns-resize touch-none rounded-lg bg-background outline-none focus-visible:ring-2 focus-visible:ring-primary">
+      <div className={`absolute inset-x-[18px] bottom-2 top-2 rounded-full bg-border`} />
+      <div className={`absolute inset-x-[18px] bottom-2 rounded-full ${fill}`} style={{ height: `calc((100% - 16px) * ${value})` }} />
+      <div className="absolute inset-x-1 h-4 -translate-y-1/2 rounded-md border border-border bg-surface-elevated shadow-md" style={{ top: `calc(8px + (100% - 16px) * ${1 - value})` }} />
     </div>
   );
 }
