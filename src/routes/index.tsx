@@ -507,6 +507,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [fixturesOpen, setFixturesOpen] = useState(false);
   const [gridOpen, setGridOpen] = useState(false);
   const [pixOpen, setPixOpen] = useState(false);
+  const [fadersPage, setFadersPage] = useState(false);
   const [grid, setGrid] = useState<GridLayout>(() => scene.grid ?? emptyGrid());
   const [seqOpen, setSeqOpen] = useState(false);
   const [seq, setSeq] = useState<Timeline>(() => scene.timeline ?? emptyTimeline());
@@ -1346,10 +1347,11 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           </aside>
   );
   const outputEnabled = bo.target === 0;
-  const windowOpen = patchOpen || fixturesOpen || gridOpen || seqOpen || pixOpen;
+  const windowOpen = patchOpen || fixturesOpen || gridOpen || seqOpen || pixOpen || fadersPage;
   // One window at a time; tapping its tab again closes it and returns to the console
-  const openWin = (k: "patch" | "fixtures" | "grid" | "timeline" | "pixels") => {
-    const on = k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : k === "pixels" ? pixOpen : fixturesOpen;
+  const openWin = (k: "patch" | "fixtures" | "grid" | "timeline" | "pixels" | "faders") => {
+    const on = k === "patch" ? patchOpen : k === "grid" ? gridOpen : k === "timeline" ? seqOpen : k === "pixels" ? pixOpen : k === "faders" ? fadersPage : fixturesOpen;
+    setFadersPage(k === "faders" && !on);
     setPixOpen(k === "pixels" && !on);
     setGridOpen(k === "grid" && !on);
     setSeqOpen(k === "timeline" && !on);
@@ -1532,7 +1534,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <ShowMonitor open={monitorOpen} onOpenChange={setMonitorOpen} fixtures={fixtures} level={outLevel} parked={parked} setParked={onParked} />
       </div>
       <div aria-label={tr("Console views")} className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
-        <ViewTabs fill tabs={([["fixtures", tr("FIXTURES"), fixturesOpen || !(gridOpen || seqOpen || pixOpen || patchOpen)], ["grid", tr("PLOT"), gridOpen], ["timeline", tr("TIMELINE"), seqOpen], ["pixels", tr("PIXEL"), pixOpen], ["patch", tr("PATCH"), patchOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => (on && k === "patch" ? undefined : openWin(k as "fixtures" | "grid" | "timeline" | "pixels" | "patch")) }))} />
+        <ViewTabs fill tabs={([["fixtures", tr("FIXTURES"), fixturesOpen || !(gridOpen || seqOpen || pixOpen || patchOpen || fadersPage)], ["grid", tr("PLOT"), gridOpen], ["timeline", tr("TIMELINE"), seqOpen], ["pixels", tr("PIXEL"), pixOpen], ["faders", tr("FADERS"), fadersPage], ["patch", tr("PATCH"), patchOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => (on && k === "patch" ? undefined : openWin(k as "fixtures" | "grid" | "timeline" | "pixels" | "faders" | "patch")) }))} />
         {!patchOpen && <button onClick={() => setGroupsOpen((o) => !o)} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}
           className={`inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-md shadow-sm transition active:scale-95 [&_svg]:size-4 ${groupsOpen ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
           {groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}
@@ -1622,6 +1624,15 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           {groupsOpen && groupsAside()}
         </div>
       )}
+      {fadersPage && (
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
+          <PlaybackBar full fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
+            flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
+            onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
+            progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />
+          {groupsOpen && groupsAside()}
+        </div>
+      )}
       {patchOpen && (
         <PatchPage title={`${project.name} · ${scene.name}`} callSheet={project.callSheet} onCallSheet={onCallSheet} fixtures={fixtures} onClose={() => { setPatchOpen(false); save(); }} onUpdate={updateOne} onReorder={setFixtures}
           onAdd={(fs) => setFixtures((x) => [...x, ...fs])} onReplace={(fs) => { setFixtures(fs); setSelected([]); }}
@@ -1664,7 +1675,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       </div>
       )}
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
-      {fadersOpen && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
+      {fadersOpen && !fadersPage && <PlaybackBar fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
         progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
