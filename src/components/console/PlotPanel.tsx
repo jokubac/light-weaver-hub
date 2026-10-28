@@ -1077,7 +1077,6 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         </DropdownMenuContent></DropdownMenu>
         <Button variant="secondary" size="icon" title={tr("Undo")} aria-label={tr("Undo")} disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title={tr("Redo")} aria-label={tr("Redo")} disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
-        <Button variant="destructive" size="sm" aria-label={tr("Remove selected from plot")} title={tr("Remove selected item")} disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />{tr("Remove")}</Button>
         {(tool === "draw" || tool === "rect") && (
           <input type="color" value={ink} onChange={(e) => setInk(e.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" aria-label={tr("Drawing colour")} />
         )}
