@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NumberField } from "@/components/console/NumberField";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { BankFader, Cue, FaderSnap, Look } from "@/lib/store";
-import { BANK_SIZE, BANK_PAGES, sortCues, faderMembers, snapBank, releaseBank, moveLinked } from "@/lib/playback";
+import { BANK_SIZE, BANK_PAGES, BANK_TOTAL, FADER_PAGE_SIZES, perPageOf, bankPages, sortCues, faderMembers, snapBank, releaseBank, moveLinked } from "@/lib/playback";
 import { fmtTc, parseTc } from "@/lib/show-control";
 
 import { t as tr } from "@/lib/i18n";
