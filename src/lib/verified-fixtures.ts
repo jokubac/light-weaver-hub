@@ -7,8 +7,19 @@ import { KINOFLO_FIXTURES } from "./kinoflo";
 import { asteraModes, asteraMode, ASTERA_HEAD_XY, hydraPixelModes, HYDRA_SOURCE } from "./astera";
 // Manufacturer-verified fixture profiles built from official DMX charts.
 // The curation script replaces same-id library entries with these, so they win over community GDTF files.
-import type { FixtureDef, FixtureMode } from "./dmx";
+import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode } from "./dmx";
 import { ORBITER_TABLE } from "./arri-orbiter-table";
+
+const TITAN_CHART = "https://astera-led.com/wp-content/uploads/FP1_Titan_Tube_DMX_Profiles_V1.pdf";
+const AX1_CHART = "https://astera-led.com/wp-content/uploads/AX1_PixelTube_DMX_Profiles_V1.pdf";
+const AX3_CHART = "https://astera-led.com/wp-content/uploads/AX3_LightDrop_DMX_Profiles_V1.pdf";
+// Shared V5 single-head chart: AX5, AX7, AX9, AX10 SpotMax, NYX, LunaBulb, PixelBrick, QuikSpot, SolaBulb.
+const V5_CHART = "https://astera-led.com/wp-content/uploads/AX10_AX10_SpotMax_DMX_Profiles_V5.pdf";
+const withChartSource = (modes: FixtureMode[], source: string): FixtureMode[] => modes.map((m) => ({ ...m, source }));
+const HEAD_XY = ASTERA_HEAD_XY.map((s) => asteraMode(s));
+/** 1-pixel profile chart: profiles 1–14, 89–97, 137–143 + head XY profiles 168–171. */
+const ASTERA_HEAD_MODES = withChartSource([...asteraModes([1]), ...HEAD_XY], V5_CHART);
+const ASTERA_AX1_MODES = withChartSource([...asteraModes([1, 4, 8]), ...asteraModes([16]), ...HEAD_XY], AX1_CHART);
 
 type Slot = ChannelAttr | [ChannelAttr, number]; // [attr, home 0-1]
 
