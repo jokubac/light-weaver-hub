@@ -43,3 +43,4 @@
 - UI strings are translated through src/lib/i18n.ts: wrap display text as tr("English text") (t exported as tr); keys are the English strings themselves; dictionaries are src/lib/i18n/<code>.json keyed by the English string, lazy-loaded, missing keys fall back to English; Arabic flips documentElement dir.
 - Audio LTC decoding and the timeline chase rule live in pure src/lib/ltc.ts; Timeline.tcStart stores the timecode offset per timeline so saved timelines keep their sync point.
 - Fader output = curve then limiter (faderOutput in playback.ts); timeline/REC faders start/stop playback from index.tsx and only scale intensity while up, so a parked-at-zero fader never darkens lights.
+- Moving-head aiming lives in src/lib/aim.ts: Pan/Tilt are ordinary beam values computed from plot positions, and wander offsets are added only while DMX is written, so aiming never causes per-frame state, history or storage writes.

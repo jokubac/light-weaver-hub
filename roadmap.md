@@ -335,6 +335,6 @@
 - [x] Stream Deck (WebHID): look keys in look colour + Blackout key
 - [x] Stream Deck custom key layout (looks or macro actions per key, colour, label)
 - [x] Moving head position grid from plot + movement FX: the PLOT side panel aims selected heads at a named plot spot (or a spread grid of spots) using each head's own Pan/Tilt travel, and Circle/Figure 8/Sweep/Random wander is applied when DMX is written, so nothing is saved per frame. 20 new tests, typecheck clean, browser verified: aiming "Actor" wrote Pan 0.45 / Tilt 0.43 and Circle saved the movement.
-- [ ] CRMX Link button — needs verified pairing protocol per node
+- [ ] CRMX Link button — LumenRadio pairing is physical, not networked: pressing the transmitter's Link button lets CRMX receivers search and link, and Linking Keys are only set through LumenRadio's own CRMX Toolbox app over Bluetooth ([1](https://lumenradio.com/support-materials/user-manual-2/), [5](https://rc4wireless.com/wp-content/uploads/2023/05/RC4-LumenDimIO-100-Quick-Start-Guide.pdf), [7](https://help.aputure.com/en/general-help/crmx-overview)). No published API lets a console pair lights, so a NOX Link button can only walk the user through the button press and remember which light belongs to which transmitter — automated pairing would be invented behaviour.
 - [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console
 - [x] Resilience: logs/undo capped, Hold Last State on by default, relaunch reopens last console
