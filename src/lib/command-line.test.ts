@@ -9,17 +9,17 @@ d2("pattern selection", () => {
   i2("NTH without number is an error", () => e2(pc("1 THRU 4 NTH", 20).error).toBeTruthy());
 });
 
-describe("REC on the command line", () => {
-  it("records a typed selection as a numbered cue with merge", () => {
-    const r = parseCommand("1 THRU 3 REC 5 MERGE", 10);
-    expect(r.select).toEqual([1, 2, 3]);
-    expect(r.rec).toEqual({ kind: "cue", n: 5, mode: "merge" });
+d2("REC on the command line", () => {
+  i2("records a typed selection as a numbered cue with merge", () => {
+    const r = pc("1 THRU 3 REC 5 MERGE", 10);
+    e2(r.select).toEqual([1, 2, 3]);
+    e2(r.rec).toEqual({ kind: "cue", n: 5, mode: "merge" });
   });
-  it("supports REC FX / LOOK / TIMELINE alone", () => {
-    expect(parseCommand("REC FX", 4).rec).toEqual({ kind: "fx" });
-    expect(parseCommand("REC TIMELINE", 4).rec).toEqual({ kind: "timeline" });
+  i2("supports REC FX / LOOK / TIMELINE alone", () => {
+    e2(pc("REC FX", 4).rec).toEqual({ kind: "fx" });
+    e2(pc("REC TIMELINE", 4).rec).toEqual({ kind: "timeline" });
   });
-  it("rejects MERGE without a cue number", () => {
-    expect(parseCommand("REC MERGE", 4).error).toBeTruthy();
+  i2("rejects MERGE without a cue number", () => {
+    e2(pc("REC MERGE", 4).error).toBeTruthy();
   });
 });
