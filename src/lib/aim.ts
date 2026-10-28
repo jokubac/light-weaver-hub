@@ -64,19 +64,33 @@ export const AIM_SHAPES: { id: AimShape; label: string }[] = [
  * Live Pan/Tilt offsets (±0.5 of the head's whole travel) for a wander shape at time `t`.
  * Deterministic from `seed`, so two lights with the same shape drift apart instead of marching.
  */
-export function moveOffset(m: AimMove, t: number, seed = 0): [number, number] {
-  const w = 2 * Math.PI * Math.max(0, m.rate) * t, s = Math.max(0, Math.min(1, m.size)) * 0.5;
+/** Integer hash of a light's id: two heads on the same shape must not drift in lockstep. */
+const uidSeed = (uid: string): number => {
+  let h = 0;
+  for (let i = 0; i < uid.length; i++) h = (Math.imul(h ^ uid.charCodeAt(i), 31) + 7) >>> 0;
+  return h >>> 0;
+};
+const hash1 = (uid: string, k: number) => { let h = Math.imul(uidSeed(uid) ^ k, 2654435761) >>> 0; h = (Math.imul(h, 40503) + 1013904223) >>> 0; return (h % 997) / 997; };
+const hash2 = (uid: string, k: number) => { let h = Math.imul(uidSeed(uid) ^ (k + 7), 2246822519) >>> 0; h = (Math.imul(h, 3266489917) + 2654435761) >>> 0; return (h % 997) / 997; };
+
+/**
+ * How far a head should sit from its aim right now, in 0-1 channel units.
+ * Deterministic from (shape, speed, size, time, light id), so every frame and every
+ * device agrees on where the light is and nothing has to be written back per frame.
+ */
+export function moveOffset(m: AimMove, t: number, uid: string): [number, number] {
+  const w = 2 * Math.PI * m.rate * t;
+  const s = Math.max(0, Math.min(1, m.size));
   switch (m.shape) {
-    case "circle":
-      return [Math.sin(w) * s, Math.cos(w) * s];
-    case "figure8":
-      return [Math.sin(w) * s, Math.sin(2 * w) * s * 0.5];
-    case "sweep":
-      return [Math.sin(w) * s, 0];
+    case "off": return [0, 0];
+    case "circle": return [0.5 * s * Math.cos(w), 0.5 * s * Math.sin(w)];
+    case "eight": return [0.5 * s * Math.cos(w), 0.5 * s * Math.sin(2 * w) / 2];
+    case "sweep": return [0.5 * s * Math.sin(w), 0];
     case "random": {
-      // Two slow detuned sines read as a hand-picked wander but never jump.
-      const a = w * 0.7 + seed, b = w * 1.31 + seed * 1.7;
-      return [(Math.sin(a) + Math.sin(b)) / 2 * s, (Math.sin(a + 2.1) + Math.sin(b * 0.83 + 1.3)) / 2 * s];
+      const h1 = Math.floor(w), h2 = h1 + 1, f = w - h1;
+      const o1 = (hash1(uid, h1) + hash1(uid, h2)) / 2 - 0.5;
+      const o2 = (hash2(uid, h1) + hash2(uid, h2)) / 2 - 0.5;
+      return [0.5 * s * o1, 0.5 * s * o2];
     }
   }
 }

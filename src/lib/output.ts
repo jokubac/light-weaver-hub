@@ -187,7 +187,7 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
       }
     };
     // a wandering head drifts around the aim it was given; the aim itself stays stored
-    const mv = f.move ? moveOffset(f.move, t, seedOf(f.uid)) : null;
+    const mv = f.move ? moveOffset(f.move, t, f.uid) : null;
     mode.channelMap.forEach((e, i) => {
       const occ = seen.get(e.attr) ?? 0;
       if (!e.fine) seen.set(e.attr, occ + 1);
