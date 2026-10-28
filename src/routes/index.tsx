@@ -1037,7 +1037,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         acc.inputs.forEach((inp) => { inp.onmidimessage = (e) => { if (!e.data) return; const sec = dec.message(e.data); if (sec != null) onTc(sec); }; cleanups.push(() => { inp.onmidimessage = null; }); });
       }).catch(() => { alert("MIDI access was refused."); setTcOn(false); });
     } else {
-      navigator.mediaDevices?.getUserMedia({ audio: { deviceId: tcCfg.deviceId ? { exact: tcCfg.deviceId } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then((stream) => {
+      navigator.mediaDevices?.getUserMedia({ audio: { ...(tcCfg.deviceId ? { deviceId: { exact: tcCfg.deviceId } } : {}), echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then((stream) => {
         if (!alive) { stream.getTracks().forEach((t) => t.stop()); return; }
         const ctx = new AudioContext(); const src = ctx.createMediaStreamSource(stream);
         const node = ctx.createScriptProcessor(2048, 1, 1); const dec = new LtcDecoder(ctx.sampleRate, tcCfg.rate);
