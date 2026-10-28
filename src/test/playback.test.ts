@@ -13,6 +13,18 @@ describe("playback bank", () => {
     expect(applyBank(fs, bank, [], null, "1")[1]!.intensity).toBe(0);
     expect(fs[0]!.intensity).toBe(0.8);
   });
+  it("last moved colour fader wins (LTP)", () => {
+    const fs = [fx("a", "Key")];
+    const A = { id: "A", name: "A", kind: "group" as const, ref: "Key", param: "hue" as const, level: 0.25, touched: 200 };
+    const B = { id: "B", name: "B", kind: "group" as const, ref: "Key", param: "hue" as const, level: 0.5, touched: 100 };
+    expect(applyBank(fs, [A, B], [])[0]!.hue).toBe(90);
+    expect(applyBank(fs, [A, { ...B, touched: 300 }], [])[0]!.hue).toBe(180);
+  });
+  it("untouched colour fader changes nothing, off intensity fader darkens", () => {
+    const fs = [fx("a", "Key")];
+    expect(applyBank(fs, [{ id: "c", name: "c", kind: "group", ref: "Key", param: "cct", level: 0 }], [])[0]!.cct).toBe(0.5);
+    expect(applyBank(fs, [{ id: "i", name: "i", kind: "group", ref: "Key", level: 1, off: true }], [])[0]!.intensity).toBe(0);
+  });
   it("numbers point cues between existing ones", () => {
     const c = (n: number) => ({ id: String(n), number: n, name: "", fade: 0, states: [] });
     expect(nextCueNumber([c(1), c(2)])).toBe(3);
