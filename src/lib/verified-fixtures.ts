@@ -4,9 +4,10 @@ import { GODOX_FIXTURES } from "./godox";
 import { GEMINI_FIXTURES } from "./litepanels-gemini";
 import { DMG_FIXTURES } from "./dmg";
 import { KINOFLO_FIXTURES } from "./kinoflo";
+import { asteraModes, asteraMode, ASTERA_HEAD_XY, hydraPixelModes, HYDRA_SOURCE } from "./astera";
 // Manufacturer-verified fixture profiles built from official DMX charts.
 // The curation script replaces same-id library entries with these, so they win over community GDTF files.
-import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode } from "./dmx";
+import type { FixtureDef, FixtureMode } from "./dmx";
 import { ORBITER_TABLE } from "./arri-orbiter-table";
 
 type Slot = ChannelAttr | [ChannelAttr, number]; // [attr, home 0-1]
