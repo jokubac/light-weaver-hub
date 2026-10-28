@@ -157,7 +157,7 @@ export function PlaybackBar(p: PlaybackProps) {
                 {p.full ? (
                   <div className="flex min-h-0 flex-1 items-stretch justify-center gap-2">
                     <input aria-label={`Fader ${i + 1} ${fd!.name}`} type="range" min={0} max={1} step={0.005} value={lv} onChange={(e) => setLevel(i, +e.target.value)}
-                      className="min-h-0 w-10 accent-primary" style={{ writingMode: "vertical-lr", direction: "rtl" }} />
+                      className="m-0 h-full min-h-0 w-10 self-stretch accent-primary" style={{ writingMode: "vertical-lr", direction: "rtl", height: "100%" }} />
                     <div aria-hidden className="relative w-2 overflow-hidden rounded-full bg-background">
                       <div className={`absolute inset-x-0 bottom-0 ${swatch[color]} transition-[height] duration-75`} style={{ height: `${(fd!.off ? 0 : lv) * 100}%` }} />
                     </div>
