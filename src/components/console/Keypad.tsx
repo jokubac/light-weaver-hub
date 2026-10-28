@@ -10,7 +10,7 @@ interface Props {
   onRun: (select: number[] | undefined, level: number | undefined, cct?: number, levelDelta?: number, cctDelta?: number, pattern?: { step: number; offset: number }) => void;
   onStep: (dir: 1 | -1) => void;
   /** REC from the command line; returns a confirmation or an error message */
-  onRec?: (rec: NonNullable<CommandResult["rec"]>) => string;
+  onRec?: (rec: NonNullable<CommandResult["rec"]>, select?: number[]) => string;
   onFlash: () => void;
   onPreview?: (select: number[]) => void;
   onCopy?: () => void;
@@ -52,7 +52,7 @@ export function Keypad({ count, selectedNums = [], onRun, onStep, onRec, onFlash
     const r = parseCommand(cmd, count);
     if (r.error) { setMsg(r.error); return; }
     onRun(r.select, r.level, r.cct, r.levelDelta, r.cctDelta, r.pattern);
-    if (r.rec) { const m = onRec?.(r.rec) ?? "REC is not available here"; if (!m.startsWith("✓")) { setMsg(m); return; } }
+    if (r.rec) { const m = onRec?.(r.rec, r.select) ?? "REC is not available here"; if (!m.startsWith("✓")) { setMsg(m); return; } }
     setMsg(`✓ ${cmd.trim()}`);
     setCmd("");
   };

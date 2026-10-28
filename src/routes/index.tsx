@@ -5,6 +5,7 @@ import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
 import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
 import { outputChanged } from "@/lib/output-hint";
 import { Button } from "@/components/ui/button";
+import type { CommandResult } from "@/lib/command-line";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
@@ -1148,12 +1149,13 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     setFixtures((fs) => fs.map((f) => ids.includes(f.uid) ? { ...f, ...commandPatch(f, command) } : f));
   };
   /** Command-line REC: stores the selection (just set by runCommand) as a cue, look, REC step or saved timeline. */
-  const recFromCommand = (rec: NonNullable<CommandResult["rec"]>): string => {
-    const src = selectedRef.current.length ? fixtures.filter((f) => selectedRef.current.includes(f.uid)) : fixtures;
+  const recFromCommand = (rec: NonNullable<CommandResult["rec"]>, select?: number[]): string => {
+    const ids = select ? select.map((n) => fixtures[n - 1]?.uid) : selected;
+    const src = ids.length ? fixtures.filter((f) => ids.includes(f.uid)) : fixtures;
     const states = src.map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) }));
     if (rec.kind === "look") { onLooks([{ id: uid(), name: `Look ${(project.looks ?? []).length + 1}`, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); return "✓"; }
     if (rec.kind === "timeline") { onTimelines([{ id: uid(), name: `Timeline ${(project.timelines ?? []).length + 1}`, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])]); return "✓"; }
-    if (rec.kind === "fx") { onRecordings([{ id: uid(), name: `FX ${(project.recordings ?? []).length + 1}`, createdAt: Date.now(), loop: true, steps: [{ states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })), fade: 1, hold: 1 } as never] }, ...(project.recordings ?? [])]); return "✓"; }
+    if (rec.kind === "fx") { onRecordings([{ id: uid(), name: `FX ${(project.recordings ?? []).length + 1}`, createdAt: Date.now(), loop: true, steps: [{ id: uid(), name: "Step 1", states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })), fadeIn: 1, hold: 1, fadeOut: 1 }] }, ...(project.recordings ?? [])]); return "✓"; }
     const existing = rec.n != null ? cues.find((c) => c.number === rec.n) : undefined;
     if (existing && !rec.mode) return `Cue ${rec.n} exists — add MERGE or OVERWRITE`;
     if (existing) {
