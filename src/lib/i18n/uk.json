@@ -1073,6 +1073,7 @@
   "PIXEL": "PIXEL",
   "PATCH": "PATCH",
   "Master is off — perhaps you forgot to turn the master up?": "Master вимкнено — можливо, ви забули підняти Master?",
+  "Blackout is on — lights stay dark until you release it.": "Blackout увімкнено — лампи залишатимуться темними, доки ви його не вимкнете.",
   "Change failed.": "Не вдалося внести зміни.",
   "Check your email to confirm the account, then sign in.": "Перевірте пошту, щоб підтвердити обліковий запис, а потім увійдіть.",
   "Continue with Google": "Продовжити з Google",

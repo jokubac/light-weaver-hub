@@ -1073,6 +1073,7 @@
   "PIXEL": "PIXEL",
   "PATCH": "PATCH",
   "Master is off — perhaps you forgot to turn the master up?": "মাস্টার বন্ধ আছে — সম্ভবত মাস্টার বাড়াতে ভুলে গেছেন?",
+  "Blackout is on — lights stay dark until you release it.": "ব্ল্যাকআউট চালু আছে — একে বন্ধ করা পর্যন্ত আলো নিভে থাকবে।",
   "Change failed.": "পরিবর্তন ব্যর্থ হয়েছে।",
   "Check your email to confirm the account, then sign in.": "অ্যাকাউন্ট নিশ্চিত করতে আপনার ইমেল চেক করুন, তারপর সাইন ইন করুন।",
   "Continue with Google": "Google-এর মাধ্যমে চালিয়ে যান",

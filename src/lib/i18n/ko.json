@@ -1073,6 +1073,7 @@
   "PIXEL": "PIXEL",
   "PATCH": "PATCH",
   "Master is off — perhaps you forgot to turn the master up?": "마스터가 꺼져 있습니다 — 마스터를 올리는 것을 잊으셨나요?",
+  "Blackout is on — lights stay dark until you release it.": "블랙아웃이 켜져 있습니다 — 해제할 때까지 조명이 꺼져 있습니다.",
   "Change failed.": "변경 실패.",
   "Check your email to confirm the account, then sign in.": "이메일을 확인하여 계정을 인증한 후 로그인하세요.",
   "Continue with Google": "Google로 계속",

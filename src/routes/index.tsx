@@ -482,7 +482,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [master, setMaster] = useState(scene.master);
   const [bo, setBo] = useState<{ target: 0 | 1; at: number; from: number }>({ target: 0, at: -10, from: 0 });
   const [selected, setSelected] = useState<string[]>([]);
-  // Gentle reminder when lights are programmed while the master fader sits at 0%.
+  // Gentle reminder when lights are programmed while output is blocked (master at 0% or blackout on).
   const [masterHint, setMasterHint] = useState(false);
   const masterHintTs = useRef(0);
   useEffect(() => { if (!masterHint) return; const id = setTimeout(() => setMasterHint(false), 6000); return () => clearTimeout(id); }, [masterHint]);
@@ -576,7 +576,12 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   // Blackout fades smoothly out / in over FADE seconds
   const boK = Math.min(1, Math.max(0, (t - bo.at) / FADE));
   const boLevel = bo.from + (bo.target - bo.from) * boK;
-  const toggleBlackout = () => setBo({ target: bo.target ? 0 : 1, at: clock.current, from: boLevel });
+  const toggleBlackout = () => {
+    const goingDark = bo.target === 0;
+    setBo({ target: goingDark ? 1 : 0, at: clock.current, from: boLevel });
+    // Going dark is where people forget the master is down, or forget to release blackout again.
+    if (goingDark && Date.now() - masterHintTs.current >= 8000) { masterHintTs.current = Date.now(); setMasterHint(true); }
+  };
   const outLevel = master * (1 - boLevel);
 
   const maskKey = layers.map((l) => (l.kind === "text" ? `${l.id}:${l.text}:${layerHeight(l, fixtures)}` : "")).join("|");
@@ -720,10 +725,17 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const exit = () => { save(); onExit(); };
 
   const OUT_KEYS = new Set(["intensity", "cct", "gm", "hue", "saturation", "crossfade", "cctOnly", "fx", "on", "fxPlaying", "fan", "gel", "beam"]);
+  // Which output blocker the reminder talks about: master at 0% first, then blackout.
+  const outputBlocker = (): "master" | "blackout" | null => (master <= 0 ? "master" : bo.target === 1 ? "blackout" : null);
   const hintMaster = () => {
-    if (master > 0 || Date.now() - masterHintTs.current < 8000) return;
+    if (!outputBlocker() || Date.now() - masterHintTs.current < 8000) return;
     masterHintTs.current = Date.now();
     setMasterHint(true);
+  };
+  // Turning the master up while blackout is still on: the lamps stay dark, so remind again.
+  const setMasterLevel = (v: number) => {
+    setMaster(v);
+    if (v > 0 && bo.target === 1) hintMaster();
   };
   const updateSelected = (patch: Partial<PatchedFixture>) => {
     if (Object.keys(patch).some((k) => OUT_KEYS.has(k))) hintMaster();
@@ -1483,9 +1495,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <div className={`hidden items-center gap-1.5 text-xs text-success transition-opacity sm:flex ${savedFlash ? "opacity-100" : "opacity-0"}`}><Check className="h-3.5 w-3.5" />{tr("Auto-saved")}</div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-amber-glow">{tr("MASTER")}</span>
-          <input aria-label={tr("Master")} type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
-          <NumberField aria-label={tr("Master percent")} min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
-          <Button variant="secondary" size="icon" aria-label={tr("Blackout")} aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={() => { const goingDark = bo.target === 0; toggleBlackout(); if (goingDark) hintMaster(); }} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
+          <input aria-label={tr("Master")} type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMasterLevel(+e.target.value)} className="w-28 sm:w-40" />
+          <NumberField aria-label={tr("Master percent")} min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMasterLevel(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
+          <Button variant="secondary" size="icon" aria-label={tr("Blackout")} aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
             {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
             {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
           </Button>
@@ -1652,10 +1664,10 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
         progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
       {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
-      {masterHint && master <= 0 && (
+      {masterHint && outputBlocker() && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
           <AlertTriangle className="h-4 w-4 shrink-0 text-amber-glow" />
-          <span className="min-w-0 flex-1">{tr("Master is off — perhaps you forgot to turn the master up?")}</span>
+          <span className="min-w-0 flex-1">{outputBlocker() === "blackout" ? tr("Blackout is on — lights stay dark until you release it.") : tr("Master is off — perhaps you forgot to turn the master up?")}</span>
         </div>
       )}
     </div>

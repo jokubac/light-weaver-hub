@@ -1073,6 +1073,7 @@
   "PIXEL": "PIXEL",
   "PATCH": "PATCH",
   "Master is off — perhaps you forgot to turn the master up?": "Master ist aus – eventuell vergessen, den Master aufzuziehen?",
+  "Blackout is on — lights stay dark until you release it.": "Blackout ist aktiv – die Lampen bleiben dunkel, bis das Blackout aufgehoben wird.",
   "Change failed.": "Änderung fehlgeschlagen.",
   "Check your email to confirm the account, then sign in.": "E-Mail prüfen, um das Konto zu bestätigen, dann anmelden.",
   "Continue with Google": "Mit Google fortfahren",
