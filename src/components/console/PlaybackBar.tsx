@@ -8,6 +8,7 @@ import type { PatchedFixture } from "@/lib/dmx";
 import type { BankFader, Cue, FaderSnap, Look } from "@/lib/store";
 import { BANK_SIZE, BANK_PAGES, BANK_TOTAL, FADER_PAGE_SIZES, perPageOf, bankPages, sortCues, faderMembers, snapBank, releaseBank, moveLinked } from "@/lib/playback";
 import { fmtTc, parseTc } from "@/lib/show-control";
+import { TimecodeSettings, type TcConfig } from "@/components/console/TimecodeSettings";
 
 import { t as tr } from "@/lib/i18n";
 export interface PlaybackProps {
@@ -21,6 +22,7 @@ export interface PlaybackProps {
   onRecordCue: (name: string, after?: number) => void; onUpdateCueStates: (id: string) => void;
   progCount?: number; onProgClear?: () => void; onProgUpdate?: () => void;
   tcOn?: boolean; onTc?: () => void; tcNow?: number | null;
+  tcCfg?: TcConfig; setTcCfg?: (c: TcConfig) => void; tcStart?: number | undefined; setTcStart?: (v: number | undefined) => void;
   /** full-page FADERS window: tall faders filling the screen */
   full?: boolean;
   /** live output (after bank/park) for the light dots */
@@ -142,9 +144,9 @@ export function PlaybackBar(p: PlaybackProps) {
               <button onClick={p.onProgClear} className="rounded bg-background/40 px-1" title={tr("Throw away changes, back to the stored cue")}>{tr("Clear")}</button>
             </>}
           </div>
-          <button onClick={p.onTc} aria-pressed={!!p.tcOn} title={tr("Follow MIDI timecode (MTC) — cues with a timecode fire automatically")}
-            className={`rounded-md px-1.5 py-0.5 text-left font-mono text-[10px] font-bold ${p.tcOn ? "bg-primary/25 text-primary" : "bg-surface-elevated text-muted-foreground"}`}>{tr("TC")}{p.tcOn ? (p.tcNow != null ? fmtTc(p.tcNow) : tr("waiting…")) : tr("off")}
-          </button>
+          {p.tcCfg && p.setTcCfg && p.setTcStart
+            ? <TimecodeSettings on={!!p.tcOn} onToggle={() => p.onTc?.()} now={p.tcNow} cfg={p.tcCfg} setCfg={p.setTcCfg} tcStart={p.tcStart} setTcStart={p.setTcStart} />
+            : <button onClick={p.onTc} aria-pressed={!!p.tcOn} className={`rounded-md px-1.5 py-0.5 text-left font-mono text-[10px] font-bold ${p.tcOn ? "bg-primary/25 text-primary" : "bg-surface-elevated text-muted-foreground"}`}>{tr("TC")}{p.tcOn ? (p.tcNow != null ? fmtTc(p.tcNow) : tr("waiting…")) : tr("off")}</button>}
         </div>
       </div>
       <div className="w-px shrink-0 bg-border" />

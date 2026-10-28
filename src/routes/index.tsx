@@ -79,6 +79,8 @@ import { applyBank, lookStateOf, nextCueNumber, sortCues, NANOKONTROL2 } from "@
 import { PlaybackBar } from "@/components/console/PlaybackBar";
 import { ShowMonitor } from "@/components/console/ShowMonitor";
 import { applyPark, blendTarget, cueAtTimecode, cueTarget, MtcDecoder, programmerDiff } from "@/lib/show-control";
+import { chaseTimeline, LtcDecoder, ltcSeconds, nominalFps } from "@/lib/ltc";
+import type { TcConfig } from "@/components/console/TimecodeSettings";
 import { EffectsRail } from "@/components/console/EffectsRail";
 import { NumberField } from "@/components/console/NumberField";
 import { commandPatch, inverseFlash } from "@/lib/console-command";
@@ -1001,26 +1003,52 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const progIds = useMemo(() => (cueFade ? [] : programmerDiff(fixtures, cueStored)), [fixtures, cueStored, cueFade]);
   const progUpdate = () => { const c = cues.find((x) => x.id === activeCue); if (!c || !progIds.length) return; const ch = fixtures.filter((f) => progIds.includes(f.uid)); onCues(cues.map((x) => x.id !== c.id ? x : { ...x, states: [...x.states.filter((st) => !ch.some((f) => f.uid === st.uid || f.name === st.name)), ...ch.map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) }))] })); };
   const progClear = () => setFixtures((fs) => fs.map((f) => (progIds.includes(f.uid) ? { ...f, ...cueStored.get(f.uid)! } : f)));
-  // MIDI timecode chase
+  // Timecode chase: MIDI (MTC) or audio LTC from a Tentacle/recorder/camera; fires cues and can drive the timeline
   const [tcOn, setTcOn] = useState(false);
   const [tcNow, setTcNow] = useState<number | null>(null);
+  const [tcCfg, setTcCfgState] = useState<TcConfig>({ source: "ltc", rate: 25, chase: true });
+  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("nox-tc") ?? "null"); if (v) setTcCfgState((c) => ({ ...c, ...v })); } catch { /* ignore */ } }, []);
+  const setTcCfg = (c: TcConfig) => { setTcCfgState(c); localStorage.setItem("nox-tc", JSON.stringify(c)); };
   const gotoRef = useRef(gotoCue); gotoRef.current = gotoCue;
+  const chaseRef = useRef({ seq, seqPlay, playSeq, seekSeq, pauseSeq, chase: tcCfg.chase });
+  chaseRef.current = { seq, seqPlay, playSeq, seekSeq, pauseSeq, chase: tcCfg.chase };
   useEffect(() => {
     if (!tcOn) { setTcNow(null); return; }
-    if (!("requestMIDIAccess" in navigator)) { alert("This device has no MIDI timecode input (Web MIDI is not available)."); setTcOn(false); return; }
-    let alive = true; const dec = new MtcDecoder(); let last = -1; let shown = 0;
-    const inputs: MIDIInput[] = [];
-    navigator.requestMIDIAccess({ sysex: true }).catch(() => navigator.requestMIDIAccess()).then((acc) => {
-      if (!alive) return;
-      acc.inputs.forEach((inp) => { inputs.push(inp); inp.onmidimessage = (e) => {
-        if (!e.data) return; const sec = dec.message(e.data); if (sec == null) return;
-        const hit = last >= 0 ? cueAtTimecode(sortCues(cuesRef.current), last, sec) : null;
-        last = sec; if (hit) gotoRef.current(hit.id);
-        const now = performance.now(); if (now - shown > 100) { shown = now; setTcNow(sec); }
-      }; });
-    }).catch(() => { alert("MIDI access was refused."); setTcOn(false); });
-    return () => { alive = false; inputs.forEach((i) => { i.onmidimessage = null; }); };
-  }, [tcOn]);
+    let alive = true; let last = -1; let shown = 0; let lastAt = 0;
+    const playingAt = () => { const c = chaseRef.current; return c.seqPlay ? c.seqPlay.from + (performance.now() - c.seqPlay.start) / 1000 : null; };
+    const onTc = (sec: number) => {
+      const hit = last >= 0 ? cueAtTimecode(sortCues(cuesRef.current), last, sec) : null;
+      last = sec; lastAt = performance.now(); if (hit) gotoRef.current(hit.id);
+      const c = chaseRef.current;
+      if (c.chase && c.seq.clips.length) {
+        const a = chaseTimeline(sec, c.seq.tcStart ?? 0, timelineLength(c.seq), playingAt());
+        if (a?.do === "play") c.playSeq(a.t); else if (a?.do === "seek") c.seekSeq(a.t); else if (a?.do === "pause") c.pauseSeq();
+      }
+      if (lastAt - shown > 100) { shown = lastAt; setTcNow(sec); }
+    };
+    // timecode stopped (transport stopped / cable pulled) → hold the timeline where it is
+    const watch = setInterval(() => { if (lastAt && performance.now() - lastAt > 400) { lastAt = 0; if (chaseRef.current.chase && chaseRef.current.seqPlay) chaseRef.current.pauseSeq(); } }, 200);
+    const cleanups: (() => void)[] = [() => clearInterval(watch)];
+    if (tcCfg.source === "mtc") {
+      if (!("requestMIDIAccess" in navigator)) { alert("This device has no MIDI timecode input (Web MIDI is not available)."); setTcOn(false); return; }
+      const dec = new MtcDecoder();
+      navigator.requestMIDIAccess({ sysex: true }).catch(() => navigator.requestMIDIAccess()).then((acc) => {
+        if (!alive) return;
+        acc.inputs.forEach((inp) => { inp.onmidimessage = (e) => { if (!e.data) return; const sec = dec.message(e.data); if (sec != null) onTc(sec); }; cleanups.push(() => { inp.onmidimessage = null; }); });
+      }).catch(() => { alert("MIDI access was refused."); setTcOn(false); });
+    } else {
+      navigator.mediaDevices?.getUserMedia({ audio: { ...(tcCfg.deviceId ? { deviceId: { exact: tcCfg.deviceId } } : {}), echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then((stream) => {
+        if (!alive) { stream.getTracks().forEach((t) => t.stop()); return; }
+        const ctx = new AudioContext(); const src = ctx.createMediaStreamSource(stream);
+        const node = ctx.createScriptProcessor(2048, 1, 1); const dec = new LtcDecoder(ctx.sampleRate, tcCfg.rate);
+        const latency = 1 / nominalFps(tcCfg.rate); // a frame is complete one frame after it started
+        node.onaudioprocess = (e) => dec.feed(e.inputBuffer.getChannelData(0), (fr) => onTc(ltcSeconds(fr, tcCfg.rate) + latency));
+        src.connect(node); node.connect(ctx.destination);
+        cleanups.push(() => { node.onaudioprocess = null; src.disconnect(); node.disconnect(); stream.getTracks().forEach((t) => t.stop()); void ctx.close(); });
+      }).catch(() => { alert("Audio input was refused — allow the microphone / line input to read LTC timecode."); setTcOn(false); });
+    }
+    return () => { alive = false; cleanups.forEach((f) => f()); };
+  }, [tcOn, tcCfg.source, tcCfg.rate, tcCfg.deviceId]);
   const cueStep = (d: 1 | -1) => {
     const s = sortCues(cuesRef.current);
     if (!s.length) return;
@@ -1630,7 +1658,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           <PlaybackBar full snaps={project.faderSnaps ?? []} setSnaps={onFaderSnaps} output={parkedOut} master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
             flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
             onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
-            progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />
+            progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} tcCfg={tcCfg} setTcCfg={setTcCfg} tcStart={seq.tcStart} setTcStart={(v) => { const tl = { ...latest.current.seq, tcStart: v }; setSeq(tl); latest.current.seq = tl; save(); }} />
           {groupsOpen && groupsAside()}
         </div>
       )}
@@ -1679,7 +1707,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       {fadersOpen && !fadersPage && <PlaybackBar master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
-        progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
+        progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} tcCfg={tcCfg} setTcCfg={setTcCfg} tcStart={seq.tcStart} setTcStart={(v) => { const tl = { ...latest.current.seq, tcStart: v }; setSeq(tl); latest.current.seq = tl; save(); }} />}
       {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
       {masterHint && outputBlocker() && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
