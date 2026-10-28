@@ -201,23 +201,18 @@ export function spanOf(w: number, h: number, table: GridItem, sz = SIZE) {
 export const TABLE_HEADER = 0.4;
 /**
  * Edge/corner resize of one macro table. Cells keep a fixed size (MACRO_CELL), so buttons never change size —
- * every edge moves in whole cells, grows without limit and shrinks until it reaches the macros inside
- * (an empty table shrinks to a single cell). Macros keep their place on the grid.
+ * every edge moves in whole cells, grows without limit and shrinks down to a single cell, even when macros
+ * currently fill it: the squares that no longer fit are re-packed by layoutTables (which grows rows to fit).
  */
-export function resizeTable(t: Box, corner: Corner, px: number, py: number, members: Box[]): Box {
-  const C = MACRO_CELL, e = 0.02;
+export function resizeTable(t: Box, corner: Corner, px: number, py: number): Box {
+  const C = MACRO_CELL;
   const cols0 = Math.max(1, Math.round(t.w / C)), rows0 = Math.max(1, Math.round((t.h - TABLE_HEADER) / C));
   const oy = t.y + TABLE_HEADER;
-  const has = members.length > 0;
-  const cMin = has ? Math.min(...members.map((m) => Math.floor((m.x + e - t.x) / C))) : 0;
-  const cMax = has ? Math.max(...members.map((m) => Math.ceil((m.x + m.w - e - t.x) / C))) : 0;
-  const rMin = has ? Math.min(...members.map((m) => Math.floor((m.y + e - oy) / C))) : 0;
-  const rMax = has ? Math.max(...members.map((m) => Math.ceil((m.y + m.h - e - oy) / C))) : 0;
   let L = 0, R = cols0, T = 0, B = rows0;
-  if (corner === "tl" || corner === "bl") L = Math.min(Math.round((px - t.x) / C), has ? cMin : R - 1);
-  else R = Math.max(Math.round((px - t.x) / C), has ? cMax : L + 1);
-  if (corner === "tl" || corner === "tr") T = Math.min(Math.round((py - t.y) / C), has ? rMin : B - 1);
-  else B = Math.max(Math.round((py - oy) / C), has ? rMax : T + 1);
+  if (corner === "tl" || corner === "bl") L = Math.min(Math.round((px - t.x) / C), R - 1);
+  else R = Math.max(Math.round((px - t.x) / C), L + 1);
+  if (corner === "tl" || corner === "tr") T = Math.min(Math.round((py - t.y) / C), B - 1);
+  else B = Math.max(Math.round((py - oy) / C), T + 1);
   return { id: t.id, x: t.x + L * C, y: t.y + T * C, w: (R - L) * C, h: (B - T) * C + TABLE_HEADER };
 }
 const isMacroBox = (i: GridItem) => i.kind === "macro" || i.kind === "empty";
@@ -671,7 +666,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
             const p = pt(e);
             if (rs) { const lone = rs.orig.length === 1 ? grid.items.find((i) => i.id === rs.orig[0]!.id && i.kind === "table") : undefined;
-              setRs({ ...rs, out: lone ? [resizeTable(rs.orig[0]!, rs.corner, p.x, p.y, grid.items.filter((m) => isMacroBox(m) && m.tbl === lone.id).map((m) => ({ id: m.id, x: m.x, y: m.y, w: W(m), h: H(m) })))] : resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) }); }
+              setRs({ ...rs, out: lone ? [resizeTable(rs.orig[0]!, rs.corner, p.x, p.y)] : resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) }); }
             else if (wEnd) { const w0 = grid.walls[wEnd.i]!; const o = wEnd.e === 1 ? { x: w0.x2, y: w0.y2 } : { x: w0.x1, y: w0.y1 }; const sn = snapToEnds(grid.walls, p.x, p.y, wEnd); const q = sn.x !== p.x || sn.y !== p.y ? sn : (() => { const k = snapWall(o.x, o.y, p.x, p.y); return { x: k.x2, y: k.y2 }; })(); setGrid({ ...grid, walls: grid.walls.map((w, k) => (k !== wEnd.i ? w : wEnd.e === 1 ? { ...w, x1: q.x, y1: q.y } : { ...w, x2: q.x, y2: q.y })) }); }
             else if (wall) setWall(wallRect ? { ...wall, x2: Math.round(p.x * 4) / 4, y2: Math.round(p.y * 4) / 4 } : (() => { const sn = snapToEnds(grid.walls, p.x, p.y); return sn.x !== p.x || sn.y !== p.y ? { ...wall, x2: sn.x, y2: sn.y } : { ...wall, ...snapWall(wall.x1, wall.y1, p.x, p.y) }; })());
             else if (box) setBox({ ...box, x2: p.x, y2: p.y });
