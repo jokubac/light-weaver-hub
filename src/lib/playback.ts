@@ -22,7 +22,27 @@ export const lookStateOf = (f: PatchedFixture): LookState => {
   return JSON.parse(JSON.stringify({ intensity, cct, gm, hue, saturation, crossfade, cctOnly, fx, on, fxPlaying, fan, gel })) as LookState;
 };
 
-export function faderMembers(fd: BankFader, fixtures: PatchedFixture[], looks: Look[]): Set<string> {
+/** Fader travel → output through the fader's curve (S = soft ends, log = fast start, exp = fine at the bottom). */
+export function faderCurve(curve: BankFader["curve"], x: number): number {
+  const v = Math.min(1, Math.max(0, x));
+  switch (curve) {
+    case "s": return v * v * (3 - 2 * v);
+    case "log": return Math.log10(1 + 9 * v);
+    case "exp": return v * v;
+    default: return v;
+  }
+}
+/** Fader travel → output level: curve, then squeezed into the limiter range [min, max]. */
+export function faderOutput(fd: BankFader, x: number): number {
+  const lo = Math.min(1, Math.max(0, fd.min ?? 0)), hi = Math.min(1, Math.max(lo, fd.max ?? 1));
+  return lo + faderCurve(fd.curve, x) * (hi - lo);
+}
+/** Lights driven by timeline/REC faders, keyed "timeline" and "rec:<id>". */
+export type ExtraMembers = Record<string, string[]>;
+
+export function faderMembers(fd: BankFader, fixtures: PatchedFixture[], looks: Look[], extra?: ExtraMembers): Set<string> {
+  if (fd.kind === "timeline") return new Set(extra?.["timeline"] ?? []);
+  if (fd.kind === "rec") return new Set(extra?.[`rec:${fd.ref}`] ?? []);
   if (fd.kind === "group") return new Set(membersOf(fixtures, fd.ref ?? "").map((f) => f.uid));
   if (fd.kind === "fixtures") return new Set(fd.uids ?? []);
   const l = looks.find((x) => x.id === fd.ref);
@@ -30,6 +50,7 @@ export function faderMembers(fd: BankFader, fixtures: PatchedFixture[], looks: L
   return new Set(fixtures.filter((f) => l.states.some((s) => s.uid === f.uid || s.name === f.name)).map((f) => f.uid));
 }
 
+const BEAM_OF = { pan: "Pan", tilt: "Tilt", zoom: "Zoom", focus: "Focus", iris: "Iris", frost: "Frost", strobe: "Strobe" } as const;
 /** Value a fader at `level` writes for a set-type param (cct/hue/sat/fx). */
 export function paramValue(param: NonNullable<BankFader["param"]>, f: PatchedFixture, level: number): Partial<PatchedFixture> {
   switch (param) {
@@ -38,6 +59,10 @@ export function paramValue(param: NonNullable<BankFader["param"]>, f: PatchedFix
     case "saturation": return { saturation: level };
     case "fxSpeed": return { fx: { ...f.fx, rate: +(0.05 * Math.pow(400, level)).toFixed(3) } }; // 0.05–20 Hz, log
     case "fxSize": return { fx: { ...f.fx, max: Math.max(f.fx.min, level) } };
+    case "gm": return { gm: level * 2 - 1 };
+    case "pan": case "tilt": case "zoom": case "focus": case "iris": case "frost": case "strobe": {
+      const a = BEAM_OF[param]; return { beam: { ...f.beam, [a]: level } };
+    }
     default: return {};
   }
 }
@@ -48,9 +73,9 @@ export function paramValue(param: NonNullable<BankFader["param"]>, f: PatchedFix
  * Intensity faders scale; colour/effect faders set their value once they have been moved.
  * flash: fader id held at full; solo: only that fader's lights stay lit.
  */
-export function applyBank(fixtures: PatchedFixture[], bank: BankFader[] | undefined, looks: Look[], flash: string | null = null, solo: string | null = null): PatchedFixture[] {
+export function applyBank(fixtures: PatchedFixture[], bank: BankFader[] | undefined, looks: Look[], flash: string | null = null, solo: string | null = null, extra?: ExtraMembers): PatchedFixture[] {
   if (!bank?.length) return fixtures;
-  const order = bank.map((fd, i) => ({ fd, i, m: faderMembers(fd, fixtures, looks) }))
+  const order = bank.map((fd, i) => ({ fd, i, m: faderMembers(fd, fixtures, looks, extra) }))
     .filter((x) => x.fd.kind !== "master")
     .sort((a, b) => (a.fd.touched ?? 0) - (b.fd.touched ?? 0) || a.i - b.i);
   const soloM = solo ? order.find((x) => x.fd.id === solo)?.m : undefined;
@@ -59,13 +84,15 @@ export function applyBank(fixtures: PatchedFixture[], bank: BankFader[] | undefi
     for (const { fd, m } of order) {
       if (!m.has(f.uid)) continue;
       const flashing = flash === fd.id;
-      const level = flashing ? 1 : fd.off ? 0 : fd.level;
+      const level = fd.off ? 0 : flashing ? faderOutput(fd, 1) : fd.level <= 0 && (fd.kind === "timeline" || fd.kind === "rec") ? 0 : faderOutput(fd, fd.level);
       const param = fd.param ?? "intensity";
       if (fd.kind === "look") {
         if (level <= 0) continue;
         const l = looks.find((x) => x.id === fd.ref);
         const st = l?.states.find((s) => s.uid === f.uid) ?? l?.states.find((s) => s.name === f.name);
         if (st) out = { ...out, ...blend(lookStateOf(out), st.state, level) };
+      } else if (fd.kind === "timeline" || fd.kind === "rec") {
+        if (level > 0) out = { ...out, intensity: out.intensity * level }; // at zero the playback is stopped and lights return to the console
       } else if (param === "intensity") {
         out = { ...out, intensity: out.intensity * level };
       } else if ((fd.touched || flashing) && !fd.off) {

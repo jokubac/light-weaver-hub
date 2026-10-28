@@ -1056,6 +1056,26 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     }
     return () => { alive = false; cleanups.forEach((f) => f()); };
   }, [tcOn, tcCfg.source, tcCfg.rate, tcCfg.deviceId]);
+  // Timeline / REC faders: raising from zero starts playback, pulling to zero stops it
+  const faderPlay = useRef<Record<string, boolean>>({});
+  const faderPlayRef = useRef({ playRec, stopRec, playSeq, stopSeq, play, seqPlay });
+  faderPlayRef.current = { playRec, stopRec, playSeq, stopSeq, play, seqPlay };
+  useEffect(() => {
+    const r = faderPlayRef.current;
+    for (const fd of bank ?? []) {
+      if (fd.kind !== "timeline" && fd.kind !== "rec") continue;
+      const up = fd.level > 0.005 && !fd.off; const was = !!faderPlay.current[fd.id];
+      if (up === was) continue;
+      faderPlay.current[fd.id] = up;
+      if (fd.kind === "rec" && fd.ref) { if (up) r.playRec(fd.ref); else if (r.play?.id === fd.ref) r.stopRec(); }
+      if (fd.kind === "timeline") { if (up) { if (!r.seqPlay) r.playSeq(0); } else r.stopSeq(); }
+    }
+  }, [bank]);
+  const faderExtra = useMemo(() => {
+    const m: Record<string, string[]> = { timeline: [...new Set(seq.clips.flatMap((c) => c.uids ?? []))] };
+    for (const rc of recordings) m[`rec:${rc.id}`] = [...new Set(rc.steps.flatMap((st) => st.states.map((x) => fixtures.find((f) => f.uid === x.uid || f.name === x.name)?.uid ?? x.uid)))];
+    return m;
+  }, [seq, recordings, fixtures]);
   const cueStep = (d: 1 | -1) => {
     const s = sortCues(cuesRef.current);
     if (!s.length) return;
@@ -1095,7 +1115,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     return () => { window.removeEventListener("keydown", h); window.removeEventListener("keyup", up); };
   }, []);
   const outFixtures = useMemo(() => {
-    let out = applyBank(fixtures, bank, project.looks ?? [], flash, solo);
+    let out = applyBank(fixtures, bank, project.looks ?? [], flash, solo, faderExtra);
     if (locate) {
       const now = performance.now();
       const k = locate.off != null ? 1 - Math.min(1, (now - locate.off) / 250) : Math.min(1, (now - locate.on) / 250);
@@ -1662,7 +1682,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       )}
       {fadersPage && (
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
-          <PlaybackBar full snaps={project.faderSnaps ?? []} setSnaps={onFaderSnaps} output={parkedOut} master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
+          <PlaybackBar full snaps={project.faderSnaps ?? []} setSnaps={onFaderSnaps} output={parkedOut} master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank} recordings={recordings} onLearn={(i) => { if (learning === `bank:${i}`) { setLearning(null); return; } setMidi({ ...midi, enabled: true }); setLearning(`bank:${i}`); }} learning={learning?.startsWith("bank:") ? Number(learning.slice(5)) : null} midiKeyOf={(i) => midi.maps.find((m) => m.target === `bank:${i}`)?.key}
             flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
             onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
             progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} tcCfg={tcCfg} setTcCfg={setTcCfg} tcStart={seq.tcStart} setTcStart={(v) => { const tl = { ...latest.current.seq, tcStart: v }; setSeq(tl); latest.current.seq = tl; save(); }} />
@@ -1711,7 +1731,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       </div>
       )}
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
-      {fadersOpen && !fadersPage && <PlaybackBar master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank}
+      {fadersOpen && !fadersPage && <PlaybackBar master={master} onMaster={setMasterLevel} fixtures={fixtures} selected={selected} groups={groups} looks={project.looks ?? []} bank={bank} setBank={onBank} recordings={recordings} onLearn={(i) => { if (learning === `bank:${i}`) { setLearning(null); return; } setMidi({ ...midi, enabled: true }); setLearning(`bank:${i}`); }} learning={learning?.startsWith("bank:") ? Number(learning.slice(5)) : null} midiKeyOf={(i) => midi.maps.find((m) => m.target === `bank:${i}`)?.key}
         flash={flash} setFlash={setFlash} solo={solo} setSolo={setSolo} cues={cues} setCues={onCues} activeCue={activeCue} fadeK={fadeK}
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
         progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} tcCfg={tcCfg} setTcCfg={setTcCfg} tcStart={seq.tcStart} setTcStart={(v) => { const tl = { ...latest.current.seq, tcStart: v }; setSeq(tl); latest.current.seq = tl; save(); }} />}

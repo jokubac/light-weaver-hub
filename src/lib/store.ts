@@ -73,12 +73,20 @@ export interface Recording {
 export interface BankFader {
   id: string;
   name: string;
-  kind: "group" | "look" | "fixtures" | "master";
-  ref?: string; // group name or look id
+  kind: "group" | "look" | "fixtures" | "master" | "timeline" | "rec";
+  ref?: string; // group name, look id or REC recording id
   uids?: string[]; // for kind "fixtures"
   level: number;
   /** what a group/selection fader drives; intensity scales, the rest set the value (last moved wins) */
-  param?: "intensity" | "cct" | "hue" | "saturation" | "fxSpeed" | "fxSize";
+  param?: "intensity" | "cct" | "hue" | "saturation" | "fxSpeed" | "fxSize" | "gm" | "pan" | "tilt" | "zoom" | "focus" | "iris" | "frost" | "strobe";
+  /** seconds FULL/ZERO (and timeline/REC start/stop) take to reach the new level */
+  fadeIn?: number | undefined;
+  fadeOut?: number | undefined;
+  /** response curve from fader travel to output */
+  curve?: "linear" | "s" | "log" | "exp" | undefined;
+  /** limiter: fader bottom/top map to these output levels (0..1) */
+  min?: number | undefined;
+  max?: number | undefined;
   /** up to two buttons under the fader */
   buttons?: ("flash" | "solo" | "onoff" | "full" | "zero")[];
   color?: "primary" | "success" | "warning" | "destructive" | "accent" | "muted";

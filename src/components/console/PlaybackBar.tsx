@@ -29,6 +29,9 @@ export interface PlaybackProps {
   output?: PatchedFixture[];
   master?: number; onMaster?: (v: number) => void;
   snaps?: FaderSnap[]; setSnaps?: (s: FaderSnap[]) => void;
+  recordings?: { id: string; name: string }[];
+  /** MIDI learn for fader i, and the control already mapped to it */
+  onLearn?: (i: number) => void; learning?: number | null; midiKeyOf?: (i: number) => string | undefined;
 }
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -41,14 +44,16 @@ const GRID: Record<number, string> = { 4: "grid-cols-2 lg:grid-cols-4", 8: "grid
 /** smallest fader height at each faders-per-page */
 const MIN_H: Record<number, string> = { 4: "min-h-[320px]", 8: "min-h-[300px]", 16: "min-h-[200px]", 24: "min-h-[150px]", 32: "min-h-[128px]" };
 
-const PARAMS: [Param, string][] = [["intensity", "Intensity"], ["cct", "CCT"], ["hue", "Hue"], ["saturation", "Saturation"], ["fxSpeed", "Effect speed"], ["fxSize", "Effect depth"]];
+const PARAMS: [Param, string][] = [["intensity", "Intensity"], ["cct", "CCT"], ["gm", "Green/Magenta"], ["hue", "Hue"], ["saturation", "Saturation"], ["fxSpeed", "Effect speed"], ["fxSize", "Effect depth"],
+  ["pan", "Pan"], ["tilt", "Tilt"], ["zoom", "Zoom"], ["focus", "Focus"], ["iris", "Iris"], ["frost", "Frost"], ["strobe", "Strobe"]];
+const CURVES: [NonNullable<BankFader["curve"]>, string][] = [["linear", "Linear"], ["s", "S-curve"], ["log", "Fast start (log)"], ["exp", "Fine at bottom (exp)"]];
 const BTNS: [Btn, string][] = [["flash", "FLASH"], ["solo", "SOLO"], ["onoff", "ON/OFF"], ["full", "FULL"], ["zero", "ZERO"]];
 const COLORS: NonNullable<BankFader["color"]>[] = ["primary", "success", "warning", "destructive", "accent", "muted"];
 const swatch: Record<NonNullable<BankFader["color"]>, string> = { primary: "bg-primary", success: "bg-success", warning: "bg-warning", destructive: "bg-destructive", accent: "bg-accent", muted: "bg-muted-foreground" };
 const ring: Record<NonNullable<BankFader["color"]>, string> = { primary: "border-primary", success: "border-success", warning: "border-warning", destructive: "border-destructive", accent: "border-accent", muted: "border-muted-foreground" };
 const defaultBtns = (fd: BankFader): Btn[] => fd.buttons ?? (fd.kind === "master" ? ["full", "zero"] : ["flash", "solo"]);
-const paramLabel = (fd: BankFader) => fd.kind === "master" ? tr("Master") : fd.kind === "look" ? tr("Look") : tr(PARAMS.find(([k]) => k === (fd.param ?? "intensity"))![1]);
-const readout = (fd: BankFader, v: number) => fd.param === "hue" ? `${Math.round(v * 360)}°` : `${Math.round(v * 100)}`;
+const paramLabel = (fd: BankFader) => fd.kind === "master" ? tr("Master") : fd.kind === "look" ? tr("Look") : fd.kind === "timeline" ? tr("Timeline") : fd.kind === "rec" ? tr("REC") : tr(PARAMS.find(([k]) => k === (fd.param ?? "intensity"))![1]);
+const readout = (fd: BankFader, v: number) => fd.param === "hue" ? `${Math.round(v * 360)}°` : fd.param === "gm" ? `${v >= 0.5 ? "G" : "M"}${Math.round(Math.abs(v * 2 - 1) * 100)}` : `${Math.round(v * 100)}`;
 
 export function PlaybackBar(p: PlaybackProps) {
   const [edit, setEdit] = useState<number | null>(null);
@@ -90,6 +95,23 @@ export function PlaybackBar(p: PlaybackProps) {
     if (fd.kind === "master") p.onMaster?.(level);
     p.setBank(moveLinked(p.bank, i, level, linked));
   };
+  const fadeRaf = useRef<Record<string, number>>({});
+  useEffect(() => () => Object.values(fadeRaf.current).forEach(cancelAnimationFrame), []);
+  /** FULL / ZERO honour the fader's fade-in / fade-out time */
+  const fadeTo = (i: number, target: number) => {
+    const fd = p.bank[i]; if (!fd) return;
+    const dur = (target > fd.level ? fd.fadeIn : fd.fadeOut) ?? 0;
+    if (fadeRaf.current[fd.id]) cancelAnimationFrame(fadeRaf.current[fd.id]!);
+    if (dur <= 0 || fd.kind === "master") { setLevel(i, target); return; }
+    const from = fd.level, t0 = performance.now();
+    const step = () => {
+      const k = Math.min(1, (performance.now() - t0) / (dur * 1000));
+      const cur = pRef.current; const idx = cur.bank.findIndex((x) => x?.id === fd.id); if (idx < 0) return;
+      cur.setBank(cur.bank.map((x, n) => (n === idx ? { ...x, level: from + (target - from) * k, touched: Date.now() } : x)));
+      if (k < 1) fadeRaf.current[fd.id] = requestAnimationFrame(step); else delete fadeRaf.current[fd.id];
+    };
+    step();
+  };
   const saveSnap = () => {
     const levels: Record<string, number> = {};
     p.bank.forEach((fd) => { if (fd?.name && fd.kind !== "master") levels[fd.id] = fd.level; });
@@ -117,7 +139,7 @@ export function PlaybackBar(p: PlaybackProps) {
     if (b === "flash") return <button key={b} onPointerDown={() => p.setFlash(fd.id)} onPointerUp={() => p.setFlash(null)} onPointerLeave={() => p.flash === fd.id && p.setFlash(null)} onContextMenu={(e) => e.preventDefault()} className={cls(p.flash === fd.id, "bg-amber-glow text-primary-foreground")}>{label}</button>;
     if (b === "solo") return <button key={b} onClick={() => p.setSolo(p.solo === fd.id ? null : fd.id)} aria-pressed={p.solo === fd.id} className={cls(p.solo === fd.id)}>{label}</button>;
     if (b === "onoff") return <button key={b} onClick={() => patchFd(i, { off: !fd.off, touched: Date.now() })} aria-pressed={!fd.off} className={cls(!fd.off, "bg-success text-primary-foreground")}>{fd.off ? tr("OFF") : tr("ON")}</button>;
-    return <button key={b} onClick={() => setLevel(i, b === "full" ? 1 : 0)} className={cls(false)}>{label}</button>;
+    return <button key={b} onClick={() => fadeTo(i, b === "full" ? 1 : 0)} className={cls(false)}>{label}</button>;
   };
 
   return (
@@ -276,21 +298,26 @@ function VFader({ label, value, onChange, fill, dense }: { label: string; value:
 }
 
 
-function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave }: PlaybackProps & { i: number; fd?: BankFader | undefined; onClose: () => void; onSave: (fd: BankFader | null) => void }) {
+function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave, recordings, onLearn, learning, midiKeyOf }: PlaybackProps & { i: number; fd?: BankFader | undefined; onClose: () => void; onSave: (fd: BankFader | null) => void }) {
   const [kind, setKind] = useState<BankFader["kind"]>(fd?.kind ?? (groups.length ? "group" : "fixtures"));
   const [ref, setRef] = useState(fd?.ref ?? (kind === "group" ? groups[0] ?? "" : looks[0]?.id ?? ""));
   const [name, setName] = useState(fd?.name ?? "");
   const [param, setParam] = useState<Param>(fd?.param ?? "intensity");
   const [btns, setBtns] = useState<Btn[]>(fd ? defaultBtns(fd).slice(0, 2) : ["flash", "solo"]);
   const [color, setColor] = useState<NonNullable<BankFader["color"]>>(fd?.color ?? "primary");
+  const [fadeIn, setFadeIn] = useState(fd?.fadeIn ?? 0);
+  const [fadeOut, setFadeOut] = useState(fd?.fadeOut ?? 0);
+  const [curve, setCurve] = useState<NonNullable<BankFader["curve"]>>(fd?.curve ?? "linear");
+  const [lim, setLim] = useState<[number, number]>([Math.round((fd?.min ?? 0) * 100), Math.round((fd?.max ?? 1) * 100)]);
+  const recs = recordings ?? [];
   const uids = fd?.kind === "fixtures" && fd.uids?.length && !selected.length ? fd.uids : selected;
   const opt = (a: boolean) => `flex-1 rounded-md py-2 text-xs font-semibold ${a ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`;
   const save = () => {
-    const auto = kind === "group" ? ref : kind === "look" ? looks.find((l) => l.id === ref)?.name ?? "Look" : kind === "master" ? "Master" : `${uids.length} lights`;
+    const auto = kind === "group" ? ref : kind === "look" ? looks.find((l) => l.id === ref)?.name ?? "Look" : kind === "master" ? "Master" : kind === "timeline" ? "Timeline" : kind === "rec" ? recs.find((r) => r.id === ref)?.name ?? "REC" : `${uids.length} lights`;
     const keep = fd?.kind === kind && (fd.param ?? "intensity") === param;
-    onSave({ id: fd?.id && !fd.id.startsWith("empty") ? fd.id : newId(), name: name.trim() || auto, kind, ...(kind === "fixtures" ? { uids } : kind === "master" ? {} : { ref }),
+    onSave({ id: fd?.id && !fd.id.startsWith("empty") ? fd.id : newId(), name: name.trim() || auto, kind, ...(kind === "fixtures" ? { uids } : kind === "master" || kind === "timeline" ? {} : { ref }), fadeIn, fadeOut, curve, min: lim[0] / 100, max: lim[1] / 100,
       ...(kind === "group" || kind === "fixtures" ? { param } : {}), buttons: btns, color,
-      level: keep ? fd!.level : kind === "look" || (param !== "intensity" && kind !== "master") ? 0 : 1, ...(keep && fd?.touched ? { touched: fd.touched } : {}) });
+      level: keep ? fd!.level : kind === "look" || kind === "timeline" || kind === "rec" || (param !== "intensity" && kind !== "master") ? 0 : 1, ...(keep && fd?.touched ? { touched: fd.touched } : {}) });
   };
   const sel = "w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm";
   return (
@@ -298,12 +325,17 @@ function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave 
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>{tr("Fader")} {i + 1}</DialogTitle></DialogHeader>
         <div className="space-y-3 text-xs">
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
             <button className={opt(kind === "group")} onClick={() => { setKind("group"); setRef(groups[0] ?? ""); }}>{tr("Group")}</button>
             <button className={opt(kind === "look")} onClick={() => { setKind("look"); setRef(looks[0]?.id ?? ""); }}>{tr("Look")}</button>
             <button className={opt(kind === "fixtures")} onClick={() => setKind("fixtures")}>{tr("Selected")}</button>
             <button className={opt(kind === "master")} onClick={() => { setKind("master"); if (btns.join() === "flash,solo") setBtns(["full", "zero"]); }}>{tr("Master")}</button>
+            <button className={opt(kind === "timeline")} onClick={() => { setKind("timeline"); if (btns.join() === "flash,solo") setBtns(["full", "zero"]); }}>{tr("Timeline")}</button>
+            <button className={opt(kind === "rec")} onClick={() => { setKind("rec"); setRef(recs[0]?.id ?? ""); if (btns.join() === "flash,solo") setBtns(["full", "zero"]); }}>{tr("REC")}</button>
           </div>
+          {kind === "rec" && (recs.length ? (
+            <select value={ref} onChange={(e) => setRef(e.target.value)} className={sel}>{recs.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
+          ) : <p className="text-muted-foreground">{tr("No REC recordings yet.")}</p>)}
           {kind === "group" && (groups.length ? (
             <select value={ref} onChange={(e) => setRef(e.target.value)} className={sel}>{groups.map((g) => <option key={g}>{g}</option>)}</select>
           ) : <p className="text-muted-foreground">{tr("No groups yet — create one in the Groups rail.")}</p>)}
@@ -316,7 +348,7 @@ function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave 
               <select value={param} onChange={(e) => setParam(e.target.value as Param)} className={sel}>{PARAMS.map(([k, l]) => <option key={k} value={k}>{tr(l)}</option>)}</select>
             </label>
           )}
-          <p className="text-muted-foreground">{kind === "look" ? tr("Pushing the fader fades the look in over what's on stage.") : kind === "master" ? tr("Works like the MASTER slider at the top.") : param === "intensity" ? tr("The fader scales these lights' intensity (100% = as set on the console).") : tr("Once moved, the fader sets this value on its lights. If two faders control the same thing, the last one moved wins.")}</p>
+          <p className="text-muted-foreground">{kind === "timeline" || kind === "rec" ? tr("Raising the fader starts playback and sets its intensity; pulling it to zero stops it.") : kind === "look" ? tr("Pushing the fader fades the look in over what's on stage.") : kind === "master" ? tr("Works like the MASTER slider at the top.") : param === "intensity" ? tr("The fader scales these lights' intensity (100% = as set on the console).") : tr("Once moved, the fader sets this value on its lights. If two faders control the same thing, the last one moved wins.")}</p>
           <div className="grid grid-cols-2 gap-2">
             {[0, 1].map((n) => (
               <label key={n} className="space-y-1"><span className="font-semibold">{tr("Button")} {n + 1}</span>
@@ -326,13 +358,32 @@ function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave 
               </label>
             ))}
           </div>
+          <div className="grid grid-cols-3 gap-2">
+            <label className="space-y-1"><span className="font-semibold">{tr("Fade in")} (s)</span><NumberField value={fadeIn} min={0} max={60} step={0.1} onChange={(v) => setFadeIn(v ?? 0)} className={sel} /></label>
+            <label className="space-y-1"><span className="font-semibold">{tr("Fade out")} (s)</span><NumberField value={fadeOut} min={0} max={60} step={0.1} onChange={(v) => setFadeOut(v ?? 0)} className={sel} /></label>
+            <label className="space-y-1"><span className="font-semibold">{tr("Curve")}</span>
+              <select value={curve} onChange={(e) => setCurve(e.target.value as typeof curve)} className={sel}>{CURVES.map(([k, l]) => <option key={k} value={k}>{tr(l)}</option>)}</select>
+            </label>
+          </div>
+          {kind !== "master" && (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1"><span className="font-semibold">{tr("Lowest point")} (%)</span><NumberField value={lim[0]} min={0} max={100} step={1} onChange={(v) => setLim([Math.min(v ?? 0, lim[1]), lim[1]])} className={sel} /></label>
+              <label className="space-y-1"><span className="font-semibold">{tr("Highest point")} (%)</span><NumberField value={lim[1]} min={0} max={100} step={1} onChange={(v) => setLim([lim[0], Math.max(v ?? 100, lim[0])])} className={sel} /></label>
+            </div>
+          )}
+          {onLearn && (
+            <div className="flex items-center gap-2"><span className="font-semibold">{tr("MIDI")}</span>
+              <span className="flex-1 font-mono text-muted-foreground">{learning === i ? tr("Move a fader on your MIDI controller…") : midiKeyOf?.(i) ?? tr("Not linked")}</span>
+              <Button size="sm" variant={learning === i ? "default" : "outline"} onClick={() => onLearn(i)}>{tr("Learn")}</Button>
+            </div>
+          )}
           <div className="flex items-center gap-2"><span className="font-semibold">{tr("Colour")}</span>
             {COLORS.map((c) => <button key={c} onClick={() => setColor(c)} aria-label={c} aria-pressed={color === c} className={`h-6 w-6 rounded-full ${swatch[c]} ${color === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`} />)}
           </div>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Name, e.g. Key, Fill, Police")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
           <div className="flex gap-2">
             {fd && <Button variant="destructive" onClick={() => onSave(null)}><Trash2 />{tr("Clear")}</Button>}
-            <Button className="flex-1" onClick={save} disabled={(kind === "group" || kind === "look") ? !ref : kind === "fixtures" ? !uids.length : false}>{tr("Save")}</Button>
+            <Button className="flex-1" onClick={save} disabled={(kind === "group" || kind === "look" || kind === "rec") ? !ref : kind === "fixtures" ? !uids.length : false}>{tr("Save")}</Button>
           </div>
         </div>
       </DialogContent>
