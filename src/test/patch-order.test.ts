@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { movePatchFixture, patchRows, togglePick } from "@/lib/patch-order";
-import { normalizeFixture } from "@/lib/dmx";
+import { movePatchFixture, patchRows, togglePick, patchClashes } from "@/lib/patch-order";
+import { getDef, normalizeFixture } from "@/lib/dmx";
 
 const fixtures = [
   normalizeFixture({ uid: "a", name: "Zulu", universe: 2, address: 41 }),
@@ -42,5 +42,20 @@ describe("Patch positions", () => {
     picked = togglePick(picked, "c");
     picked = togglePick(picked, "a");
     expect(picked).toEqual([]);
+  });
+});
+
+describe("Patch clash scan", () => {
+  const ch = Math.max(1, getDef("generic-rgbw-par").modes[0]?.channels ?? 1);
+  const at = (uid: string, universe: number, address: number) =>
+    normalizeFixture({ uid, name: uid, universe, address, defId: "generic-rgbw-par" });
+  it("flags both lights when their channels overlap", () => {
+    expect([...patchClashes([at("a", 1, 1), at("b", 1, ch)])].sort()).toEqual(["a", "b"]);
+  });
+  it("leaves lights that sit side by side alone", () => {
+    expect(patchClashes([at("a", 1, 1), at("c", 1, ch + 1)])).toEqual(new Set());
+  });
+  it("the same address in another universe is not a clash", () => {
+    expect(patchClashes([at("a", 1, 1), at("b", 2, 1)])).toEqual(new Set());
   });
 });
