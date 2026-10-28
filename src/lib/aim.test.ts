@@ -57,7 +57,9 @@ describe("aimGrid", () => {
 
   it("turns the whole grid with the plot", () => {
     const g = aimGrid({ x: 0, y: 0, z: 0 }, 2, 2, 2, 90);
-    expect(g[0]).toEqual({ x: 1, y: -1, z: 0 });
+    near(g[0]!.x, 1);
+    near(g[0]!.y, -1);
+    near(g[0]!.z, 0);
   });
 });
 
