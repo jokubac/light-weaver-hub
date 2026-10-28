@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { ViewTabs } from "./ViewTabs";
 import { MACRO_ACTIONS, FADER_RANGE, faderLimits, type Macro, type MacroAction } from "@/lib/macros";
 let lastPlotView: { x: number; y: number; z: number } | null = null;
-import { cctRangeOf, kelvin, type PatchedFixture } from "@/lib/dmx";
+import { cctRangeOf, kelvin, type BeamAttr, type PatchedFixture } from "@/lib/dmx";
+import { AimPanel } from "./AimPanel";
+import type { AimMove } from "@/lib/aim";
 import { GELS, GEL_BY_ID, type Gel } from "@/lib/gels";
 import { membersOf } from "@/lib/fixture-groups";
 import { LocateFixed, PenLine, Plus, Trash2, MousePointer2, Type, ImagePlus, Table2, Pencil, Play, X, Link2, Unlink, PanelRightClose, PanelRightOpen, Lock, LockOpen, RotateCw } from "lucide-react";
@@ -302,6 +304,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   pixelsOf?: (f: PatchedFixture) => { cells?: string[] | undefined; cols: number; rows: number; aspect: number };
   /** Group names the user has made, so the light picker can drop a whole group at once. */
   groups?: string[];
+  /** Points the selected moving heads at a spot on the plot; one Pan/Tilt pair per light. */
+  onAim?: (aims: { uid: string; beam: Partial<Record<BeamAttr, number>> }[]) => void;
+  /** Sets or clears a head's wander around the place it was aimed at. */
+  onMove?: (uids: string[], move: AimMove | null) => void;
 }) {
   const [live, setLive] = useState(true);
   // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
