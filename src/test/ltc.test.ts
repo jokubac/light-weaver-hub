@@ -4,7 +4,7 @@ import { chaseTimeline, encodeLtc, LtcDecoder, ltcSeconds, type LtcFrame } from 
 const run = (rate: 25 | 30 | 24, sr = 48000) => {
   const dec = new LtcDecoder(sr, rate); const got: LtcFrame[] = [];
   let lv = 0.5;
-  for (let f = 0; f < 6; f++) {
+  for (let f = 0; f < 7; f++) {
     const a = encodeLtc({ h: 1, m: 2, s: 3, f, drop: false }, sr, rate, 0.5, lv);
     lv = a[a.length - 1]!;
     dec.feed(a, (x) => got.push(x));
