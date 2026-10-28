@@ -53,7 +53,7 @@ import { PatchPanel } from "@/components/console/PatchPanel";
 import { ConnectDialog } from "@/components/console/ConnectDialog";
 import { FixtureMenu } from "@/components/console/FixtureMenu";
 import { GEL_BY_ID, hexToHs } from "@/lib/gels";
-import { addToGroup, groupNamesOf, groupText, groupsOf, inGroup, membersOf, removeFromGroup, renameGroupsOn } from "@/lib/fixture-groups";
+import { addToGroup, groupNamesOf, inGroup, membersOf, removeFromGroup, renameGroupsOn } from "@/lib/fixture-groups";
 import { SettingsDialog } from "@/components/console/SettingsDialog";
 import { applyPixelMaster } from "@/lib/pixel-master";
 import { batteryStatus, drawFactor, fmtHours } from "@/lib/power";
@@ -483,9 +483,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [selected, setSelected] = useState<string[]>([]);
   // Gentle reminder when lights are programmed while the master fader sits at 0%.
   const [masterHint, setMasterHint] = useState(false);
-  const [masterHintOff, setMasterHintOff] = useState(false);
   const masterHintTs = useRef(0);
-  useEffect(() => { try { if (localStorage.getItem("nox-master-hint") === "off") setMasterHintOff(true); } catch { /* private mode */ } }, []);
   useEffect(() => { if (!masterHint) return; const id = setTimeout(() => setMasterHint(false), 6000); return () => clearTimeout(id); }, [masterHint]);
   const [copied, setCopied] = useState<{ name: string; settings: FixtureSettings } | null>(null);
   const lastPick = useRef<string | null>(null);
@@ -722,7 +720,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
 
   const OUT_KEYS = new Set(["intensity", "cct", "gm", "hue", "saturation", "crossfade", "cctOnly", "fx", "on", "fxPlaying", "fan", "gel", "beam"]);
   const hintMaster = () => {
-    if (masterHintOff || master > 0 || Date.now() - masterHintTs.current < 8000) return;
+    if (master > 0 || Date.now() - masterHintTs.current < 8000) return;
     masterHintTs.current = Date.now();
     setMasterHint(true);
   };
@@ -1436,7 +1434,6 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                         <span className="truncate">{tr("U")}{f.universe}.{f.address}</span>
                         <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
                       </div>
-                      {groupsOf(f).length > 0 && <div className="shrink-0 truncate text-[9px] text-primary">{groupText(f)}</div>}
                       {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
                         <div title={`${fmtHours(b.hours)} left`} className={`flex shrink-0 items-center gap-1 text-[9px] font-semibold ${b.pct < 0.2 ? "text-destructive" : "text-success"}`}>
                           <BatteryMedium className="h-3 w-3" />{Math.round(b.pct * 100)}% · {fmtHours(b.hours)}
@@ -1486,7 +1483,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
           <span className="text-xs font-semibold text-amber-glow">{tr("MASTER")}</span>
           <input aria-label={tr("Master")} type="range" min={0} max={1} step={0.01} value={master} onChange={(e) => setMaster(+e.target.value)} className="w-28 sm:w-40" />
           <NumberField aria-label={tr("Master percent")} min={0} max={100} value={Math.round(master * 100)} onChange={(v) => { if (v !== undefined) setMaster(v / 100); }} className="w-12 rounded border border-input bg-surface-elevated px-1 text-right font-mono text-xs" /><span className="text-xs">%</span>
-          <Button variant="secondary" size="icon" aria-label={tr("Blackout")} aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={toggleBlackout} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
+          <Button variant="secondary" size="icon" aria-label={tr("Blackout")} aria-pressed={bo.target === 1} title={outputEnabled ? "Blackout — 2 second fade" : "Restore output — 2 second fade"} onClick={() => { toggleBlackout(); hintMaster(); }} className={`relative overflow-hidden ${outputEnabled ? "text-primary" : "text-muted-foreground"}`}>
             {outputEnabled ? <Lightbulb className="bulb-lit" /> : <LightbulbOff />}
             {boK < 1 && <span className="absolute bottom-0 left-0 h-0.5 bg-amber-glow" style={{ width: `${boK * 100}%` }} />}
           </Button>
@@ -1653,12 +1650,10 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         onGo={() => cueStep(1)} onBack={() => cueStep(-1)} onGoto={gotoCue} onRecordCue={recordCue} onUpdateCueStates={updateCueStates}
         progCount={progIds.length} onProgClear={progClear} onProgUpdate={progUpdate} tcOn={tcOn} onTc={() => setTcOn((v) => !v)} tcNow={tcNow} />}
       {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
-      {masterHint && !masterHintOff && master <= 0 && (
+      {masterHint && master <= 0 && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">
           <AlertTriangle className="h-4 w-4 shrink-0 text-amber-glow" />
           <span className="min-w-0 flex-1">{tr("Master is off — perhaps you forgot to turn the master up?")}</span>
-          <button onClick={() => { try { localStorage.setItem("nox-master-hint", "off"); } catch { /* private mode */ } setMasterHintOff(true); }}
-            className="shrink-0 rounded-md border border-border bg-surface-elevated px-2 py-1 text-xs">{tr("Don't show again")}</button>
         </div>
       )}
     </div>
