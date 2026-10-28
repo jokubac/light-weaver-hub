@@ -71,6 +71,31 @@
   --bulb-glow: 0 0 5px color-mix(in oklab, var(--primary) 65%, transparent);
 }
 
+/* Day mode: high-contrast light theme with black text for working in sunlight. */
+:root.day {
+  --background: oklch(0.97 0.004 90);
+  --foreground: oklch(0.12 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.12 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.12 0 0);
+  --primary: oklch(0.62 0.17 55);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.9 0.006 90);
+  --secondary-foreground: oklch(0.12 0 0);
+  --muted: oklch(0.9 0.006 90);
+  --muted-foreground: oklch(0.32 0.01 260);
+  --accent: oklch(0.9 0.006 90);
+  --accent-foreground: oklch(0.12 0 0);
+  --border: oklch(0 0 0 / 18%);
+  --input: oklch(0 0 0 / 22%);
+  --ring: oklch(0.62 0.17 55);
+  --surface: oklch(0.94 0.005 90);
+  --surface-elevated: oklch(0.88 0.007 90);
+  --fader-rail: oklch(0.7 0.01 260);
+}
+:root.day body { background-image: none; }
+
 @layer base {
   * {
     border-color: var(--color-border);

@@ -614,6 +614,9 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [screenLocked, setScreenLocked] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);
   const [redShift, setRedShift] = useState(false);
+  const [dayMode, setDayMode] = useState(false);
+  useEffect(() => { setDayMode(localStorage.getItem("nox-day") === "1"); }, []);
+  useEffect(() => { document.documentElement.classList.toggle("day", dayMode); localStorage.setItem("nox-day", dayMode ? "1" : "0"); }, [dayMode]);
   useEffect(() => { setRedShift(localStorage.getItem("nox-red-shift") === "1"); }, []);
   useEffect(() => { document.documentElement.classList.toggle("red-shift", redShift); localStorage.setItem("nox-red-shift", redShift ? "1" : "0"); }, [redShift]);
   useEffect(() => {
@@ -1580,6 +1583,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setMonitorOpen(true)}><Gauge />{tr("Monitor")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setRedShift((v) => !v)}><Moon />{tr("Red Shift")}{redShift ? tr("· ON") : tr("")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setDayMode((v) => !v)}><Sun />{tr("Day mode")}{dayMode ? tr("· ON") : tr("")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setSettingsOpen(true)}><SettingsIcon />{tr("Settings")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
