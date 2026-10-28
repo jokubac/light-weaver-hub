@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cctFromKelvin, cctRangeOf, createFixture, getDef, kelvin } from "@/lib/dmx";
 import { commandPatch } from "@/lib/console-command";
 
-const vortex = () => createFixture(getDef("gdtf-creamsource-vortex-4"), 0, 1, 1, "Vortex");
+const vortex = () => createFixture(getDef("creamsource-vortex4"), 0, 1, 1, "Vortex");
 const titan = () => createFixture(getDef("astera-titan-tube"), 0, 1, 1, "Titan");
 
 describe("each light keeps its own kelvin span", () => {
