@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clampSpeed, positionToSpeed, speedToPosition } from "@/lib/speed";
-import { createFixture, getDef, sampleEffect, defaultFx, fixtureState, EFFECTS } from "@/lib/dmx";
+import { createFixture, cctFromKelvin, getDef, sampleEffect, defaultFx, fixtureState, EFFECTS } from "@/lib/dmx";
 import { copyFixtureSettings } from "@/lib/fixture-settings";
 import { defaultLayer, renderLayer } from "@/lib/pixels";
 import { buildUniverses } from "@/lib/output";
@@ -38,7 +38,7 @@ describe("Manufacturer profiles", () => {
     expect(def.modes[10]?.name).toContain("42 —");
     const index = def.modes.findIndex((mode) => mode.profile === "astera-hsi-strobe");
     expect(def.modes[index]?.channels).toBe(6);
-    const fixture = { ...createFixture(def, index, 1, 10, "Titan"), intensity: 1, cct: (5494 - 2000) / 8000, gm: 0, hue: 180, saturation: 1, crossfade: 1 };
+    const fixture = { ...createFixture(def, index, 1, 10, "Titan"), intensity: 1, cct: cctFromKelvin(5494, def.cctRange ?? [2000, 10000]), gm: 0, hue: 180, saturation: 1, crossfade: 1 };
     const data = buildUniverses([fixture], 0, 1, new Map()).get(1);
     expect(Array.from(data?.slice(9, 15) ?? [])).toEqual([255, 52, 0, 128, 255, 0]);
   });

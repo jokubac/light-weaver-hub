@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Search, X, Fan, Star } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
-import { FAN_MODES, cctFromKelvin, kelvin, type PatchedFixture } from "@/lib/dmx";
+import { DEFAULT_CCT_RANGE, FAN_MODES, cctFromKelvin, kelvin, type PatchedFixture } from "@/lib/dmx";
 import { GELS, GEL_BY_ID, hexToHs, type Gel } from "@/lib/gels";
 
 import { t as tr } from "@/lib/i18n";
@@ -22,13 +22,16 @@ export function IntensityMacros({ updateEach }: { updateEach: UpdEach }) {
 }
 
 const KELVINS = [2700, 3200, 4000, 5600, 6000, 10000];
-export function CctMacros({ value, update }: { value: number; update: Upd }) {
-  const apply = (n: number) => update({ cct: clamp(cctFromKelvin(clamp(n, 2000, 10000)), 0, 1) });
+export function CctMacros({ value, update, range = DEFAULT_CCT_RANGE }: { value: number; update: Upd; range?: [number, number] }) {
+  // the maker's own endpoints plus the usual stops that fit inside them
+  const stops = [...new Set([range[0], ...KELVINS.filter((n) => n > range[0] && n < range[1]), range[1]])].sort((a, b) => a - b);
+  const apply = (n: number) => update({ cct: cctFromKelvin(n, range) });
+  const label = (n: number) => `${(n / 1000).toString().replace(".", ",")}K`;
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-6 gap-1">
-        {KELVINS.map((n) => (
-          <button key={n} onClick={() => apply(n)} className={`rounded-md py-2 font-mono text-[11px] font-semibold active:scale-95 ${kelvin(value) === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{n >= 10000 ? tr("10K") : `${n / 1000}K`.replace(".", ",")}</button>
+      <div className="grid grid-cols-4 gap-1 sm:grid-cols-6">
+        {stops.map((n) => (
+          <button key={n} onClick={() => apply(n)} className={`rounded-md py-2 font-mono text-[11px] font-semibold active:scale-95 ${kelvin(value, range) === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{n === 10000 ? tr("10K") : label(n)}</button>
         ))}
       </div>
 
@@ -95,7 +98,7 @@ export function FanControl({ value, update }: { value: PatchedFixture["fan"]; up
 }
 
 /** Rosco / LEE gel picker: corrections set CCT / G-M, colours set hue + saturation. */
-export function GelPicker({ value, update }: { value?: string; update: Upd }) {
+export function GelPicker({ value, update, range }: { value?: string; update: Upd; range?: [number, number] }) {
   const [q, setQ] = useState("");
   const [brand, setBrand] = useState<"all" | "Rosco" | "LEE" | "fav">("all");
   const fav = useFavorites("gels");
@@ -105,7 +108,7 @@ export function GelPicker({ value, update }: { value?: string; update: Upd }) {
   }, [q, brand, fav]);
   const cur = value ? GEL_BY_ID[value] : undefined;
   const apply = (g: Gel) => {
-    if (g.kelvin) update({ cct: clamp(cctFromKelvin(g.kelvin), 0, 1), crossfade: 0, gel: g.id });
+    if (g.kelvin) update({ cct: cctFromKelvin(g.kelvin, range), crossfade: 0, gel: g.id });
     else if (g.gm !== undefined) update({ gm: g.gm, gel: g.id });
     else { const { h, s } = hexToHs(g.hex); update({ hue: h, saturation: s, crossfade: 1, cctOnly: false, gel: g.id }); }
   };

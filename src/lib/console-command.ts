@@ -1,4 +1,4 @@
-import { cctFromKelvin, kelvin, type PatchedFixture } from "./dmx";
+import { cctFromKelvin, cctRangeOf, kelvin, type PatchedFixture } from "./dmx";
 import type { CommandResult } from "./command-line";
 
 /** Relative values apply independently to every selected fixture. */
@@ -9,7 +9,10 @@ export function commandPatch(f: PatchedFixture, command: CommandResult): Partial
     patch.on = true;
   }
   if (command.cct != null || command.cctDelta != null) {
-    patch.cct = cctFromKelvin(Math.max(2000, Math.min(10000, command.cctDelta != null ? kelvin(f.cct) + command.cctDelta : command.cct ?? kelvin(f.cct))));
+    // every light moves inside its own kelvin span (a Titan reaches 1750 K, a Vortex 2200 K)
+    const range = cctRangeOf(f);
+    const target = command.cctDelta != null ? kelvin(f.cct, range) + command.cctDelta : command.cct ?? kelvin(f.cct, range);
+    patch.cct = cctFromKelvin(target, range);
     patch.crossfade = 0;
     patch.saturation = 0;
   }

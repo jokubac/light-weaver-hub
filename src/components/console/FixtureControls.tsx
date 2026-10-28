@@ -1,28 +1,29 @@
 import { useState } from "react";
 import { ChevronDown, Plus, Trash2, Zap, AlertTriangle, Play, Square, Power, TrendingUp } from "lucide-react";
 import {
+  caps,
+  cctFromKelvin,
+  cctRangeOf,
+  type Curve,
   CURVES,
   DEFAULT_CCT,
   EFFECTS,
-  FX_PRESETS,
-  TRIGGERS,
-  caps,
-  getDef,
-  getMode,
-  kelvin,
-  cctFromKelvin,
-  overlaps,
-  sampleEffect,
   fixtureColor,
+  FX_PRESETS,
+  type FxParams,
   fxRateAt,
   fxTime,
+  getDef,
+  getMode,
   hexToRgb,
-  seedOf,
-  type FxParams,
-  type Curve,
-  type Step,
+  kelvin,
+  overlaps,
   type PatchedFixture,
+  sampleEffect,
+  seedOf,
+  type Step,
   type TriggerKind,
+  TRIGGERS,
 } from "@/lib/dmx";
 import { ColorSource } from "./ColorSource";
 import { ColourControls, HexColourControls } from "./ColourControls";
@@ -141,8 +142,8 @@ export function FixtureControls({
 
       <Section title={tr("CCT & Colour")}>
         {!anyCaps.color && <p className="rounded-md border border-destructive/50 bg-destructive/10 px-2 py-1.5 text-[11px] text-destructive">{tr("This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.")}</p>}
-        <ColourControls value={first} update={update} {...(anyCaps.gm ? { gm: first.gm, onGm: (gm: number) => update({ gm }) } : {})} />
-        <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} />
+        <ColourControls value={first} update={update} range={cctRangeOf(first)} {...(anyCaps.gm ? { gm: first.gm, onGm: (gm: number) => update({ gm }) } : {})} />
+        <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} range={cctRangeOf(first)} />
       </Section>
 
       {sel.some((f) => beamChannels(f).size > 0) && <Section title={tr("Position & Beam")}><BeamControls first={first} updateEach={updateEach} /></Section>}

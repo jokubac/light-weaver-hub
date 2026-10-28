@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { parseDescriptionXml } from "@/lib/gdtf";
 import { buildUniverses } from "@/lib/output";
-import { normalizeFixture } from "@/lib/dmx";
+import { cctFromKelvin, normalizeFixture } from "@/lib/dmx";
 import { addCustomFixture } from "@/lib/custom-fixtures";
 
 const xml = `<GDTF><FixtureType Name="Verified" Manufacturer="Test"><DMXModes><DMXMode Name="CCT exact"><DMXChannels>
@@ -19,7 +19,7 @@ it("encodes 6400K halfway across a declared 2800–10000K channel", () => {
   const def = parseDescriptionXml(xml);
   if (!def) throw new Error("GDTF parse failed");
   addCustomFixture(def);
-  const f = normalizeFixture({ uid: "exact", defId: def.id, modeIdx: 0, universe: 1, address: 10, intensity: 1, cct: (6400 - 2000) / 8000 });
+  const f = normalizeFixture({ uid: "exact", defId: def.id, modeIdx: 0, universe: 1, address: 10, intensity: 1, cct: cctFromKelvin(6400, def.cctRange ?? [2000, 10000]) });
   const output = buildUniverses([f], 0, 1, new Map()).get(1);
   expect(output?.[12]).toBe(128);
   expect(output?.[10]).toBe(0);

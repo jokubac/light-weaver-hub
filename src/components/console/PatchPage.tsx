@@ -13,7 +13,7 @@ import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixtur
 import { CallSheet } from "./CallSheet";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick } from "@/lib/patch-order";
 
 import { t as tr } from "@/lib/i18n";
 /** Light type + CCT shown in the patch sheet: GDTF-imported values first, otherwise derived from the modes. */
@@ -69,8 +69,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
       const a = order.indexOf(lastPick.current), b = order.indexOf(uid);
       const range = order.slice(Math.min(a, b), Math.max(a, b) + 1);
       setPicked((p) => [...new Set([...p, ...range])]);
-    } else if (e.ctrlKey || e.metaKey) setPicked((p) => (p.includes(uid) ? p.filter((x) => x !== uid) : [...p, uid]));
-    else setPicked((p) => (p.length === 1 && p[0] === uid ? [] : [uid]));
+    } else setPicked((p) => togglePick(p, uid));
     lastPick.current = uid;
   };
   const bulkRename = () => {

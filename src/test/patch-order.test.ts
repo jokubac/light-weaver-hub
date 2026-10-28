@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movePatchFixture, patchRows } from "@/lib/patch-order";
+import { movePatchFixture, patchRows, togglePick } from "@/lib/patch-order";
 import { normalizeFixture } from "@/lib/dmx";
 
 const fixtures = [
@@ -28,5 +28,19 @@ describe("Patch positions", () => {
     expect(moved[2]?.address).toBe(41);
     expect(moved[2]?.universe).toBe(2);
     expect(movePatchFixture(moved, "a", 0)).toEqual(fixtures);
+  });
+  it("a plain click keeps earlier picks and a second click on the same light drops only it", () => {
+    let picked: string[] = [];
+    picked = togglePick(picked, "a");
+    expect(picked).toEqual(["a"]);
+    picked = togglePick(picked, "b");
+    expect(picked).toEqual(["a", "b"]);
+    picked = togglePick(picked, "c");
+    expect(picked).toEqual(["a", "b", "c"]);
+    picked = togglePick(picked, "b");
+    expect(picked).toEqual(["a", "c"]);
+    picked = togglePick(picked, "c");
+    picked = togglePick(picked, "a");
+    expect(picked).toEqual([]);
   });
 });

@@ -4,7 +4,7 @@ import { NumberField } from "./NumberField";
 // View: wheel / pinch zoom, hand or middle-drag pan, right-drag (or shift+hand) rotates / tilts.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, ChevronDown, Hand, ImagePlus, Layers, Maximize, Minus, MousePointer2, Pencil, Plus, Power, Square as SquareIcon, Trash2, X, DoorOpen, PanelsTopLeft, Undo2, Redo2, Armchair, UserRound, LampDesk, LockKeyhole, Unlock, ListChecks } from "lucide-react";
-import { getDef, kelvin, type PatchedFixture } from "@/lib/dmx";
+import { cctRangeOf, getDef, kelvin, type PatchedFixture } from "@/lib/dmx";
 import { illuminanceAt, lux3m as lux3mOf, footcandles, shutterSeconds, tStopFor, roundToThirdStop, stopsDifference, type MeterLight } from "@/lib/photometry";
 import { fixtureWatts } from "@/lib/power";
 import { OPTICS, OPTIC_BY_ID, defaultOptic, type Optic } from "@/lib/optics";
@@ -584,7 +584,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
       ctx.font = "10px system-ui, sans-serif";
       const white = f.cctOnly || f.crossfade === 0;
       ctx.fillStyle = theme.getPropertyValue("--color-foreground");
-      ctx.fillText(`${Math.round(lv * 100)}%${white ? ` · ${kelvin(f.cct)} K` : ""}`, head[0], head[1] + 24);
+      ctx.fillText(`${Math.round(lv * 100)}%${white ? ` · ${kelvin(f.cct, cctRangeOf(f))} K` : ""}`, head[0], head[1] + 24);
       ctx.fillStyle = `rgb(${r},${g},${b})`;
       ctx.fillRect(head[0] - 4, head[1] + 29, 8, 5);
     }
@@ -1056,6 +1056,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         </div>
         <Button variant="secondary" aria-label={tool === "pan" ? "Pan" : "Select / move"} title={tr("Toggle Select / Pan")} onClick={() => setTool(tool === "move" ? "pan" : "move")}>{tool === "pan" ? <Hand /> : <MousePointer2 />}{tool === "pan" ? tr("Pan") : tr("Select")}</Button>
         <Button variant={multiSelect ? "default" : "secondary"} size="icon" aria-label={tr("Multiselect")} aria-pressed={multiSelect} title={tr("Multiselect")} onClick={() => { setMultiSelect(!multiSelect); setTool("move"); }}><ListChecks /></Button>
+        <Button variant="destructive" size="sm" aria-label={tr("Remove selected from plot")} title={tr("Remove selected item")} disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />{tr("Delete")}</Button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant={["draw", "rect", "door", "window"].includes(tool) ? "default" : "secondary"}><Pencil />{tr("Build")}<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="start">
           <DropdownMenuItem onSelect={() => setTool("draw")}><Pencil />{tr("Wall")}</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setTool("rect")}><SquareIcon />{tr("Box")}</DropdownMenuItem>
@@ -1076,7 +1077,6 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
         </DropdownMenuContent></DropdownMenu>
         <Button variant="secondary" size="icon" title={tr("Undo")} aria-label={tr("Undo")} disabled={!history.current.canUndo} onClick={undo}><Undo2 /></Button>
         <Button variant="secondary" size="icon" title={tr("Redo")} aria-label={tr("Redo")} disabled={!history.current.canRedo} onClick={redo}><Redo2 /></Button>
-        <Button variant="destructive" size="sm" aria-label={tr("Remove selected from plot")} title={tr("Remove selected item")} disabled={!selItems.length && wallIndex === null && !objectIds.length && !openingId && !cameraIds.length} onClick={removeSelection}><Trash2 className="h-4 w-4" />{tr("Remove")}</Button>
         {(tool === "draw" || tool === "rect") && (
           <input type="color" value={ink} onChange={(e) => setInk(e.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" aria-label={tr("Drawing colour")} />
         )}
@@ -1304,7 +1304,7 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
                 );
               })()}
               </fieldset><div className="grid grid-cols-8 gap-1">{["#ffffff","#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0000ff","#ff00ff"].map((c) => <button key={c} aria-label={c} onClick={() => selItems.forEach((u) => update(u, c === "#ffffff" ? { crossfade: 0 } : { hue: hexToHs(c).h, saturation: hexToHs(c).s, crossfade: 1, cctOnly: false }))} className="h-6 rounded border border-input" style={{ background: c }} />)}</div>
-              <ColourControls value={first} update={(p) => selItems.forEach((u) => update(u, p))} gm={first.gm} onGm={(gm) => selItems.forEach((u) => update(u, { gm }))} />
+              <ColourControls value={first} update={(p) => selItems.forEach((u) => update(u, p))} range={cctRangeOf(first)} gm={first.gm} onGm={(gm) => selItems.forEach((u) => update(u, { gm }))} />
               {floors.length > 1 && (
                 <label className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">{tr("Floor")}</span>
                   <select value={floorOf(firstItem)} onChange={(e) => { const n = +e.target.value; setItems({ floor: n }); setActive(n); }} className="rounded-md bg-surface-elevated px-2 py-1 text-xs">
