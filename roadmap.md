@@ -312,3 +312,5 @@
 - [ ] Po Asteros: patikrinti populiariausias filmavimo lempas blokais (Aputure/amaran, ARRI, Creamsource, Nanlite/Nanlux, Kino Flo, Litepanels, Godox...).
 - [x] Master-off reminder: the "Don't show again" button removed (phrase dropped from all 23 dictionaries); pressing Blackout with the master at 0 also raises the reminder — browser check pending.
 - [x] Fixture tile: the amber group-name line under the universe/percent row removed (Jokubas: "šitas nereikalingas"); light names stay.
+- [x] Restore the group name line on the FIXTURES tile (it showed group membership, not a duplicate name); group label browser checked.
+- [x] Remove the "All lights" strip under the PIXEL canvas; the light list stays on the canvas itself.
