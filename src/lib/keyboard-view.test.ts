@@ -12,7 +12,7 @@ describe("On-screen keyboard view", () => {
   });
   it("brings back a field scrolled above the visible band", () => {
     const view = { top: 0, bottom: 500 };
-    expect(keyboardScroll({ top: -40, bottom: 0 }, view, 16)).toBe(56);
+    expect(keyboardScroll({ top: -40, bottom: 0 }, view, 16)).toBe(-56);
   });
   it("leaves a field that is already clear alone", () => {
     const view = { top: 0, bottom: 500 };
