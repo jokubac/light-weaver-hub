@@ -67,6 +67,8 @@ export interface Timeline {
   /** playback pauses at each marker until GO is pressed */
   markers?: { id: string; t: number; name: string; action?: "pause" | "pass" | undefined }[] | undefined;
   bpm?: number | undefined;
+  /** timecode (seconds) where this timeline's 0 sits when chasing MTC/LTC */
+  tcStart?: number | undefined;
   /** In/Out loop region */
   loop?: { a: number; b: number; on: boolean } | undefined;
   /** docked visualiser: light positions (0..1 of the stage), background photo, panel height */
