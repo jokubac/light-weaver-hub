@@ -1124,5 +1124,16 @@
   "Fader snapshots": "Faderių kopijos",
   "Tap fader names to link them; linked faders move together": "Bakstelėkite faderių pavadinimus, kad susietumėte; susieti juda kartu",
   "Intensity faders back to full, colour and look faders released": "Intensyvumo faderiai į pilną, spalvų ir look faderiai atleidžiami",
-  "Fade all faders to these positions": "Perkelti visus faderius į šias padėtis"
+  "Fade all faders to these positions": "Perkelti visus faderius į šias padėtis",
+  "Timecode — sync cues and the timeline with sound and camera": "Laiko kodas — sinchronizuoja cue ir timeline su garsu bei kamera",
+  "Source": "Šaltinis",
+  "Audio LTC (Tentacle, recorder, camera)": "Garso LTC (Tentacle, rekorderis, kamera)",
+  "MIDI timecode (MTC)": "MIDI laiko kodas (MTC)",
+  "Audio input": "Garso įvestis",
+  "Input": "Įvestis",
+  "Frame rate": "Kadrų dažnis",
+  "Timeline follows timecode": "Timeline seka laiko kodą",
+  "Timeline starts at": "Timeline prasideda nuo",
+  "Use current": "Naudoti dabartinį",
+  "Connect the timecode output with a cable to a line or mic input. Cues with a timecode fire automatically.": "Laiko kodo išvestį kabeliu junkite į line arba mikrofono įvestį. Cue su laiko kodu paleidžiami automatiškai."
 }
