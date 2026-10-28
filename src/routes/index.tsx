@@ -6,7 +6,8 @@ import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, 
 import { outputChanged } from "@/lib/output-hint";
 import { Button } from "@/components/ui/button";
 import type { CommandResult } from "@/lib/command-line";
-import { connectDeck, disconnectDeck, paintDeck } from "@/lib/stream-deck";
+import { connectDeck, disconnectDeck, paintDeck, loadDeckLayout, saveDeckLayout, defaultDeckLayout, type DeckSlot } from "@/lib/stream-deck";
+import { DeckEditor, slotLabel, slotColor } from "@/components/console/DeckEditor";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { SetupLibrary } from "@/components/console/SetupLibrary";
@@ -65,7 +66,7 @@ import { listenMidi, loadMidi, saveMidi, type MidiMsg } from "@/lib/midi";
 import { SavePopover } from "@/components/console/SavePopover";
 import { FanPopover } from "@/components/console/FanPopover";
 import { ScreenLock } from "@/components/console/ScreenLock";
-import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
+import { DOUBLE_TAP_MS, defaultMacros, MACRO_ACTIONS, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
 import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2, Moon, Sun, Gauge, ParkingSquare, MoreHorizontal } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
@@ -856,27 +857,40 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     setFixtures((fs) => applyLook(l, fs));
     setLastLook(l.id);
   };
-  // Stream Deck: one key per saved look (in the look's colour), last key = Blackout.
+  // Stream Deck: keys placed by the user (looks or macro actions); default = looks + Blackout on the last key.
   const [deck, setDeck] = useState<{ name: string; keys: number } | null>(null);
-  const deckPress = useRef<(i: number) => void>(() => {});
-  deckPress.current = (i) => {
-    if (!deck) return;
-    if (i === deck.keys - 1) return toggleBlackout();
-    const l = (project.looks ?? [])[i]; if (l) recallLook(l);
+  const [deckEdit, setDeckEdit] = useState(false);
+  const [deckLayoutRaw, setDeckLayoutRaw] = useState<(DeckSlot | null)[] | null>(null);
+  useEffect(() => { setDeckLayoutRaw(loadDeckLayout()); }, []);
+  const deckKeys = deck?.keys ?? 15;
+  const deckLayout = deckLayoutRaw ?? defaultDeckLayout((project.looks ?? []).map((l) => l.id), deckKeys);
+  const setDeckLayout = (l: (DeckSlot | null)[] | null) => { setDeckLayoutRaw(l); saveDeckLayout(l); };
+  const deckMacro = (s: DeckSlot, i: number, release = false): Macro | null => s.kind === "action" ? { id: `deck-${i}`, key: null, action: s.action, amount: s.amount, param: s.param, ...(release ? { release: true } : {}) } : null;
+  const deckPress = useRef<(i: number, up: boolean) => void>(() => {});
+  deckPress.current = (i, up) => {
+    const sl = deckLayout[i]; if (!sl) return;
+    if (sl.kind === "look") { if (!up) { const l = (project.looks ?? []).find((x) => x.id === sl.lookId); if (l) recallLook(l); } return; }
+    if (sl.action === "blackout") { if (!up) toggleBlackout(); return; }
+    const m = deckMacro(sl, i, up);
+    if (!m) return;
+    if (up) { if (MACRO_ACTIONS.find((a) => a.id === m.action)?.hold) macroRef.current.run(m); }
+    else macroRef.current.fire(m, "streamdeck");
   };
   const connectStreamDeck = async () => {
     if (deck) { await disconnectDeck(); setDeck(null); return; }
-    try { setDeck(await connectDeck((i) => deckPress.current(i))); }
+    try { setDeck(await connectDeck((i) => deckPress.current(i, false), true, (i) => deckPress.current(i, true))); }
     catch (e) { alert((e as Error).message); }
   };
   useEffect(() => {
     if (!deck) return;
     const looks = project.looks ?? [];
-    const keys = Array.from({ length: deck.keys }, (_, i) => i === deck.keys - 1
-      ? { label: "Black out", color: bo.target === 1 ? "#ff3b30" : "#3a1010", active: bo.target === 1 }
-      : looks[i] ? { label: looks[i]!.name, color: looks[i]!.color ?? "#ffb000", active: looks[i]!.id === lastLook } : null);
-    void paintDeck(keys);
-  }, [deck, project.looks, lastLook, bo.target]);
+    void paintDeck(Array.from({ length: deck.keys }, (_, i) => {
+      const sl = deckLayout[i] ?? null; if (!sl) return null;
+      const active = sl.kind === "look" ? sl.lookId === lastLook : sl.action === "blackout" && bo.target === 1;
+      return { label: slotLabel(sl, looks), color: slotColor(sl, looks), active };
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deck, project.looks, lastLook, bo.target, deckLayoutRaw]);
   useEffect(() => () => { void disconnectDeck(); }, []);
 
   const sel = fixtures.filter((f) => selected.includes(f.uid));
@@ -1657,6 +1671,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
             <DropdownMenuItem onSelect={() => setMonitorOpen(true)}><Gauge />{tr("Monitor")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setRedShift((v) => !v)}><Moon />{tr("Red Shift")}{redShift ? tr("· ON") : tr("")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => void connectStreamDeck()}><Keyboard />{deck ? `${tr("Stream Deck")} · ${deck.name}` : tr("Connect Stream Deck")}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setDeckEdit(true)}><Keyboard />{tr("Stream Deck keys")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setDayMode((v) => !v)}><Sun />{tr("Day mode")}{dayMode ? tr("· ON") : tr("")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setSettingsOpen(true)}><SettingsIcon />{tr("Settings")}</DropdownMenuItem>
           </DropdownMenuContent>
@@ -1805,6 +1820,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       </div>
       )}
       {keypadOpen && <Keypad onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onDeselect={() => { setSelected([]); lastPick.current = null; }} count={fixtures.length} selectedNums={fixtures.map((f, i) => (selected.includes(f.uid) ? i + 1 : 0)).filter(Boolean)} onRun={runCommand} onRec={recFromCommand} onStep={stepLight} onFlash={() => flashFixtures(selected)} onPreview={(nums) => { const ids = nums.map((n) => fixtures[n - 1]?.uid).filter((x): x is string => !!x); setSelected(ids); lastPick.current = ids[ids.length - 1] ?? null; }} onCopy={copySettings} onPaste={pasteSettings} canPaste={!!copied} onClose={() => setKeypadOpen(false)} />}
+      <DeckEditor open={deckEdit} onOpenChange={setDeckEdit} keys={deckKeys} layout={deckLayout} looks={project.looks ?? []} onChange={setDeckLayout} onReset={() => setDeckLayout(null)} />
       {blind && <div aria-hidden="true" className="blind-ring pointer-events-none fixed inset-0 z-[80]" />}
       {masterHint && outputBlocker() && (
         <div className="fixed inset-x-3 bottom-20 z-[70] mx-auto flex max-w-md items-center gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-foreground shadow-lg backdrop-blur">

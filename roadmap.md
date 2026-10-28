@@ -333,6 +333,7 @@
 - [x] Day mode (high-contrast light theme)
 - [x] Command line REC / REC N MERGE|OVERWRITE / REC LOOK / REC FX / REC TIMELINE
 - [x] Stream Deck (WebHID): look keys in look colour + Blackout key
+- [x] Stream Deck custom key layout (looks or macro actions per key, colour, label)
 - [ ] Moving head position grid from plot + movement FX
 - [ ] CRMX Link button — needs verified pairing protocol per node
 - [x] Instant Recovery: synchronous save after every action, flush on hide, reopen last console

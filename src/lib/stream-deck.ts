@@ -7,7 +7,7 @@ type Deck = {
   fillKeyCanvas(i: number, c: HTMLCanvasElement): Promise<void>;
   fillKeyColor(i: number, r: number, g: number, b: number): Promise<void>;
   clearPanel(): Promise<void>;
-  on(ev: "down", cb: (c: { type: string; index: number }) => void): void;
+  on(ev: "down" | "up", cb: (c: { type: string; index: number }) => void): void;
   on(ev: "error", cb: (e: unknown) => void): void;
   close(): Promise<void>;
   PRODUCT_NAME: string;
@@ -19,7 +19,7 @@ export function deckSupported(): boolean {
   return typeof navigator !== "undefined" && "hid" in navigator;
 }
 
-export async function connectDeck(onPress: (key: number) => void, ask = true): Promise<{ name: string; keys: number } | null> {
+export async function connectDeck(onPress: (key: number) => void, ask = true, onRelease?: (key: number) => void): Promise<{ name: string; keys: number } | null> {
   if (!deckSupported()) throw new Error("Stream Deck needs Chrome, Edge or the NOX Windows app (WebHID).");
   const lib = await import("@elgato-stream-deck/webhid");
   const list = (ask ? await lib.requestStreamDecks() : await lib.getStreamDecks()) as unknown as Deck[];
@@ -28,6 +28,7 @@ export async function connectDeck(onPress: (key: number) => void, ask = true): P
   await deck?.close().catch(() => {});
   deck = d;
   d.on("down", (c) => { if (c.type === "button") onPress(c.index); });
+  d.on("up", (c) => { if (c.type === "button") onRelease?.(c.index); });
   d.on("error", () => {});
   await d.clearPanel().catch(() => {});
   return { name: d.PRODUCT_NAME, keys: buttons(d).length };
@@ -67,4 +68,21 @@ export function hexRgb(hex: string): [number, number, number] {
   if (!m) return [0, 0, 0];
   const n = parseInt(m[1]!, 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** A user-placed key: a saved look, or any macro action (same list as the macro pad). */
+export type DeckSlot =
+  | { kind: "look"; lookId: string; color?: string }
+  | { kind: "action"; action: import("./macros").MacroAction; amount: number; param?: string; label?: string; color?: string };
+
+const LKEY = "nox-deck-layout-v1";
+export function loadDeckLayout(): (DeckSlot | null)[] | null {
+  try { const r = localStorage.getItem(LKEY); return r ? JSON.parse(r) : null; } catch { return null; }
+}
+export function saveDeckLayout(l: (DeckSlot | null)[] | null) {
+  try { if (l) localStorage.setItem(LKEY, JSON.stringify(l)); else localStorage.removeItem(LKEY); } catch { /* ignore */ }
+}
+/** No custom layout yet: looks in order, Blackout on the last key. */
+export function defaultDeckLayout(lookIds: string[], keys: number): (DeckSlot | null)[] {
+  return Array.from({ length: keys }, (_, i) => i === keys - 1 ? { kind: "action", action: "blackout", amount: 0 } as DeckSlot : lookIds[i] ? { kind: "look", lookId: lookIds[i]! } as DeckSlot : null);
 }
