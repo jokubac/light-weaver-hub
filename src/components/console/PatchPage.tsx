@@ -188,7 +188,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
             </div>
           )}
           {rows.length === 0 ? <p className="py-16 text-center text-sm text-muted-foreground">{tr("No lights patched yet.")}</p> : (
-            <table className="w-full border-collapse text-xs print:text-[9px]">
+            <table ref={tableRef} className="w-full border-collapse text-xs print:text-[9px]">
               <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="pr-1 print:hidden"></th><th className="py-2 pr-2">#</th><th className="pr-2 print:hidden"></th>
                 {([["name", "Name"], ["fixture", "Fixture"], ["mode", "Mode"], ["univ", "Univ"], ["dmx", "DMX"], ["ch", "Ch"], ["group", "Group"]] as const).map(([k, l]) => (
@@ -199,13 +199,14 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                 <th className="print:hidden"></th>
               </tr></thead>
               <tbody>
-                {rows.map(({ fixture: f, number }) => {
+                {first > 0 && <tr aria-hidden="true" style={{ height: first * ROW_H }}><td colSpan={11} className="p-0" /></tr>}
+                {rows.slice(first, last).map(({ fixture: f, number }) => {
                   const i = number - 1;
                   const d = getDef(f.defId); const m = d.modes[f.modeIdx]; const ch = m?.channels ?? 1;
-                  const clash = overlaps(fixtures, f.universe, f.address, ch, f.uid).length > 0;
+                  const clash = clashes.has(f.uid);
                   return (
-                    <Frag key={f.uid}><tr data-patch-uid={f.uid} className={`border-b border-border/60 break-inside-avoid ${picked.includes(f.uid) ? "bg-muted/60" : ""} ${drag && dragBlock(drag.uid).includes(f.uid) ? "opacity-50" : ""} ${landing?.has(f.uid) ? "outline outline-2 outline-primary bg-primary/10" : ""} cursor-pointer`} onClick={(e) => rowClick(e, f.uid)}>
-                      <td className="pr-2 print:hidden"><Checkbox checked={picked.includes(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6" /></td>
+                    <Frag key={f.uid}><tr data-patch-uid={f.uid} className={`border-b border-border/60 break-inside-avoid ${pickedSet.has(f.uid) ? "bg-muted/60" : ""} ${dragging?.has(f.uid) ? "opacity-50" : ""} ${landing?.has(f.uid) ? "outline outline-2 outline-primary bg-primary/10" : ""} cursor-pointer`} onClick={(e) => rowClick(e, f.uid)}>
+                      <td className="pr-2 print:hidden"><Checkbox checked={pickedSet.has(f.uid)} onCheckedChange={(checked) => setPicked((p) => checked === true ? [...new Set([...p, f.uid])] : p.filter((x) => x !== f.uid))} aria-label={`Select ${f.name}`} className="h-6 w-6" /></td>
                       <td className="py-1.5 pr-2 font-mono text-muted-foreground print:py-0.5">{number}</td>
                       <td className="pr-2 print:hidden"><FixtureGlyph model={d.model} icon={f.icon} colour="var(--color-primary)" className="h-6 w-8" /></td>
                       <td className="pr-2 font-semibold">{f.label && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: f.label }} />}
@@ -277,6 +278,7 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
                     </td></tr>}</Frag>
                   );
                 })}
+                {last < rows.length && <tr aria-hidden="true" style={{ height: (rows.length - last) * ROW_H }}><td colSpan={11} className="p-0" /></tr>}
               </tbody>
             </table>
           )}
