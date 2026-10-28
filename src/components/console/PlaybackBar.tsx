@@ -220,7 +220,7 @@ export function PlaybackBar(p: PlaybackProps) {
                 </div>}
                 {p.full ? (
                   <div className="flex min-h-0 flex-1 items-stretch justify-center gap-2">
-                    <VFader label={`Fader ${i + 1} ${fd!.name}`} value={lv} onChange={(v) => setLevel(i, v)} fill={swatch[color]} dense={dense} />
+                    <VFader label={`Fader ${i + 1} ${fd!.name}`} value={lv} onChange={(v) => setLevel(i, v)} fill={swatch[color]} dense={!!dense} />
                     <div aria-hidden className="relative w-2 overflow-hidden rounded-full bg-background">
                       <div className={`absolute inset-x-0 bottom-0 ${swatch[color]} transition-[height] duration-75`} style={{ height: `${(fd!.off ? 0 : lv) * 100}%` }} />
                     </div>
