@@ -64,21 +64,21 @@ describe("aimGrid", () => {
 });
 
 describe("moveOffset", () => {
-  it("starts a circle at the top of its travel", () => {
-    const [p, t] = moveOffset({ shape: "circle", rate: 1, size: 1 }, 0);
-    near(p, 0);
-    near(t, 0.5);
+  it("starts a circle at the right of its travel", () => {
+    const [p, t] = moveOffset({ shape: "circle", rate: 1, size: 1 }, 0, "a");
+    near(p, 0.5);
+    near(t, 0);
   });
 
   it("sweeps side to side without tipping", () => {
-    expect(moveOffset({ shape: "sweep", rate: 1, size: 1 }, 0.25)[1]).toBe(0);
-    near(moveOffset({ shape: "sweep", rate: 1, size: 1 }, 0.25)[0], 0.5);
+    expect(moveOffset({ shape: "sweep", rate: 1, size: 1 }, 0.25, "a")[1]).toBe(0);
+    near(moveOffset({ shape: "sweep", rate: 1, size: 1 }, 0.25, "a")[0], 0.5);
   });
 
   it("never leaves half the head's travel", () => {
     for (const shape of ["circle", "figure8", "sweep", "random"] as const) {
       for (let k = 0; k < 40; k++) {
-        const [p, t] = moveOffset({ shape, rate: 0.3, size: 1 }, k * 0.37);
+        const [p, t] = moveOffset({ shape, rate: 0.3, size: 1 }, k * 0.37, "a");
         expect(Math.abs(p)).toBeLessThanOrEqual(0.5 + 1e-9);
         expect(Math.abs(t)).toBeLessThanOrEqual(0.5 + 1e-9);
       }
@@ -86,11 +86,12 @@ describe("moveOffset", () => {
   });
 
   it("is repeatable and drifts apart per light", () => {
-    const a = moveOffset({ shape: "random", rate: 0.5, size: 0.8 }, 3.1, 12);
-    const b = moveOffset({ shape: "random", rate: 0.5, size: 0.8 }, 3.1, 12);
-    const c = moveOffset({ shape: "random", rate: 0.5, size: 0.8 }, 3.1, 77);
+    const a = moveOffset({ shape: "random", rate: 0.5, size: 0.8 }, 3.1, "Lamp 1");
+    const b = moveOffset({ shape: "random", rate: 0.5, size: 0.8 }, 3.1, "Lamp 1");
+    const c = moveOffset({ shape: "random", rate: 0.5, size: 0.8 }, 3.1, "Lamp 2");
     expect(a).toEqual(b);
     expect(a[0]).not.toBeCloseTo(c[0], 3);
+    expect(a[1]).not.toBeCloseTo(c[1], 3);
   });
 });
 
