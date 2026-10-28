@@ -141,6 +141,8 @@ function App() {
   useEffect(() => { document.documentElement.classList.toggle("day", localStorage.getItem("nox-day") === "1"); }, []);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const projectsRef = useRef<Project[]>([]);
+  projectsRef.current = projects;
   const [view, setView] = useState<View>({ name: "projects" });
 
   const { user } = useUser();
@@ -198,8 +200,13 @@ function App() {
     return () => { clearTimeout(id); window.removeEventListener("crmx-favorites", push); window.removeEventListener("crmx-effects", push); };
   }, [user]);
 
-  const updateProject = (id: string, fn: (p: Project) => Project) =>
-    setProjects((ps) => ps.map((p) => (p.id === id ? fn(p) : p)));
+  // Written to local storage synchronously so a crash or flat battery right after an action loses nothing.
+  const updateProject = (id: string, fn: (p: Project) => Project) => {
+    const next = projectsRef.current.map((p) => (p.id === id ? fn(p) : p));
+    projectsRef.current = next;
+    try { saveProjects(next); } catch { /* storage full: the effect retries */ }
+    setProjects(next);
+  };
 
   if (!loaded) return <div className="min-h-screen bg-background" />;
 
