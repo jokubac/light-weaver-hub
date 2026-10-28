@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { spreadSwatch } from "./fan";
 
-const rgb = (s: string) => s.match(/\d+/g)!.map(Number);
+const rgb = (s: string): [number, number, number] => s.match(/\d+/g)!.map(Number) as [number, number, number];
 
 describe("spread preview swatches", () => {
   it("keeps a CCT ramp on the black-body line — green is never the strongest channel", () => {
