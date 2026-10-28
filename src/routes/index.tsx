@@ -64,7 +64,7 @@ import { SavePopover } from "@/components/console/SavePopover";
 import { FanPopover } from "@/components/console/FanPopover";
 import { ScreenLock } from "@/components/console/ScreenLock";
 import { DOUBLE_TAP_MS, defaultMacros, colourStep, keyName, loadMacros, macroCommand, saveMacros, stepSelection, type Macro } from "@/lib/macros";
-import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2, Moon, Gauge, ParkingSquare, MoreHorizontal } from "lucide-react";
+import { Settings as SettingsIcon, BatteryMedium, Pencil, History, Trash2, Moon, Sun, Gauge, ParkingSquare, MoreHorizontal } from "lucide-react";
 import { appendLog, loadLog, replaySchedule, saveLog, type MacroLogEntry } from "@/lib/macro-log";
 import { MacroTimeline } from "@/components/console/MacroTimeline";
 import { applyLook } from "@/components/console/LooksPanel";
