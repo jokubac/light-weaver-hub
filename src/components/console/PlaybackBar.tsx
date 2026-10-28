@@ -358,8 +358,8 @@ function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave,
             ))}
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <label className="space-y-1"><span className="font-semibold">{tr("Fade in")} (s)</span><NumberField value={fadeIn} min={0} max={60} step={0.1} onChange={(v) => setFadeIn(v)} className={sel} /></label>
-            <label className="space-y-1"><span className="font-semibold">{tr("Fade out")} (s)</span><NumberField value={fadeOut} min={0} max={60} step={0.1} onChange={(v) => setFadeOut(v)} className={sel} /></label>
+            <label className="space-y-1"><span className="font-semibold">{tr("Fade in")} (s)</span><NumberField value={fadeIn} min={0} max={60} step={0.1} onChange={(v) => setFadeIn(v ?? 0)} className={sel} /></label>
+            <label className="space-y-1"><span className="font-semibold">{tr("Fade out")} (s)</span><NumberField value={fadeOut} min={0} max={60} step={0.1} onChange={(v) => setFadeOut(v ?? 0)} className={sel} /></label>
             <label className="space-y-1"><span className="font-semibold">{tr("Curve")}</span>
               <select value={curve} onChange={(e) => setCurve(e.target.value as typeof curve)} className={sel}>{CURVES.map(([k, l]) => <option key={k} value={k}>{tr(l)}</option>)}</select>
             </label>
