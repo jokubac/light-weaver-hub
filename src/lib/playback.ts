@@ -7,6 +7,15 @@ import { membersOf } from "./fixture-groups";
 export const BANK_SIZE = 6;
 /** fader pages: Bank 1 = faders 1–6, Bank 2 = 7–12 … */
 export const BANK_PAGES = 4;
+/** fader slots a project can hold — divisible by every size in FADER_PAGE_SIZES */
+export const BANK_TOTAL = 96;
+/** how many faders one page of the full FADERS window can show */
+export const FADER_PAGE_SIZES = [4, 8, 16, 24, 32];
+/** a saved page size, or 8 when the stored value is missing or outdated */
+export const perPageOf = (n: number) => (FADER_PAGE_SIZES.includes(n) ? n : 8);
+/** bank pages available at a given faders-per-page */
+export const bankPages = (perPage: number) => Math.max(1, Math.floor(BANK_TOTAL / perPage));
+
 
 export const lookStateOf = (f: PatchedFixture): LookState => {
   const { intensity, cct, gm, hue, saturation, crossfade, cctOnly, fx, on, fxPlaying, fan, gel } = f;

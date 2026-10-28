@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NumberField } from "@/components/console/NumberField";
 import type { PatchedFixture } from "@/lib/dmx";
 import type { BankFader, Cue, FaderSnap, Look } from "@/lib/store";
-import { BANK_SIZE, BANK_PAGES, sortCues, faderMembers, snapBank, releaseBank, moveLinked } from "@/lib/playback";
+import { BANK_SIZE, BANK_PAGES, BANK_TOTAL, FADER_PAGE_SIZES, perPageOf, bankPages, sortCues, faderMembers, snapBank, releaseBank, moveLinked } from "@/lib/playback";
 import { fmtTc, parseTc } from "@/lib/show-control";
 
 import { t as tr } from "@/lib/i18n";
@@ -33,7 +33,12 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 
 type Btn = NonNullable<BankFader["buttons"]>[number];
 type Param = NonNullable<BankFader["param"]>;
-const TOTAL = BANK_SIZE * BANK_PAGES;
+const TOTAL = BANK_TOTAL;
+/** grid columns for the full window at each faders-per-page */
+const GRID: Record<number, string> = { 4: "grid-cols-2 lg:grid-cols-4", 8: "grid-cols-4 lg:grid-cols-8", 16: "grid-cols-4 lg:grid-cols-8", 24: "grid-cols-6 lg:grid-cols-8", 32: "grid-cols-4 lg:grid-cols-8" };
+/** smallest fader height at each faders-per-page */
+const MIN_H: Record<number, string> = { 4: "min-h-[320px]", 8: "min-h-[300px]", 16: "min-h-[200px]", 24: "min-h-[150px]", 32: "min-h-[128px]" };
+
 const PARAMS: [Param, string][] = [["intensity", "Intensity"], ["cct", "CCT"], ["hue", "Hue"], ["saturation", "Saturation"], ["fxSpeed", "Effect speed"], ["fxSize", "Effect depth"]];
 const BTNS: [Btn, string][] = [["flash", "FLASH"], ["solo", "SOLO"], ["onoff", "ON/OFF"], ["full", "FULL"], ["zero", "ZERO"]];
 const COLORS: NonNullable<BankFader["color"]>[] = ["primary", "success", "warning", "destructive", "accent", "muted"];
@@ -47,9 +52,13 @@ export function PlaybackBar(p: PlaybackProps) {
   const [edit, setEdit] = useState<number | null>(null);
   const [cuesOpen, setCuesOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const [perPageFull, setPerPageFull] = useState<number>(() => (typeof window !== "undefined" ? Number(localStorage.getItem("nox-fader-per-page")) || 6 : 6));
+  const [perPageFull, setPerPageFull] = useState<number>(() => (typeof window !== "undefined" ? perPageOf(Number(localStorage.getItem("nox-fader-per-page"))) : 8));
   const perPage = p.full ? perPageFull : BANK_SIZE;
-  const pages = TOTAL / perPage;
+  const dense = p.full && perPage >= 24;
+  const allPages = bankPages(perPage);
+
+  const pages = p.full ? (allPages <= 8 ? allPages : Math.min(allPages, Math.ceil(Math.max(p.bank.length, 1) / perPage) + 1)) : BANK_PAGES;
+
   const pg = Math.min(page, pages - 1);
   const base = pg * perPage;
   const sorted = sortCues(p.cues);
@@ -101,7 +110,7 @@ export function PlaybackBar(p: PlaybackProps) {
   const setPer = (n: number) => { setPerPageFull(n); setPage(0); localStorage.setItem("nox-fader-per-page", String(n)); };
 
   const button = (i: number, fd: BankFader, b: Btn) => {
-    const cls = (on: boolean, onCls = "bg-primary text-primary-foreground") => `flex-1 rounded font-bold select-none ${p.full ? "py-1.5 text-xs" : "px-1 py-0.5 text-[9px]"} ${on ? onCls : "bg-background"}`;
+    const cls = (on: boolean, onCls = "bg-primary text-primary-foreground") => `flex-1 rounded font-bold select-none ${p.full ? (dense ? "py-1 text-[10px]" : "py-1.5 text-xs") : "px-1 py-0.5 text-[9px]"} ${on ? onCls : "bg-background"}`;
     const label = tr(BTNS.find(([k]) => k === b)![1]);
     if (b === "flash") return <button key={b} onPointerDown={() => p.setFlash(fd.id)} onPointerUp={() => p.setFlash(null)} onPointerLeave={() => p.flash === fd.id && p.setFlash(null)} onContextMenu={(e) => e.preventDefault()} className={cls(p.flash === fd.id, "bg-amber-glow text-primary-foreground")}>{label}</button>;
     if (b === "solo") return <button key={b} onClick={() => p.setSolo(p.solo === fd.id ? null : fd.id)} aria-pressed={p.solo === fd.id} className={cls(p.solo === fd.id)}>{label}</button>;
@@ -139,7 +148,7 @@ export function PlaybackBar(p: PlaybackProps) {
         </div>
       </div>
       <div className="w-px shrink-0 bg-border" />
-      <div aria-label={tr("Fader banks")} className={`grid shrink-0 gap-1 ${pages > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+      <div aria-label={tr("Fader banks")} className={`grid shrink-0 content-start gap-1 overflow-y-auto ${pages > 8 ? "max-h-16 grid-cols-4" : pages > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
         {Array.from({ length: pages }, (_, b) => {
           const used = p.bank.slice(b * perPage, (b + 1) * perPage).some((x) => x && x.name);
           return (
@@ -152,7 +161,7 @@ export function PlaybackBar(p: PlaybackProps) {
         <div className="w-px shrink-0 bg-border" />
         <div className="flex items-center gap-1 text-[10px] font-bold" aria-label={tr("Faders per page")}>
           <span className="mr-1 text-muted-foreground">{tr("Per page")}</span>
-          {[6, 12, 24].map((n) => <button key={n} onClick={() => setPer(n)} aria-pressed={perPage === n} className={`rounded-md px-2 py-1.5 ${perPage === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{n}</button>)}
+          {FADER_PAGE_SIZES.map((n) => <button key={n} onClick={() => setPer(n)} aria-pressed={perPage === n} className={`rounded-md px-2 py-1.5 ${perPage === n ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{n}</button>)}
         </div>
         <div className="w-px shrink-0 bg-border" />
         <button onClick={() => { setLinkMode((v) => !v); }} aria-pressed={linkMode} title={tr("Tap fader names to link them; linked faders move together")}
@@ -178,7 +187,7 @@ export function PlaybackBar(p: PlaybackProps) {
           </label>
         </div>
       )}
-      <div className={p.full ? `grid min-h-0 flex-1 gap-3 overflow-auto ${perPage === 24 ? "grid-cols-4 lg:grid-cols-8" : "grid-cols-3 lg:grid-cols-6"}` : "contents"}>
+      <div className={p.full ? `grid min-h-0 flex-1 overflow-auto ${dense ? "gap-2" : "gap-3"} ${GRID[perPage] ?? "grid-cols-3 lg:grid-cols-6"}` : "contents"}>
       {slots.map((fd, j) => {
         const i = base + j;
         const empty = !fd || (!fd.name && fd.kind === "fixtures" && !fd.uids?.length);
@@ -187,27 +196,31 @@ export function PlaybackBar(p: PlaybackProps) {
         const live = !empty && fd!.id === lastId;
         const color = fd?.color ?? "primary";
         return (
-          <div key={i} className={`relative flex flex-col overflow-hidden border-2 ${live ? ring[color] : "border-transparent"} bg-surface-elevated ${p.full ? `${perPage === 6 ? "min-h-[260px]" : "min-h-[170px]"} gap-2 rounded-xl p-2.5` : "w-32 shrink-0 gap-1 rounded-lg px-2 py-1"} ${fd?.off ? "opacity-60" : ""}`}>
+          <div key={i} className={`relative flex flex-col overflow-hidden border-2 ${live ? ring[color] : "border-transparent"} bg-surface-elevated ${p.full ? `${MIN_H[perPage] ?? "min-h-[170px]"} ${dense ? "gap-1.5 rounded-lg p-1.5" : "gap-2 rounded-xl p-2.5"}` : "w-32 shrink-0 gap-1 rounded-lg px-2 py-1"} ${fd?.off ? "opacity-60" : ""}`}>
             {!empty && <span className={`absolute inset-x-0 top-0 h-1 ${swatch[color]}`} />}
-            <div className={`flex items-center gap-1 ${p.full ? "text-sm" : "text-[10px]"}`}>
+            <div className={`flex items-center gap-1 ${p.full ? (dense ? "text-xs" : "text-sm") : "text-[10px]"}`}>
               <span className="font-mono text-muted-foreground">{i + 1}</span>
+              {dense && live && <span className="shrink-0 rounded bg-primary px-1 text-[8px] font-black text-primary-foreground">{tr("LIVE")}</span>}
+
               {linkMode && !empty && fd!.kind !== "master" ? (
                 <button onClick={() => setLinked((x) => { const n = new Set(x); if (n.has(fd!.id)) n.delete(fd!.id); else n.add(fd!.id); return n; })} aria-pressed={linked.has(fd!.id)}
                   className={`min-w-0 flex-1 truncate rounded px-1 text-left font-semibold ${linked.has(fd!.id) ? "bg-primary text-primary-foreground" : "bg-background"}`}>{fd!.name}</button>
               ) : <span className="min-w-0 flex-1 truncate font-semibold">{empty ? tr("Empty") : fd!.name}{!empty && linked.has(fd!.id) && <span className="ml-1 text-[9px] text-primary">🔗</span>}</span>}
+              {dense && !empty && <span className="shrink-0 font-mono font-bold">{readout(fd!, lv)}</span>}
               <button onClick={() => setEdit(i)} aria-label={`Set up fader ${i + 1}`}><Settings2 className="h-3.5 w-3.5" /></button>
+
             </div>
             {empty ? (
               <button onClick={() => setEdit(i)} className={`rounded-md border border-dashed border-border text-muted-foreground ${p.full ? "flex-1 text-sm" : "py-1 text-[10px]"}`}>{tr("Assign")}</button>
             ) : (
               <>
-                {p.full && <div className="flex items-center justify-between text-[10px]">
+                {p.full && !dense && <div className="flex items-center justify-between text-[10px]">
                   <span className="rounded bg-background px-1.5 py-0.5 font-bold uppercase tracking-wide text-muted-foreground">{paramLabel(fd!)}</span>
                   {live && <span className="font-bold text-primary">{tr("LIVE")}</span>}
                 </div>}
                 {p.full ? (
                   <div className="flex min-h-0 flex-1 items-stretch justify-center gap-2">
-                    <VFader label={`Fader ${i + 1} ${fd!.name}`} value={lv} onChange={(v) => setLevel(i, v)} fill={swatch[color]} />
+                    <VFader label={`Fader ${i + 1} ${fd!.name}`} value={lv} onChange={(v) => setLevel(i, v)} fill={swatch[color]} dense={!!dense} />
                     <div aria-hidden className="relative w-2 overflow-hidden rounded-full bg-background">
                       <div className={`absolute inset-x-0 bottom-0 ${swatch[color]} transition-[height] duration-75`} style={{ height: `${(fd!.off ? 0 : lv) * 100}%` }} />
                     </div>
@@ -215,8 +228,9 @@ export function PlaybackBar(p: PlaybackProps) {
                 ) : (
                   <input aria-label={`Fader ${i + 1} ${fd!.name}`} type="range" min={0} max={1} step={0.01} value={lv} onChange={(e) => setLevel(i, +e.target.value)} />
                 )}
-                {p.full && <div className="text-center font-mono text-lg font-bold leading-none">{readout(fd!, lv)}</div>}
-                {p.full && fd!.kind !== "master" && (
+                {p.full && !dense && <div className="text-center font-mono text-lg font-bold leading-none">{readout(fd!, lv)}</div>}
+                {p.full && !dense && fd!.kind !== "master" && (
+
                   <div title={members.map((m) => m.name).join(", ")} className="space-y-1">
                     <div className="flex flex-wrap gap-0.5">
                       {members.slice(0, 16).map((m) => { const o = out.find((x) => x.uid === m.uid); const v = o && o.on !== false ? o.intensity : 0; return <span key={m.uid} className="h-2 w-2 rounded-full bg-primary" style={{ opacity: 0.15 + v * 0.85 }} />; })}
@@ -241,20 +255,24 @@ export function PlaybackBar(p: PlaybackProps) {
 }
 
 /** Tall touch fader: drag anywhere on the track; arrow keys nudge. */
-function VFader({ label, value, onChange, fill }: { label: string; value: number; onChange: (v: number) => void; fill: string }) {
+function VFader({ label, value, onChange, fill, dense }: { label: string; value: number; onChange: (v: number) => void; fill: string; dense?: boolean }) {
   const at = (e: React.PointerEvent<HTMLDivElement>) => { const r = e.currentTarget.getBoundingClientRect(); onChange(Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height))); };
+  const pad = dense ? 3 : 8;                       // track inset top/bottom
+  const hh = dense ? 10 : 16;                      // handle height
+  const span = `calc(100% - ${pad * 2}px)`;
   return (
     <div role="slider" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value * 100)} tabIndex={0}
       onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); at(e); }}
       onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) at(e); }}
       onKeyDown={(e) => { const d = e.key === "ArrowUp" ? 0.01 : e.key === "ArrowDown" ? -0.01 : e.key === "PageUp" ? 0.1 : e.key === "PageDown" ? -0.1 : 0; if (d) { e.preventDefault(); onChange(Math.min(1, Math.max(0, value + d))); } }}
       className="relative w-12 cursor-ns-resize touch-none rounded-lg bg-background outline-none focus-visible:ring-2 focus-visible:ring-primary">
-      <div className={`absolute inset-x-[18px] bottom-2 top-2 rounded-full bg-border`} />
-      <div className={`absolute inset-x-[18px] bottom-2 rounded-full ${fill}`} style={{ height: `calc((100% - 16px) * ${value})` }} />
-      <div className="absolute inset-x-1 h-4 -translate-y-1/2 rounded-md border border-border bg-surface-elevated shadow-md" style={{ top: `calc(8px + (100% - 16px) * ${1 - value})` }} />
+      <div className="absolute rounded-full bg-border" style={{ left: 18, right: 18, top: pad, bottom: pad }} />
+      <div className={`absolute rounded-full ${fill}`} style={{ left: 18, right: 18, bottom: pad, height: `calc(${span} * ${value})` }} />
+      <div className="absolute inset-x-1 -translate-y-1/2 rounded-md border border-border bg-surface-elevated shadow-md" style={{ height: hh, top: `calc(${pad}px + ${span} * ${1 - value})` }} />
     </div>
   );
 }
+
 
 function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave }: PlaybackProps & { i: number; fd?: BankFader | undefined; onClose: () => void; onSave: (fd: BankFader | null) => void }) {
   const [kind, setKind] = useState<BankFader["kind"]>(fd?.kind ?? (groups.length ? "group" : "fixtures"));

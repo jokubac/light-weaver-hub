@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyBank, nextCueNumber, snapBank, releaseBank, moveLinked } from "@/lib/playback";
+import { applyBank, nextCueNumber, snapBank, releaseBank, moveLinked, BANK_TOTAL, FADER_PAGE_SIZES, perPageOf, bankPages } from "@/lib/playback";
 import type { PatchedFixture } from "@/lib/dmx";
 
 const fx = (uid: string, group?: string) => ({ uid, name: uid, intensity: 0.8, cct: 0.5, gm: 0, hue: 0, saturation: 0, crossfade: 0, cctOnly: true, fx: { kind: "none" }, on: true, ...(group ? { group } : {}) }) as unknown as PatchedFixture;
@@ -47,3 +47,23 @@ describe("playback bank", () => {
     expect(nextCueNumber([c(1), c(2), c(3)], 2)).toBe(2.5);
   });
 });
+
+describe("faders per page", () => {
+  it("offers 4, 8, 16, 24 and 32 faders on one page", () => {
+    expect(FADER_PAGE_SIZES).toEqual([4, 8, 16, 24, 32]);
+  });
+  it("every page size fills whole bank pages", () => {
+    FADER_PAGE_SIZES.forEach((n) => { expect(bankPages(n) * n).toBe(BANK_TOTAL); });
+    expect(bankPages(32)).toBe(3);
+    expect(bankPages(24)).toBe(4);
+  });
+  it("keeps a saved page size and falls back to 8 for old or missing values", () => {
+    expect(perPageOf(24)).toBe(24);
+    expect(perPageOf(4)).toBe(4);
+    expect(perPageOf(6)).toBe(8);
+    expect(perPageOf(12)).toBe(8);
+    expect(perPageOf(0)).toBe(8);
+    expect(perPageOf(NaN)).toBe(8);
+  });
+});
+
