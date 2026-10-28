@@ -320,5 +320,5 @@
   Verified in the browser with three Astera Titan tubes: CCT sliders read 1750-20000, swatches go warm→cool with no green step, intensity gauges show 20/60/100%, the panel survives a drag ending outside it, a real outside click still closes it, and the same holds in Lithuanian. 412 tests pass.
 - [x] Blackout reminder: with the master up, engaging blackout (button, key or MIDI) shows a friendly banner; raising the master while blacked out reminds again; master at 0 keeps the master wording; releasing blackout stays silent. 412 tests passed, browser verified.
 - [x] Output-blocker reminder fires from every control path (control panel, triggers, macros, keypad, MIDI, plot): a settings diff raises "Master is off — perhaps you forgot to turn the master up?" or the blackout wording; browser verified on intensity, CCT, Flash and blackout moves; 5 new tests (417 total).
-- [ ] Full FADERS window: faders per page 4, 8, 16, 24, 32 (replace 6/12/24), layout and bank pages follow the chosen size.
-- [ ] Fader bar: explain/clarify the PROG and TC buttons the user asked about ("kas cia").
+- [x] Full FADERS window: faders per page 4, 8, 16, 24, 32; the grid, bank buttons and fader size follow the choice, the setting persists, and every layout fits the screen without clipping; browser verified, 425 tests.
+- [x] Fader bar: explained the PROG (programmer changes since the stored cue) and TC (follow MIDI timecode) buttons to the user.
