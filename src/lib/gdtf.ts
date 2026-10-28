@@ -3,6 +3,7 @@
 // GDTF spec: https://gdtf-share.com — we only read what the console needs to drive DMX.
 import { unzipSync, strFromU8 } from "fflate";
 import type { ChannelAttr, ChannelMapEntry, FixtureDef, FixtureMode, ModeKind } from "./dmx";
+import { cctRangeOverride } from "./gdtf-curation";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
