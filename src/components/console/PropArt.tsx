@@ -35,7 +35,7 @@ export function PropArt({ id, w, h, glow }: { id?: string | undefined; w: number
     default: body = <rect x={sw} y={sw} width={W - 2 * sw} height={H - 2 * sw} rx={m * 0.1} fill={F} {...p} />;
   }
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full overflow-visible" aria-hidden>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="h-full w-full overflow-visible" aria-hidden>
       {glow && <defs><radialGradient id={gid}><stop offset="0%" stopColor={glow} stopOpacity={0.85} /><stop offset="100%" stopColor={glow} stopOpacity={0} /></radialGradient></defs>}
       {body}
     </svg>

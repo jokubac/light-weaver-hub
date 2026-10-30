@@ -581,7 +581,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           {GRID_PROPS.map((pr) => (
             <button key={pr.id} onClick={() => { const id = nid(); const sp = freeSpot(grid.items, pr.w, pr.h); setGrid({ ...grid, items: [...grid.items, { id, kind: "prop", prop: pr.id, x: sp.x, y: sp.y, w: pr.w, h: pr.h }] }); setEsel([id]); setMode("select"); }}
               className={`flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold active:scale-95 ${pr.lamp ? "bg-primary/15 text-foreground" : "bg-surface-elevated"}`}>
-              <span className="h-7 w-9"><PropArt id={pr.id} w={Math.min(pr.w, 2.2)} h={Math.min(pr.h, 1.6)} glow={pr.lamp ? "hsl(40 95% 60%)" : undefined} /></span>{tr(pr.label)}
+              <span className="h-7 w-9"><PropArt id={pr.id} w={pr.w} h={pr.h} glow={pr.lamp ? "hsl(40 95% 60%)" : undefined} /></span>{tr(pr.label)}
             </button>
           ))}
         </div>
@@ -829,7 +829,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 {it.kind === "prop" ? (() => { const pr = GRID_PROPS.find((g) => g.id === it.prop); return (
                   <div className="pointer-events-none relative h-full w-full">
                     <PropArt id={it.prop} w={pos.w} h={pos.h} glow={f ? colorOf(f) : undefined} />
-                    <span className="absolute left-1/2 top-full mt-0.5 max-w-[160%] -translate-x-1/2 truncate whitespace-nowrap rounded bg-background/80 px-1 text-[9px] font-semibold leading-tight text-foreground">{it.text || (pr ? tr(pr.label) : "")}{f ? <span className="font-mono text-muted-foreground"> · #{n}</span> : null}</span>
+                    <span className="absolute bottom-0 left-1/2 max-w-full -translate-x-1/2 truncate whitespace-nowrap rounded bg-background/80 px-1 text-[9px] font-semibold leading-tight text-foreground">{it.text || (pr ? tr(pr.label) : "")}{f ? <span className="font-mono text-muted-foreground"> · #{n}</span> : null}</span>
                   </div>); })() : it.kind === "image" ? (
                   <img src={it.src} alt="" draggable={false} className="pointer-events-none h-full w-full object-fill" style={{ opacity: it.opacity ?? 1, filter: it.invert ? "invert(1)" : undefined }} />
                 ) : it.kind === "table" ? (<>
