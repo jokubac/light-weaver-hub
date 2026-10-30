@@ -17,7 +17,6 @@ import { FSTOPS, ISOS, LENSES, SENSORS, FPS_OPTIONS, SHUTTER_ANGLES, defaultCame
 import { Video, Gauge } from "lucide-react";
 import { SET_OBJECTS, objectContains, type SetObject, type SetObjectKind } from "@/lib/plot-objects";
 import { hexToHs } from "@/lib/gels";
-import { SettingsTransfer } from "./SettingsTransfer";
 import { plotEditSession } from "@/lib/plot-edit-session";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
@@ -86,11 +85,10 @@ function themeOf() {
   return { getPropertyValue: (n: string) => values.get(n) ?? "" };
 }
 
-export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSelected, colorOf, levelOf, update: commitFixture, onClose, onOpenControls, copiedSource, onCopy, onPaste }: {
+export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSelected, colorOf, levelOf, update: commitFixture, onClose, onOpenControls }: {
   plot: Plot; setPlot: (p: Plot) => void; fixtures: PatchedFixture[]; selected: string[]; setSelected: (s: string[]) => void;
   colorOf: (f: PatchedFixture) => [number, number, number]; levelOf: (f: PatchedFixture) => number;
   update: (uid: string, p: Partial<PatchedFixture>) => void; onClose: () => void; onOpenControls: () => void;
-  copiedSource?: string | undefined; onCopy: () => void; onPaste: () => void;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -1264,7 +1262,6 @@ export function PlotPanel({ plot, setPlot: commitPlot, fixtures, selected, setSe
           })()}
           {first && firstItem ? (
             <div className="space-y-3">
-              <SettingsTransfer source={copiedSource} canCopy={!!first} onCopy={onCopy} onPaste={() => { record(); onPaste(); }} />
               <div className="flex items-center justify-between">
                 <p className="font-semibold">{selItems.length > 1 ? `${selItems.length} lights` : first.name}</p>
                 <button onClick={() => selItems.forEach((u) => update(u, { on: !allOn }))} className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-bold ${allOn ? "bg-success text-primary-foreground" : "bg-surface-elevated"}`}><Power className="h-3.5 w-3.5" />{allOn ? tr("ON") : tr("OFF")}</button>

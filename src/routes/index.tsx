@@ -1631,7 +1631,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       <p className="py-10 text-center text-sm text-muted-foreground">{tr("Tap lights to select and control them.")}</p>
     ) : (
       <FixtureControls fixtures={fixtures} sel={sel} update={updateSelected} updateEach={updateEach} fire={fire} locked={locked}
-        onFlash={() => flashFixtures(selected)} copiedSource={copied?.name} onCopy={copySettings} onPaste={pasteSettings}
+        onFlash={() => flashFixtures(selected)}
         remove={() => { if (!confirm(tr("Remove selected fixtures from this scene?"))) return; setFixtures((fs) => fs.filter((f) => !selected.includes(f.uid))); setSelected([]); }} />
     )
   );

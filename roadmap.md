@@ -342,3 +342,5 @@
 - [x] PATCH redagavimas nebeišmeta klaviatūros: atidaryta eilutė matuojama, o ne spėjama; Enter eina į kitą lempą, klaviatūra lieka
 - [ ] FIXTURES plokštės tinklelis taip pat virtualizuotas (3000 lempų: atidarant PATCH vis dar tenka nuimti ~3000 langelių) — orientyras: Blackout patch
 - [x] Stream Deck mygtukų redaktoriuje — piktogramos kiekvienam veiksmui, paieška, mygtukai vietoj sąrašo
+- [x] Fixture control panel: name, Universe and Address sit in one tiny row with a single meta line under it — the block is ~2.2x shorter (124 -> 57 px); browser verified on a seeded show.
+- [x] Copy settings / Paste row removed from the fixture and plot panels and the component deleted; copying still works from the keypad COPY/PASTE and macros; the five wordings were dropped from all 23 dictionaries. 483 tests and typecheck pass.
