@@ -17,7 +17,7 @@ import { LabelPrinter } from "./LabelPrinter";
 import { RenameDialog } from "./RenameDialog";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick, patchClashes, patchOffset, patchWindow, type ExpandedRow } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, togglePick, patchClashes, patchOffset, patchWindow, type ExpandedRow } from "@/lib/patch-order";
 import { keyboardScroll, visibleBand } from "@/lib/keyboard-view";
 
 import { t as tr } from "@/lib/i18n";

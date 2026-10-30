@@ -86,3 +86,12 @@ describe("Patch sheet band", () => {
     expect(patchWindow(1000, 5 * ROW_H + 100, 340, ROW_H, 0, open).first).toBe(5);
   });
 });
+import { renameSequence } from "@/lib/patch-order";
+describe("renameSequence", () => {
+  it("adds padded sequence numbers after the name", () => {
+    expect(renameSequence({ base: "Key", numbering: "after", start: 1, step: 1, pad: 2, sep: " " }, [{}, {}])).toEqual(["Key 01", "Key 02"]);
+  });
+  it("puts the number before with step", () => {
+    expect(renameSequence({ base: "Fill", numbering: "before", start: 10, step: 5, pad: 1, sep: "-" }, [{}, {}])).toEqual(["10-Fill", "15-Fill"]);
+  });
+});
