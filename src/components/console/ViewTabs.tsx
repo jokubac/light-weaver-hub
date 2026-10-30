@@ -5,6 +5,8 @@ export interface ViewTab {
   label: string;
   on: boolean;
   onClick: () => void;
+  /** highlight colour (CSS colour), default primary */
+  tone?: string;
 }
 
 /** View tabs with a sliding amber highlight that glides to the active tab.
@@ -31,7 +33,7 @@ export function ViewTabs({ tabs, fill = false }: { tabs: ViewTab[]; fill?: boole
       {pos && (
         <span aria-hidden="true"
           className="pointer-events-none absolute bottom-1 top-1 rounded-lg bg-primary shadow-[0_4px_14px_-6px_color-mix(in_oklab,var(--primary)_75%,transparent)] transition-[left,width] duration-200 ease-out"
-          style={{ left: pos.x, width: pos.w }} />
+          style={{ left: pos.x, width: pos.w, ...(tabs[active]?.tone ? { background: tabs[active]!.tone } : {}) }} />
       )}
       {tabs.map((t, i) => (
         <button key={t.key} type="button" data-tab={i} onClick={t.onClick} aria-pressed={t.on} className={`nox-tab relative z-10${fill ? " nox-tab-fill" : ""}`}>{t.label}</button>

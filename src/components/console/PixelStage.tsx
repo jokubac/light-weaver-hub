@@ -297,8 +297,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
           {onLive && layer && (() => { const gid = layer.group ?? layer.id; const lv = layers.find((l) => (l.group ?? l.id) === gid)?.live !== false; return (
             <div className="order-first mr-2" title={tr("LIVE: lights follow this page. PREVIEW: only the screen shows it.")}>
               <ViewTabs tabs={[
-                { key: "preview", label: tr("PREVIEW"), on: !lv, onClick: () => onLive(gid, false) },
-                { key: "live", label: tr("LIVE"), on: lv, onClick: () => onLive(gid, true) },
+                { key: "preview", label: tr("PREVIEW"), on: !lv, tone: "var(--success)", onClick: () => onLive(gid, false) },
+                { key: "live", label: tr("LIVE"), on: lv, tone: "var(--destructive)", onClick: () => onLive(gid, true) },
               ]} />
             </div>); })()}
           {onSelect && (
