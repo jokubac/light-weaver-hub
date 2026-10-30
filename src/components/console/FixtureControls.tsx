@@ -106,26 +106,22 @@ export function FixtureControls({
       </div>
 
       {sel.length === 1 && (
-        <div className="rounded-xl border border-input/60 bg-surface-elevated/30 px-2.5 pb-2 pt-1.5">
-          <div className="relative">
+        <div className="rounded-xl border border-input/60 bg-surface-elevated/30 px-2.5 pb-1.5 pt-1">
+          <div className="flex items-center gap-1.5">
+            <Pencil className="h-3 w-3 shrink-0 text-muted-foreground/70" />
             <input
               value={first.name}
               aria-label={tr("Fixture name")}
               onChange={(e) => update({ name: e.target.value })}
-              className="w-full border-b border-dashed border-input/70 bg-transparent pb-0.5 pr-5 text-sm font-semibold text-foreground outline-none hover:bg-input/30 focus:border-primary focus:bg-input/40"
+              className="min-w-0 flex-1 border-b border-dashed border-input/70 bg-transparent py-0.5 text-sm font-semibold text-foreground outline-none hover:bg-input/30 focus:border-primary focus:bg-input/40"
             />
-            <Pencil className="pointer-events-none absolute bottom-1 right-0.5 h-3 w-3 text-muted-foreground/70" />
+            <span className="text-[10px] font-bold text-primary/80">U</span>
+            <NumberField aria-label={tr("Universe")} integer min={1} max={64} disabled={locked} value={first.universe} onChange={(v) => v && update({ universe: v })} className={`w-10 text-center ${locked ? "opacity-50" : ""}`} />
+            <span className="text-[10px] font-bold text-primary/80">@</span>
+            <NumberField aria-label={tr("Address")} integer min={1} max={512} disabled={locked} value={first.address} onChange={(v) => v && update({ address: v })} className={`w-12 text-center ${locked ? "opacity-50" : ""}`} />
+            {locked && <span title={tr("Patch locked — unlock to edit")}><Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /></span>}
           </div>
-          <div className="mt-1 flex items-center gap-2">
-            <p className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels}{tr("ch")}</p>
-            <div className="flex shrink-0 items-center gap-1" title={locked ? tr("Patch locked — unlock to edit") : undefined}>
-              <span className="text-[10px] font-bold text-primary/80">U</span>
-              <NumberField aria-label={tr("Universe")} integer min={1} max={64} disabled={locked} value={first.universe} onChange={(v) => v && update({ universe: v })} className={`w-10 text-center ${locked ? "opacity-50" : ""}`} />
-              <span className="text-[10px] font-bold text-primary/80">@</span>
-              <NumberField aria-label={tr("Address")} integer min={1} max={512} disabled={locked} value={first.address} onChange={(v) => v && update({ address: v })} className={`w-12 text-center ${locked ? "opacity-50" : ""}`} />
-              {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
-            </div>
-          </div>
+          <p className="mt-1 truncate text-[10px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels}{tr("ch")}</p>
           {conflicts.length > 0 && <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />{tr("Overlaps")} {conflicts.map((c) => c.name).join(", ")}</p>}
         </div>
       )}
