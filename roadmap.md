@@ -345,3 +345,5 @@
 - [x] Fixture control panel: name, Universe and Address sit in one tiny row with a single meta line under it — the block is ~2.2x shorter (124 -> 57 px); browser verified on a seeded show.
 - [x] Copy settings / Paste row removed from the fixture and plot panels and the component deleted; copying still works from the keypad COPY/PASTE and macros; the five wordings were dropped from all 23 dictionaries. 483 tests and typecheck pass.
 - [x] Fixture control panel header simplified to one tidy card: pencil + name + U/@ address fields on one row, lock icon instead of the long lock warning line, model/mode line underneath; the old wording was dropped from all 23 dictionaries. 483 tests, typecheck and browser lock/unlock/address-edit checks pass.
+
+- [x] PATCH rename dialog simplified: no Step field; tap a live example (Light 1 / 1 Light / Light), pick 1/01/001 and a separator; 15 patch-order tests and browser apply check pass (names saved as 01-Light, 02-Light, 03-Light).
