@@ -678,6 +678,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <button disabled={!selItems.some((i) => i.kind === "fixture")} onClick={() => { const fids = new Set(selItems.filter((i) => i.kind === "fixture").map((i) => i.id)); setGrid({ ...grid, items: layoutTables(grid.items.map((i) => { if (!fids.has(i.id)) return i; const b = boxOf(i, sz); return { ...i, w: b.h, h: b.w, x: i.x + (b.w - b.h) / 2, y: i.y + (b.h - b.w) / 2 }; }), sz) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label={tr("Rotate selected lights 90 degrees")} title={tr("Rotate the selected lights 90°")}><RotateCw className="h-3.5 w-3.5" />90°</button>
             </>);
           })()}
+          <button disabled={!selItems.length} onClick={() => removeIds(selItems.map((i) => i.id))} className={`${chip(false)} text-destructive disabled:opacity-40`} aria-label={tr("Delete selected from plot")}><Trash2 className="h-3.5 w-3.5" />{tr("Delete")}</button>
           <button onClick={() => setView(HOME)} className={chip(false)} aria-label={tr("Recenter grid")}><LocateFixed className="h-3.5 w-3.5" />{tr("Recenter")}</button>
           <span className="font-mono text-[10px] text-muted-foreground">{Math.round(view.z * 100)}%</span>
           {!live && (<>
