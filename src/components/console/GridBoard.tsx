@@ -62,6 +62,8 @@ export function emptyGrid(): GridLayout {
 }
 
 const CELL = 76, COLS = 24, ROWS = 16, SIZE = 0.92;
+/** Where a picked prop lands: centred on the tapped floor point, snapped to a quarter cell. */
+export const propSpot = (x: number, y: number, w: number, h: number) => ({ x: Math.round((x - w / 2) * 4) / 4, y: Math.round((y - h / 2) * 4) / 4 });
 const nid = () => Math.random().toString(36).slice(2, 10);
 const clamp = (v: number, max: number) => Math.max(0, Math.min(max, v));
 
@@ -328,7 +330,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [liveAdd, setLiveAdd] = useState(false);
   // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
   const [panelOpen, setPanelOpen] = useState(true);
-  const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
+  const [mode, setMode] = useState<"select" | "walls" | "text" | "light" | "prop">("select");
   useEffect(() => { if (mode !== "light") setLiveAdd(false); }, [mode]);
   // Which text label is being typed into right now, edited on the box itself.
   const [editText, setEditText] = useState<string | null>(null);
@@ -347,6 +349,16 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const [wEnd, setWEnd] = useState<{ i: number; e: 1 | 2 } | null>(null);
   const [nextUid, setNextUid] = useState<string | null>(null);
   const [pickGroup, setPickGroup] = useState<string | null>(null);
+  // A picked prop waits to be dropped: it lands on the floor only where the user taps.
+  const [pickProp, setPickProp] = useState<string | null>(null);
+  const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
+  const propArmed = mode === "prop" && !!pickProp;
+  useEffect(() => {
+    if (!propArmed) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setMode("select"); setPickProp(null); setGhost(null); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [propArmed]);
   const [lq, setLq] = useState("");
   const [flt, setFlt] = useFixtureFilter();
   const [box, setBox] = useState<{ x1: number; y1: number; x2: number; y2: number; add: boolean } | null>(null);
@@ -467,6 +479,15 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     const nx = [...fixtures.slice(idx + 1), ...fixtures.slice(0, idx)].find((g) => !placed.has(g.uid) && g.uid !== f.uid);
     setNextUid(nx?.uid ?? null);
   };
+  /** Drops the picked prop centred on the tap, so it lands exactly where the floor was pressed. The tool stays on for placing more. */
+  const addProp = (x: number, y: number) => {
+    const pr = GRID_PROPS.find((g) => g.id === pickProp);
+    if (!pr) return;
+    const id = nid();
+    const sp = propSpot(x, y, pr.w, pr.h);
+    setGrid({ ...grid, items: [...grid.items, { id, kind: "prop", prop: pr.id, x: sp.x, y: sp.y, w: pr.w, h: pr.h }] });
+    setEsel([id]);
+  };
   const rectWalls = (w: { x1: number; y1: number; x2: number; y2: number }) => [
     { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y1 }, { x1: w.x2, y1: w.y1, x2: w.x2, y2: w.y2 },
     { x1: w.x2, y1: w.y2, x2: w.x1, y2: w.y2 }, { x1: w.x1, y1: w.y2, x2: w.x1, y2: w.y1 },
@@ -576,14 +597,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
       <Button variant="secondary" size="sm" className="w-full" onClick={addTable}><Table2 />{tr("Macros table")}</Button>
       <section className="space-y-2 rounded-lg border border-border p-2">
         <h3 className="text-xs font-bold uppercase">{tr("Props")}</h3>
-        <p className="text-[10px] text-muted-foreground">{tr("Add set props. Lamps can hold a light — select the lamp, then pick the light inside.")}</p>
+        <p className="text-[10px] text-muted-foreground">{propArmed ? tr("Tap the floor where you want it. Tap again to place another; press the prop again to stop.") : tr("Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.")}</p>
         <div className="grid grid-cols-4 gap-1">
-          {GRID_PROPS.map((pr) => (
-            <button key={pr.id} onClick={() => { const id = nid(); const sp = freeSpot(grid.items, pr.w, pr.h); setGrid({ ...grid, items: [...grid.items, { id, kind: "prop", prop: pr.id, x: sp.x, y: sp.y, w: pr.w, h: pr.h }] }); setEsel([id]); setMode("select"); }}
-              className={`flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold active:scale-95 ${pr.lamp ? "bg-primary/15 text-foreground" : "bg-surface-elevated"}`}>
+          {GRID_PROPS.map((pr) => { const on = mode === "prop" && pickProp === pr.id; return (
+            <button key={pr.id} onClick={() => { setPickProp(on ? null : pr.id); setMode(on ? "select" : "prop"); setGhost(null); }} aria-pressed={on}
+              className={`flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold active:scale-95 ${on ? "bg-primary text-primary-foreground ring-2 ring-primary" : pr.lamp ? "bg-primary/15 text-foreground" : "bg-surface-elevated"}`}>
               <span className="h-7 w-9"><PropArt id={pr.id} w={pr.w} h={pr.h} glow={pr.lamp ? "hsl(40 95% 60%)" : undefined} /></span>{tr(pr.label)}
             </button>
-          ))}
+          ); })}
         </div>
       </section>
       {one && one.kind !== "image" && (
@@ -704,6 +725,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const p = pt(e); area_.current!.setPointerCapture(e.pointerId);
             if (!live && mode === "walls") { const q = snapToEnds(grid.walls, p.x, p.y); setWall({ x1: q.x, y1: q.y, x2: q.x, y2: q.y }); }
             else if (!live && mode === "text") addText(p.x, p.y);
+            else if (propArmed) addProp(p.x, p.y);
             else if ((!live || liveAdd) && mode === "light") addLight(p.x, p.y);
             else setBox({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, add: e.shiftKey || e.ctrlKey || e.metaKey });
           }}
@@ -714,6 +736,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             if (pinch.current && touches.current.size === 2) { const [p1, p2] = [...touches.current.values()]; const d = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y), cx = (p1!.x + p2!.x) / 2, cy = (p1!.y + p2!.y) / 2; const r = vp.current!.getBoundingClientRect(); const pc = pinch.current; setView((v) => ({ ...v, x: v.x + cx - pc.cx, y: v.y + cy - pc.cy })); viewRef.current = { ...viewRef.current, x: viewRef.current.x + cx - pc.cx, y: viewRef.current.y + cy - pc.cy }; zoomAt(cx - r.left, cy - r.top, viewRef.current.z * (d / pc.d)); pinch.current = { d, cx, cy }; return; }
             if (panDrag.current) { const q = panDrag.current; setView((v) => ({ ...v, x: q.x0 + e.clientX - q.sx, y: q.y0 + e.clientY - q.sy })); return; }
             const p = pt(e);
+            if (propArmed) { const q = { x: Math.round(p.x * 4) / 4, y: Math.round(p.y * 4) / 4 }; setGhost((g) => (g && g.x === q.x && g.y === q.y ? g : q)); }
             if (rs) { const lone = rs.orig.length === 1 ? grid.items.find((i) => i.id === rs.orig[0]!.id && i.kind === "table") : undefined;
               setRs({ ...rs, out: lone ? [resizeTable(rs.orig[0]!, rs.corner, p.x, p.y)] : resizeBoxes(rs.orig, rs.corner, p.x, p.y, rs.orig.some((o) => grid.items.find((i) => i.id === o.id && (i.kind === "table" || (isMacroBox(i) && i.tbl)))) ? MACRO_CELL * 0.88 : 0.3, new Set(grid.items.filter((i) => i.kind === "fixture").map((i) => i.id))) }); }
             else if (wEnd) { const w0 = grid.walls[wEnd.i]!; const o = wEnd.e === 1 ? { x: w0.x2, y: w0.y2 } : { x: w0.x1, y: w0.y1 }; const sn = snapToEnds(grid.walls, p.x, p.y, wEnd); const q = sn.x !== p.x || sn.y !== p.y ? sn : (() => { const k = snapWall(o.x, o.y, p.x, p.y); return { x: k.x2, y: k.y2 }; })(); setGrid({ ...grid, walls: grid.walls.map((w, k) => (k !== wEnd.i ? w : wEnd.e === 1 ? { ...w, x1: q.x, y1: q.y } : { ...w, x2: q.x, y2: q.y })) }); }
@@ -792,6 +815,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                 onPointerDown={(e) => { e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); setWEnd({ i, e: en }); }} />
             )))}
           </svg>
+          {propArmed && ghost && (() => { const pr = GRID_PROPS.find((g) => g.id === pickProp); return pr ? (
+            <div className="pointer-events-none absolute z-40 opacity-70" style={{ left: (ghost.x - pr.w / 2) * CELL, top: (ghost.y - pr.h / 2) * CELL, width: pr.w * CELL, height: pr.h * CELL }}>
+              <PropArt id={pr.id} w={pr.w} h={pr.h} glow={pr.lamp ? "hsl(40 95% 60%)" : undefined} />
+            </div>
+          ) : null; })()}
           {grid.items.map((it) => {
             const gm = drag?.moved ? drag.group.find((g) => g.id === it.id) : undefined;
             const rr = rs?.out.find((o) => o.id === it.id);

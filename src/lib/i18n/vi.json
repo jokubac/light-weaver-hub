@@ -1095,5 +1095,8 @@
   "● REC move": "● REC di chuyển",
   "★ Favourite fixture + mode": "★ Đèn + chế độ yêu thích",
   "★ Favourite fixtures": "★ Đèn yêu thích",
-  "✕ Remove": "✕ Xóa"
+  "✕ Remove": "✕ Xóa",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "Chạm vào sàn ở nơi bạn muốn. Chạm lại để đặt thêm; nhấn lại đạo cụ để dừng.",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "Chọn một đạo cụ, rồi chạm vào sàn ở nơi bạn muốn. Đèn có thể chứa một nguồn sáng — chọn đèn, rồi chọn ánh sáng bên trong.",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Chạm vào sàn để đặt đạo cụ đã chọn. Nhấn lại đạo cụ để dừng."
 }

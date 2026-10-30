@@ -1095,5 +1095,8 @@
   "● REC move": "● REC pohyb",
   "★ Favourite fixture + mode": "★ Oblíbené zařízení + režim",
   "★ Favourite fixtures": "★ Oblíbená zařízení",
-  "✕ Remove": "✕ Odstranit"
+  "✕ Remove": "✕ Odstranit",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "Klepněte na podlahu tam, kde to chcete. Klepnutím znovu přidáte další; rekvizitu znovu stiskněte pro zastavení.",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "Vyberte rekvizitu a pak klepněte na podlahu tam, kde ji chcete. Lampy mohou obsahovat světlo — vyberte lampu a pak světlo uvnitř.",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Klepněte na podlahu pro umístění vybrané rekvizity. Rekvizitu znovu stiskněte pro zastavení."
 }

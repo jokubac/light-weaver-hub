@@ -1095,5 +1095,8 @@
   "● REC move": "● REC движ.",
   "★ Favourite fixture + mode": "★ Избранный прибор + режим",
   "★ Favourite fixtures": "★ Избранные приборы",
-  "✕ Remove": "✕ Удалить"
+  "✕ Remove": "✕ Удалить",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "Коснитесь пола там, где хотите. Коснитесь ещё раз, чтобы разместить ещё; нажмите реквизит ещё раз, чтобы остановить.",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "Выберите реквизит, затем коснитесь пола там, где хотите. Лампы могут содержать светильник — выберите лампу, а затем свет внутри.",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Коснитесь пола, чтобы разместить выбранный реквизит. Нажмите реквизит ещё раз, чтобы остановить."
 }

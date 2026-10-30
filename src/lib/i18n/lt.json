@@ -1154,5 +1154,8 @@
   "● REC move": "● REC judesys",
   "★ Favourite fixture + mode": "★ Mėgstamas įrenginys + režimas",
   "★ Favourite fixtures": "★ Mėgstami įrenginiai",
-  "✕ Remove": "✕ Pašalinti"
+  "✕ Remove": "✕ Pašalinti",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "Bakstelėkite grindis ten, kur norite. Bakstelėkite dar kartą, kad padėtumėte dar vieną; paspauskite rekvizitą dar kartą, kad sustotumėte.",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "Pasirinkite rekvizitą, tada bakstelėkite grindis ten, kur norite. Lempos gali talpinti šviestuvą – pasirinkite lempą, tada pasirinkite viduje esančią šviesą.",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Bakstelėkite grindis, kad padėtumėte pasirinktą rekvizitą. Paspauskite rekvizitą dar kartą, kad sustotumėte."
 }

@@ -1095,5 +1095,8 @@
   "● REC move": "● REC rörelse",
   "★ Favourite fixture + mode": "★ Favoritarmatur + läge",
   "★ Favourite fixtures": "★ Favoritarmaturer",
-  "✕ Remove": "✕ Ta bort"
+  "✕ Remove": "✕ Ta bort",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "Tryck på golvet där du vill. Tryck igen för att placera en till; tryck på rekvisitan igen för att sluta.",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "Välj en rekvisita och tryck sedan på golvet där du vill. Lampor kan innehålla en lampa — välj lampan och sedan ljuset inuti.",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Tryck på golvet för att placera den valda rekvisitan. Tryck på rekvisitan igen för att sluta."
 }

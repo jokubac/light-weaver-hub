@@ -1095,5 +1095,8 @@
   "● REC move": "● 動きをREC",
   "★ Favourite fixture + mode": "★ お気に入りフィクスチャ + モード",
   "★ Favourite fixtures": "★ お気に入りフィクスチャ",
-  "✕ Remove": "✕ 削除"
+  "✕ Remove": "✕ 削除",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "置きたい場所の床をタップします。もう一度タップすると追加できます。小道具をもう一度押すと停止します。",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "小道具を選び、置きたい床をタップします。ランプの中には照明を入れられます——ランプを選んでから、中の照明を選んでください。",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "選んだ小道具を置くには床をタップします。小道具をもう一度押すと停止します。"
 }

@@ -197,3 +197,20 @@ d2("macro table gaps", () => {
     e2(Math.floor((out.y - 0.4) / 1.1)).toBe(2);
   });
 });
+
+import { propSpot } from "./GridBoard";
+import { describe as d3, it as i3, expect as e3 } from "vitest";
+d3("prop placement", () => {
+  i3("a picked prop lands centred on the tapped floor point", () => {
+    const sp = propSpot(5, 8, 4, 1.8);
+    e3(Math.abs(sp.x + 4 / 2 - 5)).toBeLessThanOrEqual(0.125);
+    e3(Math.abs(sp.y + 1.8 / 2 - 8)).toBeLessThanOrEqual(0.125);
+  });
+  i3("the spot snaps to a quarter cell so props line up", () => {
+    const sp = propSpot(5.09, 8.03, 4, 1.8);
+    e3(Number.isInteger(sp.x * 4)).toBe(true);
+    e3(Number.isInteger(sp.y * 4)).toBe(true);
+    e3(sp.x).toBe(3);
+    e3(sp.y).toBe(7.25);
+  });
+});
