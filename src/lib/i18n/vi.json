@@ -499,8 +499,6 @@
   "Address": "Địa chỉ",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch đã khóa — mở khóa ở thanh trên để đổi địa chỉ.",
   "Overlaps": "Chồng lấp",
-  "OFF — tap to turn on": "TẮT — nhấn để bật",
-  "ON — tap to turn off": "BẬT — nhấn để tắt",
   "CCT & Colour": "CCT & Màu sắc",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Đèn này được patch ở chế độ chỉ có CCT — không thể hiển thị màu và gel màu. Đổi sang chế độ HSI/RGB trong Patch (menu ⋯ của đèn).",
   "Position & Beam": "Vị trí & Chùm sáng",

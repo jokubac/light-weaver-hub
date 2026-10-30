@@ -499,8 +499,6 @@
   "Address": "Adres",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch vergrendeld — ontgrendel in de bovenbalk om het adres te wijzigen.",
   "Overlaps": "Overlappingen",
-  "OFF — tap to turn on": "UIT — tik om aan te zetten",
-  "ON — tap to turn off": "AAN — tik om uit te zetten",
   "CCT & Colour": "CCT & Kleur",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Dit armatuur is gepatcht in een modus met alleen CCT — kleuren en kleurfilters kunnen niet worden weergegeven. Kies in Patch (armatuurmenu ⋯) een HSI/RGB-modus.",
   "Position & Beam": "Positie & Bundel",

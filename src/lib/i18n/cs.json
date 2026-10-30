@@ -719,8 +719,6 @@
   "Address": "Adresa",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch zamknut — pro změnu adresy odemkněte v horní liště.",
   "Overlaps": "Překryvy",
-  "OFF — tap to turn on": "VYP — klepnutím zapnete",
-  "ON — tap to turn off": "ZAP — klepnutím vypnete",
   "CCT & Colour": "CCT a Barva",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Toto světlo je opatchováno v režimu CCT-only — barvy a gely nelze zobrazit. Změňte režim v Patchi (menu světla ⋯) na HSI/RGB.",
   "Position & Beam": "Pozice a paprsek",

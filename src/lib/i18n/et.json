@@ -719,8 +719,6 @@
   "Address": "Aadress",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch lukus — aadressi muutmiseks ava lukk ülaribalt.",
   "Overlaps": "Kattumised",
-  "OFF — tap to turn on": "VÄLJAS — vajuta sisselülitamiseks",
-  "ON — tap to turn off": "SEES — vajuta väljalülitamiseks",
   "CCT & Colour": "CCT ja värv",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "See valgusti on ainult CCT režiimis — värve ja filtreid ei saa kuvada. Muuda režiim Patchis (valgusti ⋯ menüü) HSI/RGB režiimiks.",
   "Position & Beam": "Positsioon ja kiir",

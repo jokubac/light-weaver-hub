@@ -720,8 +720,6 @@
   "Address": "地址",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 PATCH 已锁定 — 在顶部栏解锁以更改地址。",
   "Overlaps": "重叠",
-  "OFF — tap to turn on": "关 — 点击开启",
-  "ON — tap to turn off": "开 — 点击关闭",
   "CCT & Colour": "CCT 与色彩",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "此灯具以仅 CCT 模式配接 — 无法呈现颜色和色纸效果。请在 PATCH (灯具 ⋯ 菜单) 中切换至 HSI/RGB 模式。",
   "Position & Beam": "位置 & 光束",

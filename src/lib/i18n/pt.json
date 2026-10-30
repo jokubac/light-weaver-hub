@@ -720,8 +720,6 @@
   "Address": "Endereço",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch bloqueado — desbloqueie na barra superior para mudar o endereço.",
   "Overlaps": "Sobreposições",
-  "OFF — tap to turn on": "DESLIGADO — toque para ligar",
-  "ON — tap to turn off": "LIGADO — toque para desligar",
   "CCT & Colour": "CCT & Cor",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Este projetor está configurado no PATCH num modo apenas CCT — não é possível reproduzir cores nem gelatinas de cor. Altere o modo no PATCH (menu ⋯ do projetor) para um modo HSI/RGB.",
   "Position & Beam": "Posição & Feixe",

@@ -280,8 +280,6 @@
   "Address": "Dirección",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch bloqueado — desbloquea en la barra superior para cambiar la dirección.",
   "Overlaps": "Solapamientos",
-  "OFF — tap to turn on": "OFF — toca para activar",
-  "ON — tap to turn off": "ON — toca para desactivar",
   "CCT & Colour": "CCT y Color",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Este foco está en modo solo CCT — no se pueden mostrar colores ni geles. Cambia el modo en Patch (menú ⋯ del foco) a un modo HSI/RGB.",
   "Position & Beam": "Posición y Beam",

@@ -719,8 +719,6 @@
   "Address": "Adresas",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch užrakintas — norėdami keisti adresą, atrakinkite viršutinėje juostoje.",
   "Overlaps": "Persidengimai",
-  "OFF — tap to turn on": "IŠJUNGTA — bakstelėkite, kad įjungtumėte",
-  "ON — tap to turn off": "ĮJUNGTA — bakstelėkite, kad išjungtumėte",
   "CCT & Colour": "CCT ir spalva",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Šis šviestuvas prikabintas tik CCT režimu — spalvos ir filtrai negali būti rodomi. Pakeiskite režimą Patch (šviestuvo ⋯ meniu) į HSI/RGB.",
   "Position & Beam": "Pozicija ir spindulys",

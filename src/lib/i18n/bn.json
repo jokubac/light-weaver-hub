@@ -719,8 +719,6 @@
   "Address": "অ্যাড্রেস",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 প্যাচ লক করা — অ্যাড্রেস পরিবর্তন করতে উপরের বারে আনলক করুন।",
   "Overlaps": "ওভারল্যাপ",
-  "OFF — tap to turn on": "বন্ধ — চালু করতে ট্যাপ করুন",
-  "ON — tap to turn off": "চালু — বন্ধ করতে ট্যাপ করুন",
   "CCT & Colour": "CCT এবং রঙ",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "এই ফিক্সচারটি শুধুমাত্র CCT মোডে প্যাচ করা হয়েছে — রঙ এবং কালার জেল দেখানো যাবে না। প্যাচ (ফিক্সচার ⋯ মেনু) থেকে মোডটি HSI/RGB মোডে পরিবর্তন করুন।",
   "Position & Beam": "অবস্থান এবং বিম",
