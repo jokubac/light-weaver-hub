@@ -305,6 +305,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   onMove?: (uids: string[], move: AimMove | null) => void;
 }) {
   const [live, setLive] = useState(true);
+  const [liveAdd, setLiveAdd] = useState(false);
   // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
   const [panelOpen, setPanelOpen] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
@@ -499,15 +500,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const chip = (on: boolean) => `inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium shadow-sm [&_svg]:size-4 ${on ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`;
   const bbox = !live && esel.length ? (() => { const its = (rs ? rs.out : grid.items.filter((i) => esel.includes(i.id)).map((i) => { const gm = drag?.moved ? drag.group.find((g) => g.id === i.id) : undefined; return { id: i.id, x: gm ? gm.x + drag!.x : i.x, y: gm ? gm.y + drag!.y : i.y, w: W(i), h: H(i) }; })); if (!its.length) return null; const l = Math.min(...its.map((b) => b.x)), t = Math.min(...its.map((b) => b.y)); return { l, t, r: Math.max(...its.map((b) => b.x + b.w)), b: Math.max(...its.map((b) => b.y + b.h)) }; })() : null;
 
-  const editPanel = (
-    <div className="space-y-4">
-      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? tr("Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it.") : tr("Drag to draw a wall at any angle — it snaps straight or 45° when close. Drag a wall end to lengthen it; drop it on another end to join them. Tap a wall to delete it.")) : mode === "text" ? tr("Tap the grid to drop a text label.") : mode === "light" ? (pickGroup ? tr("Tap the grid to drop the whole group together, centred where you tap.") : tr("Pick a light or a group below, then tap the grid to place it. The next free light is picked automatically.")) : tr("Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select.")}</p>
-      {mode === "walls" && (
-        <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => setWallRect(false)} aria-pressed={!wallRect} className={chip(!wallRect)}><PenLine className="h-3.5 w-3.5" />{tr("Line")}</button>
-          <button onClick={() => setWallRect(true)} aria-pressed={wallRect} className={chip(wallRect)}><span className="inline-block h-3 w-3.5 border-2 border-current" />{tr("Rectangle")}</button>
-        </div>
-      )}
+  const lightsPicker = (<>
       {(() => {
         const cur = fixtures.find((g) => g.uid === nextUid) ?? fixtures.find((g) => !placed.has(g.uid));
         const q = lq.trim().toLowerCase();
@@ -541,6 +534,17 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           </div>
         );
       })()}
+  </>);
+  const editPanel = (
+    <div className="space-y-4">
+      <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? tr("Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it.") : tr("Drag to draw a wall at any angle — it snaps straight or 45° when close. Drag a wall end to lengthen it; drop it on another end to join them. Tap a wall to delete it.")) : mode === "text" ? tr("Tap the grid to drop a text label.") : mode === "light" ? (pickGroup ? tr("Tap the grid to drop the whole group together, centred where you tap.") : tr("Pick a light or a group below, then tap the grid to place it. The next free light is picked automatically.")) : tr("Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select.")}</p>
+      {mode === "walls" && (
+        <div className="grid grid-cols-2 gap-1.5">
+          <button onClick={() => setWallRect(false)} aria-pressed={!wallRect} className={chip(!wallRect)}><PenLine className="h-3.5 w-3.5" />{tr("Line")}</button>
+          <button onClick={() => setWallRect(true)} aria-pressed={wallRect} className={chip(wallRect)}><span className="inline-block h-3 w-3.5 border-2 border-current" />{tr("Rectangle")}</button>
+        </div>
+      )}
+      {lightsPicker}
       <div className="grid grid-cols-1 gap-1.5">
         <Button variant="secondary" size="sm" onClick={addTable}><Table2 />{tr("Macros table")}</Button>
         <Button variant="secondary" size="sm" disabled={fixtures.every((f) => placed.has(f.uid))}
@@ -617,8 +621,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 hw-bar">
           <div className="mr-2">
             <ViewTabs tabs={[
-              { key: "live", label: "Live", on: live, onClick: () => { setLive(true); setEsel([]); setMode("select"); } },
-              { key: "edit", label: "Edit", on: !live, onClick: () => setLive(false) },
+              { key: "live", label: "Live", on: live, onClick: () => { setLive(true); setLiveAdd(false); setEsel([]); setMode("select"); } },
+              { key: "edit", label: "Edit", on: !live, onClick: () => { setLive(false); setLiveAdd(false); } },
             ]} />
           </div>
           {(() => {
@@ -640,6 +644,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />{tr("Import pictures or PDF")}<input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
             </label>
           </>)}
+          {live && <button onClick={() => { const on = !liveAdd; setLiveAdd(on); setMode(on ? "light" : "select"); if (on) setPanelOpen(true); }} aria-pressed={liveAdd} className={chip(liveAdd)}><Plus className="h-3.5 w-3.5" />{tr("Add lights / groups")}</button>}
           {live && <button onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} aria-label={panelOpen ? "Hide fixture controls" : "Show fixture controls"} title={panelOpen ? "Hide fixture controls" : "Show fixture controls"} className={`${chip(false)} ml-auto`}>
             {panelOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}<span className="hidden sm:inline">{panelOpen ? tr("Hide controls") : tr("Show controls")}</span>
           </button>}
@@ -655,7 +660,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const p = pt(e); area_.current!.setPointerCapture(e.pointerId);
             if (!live && mode === "walls") { const q = snapToEnds(grid.walls, p.x, p.y); setWall({ x1: q.x, y1: q.y, x2: q.x, y2: q.y }); }
             else if (!live && mode === "text") addText(p.x, p.y);
-            else if (!live && mode === "light") addLight(p.x, p.y);
+            else if ((!live || liveAdd) && mode === "light") addLight(p.x, p.y);
             else setBox({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, add: e.shiftKey || e.ctrlKey || e.metaKey });
           }}
           onPointerMove={(e) => {
@@ -864,7 +869,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         </div>
       </div>
       {(!live || panelOpen) && <aside aria-label={live ? "Fixture controls" : "Grid editor"} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
-        {live ? <>{controls}<AimPanel grid={grid} setGrid={setGrid} fixtures={fixtures} selected={selected} onAim={onAim ?? (() => {})} onMove={onMove ?? (() => {})} /></> : editPanel}
+        {live && liveAdd ? <div className="space-y-3"><p className="text-xs font-bold uppercase">{tr("Add lights / groups")}</p>{lightsPicker}</div> : live ? <>{controls}<AimPanel grid={grid} setGrid={setGrid} fixtures={fixtures} selected={selected} onAim={onAim ?? (() => {})} onMove={onMove ?? (() => {})} /></> : editPanel}
       </aside>}
 
       <Dialog open={!!pick} onOpenChange={(o) => !o && setPicker(null)}>
