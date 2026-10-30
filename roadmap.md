@@ -349,3 +349,4 @@
 - [x] PATCH rename dialog simplified further: the name-only numbering option and the 1/01/001 digit-width row are gone — only Light 1 / 1 Light, Start and a separator remain; 15 patch-order tests, typecheck and a browser apply check pass (names saved as 1_Light … 5_Light).
 - [x] PLOT props + Delete button
 - [x] PIXEL Preview/Live sliding toggle
+- [x] PLOT props: picking a prop only arms it — it lands centred on the floor point you tap (quarter-cell snap), tap again for more, press the prop again to stop; a faint preview follows the pointer. 2 new propSpot tests, typecheck and browser checks pass.
