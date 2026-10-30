@@ -538,18 +538,21 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
   const editPanel = (
     <div className="space-y-4">
       <p className="text-[11px] text-muted-foreground">{mode === "walls" ? (wallRect ? tr("Drag corner to corner to draw a rectangle of walls. Tap a wall to delete it.") : tr("Drag to draw a wall at any angle — it snaps straight or 45° when close. Drag a wall end to lengthen it; drop it on another end to join them. Tap a wall to delete it.")) : mode === "text" ? tr("Tap the grid to drop a text label.") : mode === "light" ? (pickGroup ? tr("Tap the grid to drop the whole group together, centred where you tap.") : tr("Pick a light or a group below, then tap the grid to place it. The next free light is picked automatically.")) : tr("Drag boxes freely. Drag a corner to resize or stretch (works on a multi-selection too). Double-tap a light to rename, recolour or swap it; double-tap a macro to set its action. Macros always live in macro tables — drag one into another table to move it. Drag on empty space to box-select.")}</p>
-      {mode === "walls" && (
+      <section className="space-y-2 rounded-lg border border-border p-2">
+        <h3 className="text-xs font-bold uppercase">{tr("Drawing")}</h3>
         <div className="grid grid-cols-2 gap-1.5">
-          <button onClick={() => setWallRect(false)} aria-pressed={!wallRect} className={chip(!wallRect)}><PenLine className="h-3.5 w-3.5" />{tr("Line")}</button>
-          <button onClick={() => setWallRect(true)} aria-pressed={wallRect} className={chip(wallRect)}><span className="inline-block h-3 w-3.5 border-2 border-current" />{tr("Rectangle")}</button>
+          <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={chip(mode === "select")}><MousePointer2 className="h-3.5 w-3.5" />{tr("Select")}</button>
+          <button onClick={() => setMode("text")} aria-pressed={mode === "text"} className={chip(mode === "text")}><Type className="h-3.5 w-3.5" />{tr("Text")}</button>
+          <button onClick={() => { setMode("walls"); setWallRect(false); }} aria-pressed={mode === "walls" && !wallRect} className={chip(mode === "walls" && !wallRect)}><PenLine className="h-3.5 w-3.5" />{tr("Wall line")}</button>
+          <button onClick={() => { setMode("walls"); setWallRect(true); }} aria-pressed={mode === "walls" && wallRect} className={chip(mode === "walls" && wallRect)}><span className="inline-block h-3 w-3.5 border-2 border-current" />{tr("Room")}</button>
         </div>
-      )}
-      {lightsPicker}
-      <div className="grid grid-cols-1 gap-1.5">
-        <Button variant="secondary" size="sm" onClick={addTable}><Table2 />{tr("Macros table")}</Button>
-        <Button variant="secondary" size="sm" disabled={fixtures.every((f) => placed.has(f.uid))}
-          onClick={() => { let items = grid.items; for (const f of fixtures) if (!placed.has(f.uid)) items = [...items, { id: nid(), kind: "fixture", uid: f.uid, ...freeSpot(items) }]; setGrid({ ...grid, items }); }}>{tr("All lights")}</Button>
-      </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <Button variant="secondary" size="sm" disabled={!grid.walls.length} onClick={() => setGrid({ ...grid, walls: grid.walls.slice(0, -1) })}>{tr("Undo wall")}</Button>
+          <Button variant="secondary" size="sm" disabled={!grid.walls.length} onClick={() => { if (window.confirm(tr("Delete all walls?"))) setGrid({ ...grid, walls: [] }); }}><Trash2 />{tr("Clear walls")}</Button>
+        </div>
+        <p className="font-mono text-[10px] text-muted-foreground">{grid.walls.length} {tr("walls")} · {(grid.walls.reduce((a, w) => a + Math.hypot(w.x2 - w.x1, w.y2 - w.y1), 0) * (grid.metres ?? 1)).toFixed(1)} {grid.metres ? "m" : tr("units")}</p>
+      </section>
+      <Button variant="secondary" size="sm" className="w-full" onClick={addTable}><Table2 />{tr("Macros table")}</Button>
       {one && one.kind !== "image" && (
         <section className="space-y-2 rounded-lg border border-primary/50 p-2">
           <div className="flex items-center justify-between"><h3 className="text-xs font-bold uppercase">{one.kind === "table" ? tr("Table") : one.kind === "text" ? tr("Text") : tr("Box")}</h3>
@@ -609,7 +612,6 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         ))}
         {grid.bg && <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => setGrid({ ...grid, bg: undefined })}><Trash2 />{tr("Remove old background")}</Button>}
       </section>
-      {grid.walls.length > 0 && <Button variant="ghost" size="sm" className="w-full" onClick={() => setGrid({ ...grid, walls: [] })}><Trash2 />{tr("Clear walls")}</Button>}
     </div>
   );
 
@@ -622,7 +624,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           <div className="mr-2">
             <ViewTabs tabs={[
               { key: "live", label: "Live", on: live, onClick: () => { setLive(true); setLiveAdd(false); setEsel([]); setMode("select"); } },
-              { key: "edit", label: "Edit", on: !live, onClick: () => { setLive(false); setLiveAdd(false); } },
+              { key: "edit", label: "Edit", on: !live, onClick: () => { setLive(false); setLiveAdd(false); setMode("select"); } },
             ]} />
           </div>
           {(() => {
@@ -644,7 +646,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />{tr("Import pictures or PDF")}<input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
             </label>
           </>)}
-          {live && <button onClick={() => { const on = !liveAdd; setLiveAdd(on); setMode(on ? "light" : "select"); if (on) setPanelOpen(true); }} aria-pressed={liveAdd} className={chip(liveAdd)}><Plus className="h-3.5 w-3.5" />{tr("Add lights / groups")}</button>}
+          {<button onClick={() => { const on = !liveAdd; setLiveAdd(on); setMode(on ? "light" : "select"); if (on) setPanelOpen(true); }} aria-pressed={liveAdd} className={chip(liveAdd)}><Plus className="h-3.5 w-3.5" />{tr("Add lights / groups")}</button>}
           {live && <button onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} aria-label={panelOpen ? "Hide fixture controls" : "Show fixture controls"} title={panelOpen ? "Hide fixture controls" : "Show fixture controls"} className={`${chip(false)} ml-auto`}>
             {panelOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}<span className="hidden sm:inline">{panelOpen ? tr("Hide controls") : tr("Show controls")}</span>
           </button>}
@@ -869,7 +871,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         </div>
       </div>
       {(!live || panelOpen) && <aside aria-label={live ? "Fixture controls" : "Grid editor"} className="max-h-[55vh] w-full shrink-0 overflow-auto border-t border-border bg-surface p-4 lg:max-h-none lg:w-96 lg:border-l lg:border-t-0">
-        {live && liveAdd ? <div className="space-y-3"><p className="text-xs font-bold uppercase">{tr("Add lights / groups")}</p>{lightsPicker}</div> : live ? <>{controls}<AimPanel grid={grid} setGrid={setGrid} fixtures={fixtures} selected={selected} onAim={onAim ?? (() => {})} onMove={onMove ?? (() => {})} /></> : editPanel}
+        {liveAdd ? <div className="space-y-3"><p className="text-xs font-bold uppercase">{tr("Add lights / groups")}</p>{lightsPicker}</div> : live ? <>{controls}<AimPanel grid={grid} setGrid={setGrid} fixtures={fixtures} selected={selected} onAim={onAim ?? (() => {})} onMove={onMove ?? (() => {})} /></> : editPanel}
       </aside>}
 
       <Dialog open={!!pick} onOpenChange={(o) => !o && setPicker(null)}>
