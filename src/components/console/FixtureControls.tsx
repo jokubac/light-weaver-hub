@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Plus, Trash2, Zap, AlertTriangle, Play, Square, TrendingUp, Lock } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Zap, AlertTriangle, Play, Square, TrendingUp, Lock, Pencil } from "lucide-react";
 import {
   caps,
   cctFromKelvin,
@@ -107,12 +107,15 @@ export function FixtureControls({
 
       {sel.length === 1 && (
         <div className="rounded-xl border border-input/60 bg-surface-elevated/30 px-2.5 pb-2 pt-1.5">
-          <input
-            value={first.name}
-            aria-label={tr("Fixture name")}
-            onChange={(e) => update({ name: e.target.value })}
-            className="-mx-1 w-full border-b border-dashed border-input/70 bg-transparent px-1 pb-0.5 text-sm font-semibold text-foreground outline-none hover:bg-input/30 focus:border-primary focus:bg-input/40"
-          />
+          <div className="relative">
+            <input
+              value={first.name}
+              aria-label={tr("Fixture name")}
+              onChange={(e) => update({ name: e.target.value })}
+              className="w-full border-b border-dashed border-input/70 bg-transparent pb-0.5 pr-5 text-sm font-semibold text-foreground outline-none hover:bg-input/30 focus:border-primary focus:bg-input/40"
+            />
+            <Pencil className="pointer-events-none absolute bottom-1 right-0.5 h-3 w-3 text-muted-foreground/70" />
+          </div>
           <div className="mt-1 flex items-center gap-2">
             <p className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels}{tr("ch")}</p>
             <div className="flex shrink-0 items-center gap-1" title={locked ? tr("Patch locked — unlock to edit") : undefined}>
