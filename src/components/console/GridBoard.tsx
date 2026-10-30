@@ -14,6 +14,7 @@ import { FixtureFilterBar, matchFilter, useFixtureFilter } from "@/components/co
 
 import { t as tr } from "@/lib/i18n";
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
+import { PropArt } from "./PropArt";
 export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table" | "prop"; /** set-prop preset id (kind "prop") */ prop?: string | undefined; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined; lo?: number | undefined; hi?: number | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined; lk?: string | undefined; locked?: boolean | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined; /** board units → metres, used when pointing moving heads at a spot */ metres?: number | undefined }
 /** Drawable set props; lamp props can hold a patched light inside (practicals). */
@@ -580,7 +581,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           {GRID_PROPS.map((pr) => (
             <button key={pr.id} onClick={() => { const id = nid(); const sp = freeSpot(grid.items, pr.w, pr.h); setGrid({ ...grid, items: [...grid.items, { id, kind: "prop", prop: pr.id, x: sp.x, y: sp.y, w: pr.w, h: pr.h }] }); setEsel([id]); setMode("select"); }}
               className={`flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold active:scale-95 ${pr.lamp ? "bg-primary/15 text-foreground" : "bg-surface-elevated"}`}>
-              <span className="text-base leading-none">{pr.icon}</span>{tr(pr.label)}
+              <span className="h-7 w-9"><PropArt id={pr.id} w={Math.min(pr.w, 2.2)} h={Math.min(pr.h, 1.6)} glow={pr.lamp ? "hsl(40 95% 60%)" : undefined} /></span>{tr(pr.label)}
             </button>
           ))}
         </div>
@@ -820,16 +821,15 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             };
             return (
               <div key={it.id} role="button" tabIndex={0} aria-label={f ? `Select fixture ${n}, ${f.name}` : it.macro ? `Run ${macroLabel(it.macro)}` : it.kind === "text" ? "Text label" : it.kind === "image" ? "Picture" : it.kind === "table" ? "Table" : "Empty box"} aria-pressed={f ? isSel : undefined}
-                className={`absolute flex flex-col overflow-hidden ${it.kind === "image" ? "" : GRID_PROPS.find((g) => g.id === it.prop)?.round ? "rounded-full border p-1" : "rounded-lg border p-1"} text-[10px] ${(!live && mode === "walls") || (live && back) ? "pointer-events-none" : live ? "cursor-pointer active:scale-[0.97]" : "cursor-grab"} ${!live && mode === "walls" ? "opacity-60" : ""} ${isSel ? "border-primary ring-2 ring-primary" : it.kind === "empty" ? "border-dashed border-border" : it.kind === "text" ? "border-transparent" : it.kind === "table" ? "border-2 border-border" : "border-border"} ${it.kind === "text" ? "bg-transparent" : it.kind === "table" ? "bg-muted" : f ? "bg-card" : "bg-surface-elevated"} ${gm || rr ? (back ? "z-20 shadow-lg" : "z-30 shadow-lg") : back ? "z-0" : "z-10"}`}
-                style={{ left: pos.x * CELL, top: pos.y * CELL, width: pos.w * CELL, height: pos.h * CELL, ...(it.kind === "table" ? (it.color ? { borderColor: it.color, background: `color-mix(in srgb, ${it.color} 22%, var(--muted))` } : {}) : f ? (it.color ? { borderColor: it.color, borderWidth: 2 } : {}) : pal(it.color)) }}
+                className={`absolute flex flex-col overflow-hidden ${it.kind === "image" ? "" : it.kind === "prop" ? "rounded-lg border" : "rounded-lg border p-1"} text-[10px] ${(!live && mode === "walls") || (live && back) ? "pointer-events-none" : live ? "cursor-pointer active:scale-[0.97]" : "cursor-grab"} ${!live && mode === "walls" ? "opacity-60" : ""} ${isSel ? "border-primary ring-2 ring-primary" : it.kind === "prop" ? "border-transparent" : it.kind === "empty" ? "border-dashed border-border" : it.kind === "text" ? "border-transparent" : it.kind === "table" ? "border-2 border-border" : "border-border"} ${it.kind === "text" || it.kind === "prop" ? "bg-transparent" : it.kind === "table" ? "bg-muted" : f ? "bg-card" : "bg-surface-elevated"} ${gm || rr ? (back ? "z-20 shadow-lg" : "z-30 shadow-lg") : back ? "z-0" : "z-10"}`}
+                style={{ left: pos.x * CELL, top: pos.y * CELL, width: pos.w * CELL, height: pos.h * CELL, ...(it.kind === "table" ? (it.color ? { borderColor: it.color, background: `color-mix(in srgb, ${it.color} 22%, var(--muted))` } : {}) : it.kind === "prop" ? {} : f ? (it.color ? { borderColor: it.color, borderWidth: 2 } : {}) : pal(it.color)) }}
                 onPointerDownCapture={(e) => tapFader(e)}
                 onPointerDown={(e) => { if (!live && mode !== "select") return; if (!live && (it.kind === "table" ? it.locked : isMacroBox(it) && it.tbl && grid.items.find((t) => t.id === it.tbl)?.locked)) return; e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); const p = pt(e); if (live) { setDrag({ id: it.id, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group: [] }); return; } const sel = esel.includes(it.id) ? esel : e.shiftKey ? [...esel, it.id] : [it.id]; setEsel(sel); setDrag({ id: it.id, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group: groupFor(it, sel) });}}>
                 {f && !!parked[f.uid] && <span title={tr("Parked")} className="pointer-events-none absolute right-0.5 top-0.5 z-10 rounded bg-primary px-1 font-mono text-[9px] font-bold leading-tight text-primary-foreground shadow">P</span>}
                 {it.kind === "prop" ? (() => { const pr = GRID_PROPS.find((g) => g.id === it.prop); return (
-                  <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center gap-0.5 text-center leading-tight">
-                    {f ? <span className="aspect-square h-1/2 max-h-10 rounded-full border border-border" style={{ background: colorOf(f), boxShadow: `0 0 18px 6px ${colorOf(f)}` }} /> : <span className="text-lg">{pr?.icon}</span>}
-                    <span className="truncate text-[10px] font-semibold">{it.text || (pr ? tr(pr.label) : "")}</span>
-                    {f && <span className="truncate font-mono text-[9px] text-muted-foreground">#{n} {f.name}</span>}
+                  <div className="pointer-events-none relative h-full w-full">
+                    <PropArt id={it.prop} w={pos.w} h={pos.h} glow={f ? colorOf(f) : undefined} />
+                    <span className="absolute left-1/2 top-full mt-0.5 max-w-[160%] -translate-x-1/2 truncate whitespace-nowrap rounded bg-background/80 px-1 text-[9px] font-semibold leading-tight text-foreground">{it.text || (pr ? tr(pr.label) : "")}{f ? <span className="font-mono text-muted-foreground"> · #{n}</span> : null}</span>
                   </div>); })() : it.kind === "image" ? (
                   <img src={it.src} alt="" draggable={false} className="pointer-events-none h-full w-full object-fill" style={{ opacity: it.opacity ?? 1, filter: it.invert ? "invert(1)" : undefined }} />
                 ) : it.kind === "table" ? (<>
