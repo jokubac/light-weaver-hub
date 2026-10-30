@@ -306,10 +306,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
 }) {
   const [live, setLive] = useState(true);
   const [liveAdd, setLiveAdd] = useState(false);
-  useEffect(() => { if (mode !== "light") setLiveAdd(false); }, [mode]);
   // The side panel (fixture controls in Live, editor tools in Edit) can be tucked away for a bigger grid.
   const [panelOpen, setPanelOpen] = useState(true);
   const [mode, setMode] = useState<"select" | "walls" | "text" | "light">("select");
+  useEffect(() => { if (mode !== "light") setLiveAdd(false); }, [mode]);
   // Which text label is being typed into right now, edited on the box itself.
   const [editText, setEditText] = useState<string | null>(null);
   const [esel, setEsel] = useState<string[]>([]);
