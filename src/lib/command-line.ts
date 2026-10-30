@@ -21,7 +21,7 @@ export interface CommandResult {
 export function parseRec(tokens: string[]): CommandResult["rec"] | { error: string } {
   const r = tokens.slice(tokens.indexOf("REC") + 1);
   let kind: "cue" | "look" | "fx" | "timeline" = "cue";
-  if (r[0] && ["CUE", "LOOK", "FX", "TIMELINE"].includes(r[0])) kind = r.shift()!.toLowerCase() as typeof kind;
+  if (r[0] && ["CUE", "LOOK", "FX", "TIMELINE", "SEQUENCE"].includes(r[0])) const kw = r.shift()!; kind = (kw === "SEQUENCE" ? "timeline" : kw.toLowerCase()) as typeof kind;
   let n: number | undefined;
   if (r[0] && /^\d+(\.\d+)?$/.test(r[0])) n = Number(r.shift());
   let mode: "merge" | "overwrite" | undefined;

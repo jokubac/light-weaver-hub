@@ -43,7 +43,7 @@ export function SoundReact({ layer, onLayer }: { layer: PixelLayer; onLayer: (p:
       <PopoverContent align="start" className="w-80 space-y-2 p-3 text-xs">
         <div className="flex items-center gap-1.5">
           <select aria-label={tr("Sound source")} value={s.source} onChange={(e) => { const n = upd({ source: e.target.value as AudioSettings["source"] }); if (on) void listen(n); }} className={`flex-1 ${field}`}>
-            <option value="device">{tr("Device audio (what's playing)")}</option><option value="file">{tr("Audio file (WAV…)")}</option><option value="input">{tr("Sound card input")}</option><option value="mic">{tr("Microphone")}</option><option value="timeline">{tr("TIMELINE audio")}</option>
+            <option value="device">{tr("Device audio (what's playing)")}</option><option value="file">{tr("Audio file (WAV…)")}</option><option value="input">{tr("Sound card input")}</option><option value="mic">{tr("Microphone")}</option><option value="timeline">{tr("SEQUENCE audio")}</option>
           </select>
           <Button size="sm" variant={on ? "destructive" : "default"} onClick={() => { if (on) { stopAudio(); setOn(false); } else void listen(); }}>{on ? tr("Stop") : tr("Listen")}</Button>
         </div>

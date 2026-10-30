@@ -24,7 +24,7 @@ export function TimecodeSettings(p: {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button aria-pressed={p.on} title={tr("Timecode — sync cues and the timeline with sound and camera")}
+        <button aria-pressed={p.on} title={tr("Timecode — sync cues and the sequence with sound and camera")}
           className={`rounded-md px-1.5 py-0.5 text-left font-mono text-[10px] font-bold ${p.on ? "bg-primary/25 text-primary" : "bg-surface-elevated text-muted-foreground"}`}>
           {tr("TC")}{p.on ? (p.now != null ? fmtTc(p.now, fps) : tr("waiting…")) : tr("off")}
         </button>
@@ -54,11 +54,11 @@ export function TimecodeSettings(p: {
             {TC_RATES.map((r) => <option key={r.v} value={r.v}>{r.label} fps</option>)}
           </select>
         </label>
-        <label className="flex items-center gap-2"><Checkbox checked={p.cfg.chase} onCheckedChange={(v) => p.setCfg({ ...p.cfg, chase: v === true })} />{tr("Timeline follows timecode")}</label>
+        <label className="flex items-center gap-2"><Checkbox checked={p.cfg.chase} onCheckedChange={(v) => p.setCfg({ ...p.cfg, chase: v === true })} />{tr("Sequence follows timecode")}</label>
         {p.cfg.chase && (
-          <label className="block space-y-1"><span className="text-muted-foreground">{tr("Timeline starts at")}</span>
+          <label className="block space-y-1"><span className="text-muted-foreground">{tr("Sequence starts at")}</span>
             <div className="flex gap-1">
-              <input key={`${p.tcStart ?? "none"}-${fps}`} defaultValue={fmtTc(p.tcStart ?? 0, fps)} placeholder="hh:mm:ss:ff" aria-label={tr("Timeline starts at")}
+              <input key={`${p.tcStart ?? "none"}-${fps}`} defaultValue={fmtTc(p.tcStart ?? 0, fps)} placeholder="hh:mm:ss:ff" aria-label={tr("Sequence starts at")}
                 onBlur={(e) => p.setTcStart(parseTc(e.target.value, fps))} className={`${sel} font-mono`} />
               <Button size="sm" variant="outline" disabled={p.now == null} onClick={() => p.now != null && p.setTcStart(Math.floor(p.now * fps) / fps)}>{tr("Use current")}</Button>
             </div>

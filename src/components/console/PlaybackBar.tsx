@@ -52,7 +52,7 @@ const COLORS: NonNullable<BankFader["color"]>[] = ["primary", "success", "warnin
 const swatch: Record<NonNullable<BankFader["color"]>, string> = { primary: "bg-primary", success: "bg-success", warning: "bg-warning", destructive: "bg-destructive", accent: "bg-accent", muted: "bg-muted-foreground" };
 const ring: Record<NonNullable<BankFader["color"]>, string> = { primary: "border-primary", success: "border-success", warning: "border-warning", destructive: "border-destructive", accent: "border-accent", muted: "border-muted-foreground" };
 const defaultBtns = (fd: BankFader): Btn[] => fd.buttons ?? (fd.kind === "master" ? ["full", "zero"] : ["flash", "solo"]);
-const paramLabel = (fd: BankFader) => fd.kind === "master" ? tr("Master") : fd.kind === "look" ? tr("Look") : fd.kind === "timeline" ? tr("Timeline") : fd.kind === "rec" ? tr("REC") : tr(PARAMS.find(([k]) => k === (fd.param ?? "intensity"))![1]);
+const paramLabel = (fd: BankFader) => fd.kind === "master" ? tr("Master") : fd.kind === "look" ? tr("Look") : fd.kind === "timeline" ? tr("Sequence") : fd.kind === "rec" ? tr("REC") : tr(PARAMS.find(([k]) => k === (fd.param ?? "intensity"))![1]);
 const readout = (fd: BankFader, v: number) => fd.param === "hue" ? `${Math.round(v * 360)}°` : fd.param === "gm" ? `${v >= 0.5 ? "G" : "M"}${Math.round(Math.abs(v * 2 - 1) * 100)}` : `${Math.round(v * 100)}`;
 
 export function PlaybackBar(p: PlaybackProps) {
@@ -330,7 +330,7 @@ function FaderSetup({ i, fd, groups, looks, selected, fixtures, onClose, onSave,
             <button className={opt(kind === "look")} onClick={() => { setKind("look"); setRef(looks[0]?.id ?? ""); }}>{tr("Look")}</button>
             <button className={opt(kind === "fixtures")} onClick={() => setKind("fixtures")}>{tr("Selected")}</button>
             <button className={opt(kind === "master")} onClick={() => { setKind("master"); if (btns.join() === "flash,solo") setBtns(["full", "zero"]); }}>{tr("Master")}</button>
-            <button className={opt(kind === "timeline")} onClick={() => { setKind("timeline"); if (btns.join() === "flash,solo") setBtns(["full", "zero"]); }}>{tr("Timeline")}</button>
+            <button className={opt(kind === "timeline")} onClick={() => { setKind("timeline"); if (btns.join() === "flash,solo") setBtns(["full", "zero"]); }}>{tr("Sequence")}</button>
             <button className={opt(kind === "rec")} onClick={() => { setKind("rec"); setRef(recs[0]?.id ?? ""); if (btns.join() === "flash,solo") setBtns(["full", "zero"]); }}>{tr("REC")}</button>
           </div>
           {kind === "rec" && (recs.length ? (
