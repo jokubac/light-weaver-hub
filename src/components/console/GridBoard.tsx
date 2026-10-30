@@ -14,8 +14,27 @@ import { FixtureFilterBar, matchFilter, useFixtureFilter } from "@/components/co
 
 import { t as tr } from "@/lib/i18n";
 /** Free layout (cell units, fractional) of squares — empty, fixture, user macro or text label — plus drawn walls and an optional background picture. */
-export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table"; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined; lo?: number | undefined; hi?: number | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined; lk?: string | undefined; locked?: boolean | undefined }
+export interface GridItem { id: string; kind: "empty" | "fixture" | "macro" | "text" | "image" | "table" | "prop"; /** set-prop preset id (kind "prop") */ prop?: string | undefined; w?: number | undefined; h?: number | undefined; color?: string | undefined; src?: string | undefined; invert?: boolean | undefined; opacity?: number | undefined; cols?: number | undefined; rows?: number | undefined; uid?: string | undefined; tbl?: string | undefined; cs?: number | undefined; rs?: number | undefined; sk?: number | undefined; macro?: { action: MacroAction; amount: number; label: string; param?: string | undefined; lo?: number | undefined; hi?: number | undefined } | undefined; text?: string | undefined; x: number; y: number; s?: number | undefined; fs?: number | undefined; lk?: string | undefined; locked?: boolean | undefined }
 export interface GridLayout { items: GridItem[]; walls: { x1: number; y1: number; x2: number; y2: number }[]; size?: number; bg?: string | undefined; bgT?: { x: number; y: number; scale: number; invert: boolean } | undefined; /** board units → metres, used when pointing moving heads at a spot */ metres?: number | undefined }
+/** Drawable set props; lamp props can hold a patched light inside (practicals). */
+export const GRID_PROPS: { id: string; label: string; icon: string; w: number; h: number; lamp?: boolean; round?: boolean }[] = [
+  { id: "floor-lamp", label: "Floor lamp", icon: "🛋️", w: 1.2, h: 1.2, lamp: true, round: true },
+  { id: "table-lamp", label: "Table lamp", icon: "💡", w: 1, h: 1, lamp: true, round: true },
+  { id: "pendant", label: "Pendant", icon: "🔆", w: 1, h: 1, lamp: true, round: true },
+  { id: "sconce", label: "Wall sconce", icon: "🕯️", w: 1, h: 0.6, lamp: true },
+  { id: "practical", label: "Practical", icon: "✨", w: 0.9, h: 0.9, lamp: true, round: true },
+  { id: "sofa", label: "Sofa", icon: "🛋️", w: 4, h: 1.8 },
+  { id: "table", label: "Table", icon: "🪵", w: 3, h: 2 },
+  { id: "chair", label: "Chair", icon: "🪑", w: 1, h: 1 },
+  { id: "bed", label: "Bed", icon: "🛏️", w: 3.2, h: 4 },
+  { id: "desk", label: "Desk", icon: "🖥️", w: 3, h: 1.5 },
+  { id: "plant", label: "Plant", icon: "🪴", w: 1.2, h: 1.2, round: true },
+  { id: "door", label: "Door", icon: "🚪", w: 1.8, h: 0.3 },
+  { id: "window", label: "Window", icon: "🪟", w: 2.5, h: 0.3 },
+  { id: "camera", label: "Camera", icon: "🎥", w: 1.2, h: 1.2 },
+  { id: "actor", label: "Actor", icon: "🧍", w: 1, h: 1, round: true },
+  { id: "car", label: "Car", icon: "🚗", w: 4.5, h: 2 },
+];
 /** A brand-new scene's GRID starts with two default macro tables — MACROS (intensity/CCT) and TOOLS (edit tools) — laid out like the user's own setup. */
 export function emptyGrid(): GridLayout {
   const C = MACRO_CELL, X = 15.6, Y = 0.5;
@@ -554,14 +573,35 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
         <p className="font-mono text-[10px] text-muted-foreground">{grid.walls.length} {tr("walls")} · {(grid.walls.reduce((a, w) => a + Math.hypot(w.x2 - w.x1, w.y2 - w.y1), 0) * (grid.metres ?? 1)).toFixed(1)} {grid.metres ? "m" : tr("units")}</p>
       </section>
       <Button variant="secondary" size="sm" className="w-full" onClick={addTable}><Table2 />{tr("Macros table")}</Button>
+      <section className="space-y-2 rounded-lg border border-border p-2">
+        <h3 className="text-xs font-bold uppercase">{tr("Props")}</h3>
+        <p className="text-[10px] text-muted-foreground">{tr("Add set props. Lamps can hold a light — select the lamp, then pick the light inside.")}</p>
+        <div className="grid grid-cols-4 gap-1">
+          {GRID_PROPS.map((pr) => (
+            <button key={pr.id} onClick={() => { const id = nid(); const sp = freeSpot(grid.items, pr.w, pr.h); setGrid({ ...grid, items: [...grid.items, { id, kind: "prop", prop: pr.id, x: sp.x, y: sp.y, w: pr.w, h: pr.h }] }); setEsel([id]); setMode("select"); }}
+              className={`flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold active:scale-95 ${pr.lamp ? "bg-primary/15 text-foreground" : "bg-surface-elevated"}`}>
+              <span className="text-base leading-none">{pr.icon}</span>{tr(pr.label)}
+            </button>
+          ))}
+        </div>
+      </section>
       {one && one.kind !== "image" && (
         <section className="space-y-2 rounded-lg border border-primary/50 p-2">
-          <div className="flex items-center justify-between"><h3 className="text-xs font-bold uppercase">{one.kind === "table" ? tr("Table") : one.kind === "text" ? tr("Text") : tr("Box")}</h3>
-            {one.kind !== "table" && one.kind !== "text" && <button onClick={() => openPicker(one)} className="text-xs font-semibold text-primary">{tr("Macro / fixture…")}</button>}</div>
+          <div className="flex items-center justify-between"><h3 className="text-xs font-bold uppercase">{one.kind === "table" ? tr("Table") : one.kind === "text" ? tr("Text") : one.kind === "prop" ? tr("Prop") : tr("Box")}</h3>
+            {one.kind !== "table" && one.kind !== "text" && one.kind !== "prop" && <button onClick={() => openPicker(one)} className="text-xs font-semibold text-primary">{tr("Macro / fixture…")}</button>}</div>
           {one.kind === "table" && <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder={tr("Table name")} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />}
           {one.kind === "table" && (<>
             <p className="text-[11px] text-muted-foreground">{one.cols ?? 4} × {one.rows ?? 3}{tr("cells — drag the table corner to change; the cells follow automatically.")}</p>
             <Button size="sm" className="w-full" onClick={() => fillTable(one)}>{tr("Put macros in table")}</Button>
+          </>)}
+          {one.kind === "prop" && (<>
+            <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder={tr("Prop name")} className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs" />
+            <label className="block text-[10px] uppercase text-muted-foreground">{tr("Light inside")}
+              <select value={one.uid ?? ""} onChange={(e) => { const uid = e.target.value || undefined; setGrid({ ...grid, items: grid.items.filter((i) => !(uid && i.id !== one.id && i.uid === uid && (i.kind === "fixture" || i.kind === "prop"))).map((i) => (i.id === one.id ? { ...i, uid } : i)) }); }} className="mt-0.5 w-full rounded-md border border-input bg-background px-2 py-1 text-xs normal-case text-foreground">
+                <option value="">{tr("None")}</option>
+                {fixtures.map((f, k) => <option key={f.uid} value={f.uid}>#{k + 1} {f.name}</option>)}
+              </select>
+            </label>
           </>)}
           {one.kind === "text" && <FontSizeRow value={one.fs} onPick={(px) => patch(one.id, { fs: px })} />}
           <ColourRow value={one.color} onPick={(c) => patch(one.id, { color: c || undefined })} />
@@ -638,11 +678,11 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
               <button disabled={!selItems.some((i) => i.kind === "fixture")} onClick={() => { const fids = new Set(selItems.filter((i) => i.kind === "fixture").map((i) => i.id)); setGrid({ ...grid, items: layoutTables(grid.items.map((i) => { if (!fids.has(i.id)) return i; const b = boxOf(i, sz); return { ...i, w: b.h, h: b.w, x: i.x + (b.w - b.h) / 2, y: i.y + (b.h - b.w) / 2 }; }), sz) }); }} className={`${chip(false)} disabled:opacity-40`} aria-label={tr("Rotate selected lights 90 degrees")} title={tr("Rotate the selected lights 90°")}><RotateCw className="h-3.5 w-3.5" />90°</button>
             </>);
           })()}
+          <button disabled={!selItems.length} onClick={() => removeIds(selItems.map((i) => i.id))} className={`${chip(false)} text-destructive disabled:opacity-40`} aria-label={tr("Delete selected from plot")}><Trash2 className="h-3.5 w-3.5" />{tr("Delete")}</button>
           <button onClick={() => setView(HOME)} className={chip(false)} aria-label={tr("Recenter grid")}><LocateFixed className="h-3.5 w-3.5" />{tr("Recenter")}</button>
           <span className="font-mono text-[10px] text-muted-foreground">{Math.round(view.z * 100)}%</span>
           {!live && (<>
             <button onClick={() => setMode("select")} aria-pressed={mode === "select"} className={chip(mode === "select")}><MousePointer2 className="h-3.5 w-3.5" />{tr("Select")}</button>
-            <button onClick={() => setMode("walls")} aria-pressed={mode === "walls"} className={chip(mode === "walls")}><PenLine className="h-3.5 w-3.5" />{tr("Walls")}</button>
             <button onClick={() => setMode("text")} aria-pressed={mode === "text"} className={chip(mode === "text")}><Type className="h-3.5 w-3.5" />{tr("Text")}</button>
             <label className={`${chip(false)} cursor-pointer`}><ImagePlus className="h-3.5 w-3.5" />{tr("Import pictures or PDF")}<input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => { const fs = [...(e.target.files ?? [])]; if (fs.length) void importImages(fs); e.target.value = ""; }} />
             </label>
@@ -714,7 +754,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
                   const ms = grid.items.filter((g) => g.kind === "fixture" && g.lk === it.lk).map((g) => g.uid!);
                   onSelect(ms.every((u) => selected.includes(u)) ? selected.filter((u) => !ms.includes(u)) : [...new Set([...selected, ...ms])]);
                 }
-                else if (it?.kind === "fixture") onToggle(it.uid!);
+                else if (it?.kind === "fixture" || (it?.kind === "prop" && it.uid)) onToggle(it.uid!);
                 else if (it?.kind === "macro" && !MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.fader) {
                   onRun({ id: it.id, key: null, action: it.macro!.action, amount: it.macro!.amount, param: it.macro!.param, release: MACRO_ACTIONS.find((a) => a.id === it.macro!.action)?.hold || undefined });
                   // Double-tap a group macro in Live to switch which group it targets.
@@ -755,10 +795,10 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const gm = drag?.moved ? drag.group.find((g) => g.id === it.id) : undefined;
             const rr = rs?.out.find((o) => o.id === it.id);
             const pos = rr ?? (gm && drag ? { x: gm.x + drag.x, y: gm.y + drag.y, w: W(it), h: H(it) } : { x: it.x, y: it.y, w: W(it), h: H(it) });
-            const f = it.kind === "fixture" ? fixtures.find((x) => x.uid === it.uid) : undefined;
+            const f = it.kind === "fixture" || it.kind === "prop" ? fixtures.find((x) => x.uid === it.uid) : undefined;
             const n = f ? fixtures.indexOf(f) + 1 : 0;
             const isSel = live ? !!f && selected.includes(f.uid) : esel.includes(it.id);
-            const back = it.kind === "image" || it.kind === "table";
+            const back = it.kind === "image" || it.kind === "table" || (it.kind === "prop" && !f);
             if (live && it.kind === "empty") return null;
             // Empty boxes inside a macro table duplicate the table's own "+" cells and never line up — hide them.
             if (it.kind === "empty" && grid.items.some((t) => t.kind === "table" && it.x + W(it) / 2 > t.x && it.x + W(it) / 2 < t.x + W(t) && it.y + H(it) / 2 > t.y && it.y + H(it) / 2 < t.y + H(t))) return null;
@@ -780,12 +820,17 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             };
             return (
               <div key={it.id} role="button" tabIndex={0} aria-label={f ? `Select fixture ${n}, ${f.name}` : it.macro ? `Run ${macroLabel(it.macro)}` : it.kind === "text" ? "Text label" : it.kind === "image" ? "Picture" : it.kind === "table" ? "Table" : "Empty box"} aria-pressed={f ? isSel : undefined}
-                className={`absolute flex flex-col overflow-hidden ${it.kind === "image" ? "" : "rounded-lg border p-1"} text-[10px] ${(!live && mode === "walls") || (live && back) ? "pointer-events-none" : live ? "cursor-pointer active:scale-[0.97]" : "cursor-grab"} ${!live && mode === "walls" ? "opacity-60" : ""} ${isSel ? "border-primary ring-2 ring-primary" : it.kind === "empty" ? "border-dashed border-border" : it.kind === "text" ? "border-transparent" : it.kind === "table" ? "border-2 border-border" : "border-border"} ${it.kind === "text" ? "bg-transparent" : it.kind === "table" ? "bg-muted" : f ? "bg-card" : "bg-surface-elevated"} ${gm || rr ? (back ? "z-20 shadow-lg" : "z-30 shadow-lg") : back ? "z-0" : "z-10"}`}
+                className={`absolute flex flex-col overflow-hidden ${it.kind === "image" ? "" : GRID_PROPS.find((g) => g.id === it.prop)?.round ? "rounded-full border p-1" : "rounded-lg border p-1"} text-[10px] ${(!live && mode === "walls") || (live && back) ? "pointer-events-none" : live ? "cursor-pointer active:scale-[0.97]" : "cursor-grab"} ${!live && mode === "walls" ? "opacity-60" : ""} ${isSel ? "border-primary ring-2 ring-primary" : it.kind === "empty" ? "border-dashed border-border" : it.kind === "text" ? "border-transparent" : it.kind === "table" ? "border-2 border-border" : "border-border"} ${it.kind === "text" ? "bg-transparent" : it.kind === "table" ? "bg-muted" : f ? "bg-card" : "bg-surface-elevated"} ${gm || rr ? (back ? "z-20 shadow-lg" : "z-30 shadow-lg") : back ? "z-0" : "z-10"}`}
                 style={{ left: pos.x * CELL, top: pos.y * CELL, width: pos.w * CELL, height: pos.h * CELL, ...(it.kind === "table" ? (it.color ? { borderColor: it.color, background: `color-mix(in srgb, ${it.color} 22%, var(--muted))` } : {}) : f ? (it.color ? { borderColor: it.color, borderWidth: 2 } : {}) : pal(it.color)) }}
                 onPointerDownCapture={(e) => tapFader(e)}
                 onPointerDown={(e) => { if (!live && mode !== "select") return; if (!live && (it.kind === "table" ? it.locked : isMacroBox(it) && it.tbl && grid.items.find((t) => t.id === it.tbl)?.locked)) return; e.stopPropagation(); area.current!.setPointerCapture(e.pointerId); const p = pt(e); if (live) { setDrag({ id: it.id, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group: [] }); return; } const sel = esel.includes(it.id) ? esel : e.shiftKey ? [...esel, it.id] : [it.id]; setEsel(sel); setDrag({ id: it.id, x: 0, y: 0, sx: p.x, sy: p.y, moved: false, group: groupFor(it, sel) });}}>
                 {f && !!parked[f.uid] && <span title={tr("Parked")} className="pointer-events-none absolute right-0.5 top-0.5 z-10 rounded bg-primary px-1 font-mono text-[9px] font-bold leading-tight text-primary-foreground shadow">P</span>}
-                {it.kind === "image" ? (
+                {it.kind === "prop" ? (() => { const pr = GRID_PROPS.find((g) => g.id === it.prop); return (
+                  <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center gap-0.5 text-center leading-tight">
+                    {f ? <span className="aspect-square h-1/2 max-h-10 rounded-full border border-border" style={{ background: colorOf(f), boxShadow: `0 0 18px 6px ${colorOf(f)}` }} /> : <span className="text-lg">{pr?.icon}</span>}
+                    <span className="truncate text-[10px] font-semibold">{it.text || (pr ? tr(pr.label) : "")}</span>
+                    {f && <span className="truncate font-mono text-[9px] text-muted-foreground">#{n} {f.name}</span>}
+                  </div>); })() : it.kind === "image" ? (
                   <img src={it.src} alt="" draggable={false} className="pointer-events-none h-full w-full object-fill" style={{ opacity: it.opacity ?? 1, filter: it.invert ? "invert(1)" : undefined }} />
                 ) : it.kind === "table" ? (<>
                   <div className="flex h-[30px] shrink-0 items-start gap-1 px-1 text-xs font-bold uppercase text-muted-foreground" style={it.color ? { color: it.color } : undefined}><span className="flex-1 truncate">{it.text}</span>

@@ -1,3 +1,4 @@
+import { ViewTabs } from "./ViewTabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -293,6 +294,13 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background lg:flex-row">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface px-3 py-2 text-xs hw-bar">
+          {onLive && layer && (() => { const gid = layer.group ?? layer.id; const lv = layers.find((l) => (l.group ?? l.id) === gid)?.live !== false; return (
+            <div className="order-first mr-2" title={tr("LIVE: lights follow this page. PREVIEW: only the screen shows it.")}>
+              <ViewTabs tabs={[
+                { key: "preview", label: tr("PREVIEW"), on: !lv, onClick: () => onLive(gid, false) },
+                { key: "live", label: tr("LIVE"), on: lv, onClick: () => onLive(gid, true) },
+              ]} />
+            </div>); })()}
           {onSelect && (
             <div className="order-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1" aria-label={tr("Effect layers")}>
               {[...new Set(layers.map((l) => l.group ?? l.id))].map((gid, gi) => {
@@ -301,7 +309,6 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
                   <span key={gid} className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-surface-elevated p-0.5">
                     <button onClick={() => onPlay?.(h.id)} aria-label={`${h.playing ? "Stop" : "Play"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.playing ? tr("■") : tr("▶")}</button>
                     {h.playing && onPause && <button onClick={() => onPause(h.id)} aria-label={`${h.pausedAt != null ? "Resume" : "Pause"} page ${gi + 1}`} className="inline-flex w-7 justify-center px-1 py-1">{h.pausedAt != null ? tr("⏵") : tr("❚❚")}</button>}
-                    {onLive && <button onClick={() => onLive(gid, h.live === false)} aria-pressed={h.live !== false} aria-label={`${h.live !== false ? "Take page off the lights" : "Send page live to the lights"} ${gi + 1}`} title={h.live !== false ? "LIVE: lights follow this page. Tap for preview only." : "Preview only: lights don't see this page. Tap to go LIVE."} className={`rounded px-1.5 py-1 text-[10px] font-bold tracking-wide ${h.live !== false ? "bg-destructive text-destructive-foreground" : "border border-border text-muted-foreground"}`}>{h.live !== false ? tr("● LIVE") : tr("PREVIEW")}</button>}
                     <span className="px-1 font-semibold text-muted-foreground">{tr("P")}{gi + 1}</span>
                     {fx.map((l) => (
                       <span key={l.id} className={`flex items-center rounded ${l.id === layer?.id ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
