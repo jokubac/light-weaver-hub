@@ -142,9 +142,9 @@ export function FixtureControls({
         <GelPicker {...(first.gel ? { value: first.gel } : {})} update={update} range={cctRangeOf(first)} />
       </Section>
 
-      {sel.some((f) => beamChannels(f).size > 0) && <Section title={tr("Position & Beam")}><BeamControls first={first} updateEach={updateEach} /></Section>}
+      {sel.some((f) => [...beamChannels(f).keys()].some((a) => a !== "Strobe")) && <Section title={tr("Position & Beam")}><BeamControls first={first} updateEach={updateEach} /></Section>}
 
-      {<>{sel.length > 1 && <Section title={tr("Advanced")}>
+      {<>{sel.some((f) => { const p = getMode(f).profile ?? ""; return p === "nanlux-evoke-cct" || p.startsWith("nanlux-dyno"); }) && <Section title={tr("Advanced")}>
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Fan")}</div>
         <FanControl value={first.fan} update={update} />
       </Section>}
