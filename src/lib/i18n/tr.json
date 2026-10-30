@@ -280,8 +280,6 @@
   "Address": "Adres",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch kilitli — adresi değiştirmek için üst çubuktan kilidi açın.",
   "Overlaps": "Çakışmalar",
-  "OFF — tap to turn on": "KAPALI — açmak için dokunun",
-  "ON — tap to turn off": "AÇIK — kapatmak için dokunun",
   "CCT & Colour": "CCT & Renk",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Bu armatür yalnızca CCT modunda patch edilmiş — renkler ve renk filtreleri gösterilemez. Patch bölümünde (armatür ⋯ menüsü) modu HSI/RGB olarak değiştirin.",
   "Position & Beam": "Konum & Işık Demeti",

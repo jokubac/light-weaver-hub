@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Plus, Trash2, Zap, AlertTriangle, Play, Square, Power, TrendingUp } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Zap, AlertTriangle, Play, Square, TrendingUp } from "lucide-react";
 import {
   caps,
   cctFromKelvin,
@@ -124,12 +124,6 @@ export function FixtureControls({
         </div>
       )}
 
-      <div className="flex gap-2">
-      <button onClick={() => update({ on: first.on === false })}
-        className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.on === false ? "bg-surface-elevated text-muted-foreground" : "bg-success text-primary-foreground"}`}>
-        <Power className="h-4 w-4" /> {first.on === false ? tr("OFF — tap to turn on") : tr("ON — tap to turn off")}
-      </button>
-      </div>
 
       <Control label={tr("Intensity")} value={first.intensity} display="" onChange={(v) => update({ intensity: v })}
         entry={{ text: String(+(first.intensity * 100).toFixed(2)), suffix: "%", parse: (n) => Math.min(1, Math.max(0, n / 100)) }} />

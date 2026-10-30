@@ -499,8 +499,6 @@
   "Address": "Адрес",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Патч заблокирован — разблокируйте на верхней панели для смены адреса.",
   "Overlaps": "Наложения",
-  "OFF — tap to turn on": "ВЫКЛ — нажмите, чтобы включить",
-  "ON — tap to turn off": "ВКЛ — нажмите, чтобы выключить",
   "CCT & Colour": "CCT & Цвет",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Прибор назначен в режиме только CCT — цвета и цветные фильтры недоступны. Выберите режим HSI/RGB в PATCH (меню прибора ⋯).",
   "Position & Beam": "Позиция и луч",

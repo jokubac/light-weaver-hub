@@ -500,8 +500,6 @@
   "Address": "Adress",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch låst — lås upp i det övre fältet för att ändra adress.",
   "Overlaps": "Överlappningar",
-  "OFF — tap to turn on": "AV — tryck för att slå på",
-  "ON — tap to turn off": "PÅ — tryck för att stänga av",
   "CCT & Colour": "CCT & Färg",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Denna armatur är patchad i ett läge med endast CCT — färger och färgfilter kan inte visas. Byt till ett HSI/RGB-läge i Patch (armaturens ⋯-meny).",
   "Position & Beam": "Position & Ljusstråle",

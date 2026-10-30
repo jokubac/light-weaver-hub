@@ -280,8 +280,6 @@
   "Address": "एड्रेस",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 पैच लॉक है — एड्रेस बदलने के लिए टॉप बार में अनलॉक करें।",
   "Overlaps": "ओवरलैप",
-  "OFF — tap to turn on": "OFF — चालू करने के लिए टैप करें",
-  "ON — tap to turn off": "ON — बंद करने के लिए टैप करें",
   "CCT & Colour": "CCT और रंग",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "यह फिक्स्चर CCT-ओनली मोड में पैच किया गया है — रंग और रंगीन जेल नहीं दिखाए जा सकते। पैच (फिक्स्चर ⋯ मेनू) में मोड को HSI/RGB मोड में बदलें।",
   "Position & Beam": "पोजीशन और बीम",

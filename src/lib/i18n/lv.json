@@ -500,8 +500,6 @@
   "Address": "Adrese",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch bloķēts — atslēdziet augšējā joslā, lai mainītu adresi.",
   "Overlaps": "Pārklāšanās",
-  "OFF — tap to turn on": "IZSLĒGTS — pieskarieties, lai ieslēgtu",
-  "ON — tap to turn off": "IESLĒGTS — pieskarieties, lai izslēgtu",
   "CCT & Colour": "CCT & Krāsa",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Šī ierīce ir pievienota tikai CCT režīmā — krāsas un krāsu filtrus nevar attēlot. Sadaļā PATCH (ierīces ⋯ izvēlnē) pārslēdziet to uz HSI/RGB režīmu.",
   "Position & Beam": "Pozīcija & Stars",

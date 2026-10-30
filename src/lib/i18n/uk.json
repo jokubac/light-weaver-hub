@@ -280,8 +280,6 @@
   "Address": "Адреса",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 PATCH заблоковано — розблокуйте на верхній панелі, щоб змінити адресу.",
   "Overlaps": "Перекриття",
-  "OFF — tap to turn on": "ВИМК — натисніть, щоб увімкнути",
-  "ON — tap to turn off": "УВІМК — натисніть, щоб вимкнути",
   "CCT & Colour": "CCT та колір",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Цей прилад призначено в режимі лише CCT — кольори та кольорові світлофільтри не відображаються. Змініть режим у PATCH (меню приладу ⋯) на HSI/RGB.",
   "Position & Beam": "Позиція & промінь",

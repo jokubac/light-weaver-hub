@@ -939,8 +939,6 @@
   "Address": "Adresse",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch verrouillé — déverrouiller dans la barre supérieure pour changer l'adresse.",
   "Overlaps": "Chevauchements",
-  "OFF — tap to turn on": "OFF — appuyer pour activer",
-  "ON — tap to turn off": "ON — appuyer pour désactiver",
   "CCT & Colour": "CCT & Couleur",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Ce projecteur est patché en mode CCT uniquement — les couleurs et gélatines ne peuvent pas être affichées. Changez le mode dans le Patch (menu ⋯ du projecteur) pour un mode HSI/RGB.",
   "Position & Beam": "Position & Faisceau",

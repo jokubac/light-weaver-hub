@@ -280,8 +280,6 @@
   "Address": "العنوان",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 الـ Patch مقفل — قم بإلغاء القفل من الشريط العلوي لتغيير العنوان.",
   "Overlaps": "تداخلات",
-  "OFF — tap to turn on": "إيقاف — اضغط للتشغيل",
-  "ON — tap to turn off": "تشغيل — اضغط للإيقاف",
   "CCT & Colour": "CCT والألوان",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "هذا الكشاف مضبوط في وضع CCT فقط — لا يمكن عرض الألوان وفلاتر الجل. غيّر الوضع في Patch (قائمة الكشاف ⋯) إلى وضع HSI/RGB.",
   "Position & Beam": "الموضع والحزمة",

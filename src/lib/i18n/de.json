@@ -280,8 +280,6 @@
   "Address": "Adresse",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 Patch gesperrt — zum Ändern in der Kopfzeile entsperren.",
   "Overlaps": "Überlappungen",
-  "OFF — tap to turn on": "AUS — zum Einschalten tippen",
-  "ON — tap to turn off": "AN — zum Ausschalten tippen",
   "CCT & Colour": "CCT & Farbe",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "Diese Lampe ist im CCT-Modus — Farben und Folien können nicht angezeigt werden. Modus im Patch (Scheinwerfer ⋯ Menü) auf HSI/RGB ändern.",
   "Position & Beam": "Position & Beam",

@@ -280,8 +280,6 @@
   "Address": "アドレス",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 パッチロック中 — アドレス変更はトップバーで解除してください。",
   "Overlaps": "オーバーラップ",
-  "OFF — tap to turn on": "OFF — タップしてオン",
-  "ON — tap to turn off": "ON — タップしてオフ",
   "CCT & Colour": "CCT & カラー",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "このフィクスチャはCCT専用モードでパッチされています。カラーやジェルは表示できません。パッチのフィクスチャメニュー(⋯)から HSI/RGB モードに変更してください。",
   "Position & Beam": "ポジション & ビーム",

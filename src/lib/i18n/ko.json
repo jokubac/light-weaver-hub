@@ -500,8 +500,6 @@
   "Address": "주소",
   "🔒 Patch locked — unlock in the top bar to change address.": "🔒 패치 잠김 — 주소를 변경하려면 상단 바에서 잠금을 해제하세요.",
   "Overlaps": "오버랩",
-  "OFF — tap to turn on": "OFF — 누르면 켬",
-  "ON — tap to turn off": "ON — 누르면 끔",
   "CCT & Colour": "CCT 및 컬러",
   "This fixture is patched in a CCT-only mode — colours and colour gels can't be shown. Change the mode in Patch (fixture ⋯ menu) to an HSI/RGB mode.": "이 픽스처는 CCT 전용 모드로 패치되었습니다. 컬러 및 컬러 젤을 표시할 수 없습니다. 패치(픽스처 ⋯ 메뉴)에서 모드를 HSI/RGB 모드로 변경하세요.",
   "Position & Beam": "포지션 및 빔",
