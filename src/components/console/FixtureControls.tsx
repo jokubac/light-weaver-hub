@@ -111,7 +111,7 @@ export function FixtureControls({
             value={first.name}
             aria-label={tr("Fixture name")}
             onChange={(e) => update({ name: e.target.value })}
-            className="-mx-1 w-full rounded bg-transparent px-1 text-sm font-semibold text-foreground outline-none hover:bg-input/30 focus:bg-input/40"
+            className="-mx-1 w-full border-b border-dashed border-input/70 bg-transparent px-1 pb-0.5 text-sm font-semibold text-foreground outline-none hover:bg-input/30 focus:border-primary focus:bg-input/40"
           />
           <div className="mt-1 flex items-center gap-2">
             <p className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels}{tr("ch")}</p>
