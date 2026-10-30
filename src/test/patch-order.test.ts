@@ -94,4 +94,7 @@ describe("renameSequence", () => {
   it("puts the number before with step", () => {
     expect(renameSequence({ base: "Fill", numbering: "before", start: 10, step: 5, pad: 1, sep: "-" }, [{}, {}])).toEqual(["10-Fill", "15-Fill"]);
   });
+  it("numbers every light in order when no step is given", () => {
+    expect(renameSequence({ base: "Key", numbering: "after", start: 1, pad: 1, sep: " " }, [{}, {}, {}])).toEqual(["Key 1", "Key 2", "Key 3"]);
+  });
 });
