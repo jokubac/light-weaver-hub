@@ -37,7 +37,7 @@ export function RenameDialog({ lights, onApply, onClose }: { lights: Light[]; on
 
         {showNumbering && (
           <div className="flex flex-wrap gap-1">
-            {(["after", "before", "none"] as const).map((n) => (
+            {(["after", "before"] as const).map((n) => (
               <button key={n} className={chip(o.numbering === n)} onClick={() => set({ numbering: n })}>
                 {renameSequence({ ...o, numbering: n }, [sample])[0] || "—"}
               </button>
@@ -45,19 +45,11 @@ export function RenameDialog({ lights, onApply, onClose }: { lights: Light[]; on
           </div>
         )}
 
-        <div className="flex flex-wrap items-end gap-2 text-xs">
-          <div className="flex flex-wrap gap-1">
-            {[1, 2, 3].map((p) => (
-              <button key={p} className={chip(o.pad === p)} onClick={() => set({ pad: p })}>
-                {String(p === 1 ? 1 : p === 2 ? "01" : "001")}
-              </button>
-            ))}
-          </div>
-          <label className="ml-auto flex items-center gap-1">
-            {tr("Start")}
-            <input type="number" className="w-14 rounded-md border border-border bg-background px-2 py-1" value={o.start} onChange={(e) => set({ start: Number(e.target.value) || 0 })} />
-          </label>
-        </div>
+        <label className="flex w-fit items-center gap-2 text-xs">
+          {tr("Start")}
+          <input type="number" className="w-16 rounded-md border border-border bg-background px-2 py-1" value={o.start} onChange={(e) => set({ start: Number(e.target.value) || 0 })} />
+        </label>
+
 
         <div className="flex flex-wrap gap-1 text-xs">
           {SEPS.map(([v, label]) => (
