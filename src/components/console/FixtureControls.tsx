@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Plus, Trash2, Zap, AlertTriangle, Play, Square, TrendingUp } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Zap, AlertTriangle, Play, Square, TrendingUp, Lock, Pencil } from "lucide-react";
 import {
   caps,
   cctFromKelvin,
@@ -106,15 +106,23 @@ export function FixtureControls({
       </div>
 
       {sel.length === 1 && (
-        <div className="space-y-0.5">
-          <div className="flex items-end gap-1.5 text-[9px] uppercase tracking-wider text-muted-foreground">
-            <input value={first.name} aria-label={tr("Fixture name")} onChange={(e) => update({ name: e.target.value })} className="min-w-0 flex-1 rounded border border-input bg-surface-elevated px-1.5 py-0.5 text-xs normal-case tracking-normal text-foreground outline-none focus:border-primary" />
-            <label>{tr("Universe")}<NumberField integer min={1} max={64} disabled={locked} value={first.universe} onChange={(v) => v && update({ universe: v })} className="mt-0.5 w-11 rounded border border-input bg-surface-elevated px-1 py-0.5 text-center text-xs normal-case tracking-normal text-foreground" /></label>
-            <label>{tr("Address")}<NumberField integer min={1} max={512} disabled={locked} value={first.address} onChange={(v) => v && update({ address: v })} className="mt-0.5 w-14 rounded border border-input bg-surface-elevated px-1 py-0.5 text-center text-xs normal-case tracking-normal text-foreground" /></label>
+        <div className="rounded-xl border border-input/60 bg-surface-elevated/30 px-2.5 pb-1.5 pt-1">
+          <div className="flex items-center gap-1.5">
+            <Pencil className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+            <input
+              value={first.name}
+              aria-label={tr("Fixture name")}
+              onChange={(e) => update({ name: e.target.value })}
+              className="min-w-0 flex-1 border-b border-dashed border-input/70 bg-transparent py-0.5 text-sm font-semibold text-foreground outline-none hover:bg-input/30 focus:border-primary focus:bg-input/40"
+            />
+            <span className="text-[10px] font-bold text-primary/80">U</span>
+            <NumberField aria-label={tr("Universe")} integer min={1} max={64} disabled={locked} value={first.universe} onChange={(v) => v && update({ universe: v })} className={`w-10 text-center ${locked ? "opacity-50" : ""}`} />
+            <span className="text-[10px] font-bold text-primary/80">@</span>
+            <NumberField aria-label={tr("Address")} integer min={1} max={512} disabled={locked} value={first.address} onChange={(v) => v && update({ address: v })} className={`w-12 text-center ${locked ? "opacity-50" : ""}`} />
+            {locked && <span title={tr("Patch locked — unlock to edit")}><Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /></span>}
           </div>
-          <p className="truncate text-[10px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels}{tr("ch")}</p>
-          {locked && <p className="text-[9px] text-muted-foreground">{tr("🔒 Patch locked — unlock in the top bar to change address.")}</p>}
-          {conflicts.length > 0 && <p className="flex gap-1.5 text-xs text-destructive"><AlertTriangle className="h-3.5 w-3.5" />{tr("Overlaps")}{conflicts.map((c) => c.name).join(", ")}</p>}
+          <p className="mt-1 truncate text-[10px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels}{tr("ch")}</p>
+          {conflicts.length > 0 && <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />{tr("Overlaps")} {conflicts.map((c) => c.name).join(", ")}</p>}
         </div>
       )}
 
