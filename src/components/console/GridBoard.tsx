@@ -62,6 +62,8 @@ export function emptyGrid(): GridLayout {
 }
 
 const CELL = 76, COLS = 24, ROWS = 16, SIZE = 0.92;
+/** Where a picked prop lands: centred on the tapped floor point, snapped to a quarter cell. */
+export const propSpot = (x: number, y: number, w: number, h: number) => ({ x: Math.round((x - w / 2) * 4) / 4, y: Math.round((y - h / 2) * 4) / 4 });
 const nid = () => Math.random().toString(36).slice(2, 10);
 const clamp = (v: number, max: number) => Math.max(0, Math.min(max, v));
 
@@ -482,7 +484,8 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
     const pr = GRID_PROPS.find((g) => g.id === pickProp);
     if (!pr) return;
     const id = nid();
-    setGrid({ ...grid, items: [...grid.items, { id, kind: "prop", prop: pr.id, x: Math.round((x - pr.w / 2) * 4) / 4, y: Math.round((y - pr.h / 2) * 4) / 4, w: pr.w, h: pr.h }] });
+    const sp = propSpot(x, y, pr.w, pr.h);
+    setGrid({ ...grid, items: [...grid.items, { id, kind: "prop", prop: pr.id, x: sp.x, y: sp.y, w: pr.w, h: pr.h }] });
     setEsel([id]);
   };
   const rectWalls = (w: { x1: number; y1: number; x2: number; y2: number }) => [
