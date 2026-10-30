@@ -29,7 +29,6 @@ import { ColorSource } from "./ColorSource";
 import { ColourControls, HexColourControls } from "./ColourControls";
 import { Button } from "@/components/ui/button";
 import { PaletteEditor } from "./PaletteEditor";
-import { SettingsTransfer } from "./SettingsTransfer";
 import { SpeedControl } from "./SpeedControl";
 import { hexToHs } from "@/lib/gels";
 import { NumberField } from "./NumberField";
@@ -75,7 +74,7 @@ const tapReset = (fn: () => void) => () => {
 };
 
 export function FixtureControls({
-  fixtures, sel, update, updateEach, remove, fire, locked, copiedSource, onCopy, onPaste, onFlash,
+  fixtures, sel, update, updateEach, remove, fire, locked, onFlash,
 }: {
   fixtures: PatchedFixture[];
   sel: PatchedFixture[];
@@ -84,9 +83,6 @@ export function FixtureControls({
   locked: boolean;
   remove: () => void;
   fire: (k: TriggerKind) => void;
-  copiedSource?: string | undefined;
-  onCopy: () => void;
-  onPaste: () => void;
   onFlash: () => void;
 }) {
   const first = sel[0];
@@ -109,17 +105,15 @@ export function FixtureControls({
         <button onClick={remove} disabled={locked} title={locked ? "Unlock patch to remove" : "Remove"} className="disabled:opacity-30 text-muted-foreground hover:text-destructive" aria-label={tr("Remove")}><Trash2 className="h-4 w-4" /></button>
       </div>
 
-      <SettingsTransfer source={copiedSource} canCopy={sel.length > 0} onCopy={onCopy} onPaste={onPaste} />
-
       {sel.length === 1 && (
-        <div className="space-y-2">
-          <input value={first.name} aria-label={tr("Fixture name")} onChange={(e) => update({ name: e.target.value })} className="w-full rounded-md border border-input bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-primary" />
-          <div className="grid grid-cols-2 gap-2 text-[9px] uppercase text-muted-foreground">
-            <label>{tr("Universe")}<NumberField integer min={1} max={64} disabled={locked} value={first.universe} onChange={(v) => v && update({ universe: v })} className="mt-0.5 w-full rounded-md border border-input bg-surface-elevated px-2 py-1 text-xs text-foreground" /></label>
-            <label>{tr("Address")}<NumberField integer min={1} max={512} disabled={locked} value={first.address} onChange={(v) => v && update({ address: v })} className="mt-0.5 w-full rounded-md border border-input bg-surface-elevated px-2 py-1 text-xs text-foreground" /></label>
+        <div className="space-y-0.5">
+          <div className="flex items-end gap-1.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+            <input value={first.name} aria-label={tr("Fixture name")} onChange={(e) => update({ name: e.target.value })} className="min-w-0 flex-1 rounded border border-input bg-surface-elevated px-1.5 py-0.5 text-xs normal-case tracking-normal text-foreground outline-none focus:border-primary" />
+            <label>{tr("Universe")}<NumberField integer min={1} max={64} disabled={locked} value={first.universe} onChange={(v) => v && update({ universe: v })} className="mt-0.5 w-11 rounded border border-input bg-surface-elevated px-1 py-0.5 text-center text-xs normal-case tracking-normal text-foreground" /></label>
+            <label>{tr("Address")}<NumberField integer min={1} max={512} disabled={locked} value={first.address} onChange={(v) => v && update({ address: v })} className="mt-0.5 w-14 rounded border border-input bg-surface-elevated px-1 py-0.5 text-center text-xs normal-case tracking-normal text-foreground" /></label>
           </div>
-          {locked && <p className="text-[10px] text-muted-foreground">{tr("🔒 Patch locked — unlock in the top bar to change address.")}</p>}
-          <p className="text-[11px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels}{tr("ch")}</p>
+          <p className="truncate text-[10px] text-muted-foreground">{getDef(first.defId).brand} {getDef(first.defId).model} · {mode.name} · {mode.channels}{tr("ch")}</p>
+          {locked && <p className="text-[9px] text-muted-foreground">{tr("🔒 Patch locked — unlock in the top bar to change address.")}</p>}
           {conflicts.length > 0 && <p className="flex gap-1.5 text-xs text-destructive"><AlertTriangle className="h-3.5 w-3.5" />{tr("Overlaps")}{conflicts.map((c) => c.name).join(", ")}</p>}
         </div>
       )}
