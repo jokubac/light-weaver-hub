@@ -19,6 +19,9 @@ d2("REC on the command line", () => {
     e2(pc("REC FX", 4).rec).toEqual({ kind: "fx" });
     e2(pc("REC TIMELINE", 4).rec).toEqual({ kind: "timeline" });
   });
+  i2("accepts SEQUENCE as an alias for TIMELINE", () => {
+    e2(pc("REC SEQUENCE", 4).rec).toEqual({ kind: "timeline" });
+  });
   i2("rejects MERGE without a cue number", () => {
     e2(pc("REC MERGE", 4).error).toBeTruthy();
   });

@@ -801,7 +801,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
 
   // Timeline saves live on the project, apart from the scene's working timeline.
   const saveTimeline = () => {
-    const name = tlName.trim() || `Timeline ${(project.timelines ?? []).length + 1}`;
+    const name = tlName.trim() || `Sequence ${(project.timelines ?? []).length + 1}`;
     onTimelines([{ id: uid(), name, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])]);
     setTlName("");
   };
@@ -1220,7 +1220,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
     const src = ids.length ? fixtures.filter((f) => ids.includes(f.uid)) : fixtures;
     const states = src.map((f) => ({ uid: f.uid, name: f.name, state: lookStateOf(f) }));
     if (rec.kind === "look") { onLooks([{ id: uid(), name: `Look ${(project.looks ?? []).length + 1}`, createdAt: Date.now(), states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })) }, ...(project.looks ?? [])]); return "✓"; }
-    if (rec.kind === "timeline") { onTimelines([{ id: uid(), name: `Timeline ${(project.timelines ?? []).length + 1}`, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])]); return "✓"; }
+    if (rec.kind === "timeline") { onTimelines([{ id: uid(), name: `Sequence ${(project.timelines ?? []).length + 1}`, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])]); return "✓"; }
     if (rec.kind === "fx") { onRecordings([{ id: uid(), name: `FX ${(project.recordings ?? []).length + 1}`, createdAt: Date.now(), loop: true, steps: [{ id: uid(), name: "Step 1", states: src.map((f) => ({ uid: f.uid, name: f.name, state: snapshot(f) })), fadeIn: 1, hold: 1, fadeOut: 1 }] }, ...(project.recordings ?? [])]); return "✓"; }
     const existing = rec.n != null ? cues.find((c) => c.number === rec.n) : undefined;
     if (existing && !rec.mode) return `Cue ${rec.n} exists — add MERGE or OVERWRITE`;
@@ -1470,19 +1470,19 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
               setLayers(layers.map((l) => l.id === activePixel.id ? { ...saved, id: l.id, order: order.length ? order : l.order, playing: false } : l));
             }} /></CollapsibleSection>
             <CollapsibleSection title={tr("REC")}><RecRail hideTitle recordings={recordings} setRecordings={onRecordings} selectedFixtures={sel} playing={play?.id ?? null} paused={play?.pausedAt != null} progress={recProg} waiting={play?.waiting} onGo={goRec} onPlay={playRec} onPause={pauseRec} onStop={stopRec} /></CollapsibleSection>
-            <CollapsibleSection title={tr("Timelines")}>
+            <CollapsibleSection title={tr("Sequences")}>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <input aria-label={tr("Timeline save name")} value={tlName} onChange={(e) => setTlName(e.target.value)} placeholder={tr("Timeline name")}
+                  <input aria-label={tr("Sequence save name")} value={tlName} onChange={(e) => setTlName(e.target.value)} placeholder={tr("Sequence name")}
                     className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs" />
                   <Button variant="secondary" className="h-7 shrink-0 px-2 text-[10px] font-bold" onClick={saveTimeline}>{tr("Save")}</Button>
                 </div>
-                {(project.timelines ?? []).length === 0 && <p className="text-[10px] text-muted-foreground">{tr("Nothing saved yet. Saving keeps the current timeline, with its layers and clips, apart from the scene.")}</p>}
+                {(project.timelines ?? []).length === 0 && <p className="text-[10px] text-muted-foreground">{tr("Nothing saved yet. Saving keeps the current sequence, with its layers and clips, apart from the scene.")}</p>}
                 {(project.timelines ?? []).map((t) => (
                   <div key={t.id} className="flex items-center gap-1.5 rounded-md bg-surface-elevated px-2 py-1">
                     <button onClick={() => applyTimeline(t)} className="min-w-0 flex-1 truncate text-left text-xs font-semibold">{t.name}</button>
                     <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{Math.round(timelineLength(t.timeline))}{tr("s")}</span>
-                    <button aria-label={`Delete timeline ${t.name}`} onClick={() => onTimelines((project.timelines ?? []).filter((x) => x.id !== t.id))}><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button aria-label={`Delete sequence ${t.name}`} onClick={() => onTimelines((project.timelines ?? []).filter((x) => x.id !== t.id))}><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 ))}
               </div>
@@ -1679,7 +1679,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
         <ShowMonitor open={monitorOpen} onOpenChange={setMonitorOpen} fixtures={fixtures} level={outLevel} parked={parked} setParked={onParked} />
       </div>
       <div aria-label={tr("Console views")} className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-1.5 hw-bar">
-        <ViewTabs fill tabs={([["fixtures", tr("FIXTURES"), fixturesOpen || !(gridOpen || seqOpen || pixOpen || patchOpen || fadersPage)], ["grid", tr("PLOT"), gridOpen], ["timeline", tr("TIMELINE"), seqOpen], ["pixels", tr("PIXEL"), pixOpen], ["faders", tr("FADERS"), fadersPage], ["patch", tr("PATCH"), patchOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => (on && k === "patch" ? undefined : openWin(k as "fixtures" | "grid" | "timeline" | "pixels" | "faders" | "patch")) }))} />
+        <ViewTabs fill tabs={([["fixtures", tr("FIXTURES"), fixturesOpen || !(gridOpen || seqOpen || pixOpen || patchOpen || fadersPage)], ["grid", tr("PLOT"), gridOpen], ["timeline", tr("SEQUENCE"), seqOpen], ["pixels", tr("PIXEL"), pixOpen], ["faders", tr("FADERS"), fadersPage], ["patch", tr("PATCH"), patchOpen]] as const).map(([k, label, on]) => ({ key: k, label, on, onClick: () => (on && k === "patch" ? undefined : openWin(k as "fixtures" | "grid" | "timeline" | "pixels" | "faders" | "patch")) }))} />
         {!patchOpen && <button onClick={() => setGroupsOpen((o) => !o)} aria-pressed={groupsOpen} aria-label={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"} title={groupsOpen ? "Hide groups, looks, effects and REC" : "Show groups, looks, effects and REC"}
           className={`inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-md shadow-sm transition active:scale-95 [&_svg]:size-4 ${groupsOpen ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
           {groupsOpen ? <PanelRightClose /> : <PanelRightOpen />}
@@ -1756,7 +1756,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
       )}
       {seqOpen && (
         <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row">
-        <TimelinePanel onSaveAs={(n) => onTimelines([{ id: uid(), name: n.trim() || `Timeline ${(project.timelines ?? []).length + 1}`, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])])} timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}
+        <TimelinePanel onSaveAs={(n) => onTimelines([{ id: uid(), name: n.trim() || `Sequence ${(project.timelines ?? []).length + 1}`, createdAt: Date.now(), timeline: structuredClone(latest.current.seq) }, ...(project.timelines ?? [])])} timeline={seq} setTimeline={(tl) => { setSeq(tl); latest.current.seq = tl; save(); }} time={seqTime} playing={!!seqPlay}
           onPlay={() => playSeq()} onPause={pauseSeq} onStop={stopSeq} onGo={goSeq} waiting={seqWait != null} repeat={seqRepeat} onRepeat={() => setSeqRepeat((r) => !r)} groups={groups} onSeek={seekSeq} fixtures={fixtures} selected={selected} recordings={recordings}
           layers={seqHold.current?.layers ?? layers} activeClips={seqActive} audioPeaks={audioPeaks}
           colorOf={(f) => { const of = outFixtures.find((o) => o.uid === f.uid) ?? f; const px = frame.get(f.uid); if (px?.length) { const n = px.length; const pv = of.on === false ? 0 : of.intensity * outLevel; return [0, 1, 2].map((k) => Math.round((px.reduce((a, c) => a + c[k]!, 0) / n) * pv)) as RGB; } const st = fixtureState(of, t, outLevel); return st.rgb.map((c) => Math.round(c * st.v)) as RGB; }}
