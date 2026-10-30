@@ -594,14 +594,14 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
       <Button variant="secondary" size="sm" className="w-full" onClick={addTable}><Table2 />{tr("Macros table")}</Button>
       <section className="space-y-2 rounded-lg border border-border p-2">
         <h3 className="text-xs font-bold uppercase">{tr("Props")}</h3>
-        <p className="text-[10px] text-muted-foreground">{tr("Add set props. Lamps can hold a light — select the lamp, then pick the light inside.")}</p>
+        <p className="text-[10px] text-muted-foreground">{propArmed ? tr("Tap the floor where you want it. Tap again to place another; press the prop again to stop.") : tr("Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.")}</p>
         <div className="grid grid-cols-4 gap-1">
-          {GRID_PROPS.map((pr) => (
-            <button key={pr.id} onClick={() => { const id = nid(); const sp = freeSpot(grid.items, pr.w, pr.h); setGrid({ ...grid, items: [...grid.items, { id, kind: "prop", prop: pr.id, x: sp.x, y: sp.y, w: pr.w, h: pr.h }] }); setEsel([id]); setMode("select"); }}
-              className={`flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold active:scale-95 ${pr.lamp ? "bg-primary/15 text-foreground" : "bg-surface-elevated"}`}>
+          {GRID_PROPS.map((pr) => { const on = mode === "prop" && pickProp === pr.id; return (
+            <button key={pr.id} onClick={() => { setPickProp(on ? null : pr.id); setMode(on ? "select" : "prop"); setGhost(null); }} aria-pressed={on}
+              className={`flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[9px] font-semibold active:scale-95 ${on ? "bg-primary text-primary-foreground ring-2 ring-primary" : pr.lamp ? "bg-primary/15 text-foreground" : "bg-surface-elevated"}`}>
               <span className="h-7 w-9"><PropArt id={pr.id} w={pr.w} h={pr.h} glow={pr.lamp ? "hsl(40 95% 60%)" : undefined} /></span>{tr(pr.label)}
             </button>
-          ))}
+          ); })}
         </div>
       </section>
       {one && one.kind !== "image" && (
