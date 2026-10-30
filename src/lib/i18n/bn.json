@@ -1095,5 +1095,8 @@
   "● REC move": "● REC মুভ",
   "★ Favourite fixture + mode": "★ ফেভারিট ফিক্সচার + মোড",
   "★ Favourite fixtures": "★ ফেভারিট ফিক্সচার",
-  "✕ Remove": "✕ সরান"
+  "✕ Remove": "✕ সরান",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "যেখানে চান সেখানে মেঝেতে ট্যাপ করুন। আরও রাখতে আবার ট্যাপ করুন; থামাতে প্রপে আবার চাপুন।",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "একটি প্রপ বেছে নিন, তারপর যেখানে চান সেখানে মেঝেতে ট্যাপ করুন। ল্যাম্পে লাইট রাখা যায় — ল্যাম্প বেছে নিন, তারপর ভিতরের লাইট বেছে নিন।",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "বেছে নেওয়া প্রপ রাখতে মেঝেতে ট্যাপ করুন। থামাতে প্রপে আবার চাপুন।"
 }

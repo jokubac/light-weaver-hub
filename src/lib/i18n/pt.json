@@ -1095,5 +1095,8 @@
   "● REC move": "● REC mov.",
   "★ Favourite fixture + mode": "★ Projetor + modo favorito",
   "★ Favourite fixtures": "★ Projetores favoritos",
-  "✕ Remove": "✕ Remover"
+  "✕ Remove": "✕ Remover",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "Toque no chão onde você quer. Toque de novo para colocar outro; pressione o adereço novamente para parar.",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "Escolha um adereço e toque no chão onde você quer. As lâmpadas podem conter uma luz — selecione a lâmpada e depois a luz dentro dela.",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Toque no chão para colocar o adereço escolhido. Pressione o adereço novamente para parar."
 }

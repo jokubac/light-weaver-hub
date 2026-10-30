@@ -1095,5 +1095,8 @@
   "● REC move": "● REC मूव",
   "★ Favourite fixture + mode": "★ पसंदीदा फ़िक्स्चर + मोड",
   "★ Favourite fixtures": "★ पसंदीदा फ़िक्स्चर",
-  "✕ Remove": "✕ हटाएं"
+  "✕ Remove": "✕ हटाएं",
+  "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "जहाँ चाहें वहाँ फ़र्श पर टैप करें। दूसरा रखने के लिए फिर टैप करें; रोकने के लिए प्रॉप पर फिर दबाएँ।",
+  "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "एक प्रॉप चुनें, फिर जहाँ चाहें वहाँ फ़र्श पर टैप करें। लैंप में लाइट रखी जा सकती है — लैंप चुनें, फिर अंदर की लाइट चुनेँ।",
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "चुना हुआ प्रॉप रखने के लिए फ़र्श पर टैप करें। रोकने के लिए प्रॉप पर फिर दबाएँ।"
 }
