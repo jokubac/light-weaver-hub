@@ -125,3 +125,16 @@ export function patchClashes(fixtures: PatchedFixture[]): Set<string> {
   }
   return out;
 }
+
+export type RenameOpts = { base: string; numbering: "after" | "before" | "none" | "token"; start: number; step: number; pad: number; sep: string };
+/** Bulk rename with a sequence number: tokens {n} {model} {u} {a} are filled per light. */
+export function renameSequence(o: RenameOpts, lights: { model?: string; universe?: number; address?: number }[]): string[] {
+  return lights.map((l, i) => {
+    const n = String(o.start + i * o.step).padStart(Math.max(1, o.pad), "0");
+    const fill = (s: string) => s.split("{n}").join(n).split("{model}").join(l.model ?? "").split("{u}").join(String(l.universe ?? "")).split("{a}").join(String(l.address ?? ""));
+    const base = fill(o.base).trim();
+    if (o.numbering === "token" || o.base.includes("{n}")) return base;
+    if (o.numbering === "none") return base;
+    return o.numbering === "before" ? `${n}${o.sep}${base}` : `${base}${o.sep}${n}`;
+  });
+}

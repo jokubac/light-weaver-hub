@@ -14,9 +14,10 @@ import { FixtureGlyph } from "./FixtureGlyph";
 import { getDef, normalizeFixture, overlaps, type FixtureDef, type PatchedFixture } from "@/lib/dmx";
 import { CallSheet } from "./CallSheet";
 import { LabelPrinter } from "./LabelPrinter";
+import { RenameDialog } from "./RenameDialog";
 import { saveFile, safeFileName } from "@/lib/save-file";
 import { buildPatchPdf } from "@/lib/patch-pdf";
-import { patchRows, movePatchFixture, movePatchBlock, blockLanding, renamePattern, togglePick, patchClashes, patchOffset, patchWindow, type ExpandedRow } from "@/lib/patch-order";
+import { patchRows, movePatchFixture, movePatchBlock, blockLanding, togglePick, patchClashes, patchOffset, patchWindow, type ExpandedRow } from "@/lib/patch-order";
 import { keyboardScroll, visibleBand } from "@/lib/keyboard-view";
 
 import { t as tr } from "@/lib/i18n";
@@ -110,17 +111,8 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
     } else setPicked((p) => togglePick(p, uid));
     lastPick.current = uid;
   };
-  const bulkRename = () => {
-    const pattern = prompt(`Rename ${picked.length} lights.\nUse {n} for the number (e.g. "Key {n}"), or a comma list (e.g. "Key, Fill, Back").`, "Light {n}");
-    if (!pattern) return;
-    let start = 1, step = 1;
-    if (!pattern.includes(",")) {
-      const st = prompt("Start number", "1"); if (st === null) return; start = Number(st) || 1;
-      const sp = prompt("Step", "1"); if (sp === null) return; step = Number(sp) || 1;
-    }
-    const order = fixtures.filter((f) => picked.includes(f.uid));
-    renamePattern(pattern, order.length, start, step).forEach((name, i) => onUpdate(order[i]!.uid, { name }));
-  };
+  const [renaming, setRenaming] = useState(false);
+  const bulkRename = () => setRenaming(true);
   const each = (p: Partial<PatchedFixture>) => picked.forEach((id) => onUpdate(id, p));
   const unpatch = () => {
     if (!picked.length) return;
@@ -247,6 +239,9 @@ export function PatchPage({ title, callSheet, onCallSheet, fixtures, onClose, on
         <Button size="sm" variant={panelOpen ? "secondary" : "default"} onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen} title={panelOpen ? "Close the fixture list" : "Open the fixture list and DMX map"}>{panelOpen ? <PanelRightClose /> : <PanelRightOpen />}{panelOpen ? tr("Close fixtures") : tr("Add fixtures")}</Button>
         <Button size="sm" variant="secondary" onClick={savePdf} title={tr("Save the patch sheet as a PDF")}><Printer />{tr("Save PDF")}</Button>
         <Button size="sm" variant="secondary" onClick={() => setLabelsOpen(true)} title={tr("Print patch labels on a Niimbot printer")}><Tag />{tr("Labels")}</Button>
+        {renaming && (() => { const order = fixtures.filter((f) => picked.includes(f.uid)); return (
+          <RenameDialog lights={order.map((f) => ({ name: f.name, model: getDef(f.defId)?.model, universe: f.universe, address: f.address }))}
+            onApply={(names) => names.forEach((name, i) => onUpdate(order[i]!.uid, { name }))} onClose={() => setRenaming(false)} />); })()}
         <LabelPrinter open={labelsOpen} onOpenChange={setLabelsOpen} title={title} fixtures={fixtures.map((f, i) => ({ f, num: i + 1 })).filter(({ f }) => !picked.length || picked.includes(f.uid))} />
         <Button size="sm" variant="secondary" onClick={exportPatch}><Download />{tr("Export")}</Button>
         <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Upload />{tr("Import")}</Button>
