@@ -597,12 +597,12 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
           </>)}
           {one.kind === "prop" && (<>
             <input value={one.text ?? ""} onChange={(e) => patch(one.id, { text: e.target.value })} placeholder={tr("Prop name")} className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs" />
-            <label className="block text-[10px] uppercase text-muted-foreground">{tr("Light inside")}
+            {GRID_PROPS.find((g) => g.id === one.prop)?.lamp && <label className="block text-[10px] uppercase text-muted-foreground">{tr("Light inside")}
               <select value={one.uid ?? ""} onChange={(e) => { const uid = e.target.value || undefined; setGrid({ ...grid, items: grid.items.filter((i) => !(uid && i.id !== one.id && i.uid === uid && (i.kind === "fixture" || i.kind === "prop"))).map((i) => (i.id === one.id ? { ...i, uid } : i)) }); }} className="mt-0.5 w-full rounded-md border border-input bg-background px-2 py-1 text-xs normal-case text-foreground">
                 <option value="">{tr("None")}</option>
                 {fixtures.map((f, k) => <option key={f.uid} value={f.uid}>#{k + 1} {f.name}</option>)}
               </select>
-            </label>
+            </label>}
           </>)}
           {one.kind === "text" && <FontSizeRow value={one.fs} onPick={(px) => patch(one.id, { fs: px })} />}
           <ColourRow value={one.color} onPick={(c) => patch(one.id, { color: c || undefined })} />
@@ -796,7 +796,7 @@ export function GridBoard({ grid, setGrid, fixtures, selected, onToggle, onSelec
             const gm = drag?.moved ? drag.group.find((g) => g.id === it.id) : undefined;
             const rr = rs?.out.find((o) => o.id === it.id);
             const pos = rr ?? (gm && drag ? { x: gm.x + drag.x, y: gm.y + drag.y, w: W(it), h: H(it) } : { x: it.x, y: it.y, w: W(it), h: H(it) });
-            const f = it.kind === "fixture" || it.kind === "prop" ? fixtures.find((x) => x.uid === it.uid) : undefined;
+            const f = it.kind === "fixture" || (it.kind === "prop" && GRID_PROPS.find((g) => g.id === it.prop)?.lamp) ? fixtures.find((x) => x.uid === it.uid) : undefined;
             const n = f ? fixtures.indexOf(f) + 1 : 0;
             const isSel = live ? !!f && selected.includes(f.uid) : esel.includes(it.id);
             const back = it.kind === "image" || it.kind === "table" || (it.kind === "prop" && !f);
