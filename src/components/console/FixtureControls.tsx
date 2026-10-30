@@ -163,7 +163,7 @@ export function FixtureControls({
         {fx.kind !== "none" && (
           <button onClick={() => update({ fxPlaying: first.fxPlaying === false })}
             className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold active:scale-95 ${first.fxPlaying === false ? "bg-amber-glow text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
-            {first.fxPlaying === false ? <><Play className="h-4 w-4" />{tr("PLAY")}{fx.kind.toUpperCase()}</> : <><Square className="h-4 w-4" />{tr("STOP")}{fx.kind.toUpperCase()}</>}
+            {first.fxPlaying === false ? <><Play className="h-4 w-4" />{tr("PLAY")} {fx.kind.toUpperCase()}</> : <><Square className="h-4 w-4" />{tr("STOP")} {fx.kind.toUpperCase()}</>}
           </button>
         )}
         <div className="grid grid-cols-4 gap-2">
