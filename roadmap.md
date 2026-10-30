@@ -348,3 +348,4 @@
 
 - [x] PATCH rename dialog simplified further: the name-only numbering option and the 1/01/001 digit-width row are gone — only Light 1 / 1 Light, Start and a separator remain; 15 patch-order tests, typecheck and a browser apply check pass (names saved as 1_Light … 5_Light).
 - [x] PLOT props + Delete button
+- [x] PIXEL Preview/Live sliding toggle
