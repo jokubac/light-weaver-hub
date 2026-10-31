@@ -1587,6 +1587,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   <option value="all">{tr("Show: all")}</option>
                   <option value="live">{tr("Show: lit + highlighted")}</option>
                   <option value="hl">{tr("Show: highlighted")}</option>
+                  <option value="stage">{tr("Show: live")}</option>
                 </select>
                 <span className="ml-auto font-mono text-[10px] text-muted-foreground">{selected.length}{tr("selected")}</span>
               </div>
@@ -1597,12 +1598,15 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                 onPointerCancel={() => { swept.current = null; }}>
                 {fixtures.map((f, i) => {
                   const def = getDef(f.defId);
-                  const of = pulses[f.uid] || locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
-                  const pix0 = frame.get(f.uid);
-                  const color = pix0?.length && pixelCount(f) <= 1 ? (() => { const pv0 = of.on === false ? 0 : of.intensity * outLevel; const [r, g, b] = [0, 1, 2].map((k) => Math.round((pix0.reduce((a, c) => a + c[k]!, 0) / pix0.length) * pv0)); return `rgb(${r},${g},${b})`; })() : fixtureColor(of, t, outLevel);
+                  // "Show: live" reads the frame that is really on stage — the frozen one while Blind is on
+                  const snap = fixView === "stage" ? liveSnap.current : null;
+                  const of = snap ? (snap.fixtures.find((o) => o.uid === f.uid) ?? f) : pulses[f.uid] || locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
+                  const lv = snap ? snap.level : outLevel;
+                  const pix0 = (snap ? snap.frame : frame).get(f.uid);
+                  const color = pix0?.length && pixelCount(f) <= 1 ? (() => { const pv0 = of.on === false ? 0 : of.intensity * lv; const [r, g, b] = [0, 1, 2].map((k) => Math.round((pix0.reduce((a, c) => a + c[k]!, 0) / pix0.length) * pv0)); return `rgb(${r},${g},${b})`; })() : fixtureColor(of, t, lv);
                   const isSel = selected.includes(f.uid);
-                  const pix = frame.get(f.uid);
-                  const pv = of.on === false ? 0 : of.intensity * outLevel;
+                  const pix = pix0;
+                  const pv = of.on === false ? 0 : of.intensity * lv;
                   const [gc, gr] = pixelGrid(f);
                   const hl = highlighted.includes(f.uid);
                   if (!fixtureVisible(fixView, pv, hl) && !isSel) return null;
