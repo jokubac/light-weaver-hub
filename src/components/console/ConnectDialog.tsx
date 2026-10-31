@@ -64,18 +64,12 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
   const removeBle = (id: string) => {
     void disconnectMoonLite(id).catch((e) => setMsg(e instanceof Error ? e.message : tr("Bluetooth send failed")));
     const current = latest.current;
-    const routes = moonliteRoutes(current).filter((r) => r.id !== id);
-    setConn({ ...current, bluetoothRoutes: routes, node: current.transport === "bluetooth" ? (routes[0] ? { name: routes[0].name, ip: routes[0].id } : null) : current.node });
+    setConn({ ...current, bluetoothRoutes: moonliteRoutes(current).filter((r) => r.id !== id) });
   };
   const reconnect = async (id: string) => {
     setPairing(true); setMsg(null);
-    try {
-      await reconnectMoonLite(id);
-      const current = latest.current;
-      const routes = moonliteRoutes(current);
-      const first = routes[0];
-      setConn({ ...current, transport: "bluetooth", bluetoothRoutes: routes, node: first ? { name: first.name, ip: first.id } : null });
-    } catch (e) { setMsg(e instanceof Error ? e.message : tr("Bluetooth send failed")); }
+    try { await reconnectMoonLite(id); }
+    catch (e) { setMsg(e instanceof Error ? e.message : tr("Bluetooth send failed")); }
     finally { setPairing(false); }
   };
 
@@ -93,9 +87,9 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
         <DialogHeader><DialogTitle>{tr("Connect to transmitter")}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2">
-            <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, bluetoothRoutes: bleRoutes, transport: "direct", node: conn.transport === "bluetooth" ? null : conn.node }); }} disabled={!native} className={`${opt(!!direct)} h-auto whitespace-normal disabled:opacity-40`}>
+            <Button onClick={() => setConn({ ...conn, transport: "direct" })} disabled={!native} className={`${opt(!!direct)} h-auto whitespace-normal disabled:opacity-40`}>
               <Smartphone className="h-4 w-4" />{tr("Direct")}</Button>
-            <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, bluetoothRoutes: bleRoutes, transport: "bridge", node: conn.transport === "bluetooth" ? null : conn.node }); }} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
+            <Button onClick={() => setConn({ ...conn, transport: "bridge" })} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
               <Router className="h-4 w-4" />{tr("Via bridge")}</Button>
           </div>
           <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? tr("Connecting…") : bleRoutes.length ? tr("Add MoonLite") : tr("Connect MoonLite via Bluetooth")}</Button>
