@@ -10,7 +10,7 @@ import { asteraTokens, CELL_TOKENS } from "./astera";
 import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
 import { buildArtDmx, buildSacn, randomCid, sacnMulticastAddress, ARTNET_UDP_PORT, SACN_UDP_PORT } from "./artnet";
 import { isNativeApp, sendUdp } from "./native-udp";
-import { sendMoonLiteUniverses } from "./moonlite";
+import { moonliteRoutes, sendMoonLiteUniverses } from "./moonlite";
 
 type RGB = [number, number, number];
 
@@ -356,8 +356,11 @@ export function createSender(onStatus: (s: BridgeStatus) => void) {
       onStatus(await sendMoonLiteUniverses(conn, universes));
       return;
     }
-    if (conn.transport === "direct" && isNativeApp()) return direct(conn, universes);
-    return bridge(conn, universes);
+    // Wi-Fi (direct/bridge) and a single MoonLite BLE link can run together.
+    const ble = moonliteRoutes(conn).length ? sendMoonLiteUniverses(conn, universes) : Promise.resolve("off" as const);
+    const wifi = conn.transport === "direct" && isNativeApp() ? direct(conn, universes) : bridge(conn, universes);
+    const [bleStatus] = await Promise.all([ble, wifi]);
+    if (bleStatus !== "off") onStatus(bleStatus);
   };
 }
 

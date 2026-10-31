@@ -52,11 +52,10 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
     try {
       const node = await connectMoonLite();
       const current = latest.current;
-      const routes = moonliteRoutes(current);
-      let universe = 1;
-      while (routes.some((r) => r.universe === universe) && universe < MAX_UNIVERSE) universe++;
-      const next = routes.some((r) => r.id === node.ip) ? routes : [...routes, { id: node.ip, name: node.name, universe }];
-      setConn({ ...current, transport: "bluetooth", node: { name: next[0]?.name ?? node.name, ip: next[0]?.id ?? node.ip }, bluetoothRoutes: next });
+      // One MoonLite at a time — several concurrent BLE links make output lag.
+      // Keep the Wi-Fi transport untouched so both can send together.
+      const universe = moonliteRoutes(current)[0]?.universe ?? 1;
+      setConn({ ...current, bluetoothRoutes: [{ id: node.ip, name: node.name, universe }] });
     }
     catch (e) { setMsg(e instanceof Error ? e.message : "Could not connect to MoonLite"); }
     finally { setPairing(false); }
@@ -65,18 +64,12 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
   const removeBle = (id: string) => {
     void disconnectMoonLite(id).catch((e) => setMsg(e instanceof Error ? e.message : tr("Bluetooth send failed")));
     const current = latest.current;
-    const routes = moonliteRoutes(current).filter((r) => r.id !== id);
-    setConn({ ...current, bluetoothRoutes: routes, node: current.transport === "bluetooth" ? (routes[0] ? { name: routes[0].name, ip: routes[0].id } : null) : current.node });
+    setConn({ ...current, bluetoothRoutes: moonliteRoutes(current).filter((r) => r.id !== id) });
   };
   const reconnect = async (id: string) => {
     setPairing(true); setMsg(null);
-    try {
-      await reconnectMoonLite(id);
-      const current = latest.current;
-      const routes = moonliteRoutes(current);
-      const first = routes[0];
-      setConn({ ...current, transport: "bluetooth", bluetoothRoutes: routes, node: first ? { name: first.name, ip: first.id } : null });
-    } catch (e) { setMsg(e instanceof Error ? e.message : tr("Bluetooth send failed")); }
+    try { await reconnectMoonLite(id); }
+    catch (e) { setMsg(e instanceof Error ? e.message : tr("Bluetooth send failed")); }
     finally { setPairing(false); }
   };
 
@@ -94,12 +87,12 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
         <DialogHeader><DialogTitle>{tr("Connect to transmitter")}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2">
-            <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, bluetoothRoutes: bleRoutes, transport: "direct", node: conn.transport === "bluetooth" ? null : conn.node }); }} disabled={!native} className={`${opt(!!direct)} h-auto whitespace-normal disabled:opacity-40`}>
+            <Button onClick={() => setConn({ ...conn, transport: "direct" })} disabled={!native} className={`${opt(!!direct)} h-auto whitespace-normal disabled:opacity-40`}>
               <Smartphone className="h-4 w-4" />{tr("Direct")}</Button>
-            <Button onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, bluetoothRoutes: bleRoutes, transport: "bridge", node: conn.transport === "bluetooth" ? null : conn.node }); }} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
+            <Button onClick={() => setConn({ ...conn, transport: "bridge" })} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
               <Router className="h-4 w-4" />{tr("Via bridge")}</Button>
           </div>
-          <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? tr("Connecting…") : bleRoutes.length ? tr("Add MoonLite") : tr("Connect MoonLite via Bluetooth")}</Button>
+          <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? tr("Connecting…") : bleRoutes.length ? tr("Replace MoonLite") : tr("Connect MoonLite via Bluetooth")}</Button>
           {bleRoutes.length > 0 && <div className="divide-y divide-border border-y border-border">
             {bleRoutes.map((route) => {
               const health = moonLiteStatus(route.id);
@@ -112,7 +105,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
               </div>;
             })}
           </div>}
-          <div hidden={conn.transport === "bluetooth"} className="space-y-4">
+          <div className="space-y-4">
           {!native && <p className="text-xs text-muted-foreground">{tr("Direct sending needs the installed NOX app — the browser can't send Art-Net/sACN UDP by itself.")}</p>}
           {!direct && (
             <div className="space-y-1.5 rounded-lg border border-border p-3 text-xs">
@@ -160,7 +153,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
             <div className="flex items-center justify-between rounded-lg border border-success/50 px-3 py-2 text-sm">
               <span><Check className="mr-1 inline h-4 w-4 text-success" />{conn.node.name} <span className="font-mono text-xs text-muted-foreground">{conn.node.ip}</span></span>
               <span className={`text-[11px] ${status === "ok" ? "text-success" : status === "slow" ? "text-warning" : "text-destructive"}`}>{status === "error" ? (direct ? tr("send failed") : tr("bridge not answering")) : status === "slow" ? tr("slow response") : status === "ok" ? (direct ? tr("sending directly") : tr("sending to bridge")) : tr("disconnected")}</span>
-              <Button variant="ghost" onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">{tr("Disconnect")}</Button>
+              <Button variant="ghost" onClick={() => setConn({ ...conn, node: null })} className="text-xs text-destructive">{tr("Disconnect")}</Button>
             </div>
           )}
 

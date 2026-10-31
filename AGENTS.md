@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 - Web DMX output POSTs universes to the local Node bridge (public/crmx-bridge.mjs) because browsers cannot send UDP; the installed app can send directly via src/lib/artnet.ts and a Capacitor UDP plugin.
-- MoonLite BLE sessions, in-flight writes and frame caches are per device; saved bluetoothRoutes map one universe to each transmitter, with legacy single-device fallback, so one device cannot replace or block another.
+- Only one MoonLite BLE link at a time (concurrent links lag); a new pairing replaces the previous session. Wi-Fi (direct/bridge) and BLE send in parallel via bluetoothRoutes, with legacy single-device fallback. Stream Deck, MIDI, timecode and Niimbot connections stay independent of this limit.
 - Transmitter profiles (src/lib/transmitters.ts) drive optional universe/colour-order remapping in output.ts; the bridge stays protocol-only so mapping logic lives in one place.
 - Battery runtime is estimated client-side (src/lib/power.ts) by integrating watts × intensity; no hardware readout exists for V-mount/Instagrid.
 - Pixel/fixture speed uses shared logarithmic helpers and numeric fine adjustment for consistent ranges.

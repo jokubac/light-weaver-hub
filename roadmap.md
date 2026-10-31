@@ -1,6 +1,6 @@
 # Tasks
 - [x] Ordinary pixel-fixture controls drive the full DMX cell footprint; 4 regression tests cover RGB/RGBW, zero intensity and individual pixel colours, and browser checks confirm whole-fixture intensity saves at 75%. Physical lights remain untested.
-- [x] Multiple MoonLite BLE connections with saved per-device universe assignment, reconnect/remove and isolated output; 16 tests and browser assignment/removal checks pass. Physical BLE/CRMX reception remains unverified (hardware required).
+- [x] Single MoonLite BLE connection (multiple links lag) with saved universe, reconnect/remove; Wi-Fi (direct/bridge) and BLE send in parallel. Stream Deck, MIDI, timecode and Niimbot stay independent and can connect alongside. Physical BLE/CRMX reception remains unverified (hardware required).
 - [x] Patch top bar meta line cleaned: fixture count, watts and an ISO date (2026-10-14) on one non-wrapping row; browser verified at 1280 px.
 - [x] Move the fixture/watt/date line out of the Patch top bar to the right of Unpatch in the sticky selection toolbar; empty patches keep the count and date in the top bar; browser verified at 1530 px.
 - [x] Patch sheet: duplicated title line removed from the top bar; Add fixtures, Save PDF, Export, Import and the fixture/watt/date line sit right-aligned in the top bar; the fixture panel opens as a split screen taking 60 % of the window. Browser verified at 1280 px.
