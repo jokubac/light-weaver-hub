@@ -61,7 +61,7 @@ export interface PixelLayer {
   /** generator "formula": user maths expression (see pixel-formula.ts) */
   formula?: string;
   /** simple formula builder: the shape and dials the expression above was built from */
-  formulaShape?: string;
+  formulaShape?: string | undefined;
   formulaScale?: number;
   formulaSoft?: number;
   formulaInvert?: boolean;
