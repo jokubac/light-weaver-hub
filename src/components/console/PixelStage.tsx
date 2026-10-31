@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type React from "react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus, Lock, LockOpen, Crosshair } from "lucide-react";
+import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus, Lock, LockOpen, Crosshair, Shuffle, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, renderLayers, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
