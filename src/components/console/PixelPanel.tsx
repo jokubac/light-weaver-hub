@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SpeedControl } from "./SpeedControl";
 import { PIXEL_LIBRARY, PIXEL_GROUPS, lookOf, POLICE_FLASHES, defaultLayer, initArea, isPixelFixture, pixelCount, pixelGrid, stageSize, copyPixelEffect, pastePixelEffect, applyPixelEffect, savePixelEffectClipboard, loadPixelEffectClipboard, type PixelLayer, type PixelEffectClipboard } from "@/lib/pixels";
 import { pixelPreview } from "./pixel-preview";
+import { compileFormula, FORMULA_PRESETS } from "@/lib/pixel-formula";
 import { saveVideo, videoMissing } from "@/lib/pixel-media";
 
 import { t as tr } from "@/lib/i18n";
@@ -131,6 +132,15 @@ export function PixelPanel({ fixtures, selected = [], layers, setLayers, frame, 
             </div>
           ))}
 
+      {layer.kind === "generator" && layer.gen === "formula" && (() => { const src = layer.formula ?? FORMULA_PRESETS[0]!.f; const c = compileFormula(src); return (
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Formula")}</div>
+          <input aria-label={tr("Formula")} spellCheck={false} value={src} onChange={(e) => set({ formula: e.target.value })}
+            className={`w-full rounded-md border bg-background px-2 py-1.5 font-mono text-xs ${typeof c === "string" ? "border-destructive" : "border-border"}`} />
+          {typeof c === "string" && <p className="text-[10px] text-destructive">{c}</p>}
+          <div className="flex flex-wrap gap-1">{FORMULA_PRESETS.map((pr) => <button key={pr.label} onClick={() => set({ formula: pr.f })} className="rounded-md bg-surface-elevated px-2 py-1 text-[11px] font-semibold">{tr(pr.label)}</button>)}</div>
+          <p className="text-[10px] text-muted-foreground">{tr("Result 0–1 = brightness and colour. x, y: −1…1 from centre · u, v: 0…1 · d: distance · a: angle · t: time · sin cos abs pow sqrt fract tri step rnd clamp mod · ^ = power")}</p>
+        </div>); })()}
       {layer.kind === "video" && (
         <div className="space-y-1.5">
           <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-input py-3 text-xs font-semibold hover:border-primary">

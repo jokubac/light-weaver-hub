@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type React from "react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus, Lock, LockOpen, Crosshair } from "lucide-react";
+import { RotateCw, ZoomIn, ZoomOut, LayoutGrid, Plus, Lock, LockOpen, Crosshair, Shuffle, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDef, type PatchedFixture } from "@/lib/dmx";
 import { layerAt, canvasPositions, canvasSize, layerArea, renderCanvasComposite, renderLayers, stageSize, textMask, isPixelFixture, pixelCount, pixelGrid, pixelCell, type PixelLayer } from "@/lib/pixels";
@@ -42,12 +42,12 @@ function PixCanvas({ f, size, rot, cols }: { f: PatchedFixture; size: number; ro
 }
 
 /** PIXEL window: free canvas where pixel lights are placed like on the GRID, a strip with every light, and the effect controls. */
-export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveGroup, onDuplicateGroup, onAddEffect, onRemoveLight, onLayer, addFixtures, onLive }: {
+export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove, onToggle, onArea, onSelect, onAdd, onPlay, onPause, onRemoveLayer, onRemoveGroup, onDuplicateGroup, onAddEffect, onRemoveLight, onShuffle, onLayer, addFixtures, onLive }: {
   onRemoveGroup?: (gid: string) => void; onDuplicateGroup?: (gid: string) => void; onAddEffect?: (gid: string) => void;
   addFixtures?: ReactNode;
   fixtures: PatchedFixture[]; layers: PixelLayer[]; activeId: string; frame: Map<string, RGB[]>; controls: ReactNode;
   onMove: (uid: string, pos: { x: number; y: number; r?: number }) => void; onToggle: (uid: string) => void;
-  onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void; onPause?: (id: string) => void; onRemoveLayer?: (id: string) => void; onRemoveLight?: (uids: string[]) => void;
+  onSelect?: (id: string) => void; onAdd?: () => void; onPlay?: (id: string) => void; onPause?: (id: string) => void; onRemoveLayer?: (id: string) => void; onRemoveLight?: (uids: string[]) => void; onShuffle?: (uids: string[], restore: boolean) => void;
   onArea?: (area: { x: number; y: number; w: number; h: number }) => void;
   onLayer?: (patch: Partial<PixelLayer>) => void;
   onLive?: (gid: string, live: boolean) => void;
@@ -351,6 +351,8 @@ export function PixelStage({ fixtures, layers, activeId, frame, controls, onMove
             {addFixtures && <Button size="sm" onClick={() => setAddOpen(true)}><Plus />{tr("Add fixtures")}</Button>}
             <Button size="sm" variant="secondary" disabled={!px.length} onClick={() => setSel(new Set(px.map((f) => f.uid)))}>{tr("Select all")}</Button>
             {onRemoveLight && <Button size="sm" variant="secondary" disabled={!sel.size} title={tr("Remove the selected lights from this page (Delete key). Add them back with Add fixtures.")} aria-label={tr("Remove selected lights")} onClick={() => { onRemoveLight([...sel]); setSel(new Set()); }}>{tr("✕ Remove")}{sel.size ? ` ${sel.size}` : tr("")}</Button>}
+            {onShuffle && <Button size="sm" variant="secondary" disabled={!sel.size} title={tr("Randomise the pixel order of the selected lights")} onClick={() => onShuffle([...sel], false)}><Shuffle />{tr("Random pixels")}</Button>}
+            {onShuffle && <Button size="sm" variant="secondary" disabled={![...sel].some((u) => px.find((f) => f.uid === u)?.pixelShuffle)} title={tr("Put the pixels back in the fixture's real order")} onClick={() => onShuffle([...sel], true)}><Undo2 />{tr("Restore order")}</Button>}
             <Button size="sm" variant="secondary" disabled={!sel.size} title={tr("Rotate the selected lights 90°")} aria-label={tr("Rotate selected lights 90 degrees")} onClick={() => gridArrange("rotate")}><RotateCw />90°</Button>
             <Popover>
               <PopoverTrigger asChild><Button size="sm" variant="secondary"><LayoutGrid />{tr("Arrange")}{sel.size ? ` (${sel.size})` : tr("")}</Button></PopoverTrigger>

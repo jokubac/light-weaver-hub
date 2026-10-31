@@ -5,6 +5,7 @@ import { withAudio } from "./audio-react";
 
 import { getMode, hexToRgb, hsvToRgb, type PatchedFixture } from "./dmx";
 import { generatorById, PIXEL_GENERATORS } from "./pixel-generators";
+import { pixelSlot } from "./pixel-shuffle";
 import { videoFrame } from "./pixel-media";
 
 export type PixelFx =
@@ -57,6 +58,8 @@ export interface PixelLayer {
   spinT?: number; // wall-clock seconds while the layer was paused, so spin resumes where it froze
   /** generator kind: id from PIXEL_GENERATORS */
   gen?: string;
+  /** generator "formula": user maths expression (see pixel-formula.ts) */
+  formula?: string;
   /** video kind: id of the clip stored on this device */
   videoId?: string;
   videoName?: string;
@@ -220,8 +223,9 @@ export const pixelGrid = (f: PatchedFixture): [number, number] => {
 };
 
 /** Position [x, y] of DMX pixel i inside the fixture's grid, following the manufacturer's numbering. */
-export const pixelCell = (f: PatchedFixture, i: number): [number, number] => {
+export const pixelCell = (f: PatchedFixture, i0: number): [number, number] => {
   const mo = getMode(f);
+  const i = f.pixelShuffle?.length === (mo.pixels ?? 0) ? pixelSlot(f.pixelShuffle, i0) : i0;
   const c = mo.cells?.[i];
   if (c) return c;
   const lc = (mo.grid ?? [mo.pixels ?? 1, 1])[0] || 1;
@@ -450,7 +454,7 @@ function makeSampler(layer: PixelLayer, W: number, H: number, S: number, t: numb
     switch (layer.kind) {
       case "generator": {
         const xx = layer.reverse ? W - 1 - x : x;
-        return tinted(gen!.fn({ x: xx, y, W, H, t: tt, pal: palette, custom: !!layer.customPalette }));
+        return tinted(gen!.fn({ x: xx, y, W, H, t: tt, pal: palette, custom: !!layer.customPalette, formula: layer.formula }));
       }
       case "video": {
         if (!vid) return BLACK;

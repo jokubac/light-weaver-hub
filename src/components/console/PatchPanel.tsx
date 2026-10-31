@@ -2,7 +2,7 @@ import { MAX_UNIVERSE } from "@/lib/dmx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap, X } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
@@ -108,8 +108,6 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [brand, setBrand] = useState<string | null>(null);
   const [def, setDef] = useState<FixtureDef | null>(null);
   const [modeIdx, setModeIdx] = useState<number | null>(null);
-  const [mapU, setMapU] = useState(1);
-  const [showMap, setShowMap] = useState(defaultMap);
   const baseCaps: CapFilter[] = pixelOnly ? ["pixels"] : [];
   const [caps, setCaps] = useState<CapFilter[]>(baseCaps);
   const isPx = (d: FixtureDef) => !pixelOnly || d.modes.some((_, i) => pxCount(d, i) > 0);
@@ -118,7 +116,6 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const favModes = useFavorites("modes");
   const favBrands = useFavorites("manufacturers");
   const star = (id: string) => ({ starred: fav.has(id), onStar: () => fav.toggle(id) });
-  const universes = Array.from(new Set([1, ...fixtures.map((f) => f.universe)])).sort((a, b) => a - b);
 
   const q = query.trim().toLowerCase();
   // Patch search/browse shows only the manufacturer GDTF library; the built-in
@@ -167,99 +164,99 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const crumbs = [brand, def?.model, modeIdx !== null ? def?.modes[modeIdx]?.name : null].filter(Boolean);
   const mq = modeQuery.trim().toLowerCase();
 
+  const [brandQ, setBrandQ] = useState("");
+  const bq = brandQ.trim().toLowerCase();
+  const brandCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const d of gdtfLib ?? []) if (passF(d) && isPx(d)) m.set(d.brand, (m.get(d.brand) ?? 0) + 1);
+    return m;
+  }, [gdtfLib, verF, pxF, pxN]);
+  const models = q ? gdtfHits.filter((d) => isPx(d) && passF(d)) : brand ? (gdtfLib ?? []).filter((d) => d.brand === brand && isPx(d) && passF(d)).sort((a, b) => a.model.localeCompare(b.model)) : [];
+  const pxValue = pxF === "none" ? "none" : pxN !== null ? String(pxN) : pxF === "px" ? "px" : "all";
+  const setPx = (v: string) => { if (v === "all" || v === "px" || v === "none") { setPxF(v); setPxN(null); } else { setPxF("px"); setPxN(+v); } };
+  const col = (show: boolean) => `${show ? "flex" : "hidden"} lg:flex min-w-0 flex-col gap-2`;
+  const searchBox = (value: string, onChange: (v: string) => void, ph: string) => (
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} className="w-full rounded-md border border-input bg-surface-elevated py-2 pl-9 pr-8 text-sm text-foreground outline-none focus:border-primary" />
+      {value && <button type="button" aria-label={tr("Clear")} onClick={() => onChange("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"><X className="h-4 w-4" /></button>}
+    </div>
+  );
+  const level = def ? 2 : brand || q ? 1 : 0;
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-2">
+        {level > 0 && <button onClick={back} className="rounded-md bg-surface-elevated p-2 text-primary lg:hidden" aria-label={tr("Back")}><ChevronLeft className="h-4 w-4" /></button>}
         <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">{tr("Patch")}</h2>
-        <button onClick={() => setShowMap((v) => !v)} className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${showMap ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}><Grid3x3 className="h-3.5 w-3.5" />{tr("DMX map")}</button>
+        {crumbs.length > 0 && <button onClick={reset} className="min-w-0 truncate text-left text-xs text-muted-foreground">{crumbs.join(" › ")}</button>}
+        <div className="ml-auto flex items-center gap-1" aria-label={tr("Fixture filters")}>
+          <button type="button" onClick={() => setVerF(verF === "ok" ? "all" : "ok")} className={chip(verF === "ok")}>{tr("✓ Verified only")}</button>
+          <select value={pxValue} onChange={(e) => setPx(e.target.value)} aria-label={tr("Pixel count")} className="rounded-md border border-input bg-surface-elevated px-2 py-1 text-[11px]">
+            {!pixelOnly && <option value="all">{tr("Pixels: any")}</option>}
+            <option value="px">{tr("Pixel lights")}</option>
+            {!pixelOnly && <option value="none">{tr("No pixels")}</option>}
+            {pxOptions.map((n) => <option key={n} value={n}>{n}{tr("px")}</option>)}
+          </select>
+          {filtersOn && <button type="button" onClick={() => { setVerF("all"); setPxF(pixelOnly ? "px" : "all"); setPxN(null); }} className="px-1 text-[11px] text-primary underline">{tr("Clear")}</button>}
+        </div>
       </div>
-      {showMap && modeIdx === null && (
-        <div className="space-y-2 rounded-lg bg-surface-elevated/50 p-2">
-          <div className="flex flex-wrap gap-1">
-            {universes.map((u) => (
-              <button key={u} onClick={() => setMapU(u)} className={`rounded px-2 py-1 font-mono text-[11px] ${mapU === u ? "bg-primary text-primary-foreground" : "bg-surface-elevated"}`}>{tr("U")}{u}</button>
-            ))}
-            <NumberField integer min={1} max={MAX_UNIVERSE} value={mapU} onChange={(v) => v && setMapU(v)} className="w-14 rounded border border-input bg-surface px-1 text-[11px]" aria-label={tr("Universe")} />
-          </div>
-          <DmxMap fixtures={fixtures} universe={mapU} />
-        </div>
-      )}
-      {crumbs.length > 0 && (
-        <div className="flex items-center gap-2">
-          <button onClick={back} className="rounded-md bg-surface-elevated p-2 text-primary" aria-label={tr("Back")}><ChevronLeft className="h-4 w-4" /></button>
-          <button onClick={reset} className="min-w-0 truncate text-left text-xs text-muted-foreground">{crumbs.join(" › ")}</button>
-        </div>
-      )}
 
-      {!def && (
-        <div className="space-y-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Search brand, model")} className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
-          </div>
-          <div className="flex flex-wrap items-center gap-1" aria-label={tr("Fixture filters")}>
-            {([["all", "All"], ["ok", "✓ Verified"], ["no", "⚠ Unverified"]] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setVerF(k)} className={chip(verF === k)}>{l}</button>)}
-            <span className="mx-1 h-4 w-px bg-border" />
-            {([["all", "Any"], ["px", "Pixel"], ["none", "No pixels"]] as const).filter(([k]) => !pixelOnly || k === "px").map(([k, l]) => <button key={k} type="button" onClick={() => { setPxF(k); if (k === "none") setPxN(null); }} className={chip(pxF === k)}>{l}</button>)}
-            {pxF !== "none" && (
-              <select value={pxN ?? ""} onChange={(e) => { const v = e.target.value ? +e.target.value : null; setPxN(v); if (v !== null) setPxF("px"); }} aria-label={tr("Pixel count")} className="rounded-md border border-input bg-surface-elevated px-2 py-1 text-[11px]">
-                <option value="">{tr("Pixels: any")}</option>
-                {pxOptions.map((n) => <option key={n} value={n}>{n}{tr("px")}</option>)}
-              </select>
-            )}
-            {filtersOn && <button type="button" onClick={() => { setVerF("all"); setPxF(pixelOnly ? "px" : "all"); setPxN(null); }} className="px-1 text-[11px] text-primary underline">{tr("Clear")}</button>}
-          </div>
-        </div>
-      )}
-
-      {!def && <MoreSources fixtures={fixtures} onAdd={onAdd} onPick={(d) => { setBrand(d.brand); setDef(d); setModeIdx(0); }} />}
-      {!def && q ? (
-        <List>
-          {gdtfHits.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{tr("Manufacturer GDTF")}{gdtfBusy ? tr(" · loading…") : tr("")}</p>}
-          {gdtfHits.filter((d) => isPx(d) && passF(d)).map((d) => (
-            <Row key={`g-${d.id}`} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.brand} · ${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
-          ))}
-          {gdtfHits.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{gdtfLib ? tr("No fixtures found") : tr("Loading fixture library…")}</p>}
-        </List>
-      ) : !brand ? (
-        <List>
-          {favPairs.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">{tr("★ Favourite fixture + mode")}</p>}
-          {favPairs.filter(({ d, i }) => !pixelOnly || pxCount(d, i) > 0).sort((a, b) => byBrandModel(a.d, b.d)).map(({ d, i, k }) => (
-            <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => void chooseDef(d, i)} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
-          ))}
-          {fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">{tr("★ Favourite fixtures")}</p>}
-          {availableDefs.filter((d) => fav.has(d.id) && isPx(d) && passF(d)).sort(byBrandModel).map((d) => (
-            <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes${chartTag(d)}`} />
-          ))}
-          <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Manufacturers")}{gdtfLib ? ` · ${gdtfLib.length} fixtures` : tr(" · loading…")}</p>
-          {gdtfBrands.map((b) => ({ b, n: (gdtfLib ?? []).filter((d) => d.brand === b && passF(d)).length })).filter(({ n }) => n > 0).map(({ b, n }) => (
-            <Row key={b} starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => setBrand(b)} title={b} sub={`${n} models`} />
-          ))}
-        </List>
-      ) : !def ? (
-        <List>
-          {(gdtfLib ?? []).filter((d) => d.brand === brand && passF(d)).sort((a, b) => a.model.localeCompare(b.model)).map((d) => (
-            <Row key={d.id} {...star(d.id)} onClick={() => void pickGdtf(d)} title={d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
-          ))}
-        </List>
-      ) : modeIdx === null ? (
-        <List>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={modeQuery} onChange={(e) => setModeQuery(e.target.value)} placeholder={tr("Search mode")} className="w-full pl-9 pr-3 rounded-md border border-input bg-surface-elevated py-2 text-sm text-foreground outline-none focus:border-primary" />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {CAP_FILTERS.filter((c) => caps.includes(c.id) || def.modes.some((_, i) => modeHasCap(def, i, c.id))).map((c) => (
-              <button key={c.id} onClick={() => toggleCap(c.id)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${caps.includes(c.id) ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{c.label}</button>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.6fr)]">
+        <div className={col(level === 0)}>
+          {searchBox(brandQ, setBrandQ, tr("Search manufacturers"))}
+          <List>
+            {!bq && favPairs.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">{tr("★ Favourite fixture + mode")}</p>}
+            {!bq && favPairs.filter(({ d, i }) => !pixelOnly || pxCount(d, i) > 0).sort((a, b) => byBrandModel(a.d, b.d)).map(({ d, i, k }) => (
+              <Row key={`fm-${k}`} starred onStar={() => favModes.toggle(k)} onClick={() => void chooseDef(d, i)} title={`${d.brand} ${d.model}`} sub={`${d.modes[i]!.name} · ${d.modes[i]!.channels} ch`} />
             ))}
-          </div>
-          {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).filter(({ mo, i }) => !mo.legacy && caps.every((c) => modeHasCap(def, i, c))).sort((a, b) => Number(favModes.has(modeKey(def.id, b.i))) - Number(favModes.has(modeKey(def.id, a.i))) || a.n - b.n || a.i - b.i).filter(({ mo }) => !mq || `${mo.name} ${mo.channels}ch ${mo.kind} ${mo.pixels ? "pixel" : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
-            <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={`${mo.name}${pxCount(def, i) ? ` (${pxCount(def, i)} px)` : ""}`} sub={`${mo.channels} ch · ${mo.kind.toUpperCase()}${pxCount(def, i) ? ` · ${pxCount(def, i)} px` : ""}`} footprint={footprintOf(def, i).length ? footprintOf(def, i) : undefined} />
-          ))}
-        </List>
-      ) : (
-        <PatchConfig fixtures={fixtures} def={def} modeIdx={modeIdx} onAdd={(fs) => { onAdd(fs); setModeIdx(null); }} />
-      )}
+            {!bq && fav.list.length > 0 && <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-glow">{tr("★ Favourite fixtures")}</p>}
+            {!bq && availableDefs.filter((d) => fav.has(d.id) && isPx(d) && passF(d)).sort(byBrandModel).map((d) => (
+              <Row key={`fav-${d.id}`} {...star(d.id)} onClick={() => void chooseDef(d)} title={`${d.brand} ${d.model}`} sub={`${d.modes.length} modes${chartTag(d)}`} />
+            ))}
+            <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{tr("Manufacturers")}{gdtfLib ? "" : tr(" · loading…")}</p>
+            {[...gdtfBrands].sort((a, b) => Number(favBrands.has(b)) - Number(favBrands.has(a))).filter((b) => (brandCounts.get(b) ?? 0) > 0 && (!bq || b.toLowerCase().includes(bq))).map((b) => (
+              <div key={b} className={brand === b && !q ? "rounded-md ring-2 ring-primary" : ""}>
+                <Row starred={favBrands.has(b)} onStar={() => favBrands.toggle(b)} onClick={() => { setBrand(b); setDef(null); setModeIdx(null); setQuery(""); }} title={b} sub={`${brandCounts.get(b)} models`} />
+              </div>
+            ))}
+          </List>
+          {level === 0 && <MoreSources fixtures={fixtures} onAdd={onAdd} onPick={(d) => { setBrand(d.brand); setDef(d); setModeIdx(0); }} />}
+        </div>
+
+        <div className={col(level === 1)}>
+          {searchBox(query, setQuery, brand ? `${tr("Search")} ${brand}…` : tr("Search brand, model"))}
+          <List>
+            {gdtfBusy && <p className="text-[10px] text-primary">{tr("loading…")}</p>}
+            {models.map((d) => (
+              <div key={d.id} className={def?.id === d.id ? "rounded-md ring-2 ring-primary" : ""}>
+                <Row {...star(d.id)} onClick={() => void pickGdtf(d)} title={q ? `${d.brand} ${d.model}` : d.model} sub={`${d.modes.length} modes${d.cctRange ? ` · ${d.cctRange[0]}–${d.cctRange[1]} K` : ""}${chartTag(d)}`} />
+              </div>
+            ))}
+            {!models.length && <p className="py-6 text-center text-sm text-muted-foreground">{!gdtfLib ? tr("Loading fixture library…") : q || brand ? tr("No fixtures found") : tr("Pick a manufacturer or search a model")}</p>}
+          </List>
+        </div>
+
+        <div className={col(level === 2)}>
+          {!def ? <p className="py-6 text-center text-sm text-muted-foreground">{tr("Pick a model to see its modes")}</p> : modeIdx === null ? (
+            <>
+              {searchBox(modeQuery, setModeQuery, tr("Search mode, channels, pixels"))}
+              <div className="flex flex-wrap gap-1.5">
+                {CAP_FILTERS.filter((c) => caps.includes(c.id) || def.modes.some((_, i) => modeHasCap(def, i, c.id))).map((c) => (
+                  <button key={c.id} onClick={() => toggleCap(c.id)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${caps.includes(c.id) ? "bg-primary text-primary-foreground" : "bg-surface-elevated text-muted-foreground"}`}>{c.label}</button>
+                ))}
+              </div>
+              <List>
+                {def.modes.map((mo, i) => ({ mo, i, n: profileNo(mo.name) })).filter(({ mo, i }) => !mo.legacy && caps.every((c) => modeHasCap(def, i, c)) && (pxN === null || pxCount(def, i) === pxN)).sort((a, b) => Number(favModes.has(modeKey(def.id, b.i))) - Number(favModes.has(modeKey(def.id, a.i))) || a.n - b.n || a.i - b.i).filter(({ mo, i }) => !mq || `${mo.name} ${mo.channels} ${mo.channels}ch ${mo.kind} ${pxCount(def, i) ? `pixel ${pxCount(def, i)}px` : ""}`.toLowerCase().includes(mq)).map(({ mo, i }) => (
+                  <Row key={mo.name} starred={favModes.has(modeKey(def.id, i))} onStar={() => favModes.toggle(modeKey(def.id, i))} onClick={() => setModeIdx(i)} title={`${mo.name} · Patch ${mo.channels}`} sub={`${mo.kind.toUpperCase()}${pxCount(def, i) ? ` · ${pxCount(def, i)} px` : ""}${isVerifiedDef(def) ? " · ✓ verified" : ""}`} footprint={footprintOf(def, i).length ? footprintOf(def, i) : undefined} />
+                ))}
+              </List>
+            </>
+          ) : (
+            <PatchConfig fixtures={fixtures} def={def} modeIdx={modeIdx} onAdd={(fs) => { onAdd(fs); setModeIdx(null); }} />
+          )}
+        </div>
+      </div>
 
       {showPatched && fixtures.length > 0 && (
         <div className={`space-y-2 rounded-lg bg-surface-elevated/50 p-2 ${defaultMap ? "" : "order-first"}`}>
