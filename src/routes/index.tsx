@@ -110,6 +110,7 @@ import {
 } from "@/lib/store";
 
 import { t as tr } from "@/lib/i18n";
+import { moonliteRoutes, reconnectMoonLite } from "@/lib/moonlite";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -541,6 +542,12 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [connOpen, setConnOpen] = useState(false);
   const setConn = (c: Connection) => { setConnState(c); saveConnection(c); };
   const discovery = useTransmitterDiscovery(conn);
+  const bleIds = conn.transport === "bluetooth" ? moonliteRoutes(conn).map((r) => r.id).join("\n") : "";
+  useEffect(() => {
+    if (!bleIds) return;
+    // Restore known BLE links independently; unavailable devices remain visible for manual reconnect.
+    for (const id of bleIds.split("\n")) void reconnectMoonLite(id).catch(() => {});
+  }, [bleIds]);
   const [savedFlash, setSavedFlash] = useState(false);
   const [setupsOpen, setSetupsOpen] = useState(false);
   // The Groups / Looks / Effects / REC rail is open unless the user explicitly closed it before.

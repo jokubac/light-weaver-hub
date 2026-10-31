@@ -1098,5 +1098,8 @@
   "✕ Remove": "✕ 移除",
   "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "在你想放的位置点击地面。再次点击可再放一个；再按一次道具即可停止。",
   "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "先选择一个道具，然后在你想放的位置点击地面。灯具内可以装入一盏灯——选中这盏灯具，再选择里面的灯。",
-  "Tap the floor to place the prop you picked. Press the prop again to stop.": "点击地面以放置所选的道具。再按一次道具即可停止。"
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "点击地面以放置所选的道具。再按一次道具即可停止。",
+  "Add MoonLite": "添加 MoonLite",
+  "Reconnect": "重新连接",
+  "Connected": "已连接"
 }

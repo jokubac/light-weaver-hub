@@ -1098,5 +1098,8 @@
   "✕ Remove": "✕ Eemalda",
   "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "Puudutage põrandat kohas, kus soovite. Puudutage uuesti, et lisada veel; peatumiseks vajutage rekvisiidile uuesti.",
   "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "Valige rekvisiit ja puudutage seejärel põrandat kohas, kus soovite. Lambid võivad sisaldada valgust — valige lamp ja seejärel selle sees olev valgus.",
-  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Puudutage põrandat valitud rekvisiidi paigutamiseks. Peatumiseks vajutage rekvisiidile uuesti."
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Puudutage põrandat valitud rekvisiidi paigutamiseks. Peatumiseks vajutage rekvisiidile uuesti.",
+  "Add MoonLite": "Lisa MoonLite",
+  "Reconnect": "Ühenda uuesti",
+  "Connected": "Ühendatud"
 }

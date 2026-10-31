@@ -1098,5 +1098,8 @@
   "✕ Remove": "✕ Kaldır",
   "Tap the floor where you want it. Tap again to place another; press the prop again to stop.": "İstediğiniz yerde zemene dokunun. Bir tane daha yerleştirmek için tekrar dokunun; durdurmak için aksesuara tekrar basın.",
   "Pick a prop, then tap the floor where you want it. Lamps can hold a light — select the lamp, then pick the light inside.": "Bir aksesuar seçin, ardından istediğiniz yerde zemene dokunun. Lambalar bir ışık içerebilir — lambayı seçin, sonra içindeki ışığı seçin.",
-  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Seçtiğiniz aksesuarı yerleştirmek için zemene dokunun. Durdurmak için aksesuara tekrar basın."
+  "Tap the floor to place the prop you picked. Press the prop again to stop.": "Seçtiğiniz aksesuarı yerleştirmek için zemene dokunun. Durdurmak için aksesuara tekrar basın.",
+  "Add MoonLite": "MoonLite ekle",
+  "Reconnect": "Yeniden bağlan",
+  "Connected": "Bağlandı"
 }
