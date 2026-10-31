@@ -4,7 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { subscribeLang, langVersion, loadSavedLang, getLang, isRtl } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAndMerge, pushProjects, pushUserData, useUser } from "@/lib/cloud";
-import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard } from "lucide-react";
+import { LogIn, LogOut, Cloud, PanelRightClose, PanelRightOpen, ArrowLeftRight, Keyboard, Star } from "lucide-react";
 import { outputChanged } from "@/lib/output-hint";
 import { Button } from "@/components/ui/button";
 import type { CommandResult } from "@/lib/command-line";
