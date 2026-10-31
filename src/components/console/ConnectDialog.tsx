@@ -92,7 +92,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
             <Button onClick={() => setConn({ ...conn, transport: "bridge" })} className={`${opt(!direct && conn.transport !== "bluetooth")} h-auto whitespace-normal`}>
               <Router className="h-4 w-4" />{tr("Via bridge")}</Button>
           </div>
-          <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? tr("Connecting…") : bleRoutes.length ? tr("Add MoonLite") : tr("Connect MoonLite via Bluetooth")}</Button>
+          <Button variant={conn.transport === "bluetooth" ? "default" : "secondary"} className="w-full" onClick={pair} disabled={pairing}><Bluetooth />{pairing ? tr("Connecting…") : bleRoutes.length ? tr("Replace MoonLite") : tr("Connect MoonLite via Bluetooth")}</Button>
           {bleRoutes.length > 0 && <div className="divide-y divide-border border-y border-border">
             {bleRoutes.map((route) => {
               const health = moonLiteStatus(route.id);
@@ -105,7 +105,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
               </div>;
             })}
           </div>}
-          <div hidden={conn.transport === "bluetooth"} className="space-y-4">
+          <div className="space-y-4">
           {!native && <p className="text-xs text-muted-foreground">{tr("Direct sending needs the installed NOX app — the browser can't send Art-Net/sACN UDP by itself.")}</p>}
           {!direct && (
             <div className="space-y-1.5 rounded-lg border border-border p-3 text-xs">
@@ -153,7 +153,7 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
             <div className="flex items-center justify-between rounded-lg border border-success/50 px-3 py-2 text-sm">
               <span><Check className="mr-1 inline h-4 w-4 text-success" />{conn.node.name} <span className="font-mono text-xs text-muted-foreground">{conn.node.ip}</span></span>
               <span className={`text-[11px] ${status === "ok" ? "text-success" : status === "slow" ? "text-warning" : "text-destructive"}`}>{status === "error" ? (direct ? tr("send failed") : tr("bridge not answering")) : status === "slow" ? tr("slow response") : status === "ok" ? (direct ? tr("sending directly") : tr("sending to bridge")) : tr("disconnected")}</span>
-              <Button variant="ghost" onClick={() => { void disconnectMoonLite().catch(() => {}); setConn({ ...conn, node: null }); }} className="text-xs text-destructive">{tr("Disconnect")}</Button>
+              <Button variant="ghost" onClick={() => setConn({ ...conn, node: null })} className="text-xs text-destructive">{tr("Disconnect")}</Button>
             </div>
           )}
 
