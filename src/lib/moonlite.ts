@@ -72,6 +72,8 @@ export async function connectMoonLite(): Promise<{ name: string; ip: string }> {
   // MoonLite's 128-bit service UUID often doesn't fit in the 31-byte advert, so filtering
   // by service hides it. List nearby devices and only require the service after connecting.
   const device = await BleClient.requestDevice({ optionalServices: [MOONLITE_SERVICE] });
+  // Only one MoonLite at a time — several concurrent BLE links make output lag.
+  await disconnectMoonLite();
   await reconnectMoonLite(device.deviceId);
   return { name: device.name || "LumenRadio MoonLite", ip: device.deviceId };
 }
