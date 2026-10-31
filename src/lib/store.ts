@@ -187,12 +187,15 @@ export interface Connection {
   autoMap: boolean; // auto universe numbering + colour channel order from the transmitter profile
   transport?: "bridge" | "direct" | "bluetooth";
   bluetoothUniverse?: number;
+  /** Each BLE MoonLite outputs one independently assigned console universe. */
+  bluetoothRoutes?: BluetoothRoute[];
   /** Per-universe transmitter routes; universes without a route go to `node`. */
   routes?: UniverseRoute[];
   /** Hold Last State: keep lights on the last frame when the console stops sending (default on). */
   holdLast?: boolean;
 }
 export interface UniverseRoute { id: string; universe: number; ip: string; name?: string; enabled: boolean }
+export interface BluetoothRoute { id: string; name: string; universe: number }
 
 const CKEY = "crmx-console-connection-v1";
 export const defaultConnection = (): Connection => ({ network: "wifi", protocol: "artnet", bridge: "localhost:8765", node: null, transmitter: null, autoMap: true });

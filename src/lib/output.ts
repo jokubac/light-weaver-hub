@@ -10,7 +10,7 @@ import { asteraTokens, CELL_TOKENS } from "./astera";
 import { getTransmitter, reorder, type ColorOrder } from "./transmitters";
 import { buildArtDmx, buildSacn, randomCid, sacnMulticastAddress, ARTNET_UDP_PORT, SACN_UDP_PORT } from "./artnet";
 import { isNativeApp, sendUdp } from "./native-udp";
-import { sendMoonLite } from "./moonlite";
+import { sendMoonLiteUniverses } from "./moonlite";
 
 type RGB = [number, number, number];
 
@@ -350,10 +350,7 @@ export function createSender(onStatus: (s: BridgeStatus) => void) {
   const bridge = createBridgeSender(onStatus);
   return async (conn: Connection, universes: Map<number, Uint8Array>) => {
     if (conn.transport === "bluetooth") {
-      if (!conn.node) { onStatus("off"); return; }
-      const data = universes.get(conn.bluetoothUniverse ?? 1) ?? new Uint8Array(512);
-      try { await sendMoonLite(conn.node.ip, data); onStatus("ok"); }
-      catch { onStatus("error"); }
+      onStatus(await sendMoonLiteUniverses(conn, universes));
       return;
     }
     if (conn.transport === "direct" && isNativeApp()) return direct(conn, universes);

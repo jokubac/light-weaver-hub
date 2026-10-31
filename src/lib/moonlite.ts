@@ -1,3 +1,5 @@
+import type { BluetoothRoute, Connection } from "./store";
+
 export const MOONLITE_SERVICE = "bfa00000-247d-6e1c-448c-223dfa0bd00c";
 export const MOONLITE_CHANNEL = "bfa00001-247d-6e1c-448c-223dfa0bd00c";
 
@@ -19,9 +21,36 @@ export function moonlitePackets(frame: Uint8Array, previous?: Uint8Array, maxWri
   return packets;
 }
 
-let connected: string | null = null;
-let previous: Uint8Array | undefined;
-let busy = false;
+interface Session { previous?: Uint8Array; pending?: Promise<void> }
+const sessions = new Map<string, Session>();
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((fn) => fn());
+export function subscribeMoonLite(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; }
+export function isMoonLiteConnected(id: string) { return sessions.has(id); }
+
+/** Preserve old single-device connections without mistaking Wi-Fi IPs for BLE IDs. */
+export function moonliteRoutes(conn: Connection): BluetoothRoute[] {
+  if (conn.bluetoothRoutes) return conn.bluetoothRoutes;
+  return conn.transport === "bluetooth" && conn.node
+    ? [{ id: conn.node.ip, name: conn.node.name, universe: conn.bluetoothUniverse ?? 1 }] : [];
+}
+
+export async function reconnectMoonLite(id: string): Promise<void> {
+  if (sessions.has(id)) return;
+  const { BleClient } = await import("@capacitor-community/bluetooth-le");
+  await BleClient.initialize({ androidNeverForLocation: true });
+  const session: Session = {};
+  await BleClient.connect(id, () => {
+    if (sessions.get(id) === session) { sessions.delete(id); notify(); }
+  });
+  try {
+    const services = await BleClient.getServices(id);
+    if (!services.some((s) => s.uuid.toLowerCase() === MOONLITE_SERVICE && s.characteristics.some((c) => c.uuid.toLowerCase() === MOONLITE_CHANNEL))) {
+      throw new Error("This device does not support MoonLite DMX");
+    }
+    sessions.set(id, session); notify();
+  } catch (error) { await BleClient.disconnect(id).catch(() => {}); throw error; }
+}
 
 export async function connectMoonLite(): Promise<{ name: string; ip: string }> {
   const { BleClient } = await import("@capacitor-community/bluetooth-le");
@@ -29,32 +58,43 @@ export async function connectMoonLite(): Promise<{ name: string; ip: string }> {
   // MoonLite's 128-bit service UUID often doesn't fit in the 31-byte advert, so filtering
   // by service hides it. List nearby devices and only require the service after connecting.
   const device = await BleClient.requestDevice({ optionalServices: [MOONLITE_SERVICE] });
-  if (connected) await BleClient.disconnect(connected).catch(() => {});
-  connected = null; previous = undefined;
-  await BleClient.connect(device.deviceId, () => { connected = null; previous = undefined; });
-  connected = device.deviceId;
+  await reconnectMoonLite(device.deviceId);
   return { name: device.name || "LumenRadio MoonLite", ip: device.deviceId };
 }
 
-export async function disconnectMoonLite() {
-  const id = connected;
-  connected = null; previous = undefined;
-  if (id) { const { BleClient } = await import("@capacitor-community/bluetooth-le"); await BleClient.disconnect(id); }
+export async function disconnectMoonLite(id?: string) {
+  const ids = id ? [id] : [...sessions.keys()];
+  for (const deviceId of ids) sessions.delete(deviceId);
+  notify();
+  const { BleClient } = await import("@capacitor-community/bluetooth-le");
+  await Promise.all(ids.map((deviceId) => BleClient.disconnect(deviceId)));
 }
 
 export async function sendMoonLite(id: string, frame: Uint8Array): Promise<void> {
-  if (id !== connected) throw new Error("Reconnect MoonLite via Bluetooth");
-  if (busy) return;
-  busy = true;
-  try {
-    const { BleClient } = await import("@capacitor-community/bluetooth-le");
-    const copy = frame.slice();
-    // 20-byte writes work at the BLE minimum MTU on Android, iOS and web.
-    for (const packet of moonlitePackets(copy, previous)) {
-      if (connected !== id) throw new Error("MoonLite disconnected");
-      await BleClient.write(id, MOONLITE_SERVICE, MOONLITE_CHANNEL, new DataView(packet.buffer));
-    }
-    previous = copy;
-  } catch (error) { previous = undefined; throw error; }
-  finally { busy = false; }
+  const session = sessions.get(id);
+  if (!session) throw new Error("Reconnect MoonLite via Bluetooth");
+  if (session.pending) return session.pending;
+  const copy = frame.slice();
+  const task = (async () => {
+    try {
+      const { BleClient } = await import("@capacitor-community/bluetooth-le");
+      // Minimum-MTU packets and previous frames are independent for each transmitter.
+      for (const packet of moonlitePackets(copy, session.previous)) {
+        if (sessions.get(id) !== session) throw new Error("MoonLite disconnected");
+        await BleClient.write(id, MOONLITE_SERVICE, MOONLITE_CHANNEL, new DataView(packet.buffer));
+      }
+      session.previous = copy;
+    } catch (error) { session.previous = undefined; throw error; }
+    finally { session.pending = undefined; }
+  })();
+  session.pending = task;
+  return task;
+}
+
+export async function sendMoonLiteUniverses(conn: Connection, universes: Map<number, Uint8Array>): Promise<"off" | "ok" | "error"> {
+  const routes = moonliteRoutes(conn);
+  if (!routes.length) return "off";
+  const results = await Promise.allSettled(routes.map((route) =>
+    sendMoonLite(route.id, universes.get(route.universe) ?? new Uint8Array(512))));
+  return results.some((result) => result.status === "rejected") ? "error" : "ok";
 }
