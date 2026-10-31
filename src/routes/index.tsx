@@ -647,6 +647,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   // BLIND: keep sending the frozen frame while the operator keeps editing
   const [blind, setBlind] = useState(false);
   const blindFrame = useRef<ReturnType<typeof buildUniverses> | null>(null);
+  /** what the audience really sees: the light state of the last frame sent out (frozen while Blind is on) */
+  const liveSnap = useRef<{ fixtures: PatchedFixture[]; level: number; frame: Map<string, RGB[]> } | null>(null);
   const [screenLocked, setScreenLocked] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);
   const [redShift, setRedShift] = useState(false);
@@ -658,9 +660,11 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   useEffect(() => {
     const live = blind && blindFrame.current ? blindFrame.current : buildUniverses(parkedOut, t, outLevel, frame, conn);
     if (blind && !blindFrame.current) blindFrame.current = live;
+    // "Show: live" reads this, so Blind keeps the stage picture while the programmer keeps moving
+    if (!blind || !liveSnap.current) liveSnap.current = { fixtures: parkedOut, level: outLevel, frame };
     void sender(conn, live);
   });
-  const toggleBlind = () => { blindFrame.current = null; setBlind((b) => !b); };
+  const toggleBlind = () => { blindFrame.current = null; if (blind) liveSnap.current = null; setBlind((b) => !b); };
 
   // Battery drain: integrate each light's draw every 5 s
   const outRef = useRef(outLevel);
