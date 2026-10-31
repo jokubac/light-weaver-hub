@@ -2,6 +2,7 @@
 // Pure and browser-safe so the same output plays live, in REC and on the TIMELINE.
 
 import { levels } from "./audio-react";
+import { compileFormula, FORMULA_PRESETS } from "./pixel-formula";
 
 export type RGB = [number, number, number];
 export interface GenCtx {
@@ -10,6 +11,8 @@ export interface GenCtx {
   pal: (phase: number) => RGB;
   /** true when the layer uses its own colours instead of the generator's natural ones */
   custom: boolean;
+  /** maths expression for the Formula generator */
+  formula?: string | undefined;
 }
 export interface PixelGenerator { id: string; label: string; group: string; fn: (c: GenCtx) => RGB }
 
@@ -119,6 +122,16 @@ export const PIXEL_GENERATORS: PixelGenerator[] = [
   { id: "colour-groove", label: "Colour groove", group: "Music", fn: (c) => { const lv = levels(); const k = clamp(0.2 + lv.level * 1.2); return pick(c, sc(hsv(c.t * 0.03 + lv.mid + c.x / Math.max(1, c.W) * 0.2), k), k, fract(lv.mid + c.x / Math.max(1, c.W))); } },
   { id: "bass-wave", label: "Bass wave", group: "Music", fn: (c) => { const lv = levels(); const w = (Math.sin(c.x * 0.4 - c.t * (2 + lv.bass * 10)) + 1) / 2; const k = clamp(w * (0.15 + lv.bass * 1.2)); return pick(c, sc([0, 160, 255], k), k, w); } },
   { id: "strobe-drop", label: "Drop strobe", group: "Music", fn: (c) => { const lv = levels(); const k = lv.level > 0.55 && fract(c.t * 12) < 0.5 ? 1 : 0; return pick(c, sc(WH, k), k); } },
+  // Custom maths: value 0..1 = brightness, also picks the colour along the rainbow/palette
+  { id: "formula", label: "Formula", group: "Shapes", fn: (c) => {
+    const f = compileFormula(c.formula ?? FORMULA_PRESETS[0]!.f);
+    if (typeof f === "string") return K;
+    const cx = (c.W - 1) / 2 || 1, cy = (c.H - 1) / 2 || 1;
+    const x = (c.x - cx) / cx, y = c.H > 1 ? (cy - c.y) / cy : 0;
+    const r = f({ x, y, u: c.x / Math.max(1, c.W - 1), v: c.H > 1 ? c.y / (c.H - 1) : 0, d: Math.hypot(x, y), a: Math.atan2(y, x), t: c.t, i: c.x, j: c.y, W: c.W, H: c.H });
+    const k = clamp(r);
+    return pick(c, sc(hsv(fract(r * 0.7 + c.t * 0.05)), k), k, fract(r));
+  } },
 ];
 
 export const PIXEL_GENERATOR_GROUPS = [...new Set(PIXEL_GENERATORS.map((g) => g.group))];

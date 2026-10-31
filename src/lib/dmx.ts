@@ -472,6 +472,8 @@ export interface PatchedFixture {
   uid: string;
   /** Position on the PIXEL canvas in pixel cells; r = rotation in degrees (0 or 90). */
   pixelPos?: { x: number; y: number; r?: number } | undefined;
+  /** PIXEL randomise: pixel i is drawn and sampled at slot pixelShuffle[i]; unset = physical order */
+  pixelShuffle?: number[] | undefined;
   defId: string;
   modeIdx: number;
   name: string;
