@@ -25,6 +25,7 @@ export function moonlitePackets(frame: Uint8Array, previous?: Uint8Array, maxWri
 
 interface Session { previous?: Uint8Array | undefined; pending?: Promise<void> | undefined; error?: boolean }
 const sessions = new Map<string, Session>();
+const connecting = new Map<string, Promise<void>>();
 const listeners = new Set<() => void>();
 let version = 0;
 const notify = () => { version++; listeners.forEach((fn) => fn()); };
@@ -42,6 +43,14 @@ export function moonliteRoutes(conn: Connection): BluetoothRoute[] {
 
 export async function reconnectMoonLite(id: string): Promise<void> {
   if (sessions.has(id)) return;
+  const pending = connecting.get(id);
+  if (pending) return pending;
+  const task = openMoonLite(id);
+  connecting.set(id, task);
+  try { await task; } finally { connecting.delete(id); }
+}
+
+async function openMoonLite(id: string): Promise<void> {
   const { BleClient } = await loadBle();
   await BleClient.initialize({ androidNeverForLocation: true });
   const session: Session = {};
@@ -68,7 +77,8 @@ export async function connectMoonLite(): Promise<{ name: string; ip: string }> {
 }
 
 export async function disconnectMoonLite(id?: string) {
-  const ids = id ? [id] : [...sessions.keys()];
+  const ids = id ? (sessions.has(id) ? [id] : []) : [...sessions.keys()];
+  if (!ids.length) return;
   for (const deviceId of ids) sessions.delete(deviceId);
   notify();
   const { BleClient } = await loadBle();
