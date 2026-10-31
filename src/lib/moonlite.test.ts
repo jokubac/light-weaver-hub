@@ -19,60 +19,53 @@ beforeEach(async () => {
   ble.getServices.mockResolvedValue([{ uuid: MOONLITE_SERVICE, characteristics: [{ uuid: MOONLITE_CHANNEL }] }]);
 });
 
-it("adding a second MoonLite keeps the first connected", async () => {
+it("connecting a new MoonLite replaces the previous one — only one link at a time", async () => {
   ble.requestDevice.mockResolvedValueOnce({ deviceId: "a", name: "MoonLite A" }).mockResolvedValueOnce({ deviceId: "b", name: "MoonLite B" });
   await connectMoonLite(); await connectMoonLite();
-  expect(isMoonLiteConnected("a")).toBe(true);
+  expect(isMoonLiteConnected("a")).toBe(false);
   expect(isMoonLiteConnected("b")).toBe(true);
-  expect(ble.disconnect).not.toHaveBeenCalled();
+  expect(ble.disconnect).toHaveBeenCalledWith("a");
 });
 
-it("sends universe 1 to A and universe 2 to B with independent full initialization", async () => {
-  await reconnectMoonLite("a"); await reconnectMoonLite("b");
-  const conn = { ...defaultConnection(), bluetoothRoutes: [{ id: "a", name: "A", universe: 1 }, { id: "b", name: "B", universe: 2 }] };
-  const frameA = new Uint8Array(512).fill(20), frameB = new Uint8Array(512).fill(80);
-  expect(await sendMoonLiteUniverses(conn, new Map([[1, frameA], [2, frameB]]))).toBe("ok");
-  for (const [id, value] of [["a", 20], ["b", 80]] as const) {
-    const restored = new Uint8Array(512);
-    const calls = ble.write.mock.calls.filter(([device]) => device === id);
-    expect(calls.length).toBe(29);
-    for (const [, , , view] of calls) { const p = new Uint8Array(view.buffer); restored.set(p.subarray(2), view.getUint16(0, true) & 511); }
-    expect(restored).toEqual(new Uint8Array(512).fill(value));
-  }
+it("sends the assigned universe with full initialization, then only changed slots", async () => {
+  await reconnectMoonLite("a");
+  const conn = { ...defaultConnection(), bluetoothRoutes: [{ id: "a", name: "A", universe: 2 }] };
+  const frame = new Uint8Array(512).fill(80);
+  expect(await sendMoonLiteUniverses(conn, new Map([[1, new Uint8Array(512).fill(20)], [2, frame]]))).toBe("ok");
+  const restored = new Uint8Array(512);
+  expect(ble.write.mock.calls.length).toBe(29);
+  for (const [, , , view] of ble.write.mock.calls) { const p = new Uint8Array(view.buffer); restored.set(p.subarray(2), view.getUint16(0, true) & 511); }
+  expect(restored).toEqual(new Uint8Array(512).fill(80));
   ble.write.mockClear();
-  await sendMoonLiteUniverses(conn, new Map([[1, frameA], [2, frameB]]));
+  await sendMoonLiteUniverses(conn, new Map([[2, frame]]));
   expect(ble.write).not.toHaveBeenCalled();
-  frameA[0] = 30;
-  await sendMoonLiteUniverses(conn, new Map([[1, frameA], [2, frameB]]));
+  frame[0] = 30;
+  await sendMoonLiteUniverses(conn, new Map([[2, frame]]));
   expect(ble.write).toHaveBeenCalledTimes(1);
-  expect(ble.write.mock.calls[0]?.[0]).toBe("a");
 });
 
-it("one disconnected MoonLite does not stop output to the other", async () => {
-  await reconnectMoonLite("a"); await reconnectMoonLite("b");
+it("a disconnected MoonLite reports an error instead of writing", async () => {
+  await reconnectMoonLite("a");
   await disconnectMoonLite("a");
-  expect(isMoonLiteConnected("b")).toBe(true);
-  expect(await sendMoonLiteUniverses({ ...defaultConnection(), bluetoothRoutes: [{ id: "a", name: "A", universe: 1 }, { id: "b", name: "B", universe: 2 }] }, new Map())).toBe("error");
-  expect(ble.write.mock.calls.every(([id]) => id === "b")).toBe(true);
-  expect(ble.write).toHaveBeenCalledTimes(29);
+  expect(isMoonLiteConnected("a")).toBe(false);
+  expect(await sendMoonLiteUniverses({ ...defaultConnection(), bluetoothRoutes: [{ id: "a", name: "A", universe: 1 }] }, new Map())).toBe("error");
+  expect(ble.write).not.toHaveBeenCalled();
 });
 
-it("a busy device does not block another device or claim a failed write succeeded", async () => {
-  await reconnectMoonLite("a"); await reconnectMoonLite("b");
+it("a busy write queues instead of overlapping, and a failed write is not cached as sent", async () => {
+  await reconnectMoonLite("a");
   let release: (() => void) | undefined;
   const blocked = new Promise<void>((resolve) => { release = resolve; });
-  ble.write.mockImplementation(async (id) => { if (id === "a") await blocked; });
-  const a = sendMoonLite("a", new Uint8Array(512));
+  ble.write.mockImplementation(async () => { await blocked; });
+  const first = sendMoonLite("a", new Uint8Array(512));
   const again = sendMoonLite("a", new Uint8Array(512));
-  await sendMoonLite("b", new Uint8Array(512));
-  expect(ble.write.mock.calls.filter(([id]) => id === "b")).toHaveLength(29);
-  release?.(); await Promise.all([a, again]);
-  expect(ble.write.mock.calls.filter(([id]) => id === "a")).toHaveLength(29);
+  release?.(); await Promise.all([first, again]);
+  expect(ble.write).toHaveBeenCalledTimes(29);
   ble.write.mockImplementation(async () => {});
 });
 
-it("saves independent universe assignments and migrates legacy MoonLite", () => {
-  const routes = [{ id: "a", name: "A", universe: 1 }, { id: "b", name: "B", universe: 7 }];
+it("saves the universe assignment and migrates legacy MoonLite", () => {
+  const routes = [{ id: "a", name: "A", universe: 7 }];
   saveConnection({ ...defaultConnection(), bluetoothRoutes: routes });
   expect(moonliteRoutes(loadConnection())).toEqual(routes);
   expect(moonliteRoutes({ ...defaultConnection(), transport: "bluetooth", node: { name: "Old", ip: "old" }, bluetoothUniverse: 3 })).toEqual([{ id: "old", name: "Old", universe: 3 }]);
