@@ -52,11 +52,10 @@ export function ConnectDialog({ open, onOpenChange, conn, setConn, status, disco
     try {
       const node = await connectMoonLite();
       const current = latest.current;
-      const routes = moonliteRoutes(current);
-      let universe = 1;
-      while (routes.some((r) => r.universe === universe) && universe < MAX_UNIVERSE) universe++;
-      const next = routes.some((r) => r.id === node.ip) ? routes : [...routes, { id: node.ip, name: node.name, universe }];
-      setConn({ ...current, transport: "bluetooth", node: { name: next[0]?.name ?? node.name, ip: next[0]?.id ?? node.ip }, bluetoothRoutes: next });
+      // One MoonLite at a time — several concurrent BLE links make output lag.
+      // Keep the Wi-Fi transport untouched so both can send together.
+      const universe = moonliteRoutes(current)[0]?.universe ?? 1;
+      setConn({ ...current, bluetoothRoutes: [{ id: node.ip, name: node.name, universe }] });
     }
     catch (e) { setMsg(e instanceof Error ? e.message : "Could not connect to MoonLite"); }
     finally { setPairing(false); }
