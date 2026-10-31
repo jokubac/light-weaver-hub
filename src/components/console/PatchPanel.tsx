@@ -2,7 +2,7 @@ import { MAX_UNIVERSE } from "@/lib/dmx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap, X } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
@@ -108,8 +108,6 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const [brand, setBrand] = useState<string | null>(null);
   const [def, setDef] = useState<FixtureDef | null>(null);
   const [modeIdx, setModeIdx] = useState<number | null>(null);
-  const [mapU, setMapU] = useState(1);
-  const [showMap, setShowMap] = useState(defaultMap);
   const baseCaps: CapFilter[] = pixelOnly ? ["pixels"] : [];
   const [caps, setCaps] = useState<CapFilter[]>(baseCaps);
   const isPx = (d: FixtureDef) => !pixelOnly || d.modes.some((_, i) => pxCount(d, i) > 0);
@@ -118,7 +116,6 @@ export function PatchPanel({ fixtures, onAdd, onRemove, onUpdate, defaultMap = t
   const favModes = useFavorites("modes");
   const favBrands = useFavorites("manufacturers");
   const star = (id: string) => ({ starred: fav.has(id), onStar: () => fav.toggle(id) });
-  const universes = Array.from(new Set([1, ...fixtures.map((f) => f.universe)])).sort((a, b) => a - b);
 
   const q = query.trim().toLowerCase();
   // Patch search/browse shows only the manufacturer GDTF library; the built-in
