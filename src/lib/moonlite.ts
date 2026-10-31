@@ -21,7 +21,7 @@ export function moonlitePackets(frame: Uint8Array, previous?: Uint8Array, maxWri
   return packets;
 }
 
-interface Session { previous?: Uint8Array; pending?: Promise<void>; error?: boolean }
+interface Session { previous?: Uint8Array | undefined; pending?: Promise<void> | undefined; error?: boolean }
 const sessions = new Map<string, Session>();
 const listeners = new Set<() => void>();
 let version = 0;
