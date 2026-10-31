@@ -2,7 +2,7 @@ import { MAX_UNIVERSE } from "@/lib/dmx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Search, AlertTriangle, Grid3x3, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, AlertTriangle, Star, Unplug, Pencil, FileUp, Wrench, Radar, Trash2, ChevronDown, Zap, X } from "lucide-react";
 import { useFavorites } from "@/lib/favorites";
 import { DmxMap } from "./DmxMap";
 import { NumberField } from "./NumberField";
