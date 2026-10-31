@@ -2,6 +2,8 @@ import type { BluetoothRoute, Connection } from "./store";
 
 export const MOONLITE_SERVICE = "bfa00000-247d-6e1c-448c-223dfa0bd00c";
 export const MOONLITE_CHANNEL = "bfa00001-247d-6e1c-448c-223dfa0bd00c";
+let bleModule: Promise<typeof import("@capacitor-community/bluetooth-le")> | undefined;
+const loadBle = () => bleModule ??= import("@capacitor-community/bluetooth-le");
 
 /** TimoTwo BLE slot changes: count in bits 15..9, zero-based slot in bits 8..0. */
 export function moonlitePackets(frame: Uint8Array, previous?: Uint8Array, maxWrite = 20): Uint8Array[] {
@@ -40,7 +42,7 @@ export function moonliteRoutes(conn: Connection): BluetoothRoute[] {
 
 export async function reconnectMoonLite(id: string): Promise<void> {
   if (sessions.has(id)) return;
-  const { BleClient } = await import("@capacitor-community/bluetooth-le");
+  const { BleClient } = await loadBle();
   await BleClient.initialize({ androidNeverForLocation: true });
   const session: Session = {};
   await BleClient.connect(id, () => {
@@ -56,7 +58,7 @@ export async function reconnectMoonLite(id: string): Promise<void> {
 }
 
 export async function connectMoonLite(): Promise<{ name: string; ip: string }> {
-  const { BleClient } = await import("@capacitor-community/bluetooth-le");
+  const { BleClient } = await loadBle();
   await BleClient.initialize({ androidNeverForLocation: true });
   // MoonLite's 128-bit service UUID often doesn't fit in the 31-byte advert, so filtering
   // by service hides it. List nearby devices and only require the service after connecting.
@@ -69,7 +71,7 @@ export async function disconnectMoonLite(id?: string) {
   const ids = id ? [id] : [...sessions.keys()];
   for (const deviceId of ids) sessions.delete(deviceId);
   notify();
-  const { BleClient } = await import("@capacitor-community/bluetooth-le");
+  const { BleClient } = await loadBle();
   await Promise.all(ids.map((deviceId) => BleClient.disconnect(deviceId)));
 }
 
@@ -80,7 +82,7 @@ export async function sendMoonLite(id: string, frame: Uint8Array): Promise<void>
   const copy = frame.slice();
   const task = (async () => {
     try {
-      const { BleClient } = await import("@capacitor-community/bluetooth-le");
+      const { BleClient } = await loadBle();
       // Minimum-MTU packets and previous frames are independent for each transmitter.
       for (const packet of moonlitePackets(copy, session.previous)) {
         if (sessions.get(id) !== session) throw new Error("MoonLite disconnected");
