@@ -1102,5 +1102,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Dotknij podłogi, aby umieścić wybrany rekwizyt. Naciśnij rekwizyt ponownie, aby zatrzymać.",
   "Add MoonLite": "Dodaj MoonLite",
   "Reconnect": "Połącz ponownie",
-  "Connected": "Połączono"
+  "Connected": "Połączono",
+  "Show: all": "Pokaż: wszystkie",
+  "Show: lit + highlighted": "Pokaż: świecące + wyróżnione",
+  "Show: highlighted": "Pokaż: wyróżnione",
+  "Show: live": "Pokaż: na żywo",
+  "Formula": "Formuła",
+  "Softness": "Miękkość",
+  "Advanced: type the maths": "Zaawansowane: wpisz wzór",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Ten wzór napisano ręcznie — wybierz obrazek powyżej, aby użyć pokręteł.",
+  "Wave": "Fala",
+  "Ripple": "Fala kołowa",
+  "Spiral": "Spirala",
+  "Diagonal": "Przekątna",
+  "Checker": "Szachownica",
+  "Bars": "Paski",
+  "Scanner": "Skaner",
+  "Breathing": "Oddech",
+  "Sparkle": "Iskrzenie"
 }

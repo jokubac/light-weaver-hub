@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "اضغط على الأرض لوضع قطعة الديكور المختارة. اضغط على قطعة الديكور مرة أخرى للتوقف.",
   "Add MoonLite": "إضافة MoonLite",
   "Reconnect": "إعادة الاتصال",
-  "Connected": "متصل"
+  "Connected": "متصل",
+  "Show: all": "إظهار: الكل",
+  "Show: lit + highlighted": "إظهار: المضاءة + المحددة",
+  "Show: highlighted": "إظهار: المحددة",
+  "Show: live": "إظهار: مباشر",
+  "Formula": "معادلة",
+  "Softness": "نعومة",
+  "Advanced: type the maths": "متقدم: اكتب الرياضيات",
+  "This pattern was written by hand — pick a picture above to use the dials.": "هذا النمط مكتوب يدويًا — اختر صورة أعلاه لاستخدام المؤشرات.",
+  "Wave": "موجة",
+  "Ripple": "تموّج",
+  "Spiral": "حلزوني",
+  "Diagonal": "قطري",
+  "Checker": "شطرنج",
+  "Bars": "أشرطة",
+  "Scanner": "ماسح",
+  "Breathing": "تنفّس",
+  "Sparkle": "وميض"
 }

@@ -60,6 +60,11 @@ export interface PixelLayer {
   gen?: string;
   /** generator "formula": user maths expression (see pixel-formula.ts) */
   formula?: string;
+  /** simple formula builder: the shape and dials the expression above was built from */
+  formulaShape?: string | undefined;
+  formulaScale?: number;
+  formulaSoft?: number;
+  formulaInvert?: boolean;
   /** video kind: id of the clip stored on this device */
   videoId?: string;
   videoName?: string;

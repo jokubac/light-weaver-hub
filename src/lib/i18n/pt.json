@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Toque no chão para colocar o adereço escolhido. Pressione o adereço novamente para parar.",
   "Add MoonLite": "Adicionar MoonLite",
   "Reconnect": "Reconectar",
-  "Connected": "Ligado"
+  "Connected": "Ligado",
+  "Show: all": "Mostrar: todas",
+  "Show: lit + highlighted": "Mostrar: acesas + destacadas",
+  "Show: highlighted": "Mostrar: destacadas",
+  "Show: live": "Mostrar: ao vivo",
+  "Formula": "Fórmula",
+  "Softness": "Suavidade",
+  "Advanced: type the maths": "Avançado: escrever a matemática",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Este padrão foi escrito à mão — escolha uma imagem acima para usar os controlos.",
+  "Wave": "Onda",
+  "Ripple": "Ondulação",
+  "Spiral": "Espiral",
+  "Diagonal": "Diagonal",
+  "Checker": "Xadrez",
+  "Bars": "Barras",
+  "Scanner": "Scanner",
+  "Breathing": "Respiração",
+  "Sparkle": "Cintilação"
 }

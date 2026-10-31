@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Trykk på gulvet for å plassere den valgte rekvisitten. Trykk på rekvisitten igjen for å stoppe.",
   "Add MoonLite": "Legg til MoonLite",
   "Reconnect": "Koble til igjen",
-  "Connected": "Tilkoblet"
+  "Connected": "Tilkoblet",
+  "Show: all": "Vis: alle",
+  "Show: lit + highlighted": "Vis: lyse + merket",
+  "Show: highlighted": "Vis: merket",
+  "Show: live": "Vis: live",
+  "Formula": "Formel",
+  "Softness": "Mykhet",
+  "Advanced: type the maths": "Avansert: skriv matematikken",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Dette mønsteret er skrevet for hånd — velg et bilde over for å bruke vredene.",
+  "Wave": "Bølge",
+  "Ripple": "Ringer",
+  "Spiral": "Spiral",
+  "Diagonal": "Diagonal",
+  "Checker": "Skjærbrett",
+  "Bars": "Balkar",
+  "Scanner": "Skanner",
+  "Breathing": "Pusting",
+  "Sparkle": "Gnistring"
 }

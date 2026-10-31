@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Tocca il pavimento per posizionare l’oggetto scelto. Premi di nuovo l’oggetto di scena per fermarti.",
   "Add MoonLite": "Aggiungi MoonLite",
   "Reconnect": "Riconnetti",
-  "Connected": "Connesso"
+  "Connected": "Connesso",
+  "Show: all": "Mostra: tutte",
+  "Show: lit + highlighted": "Mostra: accese + evidenziate",
+  "Show: highlighted": "Mostra: evidenziate",
+  "Show: live": "Mostra: live",
+  "Formula": "Formula",
+  "Softness": "Morbidezza",
+  "Advanced: type the maths": "Avanzato: scrivi la matematica",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Questo modello è scritto a mano — scegli un'immagine sopra per usare le manopole.",
+  "Wave": "Onda",
+  "Ripple": "Ondulazione",
+  "Spiral": "Spirale",
+  "Diagonal": "Diagonale",
+  "Checker": "Scacchiera",
+  "Bars": "Barre",
+  "Scanner": "Scanner",
+  "Breathing": "Respiro",
+  "Sparkle": "Scintillio"
 }

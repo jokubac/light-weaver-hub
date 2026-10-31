@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "বেছে নেওয়া প্রপ রাখতে মেঝেতে ট্যাপ করুন। থামাতে প্রপে আবার চাপুন।",
   "Add MoonLite": "MoonLite যোগ করুন",
   "Reconnect": "আবার সংযোগ করুন",
-  "Connected": "সংযুক্ত"
+  "Connected": "সংযুক্ত",
+  "Show: all": "দেখান: সব",
+  "Show: lit + highlighted": "দেখান: জ্বলন্ত + হাইলাইট",
+  "Show: highlighted": "দেখান: হাইলাইট",
+  "Show: live": "দেখান: লাইভ",
+  "Formula": "সূত্র",
+  "Softness": "নরমতা",
+  "Advanced: type the maths": "উন্নত: গণিত লিখুন",
+  "This pattern was written by hand — pick a picture above to use the dials.": "এই নকশাটি হাতে লেখা — ডায়াল ব্যবহার করতে উপরে একটি ছবি বাছুন।",
+  "Wave": "ঢেউ",
+  "Ripple": "তরঙ্গ",
+  "Spiral": "সর্পিল",
+  "Diagonal": "কোনাকুনি",
+  "Checker": "দাবা",
+  "Bars": "বার",
+  "Scanner": "স্ক্যানার",
+  "Breathing": "শ্বাস",
+  "Sparkle": "ঝিকমিক"
 }

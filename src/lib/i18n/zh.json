@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "点击地面以放置所选的道具。再按一次道具即可停止。",
   "Add MoonLite": "添加 MoonLite",
   "Reconnect": "重新连接",
-  "Connected": "已连接"
+  "Connected": "已连接",
+  "Show: all": "显示：全部",
+  "Show: lit + highlighted": "显示：已点亮 + 已标记",
+  "Show: highlighted": "显示：已标记",
+  "Show: live": "显示：现场",
+  "Formula": "公式",
+  "Softness": "柔和度",
+  "Advanced: type the maths": "高级：输入数学式",
+  "This pattern was written by hand — pick a picture above to use the dials.": "此图样是手写的——请在上方选择一个图形以使用旋钮。",
+  "Wave": "波浪",
+  "Ripple": "涟漪",
+  "Spiral": "螺旋",
+  "Diagonal": "对角",
+  "Checker": "棋盘",
+  "Bars": "条纹",
+  "Scanner": "扫描",
+  "Breathing": "呼吸",
+  "Sparkle": "闪烁"
 }

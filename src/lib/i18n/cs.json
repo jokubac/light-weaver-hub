@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Klepněte na podlahu pro umístění vybrané rekvizity. Rekvizitu znovu stiskněte pro zastavení.",
   "Add MoonLite": "Přidat MoonLite",
   "Reconnect": "Znovu připojit",
-  "Connected": "Připojeno"
+  "Connected": "Připojeno",
+  "Show: all": "Zobrazit: vše",
+  "Show: lit + highlighted": "Zobrazit: svítící + zvýrazněné",
+  "Show: highlighted": "Zobrazit: zvýrazněné",
+  "Show: live": "Zobrazit: živě",
+  "Formula": "Vzorec",
+  "Softness": "Měkkost",
+  "Advanced: type the maths": "Pokročilé: zapsat matematiku",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Tento vzor byl napsán ručně — výše vyberte obrázek, pokud chcete použít ovladače.",
+  "Wave": "Vlna",
+  "Ripple": "Vlnění",
+  "Spiral": "Spirála",
+  "Diagonal": "Úhlopříčka",
+  "Checker": "Šachovnice",
+  "Bars": "Pruty",
+  "Scanner": "Skener",
+  "Breathing": "Dýchání",
+  "Sparkle": "Jiskření"
 }

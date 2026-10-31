@@ -647,6 +647,8 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   // BLIND: keep sending the frozen frame while the operator keeps editing
   const [blind, setBlind] = useState(false);
   const blindFrame = useRef<ReturnType<typeof buildUniverses> | null>(null);
+  /** what the audience really sees: the light state of the last frame sent out (frozen while Blind is on) */
+  const liveSnap = useRef<{ fixtures: PatchedFixture[]; level: number; frame: Map<string, RGB[]> } | null>(null);
   const [screenLocked, setScreenLocked] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);
   const [redShift, setRedShift] = useState(false);
@@ -658,9 +660,11 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   useEffect(() => {
     const live = blind && blindFrame.current ? blindFrame.current : buildUniverses(parkedOut, t, outLevel, frame, conn);
     if (blind && !blindFrame.current) blindFrame.current = live;
+    // "Show: live" reads this, so Blind keeps the stage picture while the programmer keeps moving
+    if (!blind || !liveSnap.current) liveSnap.current = { fixtures: parkedOut, level: outLevel, frame };
     void sender(conn, live);
   });
-  const toggleBlind = () => { blindFrame.current = null; setBlind((b) => !b); };
+  const toggleBlind = () => { blindFrame.current = null; if (blind) liveSnap.current = null; setBlind((b) => !b); };
 
   // Battery drain: integrate each light's draw every 5 s
   const outRef = useRef(outLevel);
@@ -1583,6 +1587,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   <option value="all">{tr("Show: all")}</option>
                   <option value="live">{tr("Show: lit + highlighted")}</option>
                   <option value="hl">{tr("Show: highlighted")}</option>
+                  <option value="stage">{tr("Show: live")}</option>
                 </select>
                 <span className="ml-auto font-mono text-[10px] text-muted-foreground">{selected.length}{tr("selected")}</span>
               </div>
@@ -1593,12 +1598,15 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                 onPointerCancel={() => { swept.current = null; }}>
                 {fixtures.map((f, i) => {
                   const def = getDef(f.defId);
-                  const of = pulses[f.uid] || locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
-                  const pix0 = frame.get(f.uid);
-                  const color = pix0?.length && pixelCount(f) <= 1 ? (() => { const pv0 = of.on === false ? 0 : of.intensity * outLevel; const [r, g, b] = [0, 1, 2].map((k) => Math.round((pix0.reduce((a, c) => a + c[k]!, 0) / pix0.length) * pv0)); return `rgb(${r},${g},${b})`; })() : fixtureColor(of, t, outLevel);
+                  // "Show: live" reads the frame that is really on stage — the frozen one while Blind is on
+                  const snap = fixView === "stage" ? liveSnap.current : null;
+                  const of = snap ? (snap.fixtures.find((o) => o.uid === f.uid) ?? f) : pulses[f.uid] || locate?.ids.includes(f.uid) ? (outFixtures.find((o) => o.uid === f.uid) ?? f) : f;
+                  const lv = snap ? snap.level : outLevel;
+                  const pix0 = (snap ? snap.frame : frame).get(f.uid);
+                  const color = pix0?.length && pixelCount(f) <= 1 ? (() => { const pv0 = of.on === false ? 0 : of.intensity * lv; const [r, g, b] = [0, 1, 2].map((k) => Math.round((pix0.reduce((a, c) => a + c[k]!, 0) / pix0.length) * pv0)); return `rgb(${r},${g},${b})`; })() : fixtureColor(of, t, lv);
                   const isSel = selected.includes(f.uid);
-                  const pix = frame.get(f.uid);
-                  const pv = of.on === false ? 0 : of.intensity * outLevel;
+                  const pix = pix0;
+                  const pv = of.on === false ? 0 : of.intensity * lv;
                   const [gc, gr] = pixelGrid(f);
                   const hl = highlighted.includes(f.uid);
                   if (!fixtureVisible(fixView, pv, hl) && !isSel) return null;
@@ -1622,7 +1630,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                       </div>
                       <div className="flex shrink-0 justify-between gap-1 text-[9px] text-muted-foreground">
                         <span className="truncate">{tr("U")}{f.universe}.{f.address}</span>
-                        <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
+                        <span className="font-mono">{Math.round((of.on === false ? 0 : of.intensity) * 100)}%</span>
                       </div>
                       {groupsOf(f).length > 0 && <div className="shrink-0 truncate text-[9px] text-primary">{groupText(f)}</div>}
                       {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (

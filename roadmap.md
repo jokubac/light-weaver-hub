@@ -354,3 +354,5 @@
 - [x] PLOT props: picking a prop only arms it — it lands centred on the floor point you tap (quarter-cell snap), tap again for more, press the prop again to stop; a faint preview follows the pointer. 2 new propSpot tests, typecheck and browser checks pass.
 - [x] PIXEL: Random pixels / Restore order per light; custom Formula effect (maths expression, presets)
 - [x] PATCH Add fixtures like reference: Manufacturer | Model | Modes columns, DMX map only after a mode is picked, simpler filters
+- [x] FIXTURES "Show: live" filter — tiles follow the picture actually on stage (frozen Blind output via a live snapshot), not the programmer; 12 fixture-view tests, 510 total, typecheck and browser checks pass (blind + blackout keeps the stage picture, "Show: lit" empties).
+- [x] PIXEL Formula effect rebuilt around a live preview: animated canvas, nine shape tiles (Wave, Ripple, Spiral, Diagonal, Checker, Bars, Scanner, Breathing, Sparkle) and Size/Softness/Invert dials that rewrite the maths; raw editor moves behind "Advanced: type the maths". Browser verified: Ripple → 0.5+0.5*sin(d*12-t*5), Size 2.4× → d*28.8.

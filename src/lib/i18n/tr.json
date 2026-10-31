@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Seçtiğiniz aksesuarı yerleştirmek için zemene dokunun. Durdurmak için aksesuara tekrar basın.",
   "Add MoonLite": "MoonLite ekle",
   "Reconnect": "Yeniden bağlan",
-  "Connected": "Bağlandı"
+  "Connected": "Bağlandı",
+  "Show: all": "Göster: tümü",
+  "Show: lit + highlighted": "Göster: yanan + vurgulanan",
+  "Show: highlighted": "Göster: vurgulanan",
+  "Show: live": "Göster: canlı",
+  "Formula": "Formül",
+  "Softness": "Yumuşaklık",
+  "Advanced: type the maths": "Gelişmiş: matematiği yaz",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Bu desen elle yazıldı — kumandaları kullanmak için yukarıdan bir resim seçin.",
+  "Wave": "Dalga",
+  "Ripple": "Dalgalanma",
+  "Spiral": "Spiral",
+  "Diagonal": "Çapraz",
+  "Checker": "Dama tahtası",
+  "Bars": "Çubuklar",
+  "Scanner": "Tarayıcı",
+  "Breathing": "Nefes",
+  "Sparkle": "Parıltı"
 }

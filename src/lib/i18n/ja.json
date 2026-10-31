@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "選んだ小道具を置くには床をタップします。小道具をもう一度押すと停止します。",
   "Add MoonLite": "MoonLite を追加",
   "Reconnect": "再接続",
-  "Connected": "接続済み"
+  "Connected": "接続済み",
+  "Show: all": "表示：すべて",
+  "Show: lit + highlighted": "表示：点灯 + ハイライト",
+  "Show: highlighted": "表示：ハイライト",
+  "Show: live": "表示：ライブ",
+  "Formula": "数式",
+  "Softness": "柔らかさ",
+  "Advanced: type the maths": "詳細：数式を入力",
+  "This pattern was written by hand — pick a picture above to use the dials.": "このパターンは手書きです — 上の絵を選ぶとつまみを使えます。",
+  "Wave": "波",
+  "Ripple": "さざ波",
+  "Spiral": "螺旋",
+  "Diagonal": "斜め",
+  "Checker": "市松",
+  "Bars": "バー",
+  "Scanner": "スキャナー",
+  "Breathing": "呼吸",
+  "Sparkle": "きらめき"
 }

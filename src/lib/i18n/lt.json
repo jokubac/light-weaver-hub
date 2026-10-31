@@ -1160,5 +1160,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Bakstelėkite grindis, kad padėtumėte pasirinktą rekvizitą. Paspauskite rekvizitą dar kartą, kad sustotumėte.",
   "Add MoonLite": "Pridėti MoonLite",
   "Reconnect": "Prijungti iš naujo",
-  "Connected": "Prijungta"
+  "Connected": "Prijungta",
+  "Show: all": "Rodyti: visos",
+  "Show: lit + highlighted": "Rodyti: įžptos + pažymėtos",
+  "Show: highlighted": "Rodyti: pažymėtos",
+  "Show: live": "Rodyti: gyvai",
+  "Formula": "Formulė",
+  "Softness": "Suminkštėjimas",
+  "Advanced: type the maths": "Išplėstiniai: rašykite matematiką",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Šį raštarą parašėte rankiniu būdu – pasirinkite paveikslėlį aukščiau, kad galėtumėte naudoti rankenėles.",
+  "Wave": "Banga",
+  "Ripple": "Bangelė",
+  "Spiral": "Spiralė",
+  "Diagonal": "Įstrižainė",
+  "Checker": "Šachmatas",
+  "Bars": "Juostos",
+  "Scanner": "Skaneris",
+  "Breathing": "Kvėpavimas",
+  "Sparkle": "Žėrėjimas"
 }

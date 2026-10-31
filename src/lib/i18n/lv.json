@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Pieskarieties grīdai, lai novietotu izvēlēto rekvisītu. Nospiediet rekvisītu vēlreiz, lai apstātos.",
   "Add MoonLite": "Pievienot MoonLite",
   "Reconnect": "Savienot atkārtoti",
-  "Connected": "Savienots"
+  "Connected": "Savienots",
+  "Show: all": "Rādīt: visas",
+  "Show: lit + highlighted": "Rādīt: deg + iezīmētas",
+  "Show: highlighted": "Rādīt: iezīmētas",
+  "Show: live": "Rādīt: tiešraidē",
+  "Formula": "Formula",
+  "Softness": "Mīkstums",
+  "Advanced: type the maths": "Papildu: rakstīt matemātiku",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Šo rakstu esat rakstījis ar roku — izvēlieties attēlu augšpusē, lai izmantotu regulatorus.",
+  "Wave": "Viļņa",
+  "Ripple": "Viļņošana",
+  "Spiral": "Spirāle",
+  "Diagonal": "Diagonāle",
+  "Checker": "Šahgalds",
+  "Bars": "Joslas",
+  "Scanner": "Skaneris",
+  "Breathing": "Elpošana",
+  "Sparkle": "Zibsnīšana"
 }

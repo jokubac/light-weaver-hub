@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Коснитесь пола, чтобы разместить выбранный реквизит. Нажмите реквизит ещё раз, чтобы остановить.",
   "Add MoonLite": "Добавить MoonLite",
   "Reconnect": "Подключить снова",
-  "Connected": "Подключено"
+  "Connected": "Подключено",
+  "Show: all": "Показать: все",
+  "Show: lit + highlighted": "Показать: горящие + выделенные",
+  "Show: highlighted": "Показать: выделенные",
+  "Show: live": "Показать: в эфире",
+  "Formula": "Формула",
+  "Softness": "Мягкость",
+  "Advanced: type the maths": "Дополнительно: ввести математику",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Этот узор написан вручную — выберите изображение выше, чтобы использовать регуляторы.",
+  "Wave": "Волна",
+  "Ripple": "Рябь",
+  "Spiral": "Спираль",
+  "Diagonal": "Диагональ",
+  "Checker": "Шахматка",
+  "Bars": "Полосы",
+  "Scanner": "Сканер",
+  "Breathing": "Дыхание",
+  "Sparkle": "Искрение"
 }

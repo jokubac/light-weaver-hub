@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Chạm vào sàn để đặt đạo cụ đã chọn. Nhấn lại đạo cụ để dừng.",
   "Add MoonLite": "Thêm MoonLite",
   "Reconnect": "Kết nối lại",
-  "Connected": "Đã kết nối"
+  "Connected": "Đã kết nối",
+  "Show: all": "Hiển thị: tất cả",
+  "Show: lit + highlighted": "Hiển thị: đang sáng + được đánh dấu",
+  "Show: highlighted": "Hiển thị: được đánh dấu",
+  "Show: live": "Hiển thị: trực tiếp",
+  "Formula": "Công thức",
+  "Softness": "Độ mềm",
+  "Advanced: type the maths": "Nâng cao: nhập toán",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Hoa văn này được viết tay — chọn một hình ở trên để dùng các núm.",
+  "Wave": "Sóng",
+  "Ripple": "Gợn sóng",
+  "Spiral": "Xoắn ốc",
+  "Diagonal": "Chéo",
+  "Checker": "Bàn cờ",
+  "Bars": "Thanh",
+  "Scanner": "Máy quét",
+  "Breathing": "Thở",
+  "Sparkle": "Lấp lánh"
 }
