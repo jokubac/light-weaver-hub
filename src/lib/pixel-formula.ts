@@ -57,3 +57,40 @@ export const FORMULA_PRESETS: { label: string; f: string }[] = [
   { label: "Checker", f: "mod(floor(x*4 + t) + floor(y*4), 2)" },
   { label: "Scanner", f: "1 - abs(u - tri(t*0.5)) * 6" },
 ];
+
+// ── The simple builder: pick a picture, then turn two dials ────────────────
+/** Dials of the simple builder. Every shape is one picture with these turned. */
+export interface FormulaKnobs { scale: number; soft: number; invert: boolean }
+export const FORMULA_KNOBS: FormulaKnobs = { scale: 1, soft: 0, invert: false };
+
+const n3 = (v: number) => +v.toFixed(3);
+
+/** Shapes offered as pictures. With the dials untouched each writes its classic formula. */
+export const FORMULA_SHAPES: { id: string; label: string; make: (k: FormulaKnobs) => string }[] = [
+  { id: "wave", label: "Wave", make: (k) => `1 - abs(y - sin(x*pi*${n3(2 * k.scale)} + t*3) * 0.7) * 3` },
+  { id: "ripple", label: "Ripple", make: (k) => `0.5 + 0.5*sin(d*${n3(12 * k.scale)} - t*5)` },
+  { id: "spiral", label: "Spiral", make: (k) => `fract(a/(2*pi) + d*${n3(2 * k.scale)} - t*0.5)` },
+  { id: "diagonal", label: "Diagonal", make: (k) => `fract(${k.scale === 1 ? "u + v" : `(u + v)*${n3(k.scale)}`} - t*0.5)` },
+  { id: "checker", label: "Checker", make: (k) => `mod(floor(x*${n3(4 * k.scale)} + t) + floor(y*${n3(4 * k.scale)}), 2)` },
+  { id: "bars", label: "Bars", make: (k) => `fract(u*${n3(6 * k.scale)} + t*0.5)` },
+  { id: "scan", label: "Scanner", make: (k) => `1 - abs(u - tri(t*0.5)) * ${n3(6 / k.scale)}` },
+  { id: "breathe", label: "Breathing", make: (k) => `0.5 + 0.5*sin(t*${n3(2 * k.scale)})` },
+  { id: "sparkle", label: "Sparkle", make: (k) => `rnd(i*12.9898 + j*78.233 + floor(t*9)) > ${n3(1 - 0.08 * k.scale)} ? 1 : 0` },
+];
+
+/** Writes the maths behind a shape and its dials; the plain shape stays exactly as written. */
+export function buildFormula(shape: string, k: FormulaKnobs = FORMULA_KNOBS): string {
+  const s = FORMULA_SHAPES.find((x) => x.id === shape);
+  if (!s) return "";
+  const core = s.make(k);
+  if (k.soft === 0 && !k.invert) return core;
+  const v = `clamp(pow(clamp(${core}), ${n3(1 / (1 + k.soft * 2))}))`;
+  return k.invert ? `1 - ${v}` : v;
+}
+
+/** Which builder shape a stored formula came from — only when the dials were left alone. */
+export function detectFormulaShape(src?: string): string | null {
+  if (!src) return null;
+  const s = src.trim();
+  return FORMULA_SHAPES.find((x) => buildFormula(x.id) === s)?.id ?? null;
+}

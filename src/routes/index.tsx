@@ -1630,7 +1630,7 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                       </div>
                       <div className="flex shrink-0 justify-between gap-1 text-[9px] text-muted-foreground">
                         <span className="truncate">{tr("U")}{f.universe}.{f.address}</span>
-                        <span className="font-mono">{Math.round(f.intensity * 100)}%</span>
+                        <span className="font-mono">{Math.round((of.on === false ? 0 : of.intensity) * 100)}%</span>
                       </div>
                       {groupsOf(f).length > 0 && <div className="shrink-0 truncate text-[9px] text-primary">{groupText(f)}</div>}
                       {f.power && (() => { const b = batteryStatus(f.power, f, outLevel); return (
