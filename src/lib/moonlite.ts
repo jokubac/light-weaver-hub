@@ -21,12 +21,15 @@ export function moonlitePackets(frame: Uint8Array, previous?: Uint8Array, maxWri
   return packets;
 }
 
-interface Session { previous?: Uint8Array; pending?: Promise<void> }
+interface Session { previous?: Uint8Array; pending?: Promise<void>; error?: boolean }
 const sessions = new Map<string, Session>();
 const listeners = new Set<() => void>();
-const notify = () => listeners.forEach((fn) => fn());
+let version = 0;
+const notify = () => { version++; listeners.forEach((fn) => fn()); };
 export function subscribeMoonLite(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; }
+export function moonLiteVersion() { return version; }
 export function isMoonLiteConnected(id: string) { return sessions.has(id); }
+export function moonLiteStatus(id: string): "off" | "ok" | "error" { const s = sessions.get(id); return !s ? "off" : s.error ? "error" : "ok"; }
 
 /** Preserve old single-device connections without mistaking Wi-Fi IPs for BLE IDs. */
 export function moonliteRoutes(conn: Connection): BluetoothRoute[] {
@@ -84,7 +87,8 @@ export async function sendMoonLite(id: string, frame: Uint8Array): Promise<void>
         await BleClient.write(id, MOONLITE_SERVICE, MOONLITE_CHANNEL, new DataView(packet.buffer));
       }
       session.previous = copy;
-    } catch (error) { session.previous = undefined; throw error; }
+      if (session.error) { session.error = false; notify(); }
+    } catch (error) { session.previous = undefined; if (!session.error) { session.error = true; notify(); } throw error; }
     finally { session.pending = undefined; }
   })();
   session.pending = task;
