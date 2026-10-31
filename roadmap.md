@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Ordinary pixel-fixture controls drive the full DMX cell footprint; preserve explicit pixel programming and verify output plus the control screen.
 - [x] Multiple MoonLite BLE connections with saved per-device universe assignment, reconnect/remove and isolated output; 16 tests and browser assignment/removal checks pass. Physical BLE/CRMX reception remains unverified (hardware required).
 - [x] Patch top bar meta line cleaned: fixture count, watts and an ISO date (2026-10-14) on one non-wrapping row; browser verified at 1280 px.
 - [x] Move the fixture/watt/date line out of the Patch top bar to the right of Unpatch in the sticky selection toolbar; empty patches keep the count and date in the top bar; browser verified at 1530 px.
