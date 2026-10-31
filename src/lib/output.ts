@@ -206,12 +206,15 @@ function encode(f0: PatchedFixture, buf: Uint8Array, t: number, level: number, p
     });
     return;
   }
-  if (mode.pixels && pixels) {
+  if (mode.pixels) {
     const cpp = Math.max(3, Math.floor(mode.channels / mode.pixels));
-    const pv = f.on === false ? 0 : f.intensity * level;
-    pixels.forEach((c, i) => {
+    const pv = pixels ? (f.on === false ? 0 : f.intensity * level) : v;
+    // Without a PIXEL frame, ordinary fixture settings drive every cell,
+    // not just the first RGB/RGBW group in the fixture's footprint.
+    Array.from({ length: mode.pixels }, (_, i) => {
       const w = writer(buf, f.address + i * cpp, false);
-      const [pr, pg, pb] = reorder([c[0] / 255, c[1] / 255, c[2] / 255], order);
+      const c = pixels?.[i];
+      const [pr, pg, pb] = c ? reorder([c[0] / 255, c[1] / 255, c[2] / 255], order) : [r, g, b];
       const white = cpp >= 4 ? Math.min(pr, pg, pb) : 0;
       w((pr - white) * pv); w((pg - white) * pv); w((pb - white) * pv);
       if (cpp >= 4) w(white * pv);
