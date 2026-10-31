@@ -352,3 +352,5 @@
 - [x] PLOT props + Delete button
 - [x] PIXEL Preview/Live sliding toggle
 - [x] PLOT props: picking a prop only arms it — it lands centred on the floor point you tap (quarter-cell snap), tap again for more, press the prop again to stop; a faint preview follows the pointer. 2 new propSpot tests, typecheck and browser checks pass.
+- [x] PIXEL: Random pixels / Restore order per light; custom Formula effect (maths expression, presets)
+- [ ] PATCH Add fixtures like reference: Manufacturer | Model | Modes columns, DMX map only after a mode is picked, simpler filters
