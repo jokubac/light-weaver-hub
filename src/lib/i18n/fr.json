@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Touchez le sol pour placer l’accessoire choisi. Appuyez de nouveau sur l’accessoire pour arrêter.",
   "Add MoonLite": "Ajouter un MoonLite",
   "Reconnect": "Reconnecter",
-  "Connected": "Connecté"
+  "Connected": "Connecté",
+  "Show: all": "Afficher : tout",
+  "Show: lit + highlighted": "Afficher : allumées + surlignées",
+  "Show: highlighted": "Afficher : surlignées",
+  "Show: live": "Afficher : direct",
+  "Formula": "Formule",
+  "Softness": "Douceur",
+  "Advanced: type the maths": "Avancé : écrire le calcul",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Ce motif est écrit à la main — choisissez une image ci-dessus pour utiliser les réglages.",
+  "Wave": "Vague",
+  "Ripple": "Ondulation",
+  "Spiral": "Spirale",
+  "Diagonal": "Diagonale",
+  "Checker": "Damier",
+  "Bars": "Barres",
+  "Scanner": "Scanner",
+  "Breathing": "Respiration",
+  "Sparkle": "Scintillement"
 }

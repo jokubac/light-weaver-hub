@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Tippen Sie auf den Boden, um das gewählte Requisite zu platzieren. Drücken Sie das Requisite erneut, um zu stoppen.",
   "Add MoonLite": "MoonLite hinzufügen",
   "Reconnect": "Erneut verbinden",
-  "Connected": "Verbunden"
+  "Connected": "Verbunden",
+  "Show: all": "Zeigen: alle",
+  "Show: lit + highlighted": "Zeigen: leuchtend + markiert",
+  "Show: highlighted": "Zeigen: markiert",
+  "Show: live": "Zeigen: live",
+  "Formula": "Formel",
+  "Softness": "Weichheit",
+  "Advanced: type the maths": "Erweitert: Mathe eingeben",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Dieses Muster ist handgeschrieben – wähle oben ein Bild, um die Regler zu benutzen.",
+  "Wave": "Welle",
+  "Ripple": "Wellenring",
+  "Spiral": "Spirale",
+  "Diagonal": "Diagonale",
+  "Checker": "Schachbrett",
+  "Bars": "Balken",
+  "Scanner": "Scanner",
+  "Breathing": "Atmen",
+  "Sparkle": "Funkeln"
 }

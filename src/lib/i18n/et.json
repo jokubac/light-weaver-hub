@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Puudutage põrandat valitud rekvisiidi paigutamiseks. Peatumiseks vajutage rekvisiidile uuesti.",
   "Add MoonLite": "Lisa MoonLite",
   "Reconnect": "Ühenda uuesti",
-  "Connected": "Ühendatud"
+  "Connected": "Ühendatud",
+  "Show: all": "Kuva: kõik",
+  "Show: lit + highlighted": "Kuva: põlevad + esile tõstetud",
+  "Show: highlighted": "Kuva: esile tõstetud",
+  "Show: live": "Kuva: live",
+  "Formula": "Valem",
+  "Softness": "Pehmus",
+  "Advanced: type the maths": "Täpsem: kirjuta matemaatika",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Selle mustri on käsi kirjutanud — valige ülal pilt, et kasutada reguleid.",
+  "Wave": "Laine",
+  "Ripple": "Lainetus",
+  "Spiral": "Spiraal",
+  "Diagonal": "Diagonaal",
+  "Checker": "Ruudustik",
+  "Bars": "Talad",
+  "Scanner": "Skänner",
+  "Breathing": "Hingamine",
+  "Sparkle": "Sädelus"
 }

@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Tik op de vloer om het gekozen rekwisiet te plaatsen. Druk nogmaals op het rekwisiet om te stoppen.",
   "Add MoonLite": "MoonLite toevoegen",
   "Reconnect": "Opnieuw verbinden",
-  "Connected": "Verbonden"
+  "Connected": "Verbonden",
+  "Show: all": "Toon: alle",
+  "Show: lit + highlighted": "Toon: brandend + gemarkeerd",
+  "Show: highlighted": "Toon: gemarkeerd",
+  "Show: live": "Toon: live",
+  "Formula": "Formule",
+  "Softness": "Zachtheid",
+  "Advanced: type the maths": "Geavanceerd: typ de wiskunde",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Dit patroon is met de hand geschreven — kies hierboven een afbeelding om de knoppen te gebruiken.",
+  "Wave": "Golf",
+  "Ripple": "Rimpeling",
+  "Spiral": "Spiraal",
+  "Diagonal": "Diagonaal",
+  "Checker": "Dambord",
+  "Bars": "Balken",
+  "Scanner": "Scanner",
+  "Breathing": "Ademhaling",
+  "Sparkle": "Glinster"
 }

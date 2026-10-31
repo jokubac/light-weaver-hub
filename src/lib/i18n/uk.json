@@ -1101,5 +1101,22 @@
   "Tap the floor to place the prop you picked. Press the prop again to stop.": "Торкніться підлоги, щоб розмістити вибраний реквізит. Натисніть реквізит ще раз, щоб зупинити.",
   "Add MoonLite": "Додати MoonLite",
   "Reconnect": "Підключити знову",
-  "Connected": "Підключено"
+  "Connected": "Підключено",
+  "Show: all": "Показати: усі",
+  "Show: lit + highlighted": "Показати: світні + позначені",
+  "Show: highlighted": "Показати: позначені",
+  "Show: live": "Показати: наживо",
+  "Formula": "Формула",
+  "Softness": "М'якість",
+  "Advanced: type the maths": "Додатково: вписати математику",
+  "This pattern was written by hand — pick a picture above to use the dials.": "Цей візерунок написано вручну — виберіть зображення вище, щоб користуватися регуляторами.",
+  "Wave": "Хвиля",
+  "Ripple": "Рябь",
+  "Spiral": "Спіраль",
+  "Diagonal": "Діагональ",
+  "Checker": "Шахівниця",
+  "Bars": "Смуги",
+  "Scanner": "Сканер",
+  "Breathing": "Дихання",
+  "Sparkle": "Іскріння"
 }
