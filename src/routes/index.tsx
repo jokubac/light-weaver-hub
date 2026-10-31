@@ -1,4 +1,5 @@
 import { shufflePixels } from "@/lib/pixel-shuffle";
+import { fixtureVisible, type FixtureView } from "@/lib/fixture-view";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { subscribeLang, langVersion, loadSavedLang, getLang, isRtl } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
@@ -532,6 +533,11 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
   const [locked, setLocked] = useState(true);
   const [plot, setPlot] = useState<Plot>(() => scene.plot ?? emptyPlot());
   const [fixturesOpen, setFixturesOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState<string[]>([]);
+  const [fixView, setFixView] = useState<FixtureView>("all");
+  useEffect(() => { try { setHighlighted(JSON.parse(localStorage.getItem("nox-highlighted") ?? "[]")); setFixView((localStorage.getItem("nox-fixture-view") as FixtureView) || "all"); } catch { /* ignore */ } }, []);
+  const saveHighlighted = (h: string[]) => { setHighlighted(h); try { localStorage.setItem("nox-highlighted", JSON.stringify(h)); } catch { /* ignore */ } };
+  const saveFixView = (v: FixtureView) => { setFixView(v); try { localStorage.setItem("nox-fixture-view", v); } catch { /* ignore */ } };
   const [gridOpen, setGridOpen] = useState(false);
   const [pixOpen, setPixOpen] = useState(false);
   const [fadersPage, setFadersPage] = useState(false);
@@ -1568,6 +1574,16 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                    {locked ? <Lock /> : <Unlock />}
                  </Button>
                  <button aria-label={tr("Macro timeline")} title={tr("Macro timeline")} onClick={() => setTimelineOpen(true)} className={chip(false)}><History /></button>
+                <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+                {(() => { const allHl = selected.length > 0 && selected.every((u) => highlighted.includes(u)); return (
+                  <button aria-pressed={allHl} disabled={!selected.length} title={tr("Highlight the selected lights so they stay easy to find, even at 0%")}
+                    onClick={() => saveHighlighted(allHl ? highlighted.filter((u) => !selected.includes(u)) : [...new Set([...highlighted, ...selected])])}
+                    className={`${chip(allHl)} disabled:opacity-40`}><Star className="h-3.5 w-3.5" />{allHl ? tr("Unhighlight") : tr("Highlight")}{highlighted.length > 0 && <span className="ml-1 font-mono text-[10px] text-warning">{highlighted.length}</span>}</button>); })()}
+                <select value={fixView} onChange={(e) => saveFixView(e.target.value as FixtureView)} aria-label={tr("Show lights")} className="h-8 rounded-md border border-input bg-surface-elevated px-2 text-[11px] font-semibold">
+                  <option value="all">{tr("Show: all")}</option>
+                  <option value="live">{tr("Show: lit + highlighted")}</option>
+                  <option value="hl">{tr("Show: highlighted")}</option>
+                </select>
                 <span className="ml-auto font-mono text-[10px] text-muted-foreground">{selected.length}{tr("selected")}</span>
               </div>
               <div className="fixture-grid" style={sweep ? { touchAction: "none" } : undefined}
@@ -1584,11 +1600,14 @@ function ConsoleScreen({ project, scene, projects, onSwitch, onSave, onExit, onL
                   const pix = frame.get(f.uid);
                   const pv = of.on === false ? 0 : of.intensity * outLevel;
                   const [gc, gr] = pixelGrid(f);
+                  const hl = highlighted.includes(f.uid);
+                  if (!fixtureVisible(fixView, pv, hl) && !isSel) return null;
                   return (
                      <div key={f.uid} data-fixture={f.uid} role="button" aria-label={`${swapping ? "Swap" : "Select"} fixture ${i + 1}, ${f.name}`} aria-pressed={swapping ? swapSource === f.uid : isSel} tabIndex={0} onPointerDown={() => { if (!sweep && !swapping) tileDown(f.uid); }} onPointerUp={() => tileUp(f.uid)} onPointerCancel={() => tileUp(f.uid)} onClick={(e) => { if (swapping) swapTile(f.uid); else if (!sweep) tileClick(e, f.uid); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (swapping) swapTile(f.uid); else toggleSelect(f.uid); } if (e.key === "Escape") { setSwapSource(null); setSwapping(false); } }}
-                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : "border-border"} ${cursor === f.uid && browsing.current ? "ring-2 ring-foreground/70 ring-offset-1 ring-offset-background bg-foreground/5" : ""}`}>
+                       className={`relative flex aspect-square min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-1.5 text-left transition active:scale-95 ${swapping && swapSource === f.uid ? "border-primary bg-primary/15 ring-2 ring-primary" : isSel ? "border-primary bg-primary/5" : hl ? "border-warning" : "border-border"} ${hl ? "ring-2 ring-warning/70" : ""} ${cursor === f.uid && browsing.current ? "ring-2 ring-foreground/70 ring-offset-1 ring-offset-background bg-foreground/5" : ""}`}>
                       {f.label && <div className="absolute inset-x-0 top-0 h-1" style={{ background: f.label }} />}
                       <span aria-hidden="true" className="pointer-events-none absolute left-1 top-1.5 z-10 rounded bg-surface-elevated/90 px-1 font-mono text-[9px] font-semibold leading-tight text-foreground/80">#{i + 1}</span>
+                      {hl && <Star aria-label={tr("Highlighted")} className="pointer-events-none absolute right-1 bottom-6 z-10 h-3.5 w-3.5 fill-warning text-warning" />}
                       {parked[f.uid] && <span title={tr("Parked")} aria-label={tr("Parked")} className="pointer-events-none absolute right-1 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded bg-primary px-1 font-mono text-[9px] font-bold leading-none text-primary-foreground shadow">P</span>}
 
                       <FixtureGlyph className="min-h-0 w-full flex-1" model={def.model} icon={f.icon} colour={color} pixels={pix?.map((c) => `rgb(${c[0]*pv},${c[1]*pv},${c[2]*pv})`)} />
